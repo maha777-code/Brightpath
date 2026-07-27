@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useProfile } from '@/hooks/useProfile';
 import { SUBJECT_META } from '@/types';
 import { loadProgress } from '@/lib/storage';
@@ -50,13 +51,18 @@ export default function ProgressPage() {
         const prog = progress.find((p) => p.subject === subject);
 
         return (
-          <div key={subject} className="card" style={{ marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link
+            key={subject}
+            to={`/learn/${subject}`}
+            className="card subject-card"
+            style={{ marginBottom: 12, textDecoration: 'none' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
               <span style={{ fontSize: '1.5rem' }}>{meta.emoji}</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 800 }}>{meta.label}</div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--slate-600)' }}>
-                  {prog ? `${prog.lessonsCompleted} lessons · ${prog.masteryPercent}% mastery` : 'Not started yet'}
+                  {prog ? `${prog.lessonsCompleted} lessons · ${prog.masteryPercent}% mastery` : 'Not started yet — tap to begin'}
                 </div>
                 {prog && (
                   <div className="mastery-bar">
@@ -67,11 +73,13 @@ export default function ProgressPage() {
                   </div>
                 )}
               </div>
-              {prog && prog.streakDays > 0 && (
+              {prog && prog.streakDays > 0 ? (
                 <div className="streak-badge">🔥 {prog.streakDays}d</div>
+              ) : (
+                <span style={{ color: 'var(--slate-400)', fontSize: '1.25rem' }}>→</span>
               )}
             </div>
-          </div>
+          </Link>
         );
       })}
 
