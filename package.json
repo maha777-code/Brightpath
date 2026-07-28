@@ -1,25 +1,23 @@
 {
   "name": "brightpath",
   "private": true,
-  "version": "0.1.0",
-  "type": "module",
+  "version": "0.2.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-router-dom": "^7.1.0"
+    "dev": "concurrently -n web,api -c blue,green \"npm run dev -w @brightpath/web\" \"npm run dev -w @brightpath/api\"",
+    "dev:web": "npm run dev -w @brightpath/web",
+    "dev:api": "npm run dev -w @brightpath/api",
+    "build": "npm run build -w @brightpath/shared && npm run build -w @brightpath/i18n && npm run build -w @brightpath/api && npm run build -w @brightpath/web",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "db:migrate": "npm run db:migrate -w @brightpath/api",
+    "db:push": "npm run db:push -w @brightpath/api",
+    "migrate:monorepo": "node scripts/migrate-monorepo.mjs"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "@types/node": "^22.10.0",
-    "typescript": "~5.7.2",
-    "vite": "^6.0.0",
-    "vite-plugin-pwa": "^0.21.1"
+    "concurrently": "^9.1.0"
   }
 }

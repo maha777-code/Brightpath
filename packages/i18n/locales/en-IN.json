@@ -1,0 +1,44 @@
+{
+  "app": {
+    "name": "BrightPath",
+    "tagline": "One-on-one tutoring for every child — at app prices."
+  },
+  "auth": {
+    "login": "Log in",
+    "register": "Create parent account",
+    "logout": "Log out",
+    "email": "Email",
+    "password": "Password",
+    "name": "Your name",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "parentRequired": "A parent account is required before children can learn."
+  },
+  "parent": {
+    "home": "Parent dashboard",
+    "children": "Your children",
+    "addChild": "Add child",
+    "manageChildren": "Manage profiles",
+    "selectChild": "Select a child to start learning",
+    "welcome": "Welcome, {{name}}"
+  },
+  "child": {
+    "name": "Child's first name",
+    "age": "Age",
+    "subjects": "Subjects",
+    "save": "Save profile",
+    "delete": "Remove profile",
+    "edit": "Edit profile"
+  },
+  "nav": {
+    "home": "Home",
+    "progress": "Progress",
+    "settings": "Settings"
+  },
+  "common": {
+    "continue": "Continue",
+    "back": "Back",
+    "loading": "Loading…",
+    "error": "Something went wrong. Please try again."
+  }
+}

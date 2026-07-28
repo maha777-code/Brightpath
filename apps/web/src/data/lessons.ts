@@ -1,0 +1,90 @@
+import type { Lesson } from '@/types';
+
+export const lessons: Lesson[] = [
+  {
+    id: 'read-57-phonics',
+    subject: 'reading',
+    ageBand: '5-7',
+    title: 'Letter Sounds Adventure',
+    description: 'Learn how letters make sounds — the first step to reading any word.',
+    durationMin: 10,
+    steps: [
+      {
+        id: 's1',
+        tutorPrompt: 'Let\'s start easy! What sound does the letter **B** make? (Just the sound, like "buh")',
+        acceptableAnswers: ['b', 'buh', '/b/', 'b sound'],
+        hint: 'Think of a **ball** — what sound does "ball" start with?',
+        explanation: 'The letter B makes a "buh" sound, like in ball, bat, and book.',
+        skillTag: 'phonics-consonants',
+      },
+      {
+        id: 's2',
+        tutorPrompt: 'Great! Now — what sound does **M** make?',
+        acceptableAnswers: ['m', 'mmm', 'muh', '/m/', 'm sound'],
+        hint: 'Think of **mom** or **moo** — that first sound!',
+        explanation: 'M makes an "mmm" sound. Your lips come together gently.',
+        skillTag: 'phonics-consonants',
+      },
+      {
+        id: 's3',
+        tutorPrompt: 'Now let\'s blend two sounds: **B** + **A** = ? What word does that make?',
+        acceptableAnswers: ['ba', 'bah', 'baa'],
+        hint: 'Say "buh" then "ah" quickly together.',
+        explanation: 'Blending means pushing sounds together smoothly — B + A = "ba".',
+        skillTag: 'phonics-blending',
+      },
+      {
+        id: 's4',
+        tutorPrompt: 'Can you read this word by sounding it out? **C-A-T**',
+        acceptableAnswers: ['cat'],
+        hint: 'C says "kuh", A says "ah", T says "tuh". Put them together!',
+        explanation: 'Cat! You just read your first word by blending letter sounds.',
+        skillTag: 'phonics-blending',
+      },
+    ],
+  },
+  {
+    id: 'math-57-counting',
+    subject: 'math',
+    ageBand: '5-7',
+    title: 'Counting & Adding',
+    description: 'Build number sense with counting and simple addition.',
+    durationMin: 10,
+    steps: [
+      {
+        id: 's1',
+        tutorPrompt: 'If you have 3 apples and get 2 more, how many apples do you have?',
+        acceptableAnswers: ['5', 'five'],
+        hint: 'Hold up 3 fingers, then add 2 more.',
+        explanation: '3 + 2 = 5. Addition means putting groups together.',
+        skillTag: 'addition-within-10',
+      },
+      {
+        id: 's2',
+        tutorPrompt: 'What is 4 + 3?',
+        acceptableAnswers: ['7', 'seven'],
+        hint: 'Start at 4 and count up 3.',
+        explanation: '4 + 3 = 7.',
+        skillTag: 'addition-within-10',
+      },
+    ],
+  },
+  {
+    id: 'write-810-paragraph',
+    subject: 'writing',
+    ageBand: '8-10',
+    title: 'Building a Paragraph',
+    description: 'Write a paragraph with a topic sentence and details.',
+    durationMin: 15,
+    steps: [
+      {
+        id: 's1',
+        tutorPrompt: 'Write a **topic sentence** about your favorite season.',
+        expectedPatterns: /.+/,
+        hint: 'Example: "Summer is my favorite season because..."',
+        explanation: 'A topic sentence sets up everything that follows.',
+        skillTag: 'topic-sentence',
+      },
+    ],
+  },
+];
