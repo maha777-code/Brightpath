@@ -46,7 +46,7 @@ export default function Dashboard() {
           );
         })}
       </div>
-      <BottomNav active="home" />
+      <BottomNav active="learn" />
     </div>
   );
 }
