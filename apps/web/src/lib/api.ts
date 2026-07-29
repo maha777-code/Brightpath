@@ -9,10 +9,17 @@ function authHeaders(): HeadersInit {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: { ...authHeaders(), ...init?.headers },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      ...init,
+      headers: { ...authHeaders(), ...init?.headers },
+    });
+  } catch {
+    throw new Error(
+      'Cannot reach the API server. From the project root run: npm run dev (starts web + api). Check http://localhost:3001/health',
+    );
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error ?? 'Request failed');

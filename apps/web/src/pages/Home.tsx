@@ -1,10 +1,16 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 
 export default function Home() {
   const { t } = useTranslation();
-  const { parent } = useAuth();
+  const { parent, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <div className="page">
@@ -28,6 +34,12 @@ export default function Home() {
       <Link to={parent ? '/parent' : '/register'} className="btn btn-primary">
         {parent ? t('parent.home') : t('auth.register')}
       </Link>
+
+      {parent && (
+        <button type="button" className="btn btn-ghost" style={{ marginTop: 8 }} onClick={handleLogout}>
+          {t('auth.logout')}
+        </button>
+      )}
 
       {!parent && (
         <p style={{ textAlign: 'center', marginTop: 16, fontSize: '0.9rem' }}>

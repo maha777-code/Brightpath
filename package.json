@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n web,api -c blue,green \"npm run dev -w @brightpath/web\" \"npm run dev -w @brightpath/api\"",
+    "dev": "npm run build -w @brightpath/shared && npm run build -w @brightpath/i18n && concurrently -n shared,i18n,web,api -c yellow,cyan,blue,green \"npm run dev -w @brightpath/shared\" \"npm run dev -w @brightpath/i18n\" \"npm run dev -w @brightpath/web\" \"npm run dev -w @brightpath/api\"",
     "dev:web": "npm run dev -w @brightpath/web",
     "dev:api": "npm run dev -w @brightpath/api",
     "build": "npm run build -w @brightpath/shared && npm run build -w @brightpath/i18n && npm run build -w @brightpath/api && npm run build -w @brightpath/web",
