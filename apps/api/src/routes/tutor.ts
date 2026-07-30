@@ -75,8 +75,9 @@ router.post('/greeting', requireAuth, async (req: AuthRequest, res) => {
     const result = await generateGreeting(parsed.data);
     res.json(result);
   } catch (err) {
-    console.error('Tutor greeting error:', err);
-    res.status(502).json({ error: 'Tutor unavailable', fallback: true });
+    const message = err instanceof Error ? err.message : 'Tutor unavailable';
+    console.error('Tutor greeting error:', message);
+    res.status(502).json({ error: message, fallback: true });
   }
 });
 
@@ -96,8 +97,9 @@ router.post('/respond', requireAuth, async (req: AuthRequest, res) => {
     const result = await evaluateAnswer(parsed.data);
     res.json(result);
   } catch (err) {
-    console.error('Tutor respond error:', err);
-    res.status(502).json({ error: 'Tutor unavailable', fallback: true });
+    const message = err instanceof Error ? err.message : 'Tutor unavailable';
+    console.error('Tutor respond error:', message);
+    res.status(502).json({ error: message, fallback: true });
   }
 });
 

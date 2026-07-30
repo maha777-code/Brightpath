@@ -13,6 +13,7 @@ import {
 import { updateProgressAfterLesson, saveSession } from '@/lib/storage';
 import { api } from '@/lib/api';
 import type { Locale, Subject } from '@brightpath/shared';
+import { ageToBand } from '@brightpath/shared';
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -37,6 +38,8 @@ export default function TutorSession() {
   const [showHint, setShowHint] = useState(false);
   const [waiting, setWaiting] = useState(false);
   const [llmAvailable, setLlmAvailable] = useState(false);
+  const [llmLive, setLlmLive] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const lessons = profile ? getLessonsFor(validSubject, profile.ageBand) : [];
   const lesson = lessons.find((l) => l.id === selectedLessonId);
@@ -48,6 +51,18 @@ export default function TutorSession() {
       .then((s) => setLlmAvailable(s.llmAvailable))
       .catch(() => setLlmAvailable(false));
   }, []);
+
+  const tutorContext = useCallback(() => {
+    if (!profile) return null;
+    const locale = (localStorage.getItem('brightpath_locale') as Locale | null) ?? 'en-IN';
+    return {
+      childName: profile.name,
+      age: profile.age,
+      ageBand: ageToBand(profile.age),
+      locale,
+      subject: validSubject as Subject,
+    };
+  }, [profile, validSubject]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -88,19 +103,21 @@ export default function TutorSession() {
 
     if (llmAvailable) {
       try {
-        const locale = (localStorage.getItem('brightpath_locale') as Locale | null) ?? 'en-IN';
+        const ctx = tutorContext();
+        if (!ctx) return;
         const { greeting: aiGreeting } = await api.tutorGreeting({
-          childName: profile.name,
-          age: profile.age,
-          ageBand: profile.ageBand,
-          locale,
-          subject: validSubject as Subject,
+          ...ctx,
           lessonTitle: l.title,
           firstPrompt,
         });
         greeting = aiGreeting;
-      } catch {
-        /* use scripted greeting */
+        setLlmLive(true);
+        setAiError(null);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'AI unavailable';
+        console.warn('[Tutor] AI greeting failed:', msg);
+        setAiError(msg);
+        setLlmLive(false);
       }
     }
 
@@ -152,14 +169,11 @@ export default function TutorSession() {
     setWaiting(true);
 
     try {
-      const locale = (localStorage.getItem('brightpath_locale') as Locale | null) ?? 'en-IN';
+      const ctx = tutorContext();
+      if (!ctx) return;
       const history = messages.map((m) => ({ role: m.role, content: m.content }));
       const result = await api.tutorRespond({
-        childName: profile.name,
-        age: profile.age,
-        ageBand: profile.ageBand,
-        locale,
-        subject: validSubject as Subject,
+        ...ctx,
         lessonId: lesson.id,
         lessonTitle: lesson.title,
         stepIndex,
@@ -177,6 +191,9 @@ export default function TutorSession() {
         history,
       });
 
+      setLlmLive(true);
+      setAiError(null);
+
       if (result.showHint) setShowHint(true);
       addMessage('tutor', result.message, { celebrate: result.isCorrect, hint: result.showHint ? currentStep.hint : undefined });
 
@@ -193,7 +210,11 @@ export default function TutorSession() {
           setShowHint(false);
         }
       }
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'AI unavailable';
+      console.warn('[Tutor] AI respond failed, using scripted fallback:', msg);
+      setAiError(msg);
+      setLlmLive(false);
       const correct = checkAnswer(answer, currentStep);
       const encouragement = tutorEncouragement(profile.name, correct);
       if (correct) {
@@ -225,6 +246,8 @@ export default function TutorSession() {
     else void handleSubmitScripted();
   };
 
+  const aiBadgeLabel = llmLive ? '✨ AI tutor live' : llmAvailable ? '✨ AI enabled (connecting…)' : null;
+
   if (!profile || !meta) return null;
 
   if (phase === 'pick') {
@@ -237,8 +260,13 @@ export default function TutorSession() {
           <p className="page-subtitle">
             Pick a lesson — your tutor will guide you through it.
             {llmAvailable && (
-              <span style={{ display: 'block', marginTop: 6, color: 'var(--indigo)', fontWeight: 700 }}>
-                ✨ AI tutor enabled (Phase 1)
+              <span style={{ display: 'block', marginTop: 6, color: llmLive ? 'var(--green)' : 'var(--indigo)', fontWeight: 700 }}>
+                {aiBadgeLabel ?? '✨ AI tutor enabled (Phase 1)'}
+              </span>
+            )}
+            {aiError && (
+              <span style={{ display: 'block', marginTop: 6, color: '#dc2626', fontSize: '0.85rem' }}>
+                AI error: {aiError.slice(0, 120)} — using backup tutor. Check API key & restart server.
               </span>
             )}
           </p>
@@ -262,7 +290,7 @@ export default function TutorSession() {
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate('/dashboard')}>←</button>
         <div className="tutor-avatar">👩‍🏫</div>
         <div>
-          <div className="tutor-info-name">Ms. Bright{llmAvailable ? ' · AI' : ''}</div>
+          <div className="tutor-info-name">Ms. Bright{llmLive ? ' · AI' : llmAvailable ? ' · AI?' : ''}</div>
           <div className="tutor-info-subject">{meta.label} · {lesson?.title}</div>
         </div>
       </header>
