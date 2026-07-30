@@ -36,6 +36,11 @@ import type {
   ChildProfile,
   CreateChildRequest,
   UpdateChildRequest,
+  TutorRespondRequest,
+  TutorRespondResponse,
+  TutorStatusResponse,
+  TutorGreetingRequest,
+  TutorGreetingResponse,
 } from '@brightpath/shared';
 
 export const api = {
@@ -57,6 +62,14 @@ export const api = {
 
   deleteChild: (id: string) =>
     request<void>(`/children/${id}`, { method: 'DELETE' }),
+
+  tutorStatus: () => request<TutorStatusResponse>('/tutor/status'),
+
+  tutorGreeting: (body: TutorGreetingRequest) =>
+    request<TutorGreetingResponse>('/tutor/greeting', { method: 'POST', body: JSON.stringify(body) }),
+
+  tutorRespond: (body: TutorRespondRequest) =>
+    request<TutorRespondResponse>('/tutor/respond', { method: 'POST', body: JSON.stringify(body) }),
 };
 
 export function saveAuth(token: string, parent: ParentUser) {

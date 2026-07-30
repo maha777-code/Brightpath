@@ -18,10 +18,10 @@ function run(cmd) {
   }
 }
 
-writeFileSync(log, `Sync started ${new Date().toISOString()}\n`);
+writeFileSync(log, `Push ${new Date().toISOString()}\n`);
 run('git status --porcelain');
 run('git add -A');
-run('git commit -m "feat: add logout on home; fix dev build and CORS for local ports"');
+run('git commit -m "fix: bottom nav Home goes to app root; add Learn tab for dashboard"');
 run('git push origin main');
 run('git log -1 --oneline');
 appendFileSync(log, '\nDONE\n');

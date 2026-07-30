@@ -12,6 +12,7 @@ import cors from 'cors';
 import { createClient } from 'redis';
 import authRoutes from './routes/auth.js';
 import childrenRoutes from './routes/children.js';
+import tutorRoutes from './routes/tutor.js';
 
 const PORT = Number(process.env.API_PORT ?? 3001);
 
@@ -33,11 +34,18 @@ app.use(
 app.use(express.json());
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'brightpath-api', phase: 0 });
+  const llm = Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);
+  res.json({
+    status: 'ok',
+    service: 'brightpath-api',
+    phase: llm ? 1 : 0,
+    llm,
+  });
 });
 
 app.use('/auth', authRoutes);
 app.use('/children', childrenRoutes);
+app.use('/tutor', tutorRoutes);
 
 async function start() {
   if (process.env.REDIS_URL) {

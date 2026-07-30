@@ -78,3 +78,13 @@ export interface UpdateChildRequest {
   subjects?: Subject[];
   locale?: Locale;
 }
+
+export type {
+  TutorMessageInput,
+  TutorStepContext,
+  TutorRespondRequest,
+  TutorRespondResponse,
+  TutorStatusResponse,
+  TutorGreetingRequest,
+  TutorGreetingResponse,
+} from './tutor.js';

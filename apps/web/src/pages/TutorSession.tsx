@@ -11,6 +11,8 @@ import {
   buildSessionSummary,
 } from '@/lib/tutorEngine';
 import { updateProgressAfterLesson, saveSession } from '@/lib/storage';
+import { api } from '@/lib/api';
+import type { Locale, Subject } from '@brightpath/shared';
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -34,11 +36,18 @@ export default function TutorSession() {
   const [correctCount, setCorrectCount] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [waiting, setWaiting] = useState(false);
+  const [llmAvailable, setLlmAvailable] = useState(false);
 
   const lessons = profile ? getLessonsFor(validSubject, profile.ageBand) : [];
   const lesson = lessons.find((l) => l.id === selectedLessonId);
   const currentStep = lesson?.steps[stepIndex];
   const progressPct = lesson ? (stepIndex / lesson.steps.length) * 100 : 0;
+
+  useEffect(() => {
+    api.tutorStatus()
+      .then((s) => setLlmAvailable(s.llmAvailable))
+      .catch(() => setLlmAvailable(false));
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,32 +57,62 @@ export default function TutorSession() {
     setMessages((prev) => [...prev, { id: uid(), role, content, timestamp: Date.now(), ...extra }]);
   }, []);
 
-  const startLesson = (lessonId: string) => {
+  const finishSession = useCallback(
+    (finalCorrect: number) => {
+      if (!profile || !lesson) return;
+      const total = lesson.steps.length;
+      addMessage('tutor', buildSessionSummary(profile.name, finalCorrect, total, validSubject), {
+        celebrate: true,
+      });
+      updateProgressAfterLesson(validSubject, finalCorrect / total);
+      saveSession(null);
+      setPhase('done');
+    },
+    [addMessage, lesson, profile, validSubject],
+  );
+
+  const startLesson = async (lessonId: string) => {
     if (!profile) return;
     const l = lessons.find((x) => x.id === lessonId);
     if (!l) return;
+
     setSelectedLessonId(lessonId);
     setStepIndex(0);
     setCorrectCount(0);
     setShowHint(false);
     setPhase('session');
+    setWaiting(true);
+
+    const firstPrompt = l.steps[0].tutorPrompt;
+    let greeting = buildTutorGreeting(profile.name, validSubject);
+
+    if (llmAvailable) {
+      try {
+        const locale = (localStorage.getItem('brightpath_locale') as Locale | null) ?? 'en-IN';
+        const { greeting: aiGreeting } = await api.tutorGreeting({
+          childName: profile.name,
+          age: profile.age,
+          ageBand: profile.ageBand,
+          locale,
+          subject: validSubject as Subject,
+          lessonTitle: l.title,
+          firstPrompt,
+        });
+        greeting = aiGreeting;
+      } catch {
+        /* use scripted greeting */
+      }
+    }
+
     setMessages([
-      { id: uid(), role: 'tutor', content: buildTutorGreeting(profile.name, validSubject), timestamp: Date.now() },
-      { id: uid(), role: 'tutor', content: l.steps[0].tutorPrompt, timestamp: Date.now() + 1 },
+      { id: uid(), role: 'tutor', content: greeting, timestamp: Date.now() },
+      { id: uid(), role: 'tutor', content: firstPrompt, timestamp: Date.now() + 1 },
     ]);
+    setWaiting(false);
     setTimeout(() => inputRef.current?.focus(), 300);
   };
 
-  const finishSession = (finalCorrect: number) => {
-    if (!profile || !lesson) return;
-    const total = lesson.steps.length;
-    addMessage('tutor', buildSessionSummary(profile.name, finalCorrect, total, validSubject), { celebrate: true });
-    updateProgressAfterLesson(validSubject, finalCorrect / total);
-    saveSession(null);
-    setPhase('done');
-  };
-
-  const handleSubmit = async () => {
+  const handleSubmitScripted = async () => {
     if (!input.trim() || !profile || !lesson || !currentStep || waiting) return;
     const answer = input.trim();
     setInput('');
@@ -105,6 +144,87 @@ export default function TutorSession() {
     inputRef.current?.focus();
   };
 
+  const handleSubmitLlm = async () => {
+    if (!input.trim() || !profile || !lesson || !currentStep || waiting) return;
+    const answer = input.trim();
+    setInput('');
+    addMessage('learner', answer);
+    setWaiting(true);
+
+    try {
+      const locale = (localStorage.getItem('brightpath_locale') as Locale | null) ?? 'en-IN';
+      const history = messages.map((m) => ({ role: m.role, content: m.content }));
+      const result = await api.tutorRespond({
+        childName: profile.name,
+        age: profile.age,
+        ageBand: profile.ageBand,
+        locale,
+        subject: validSubject as Subject,
+        lessonId: lesson.id,
+        lessonTitle: lesson.title,
+        stepIndex,
+        totalSteps: lesson.steps.length,
+        step: {
+          id: currentStep.id,
+          tutorPrompt: currentStep.tutorPrompt,
+          hint: currentStep.hint,
+          explanation: currentStep.explanation,
+          skillTag: currentStep.skillTag,
+          acceptableAnswers: currentStep.acceptableAnswers,
+        },
+        studentAnswer: answer,
+        priorHintShown: showHint,
+        history,
+      });
+
+      if (result.showHint) setShowHint(true);
+      addMessage('tutor', result.message, { celebrate: result.isCorrect, hint: result.showHint ? currentStep.hint : undefined });
+
+      if (result.advanceStep) {
+        const newCorrect = result.isCorrect ? correctCount + 1 : correctCount;
+        if (result.isCorrect) setCorrectCount(newCorrect);
+
+        if (result.sessionComplete) {
+          finishSession(newCorrect);
+        } else if (stepIndex + 1 < lesson.steps.length) {
+          await new Promise((r) => setTimeout(r, 600));
+          addMessage('tutor', lesson.steps[stepIndex + 1].tutorPrompt);
+          setStepIndex((i) => i + 1);
+          setShowHint(false);
+        }
+      }
+    } catch {
+      const correct = checkAnswer(answer, currentStep);
+      const encouragement = tutorEncouragement(profile.name, correct);
+      if (correct) {
+        const newCorrect = correctCount + 1;
+        setCorrectCount(newCorrect);
+        addMessage('tutor', `${encouragement}\n\n${currentStep.explanation}`, { celebrate: true });
+        if (stepIndex + 1 < lesson.steps.length) {
+          addMessage('tutor', lesson.steps[stepIndex + 1].tutorPrompt);
+          setStepIndex((i) => i + 1);
+          setShowHint(false);
+        } else {
+          finishSession(newCorrect);
+        }
+      } else {
+        addMessage('tutor', encouragement);
+        if (!showHint) {
+          addMessage('tutor', `💡 Hint: ${currentStep.hint}`, { hint: currentStep.hint });
+          setShowHint(true);
+        }
+      }
+    }
+
+    setWaiting(false);
+    inputRef.current?.focus();
+  };
+
+  const handleSubmit = () => {
+    if (llmAvailable) void handleSubmitLlm();
+    else void handleSubmitScripted();
+  };
+
   if (!profile || !meta) return null;
 
   if (phase === 'pick') {
@@ -114,11 +234,18 @@ export default function TutorSession() {
         <button type="button" className="btn btn-ghost" onClick={() => navigate('/dashboard')}>← Back</button>
         <div className="page-header">
           <h1 className="page-title">{meta.emoji} {meta.label}</h1>
-          <p className="page-subtitle">Pick a lesson — your tutor will guide you through it.</p>
+          <p className="page-subtitle">
+            Pick a lesson — your tutor will guide you through it.
+            {llmAvailable && (
+              <span style={{ display: 'block', marginTop: 6, color: 'var(--indigo)', fontWeight: 700 }}>
+                ✨ AI tutor enabled (Phase 1)
+              </span>
+            )}
+          </p>
         </div>
         <div className="lesson-picker">
           {lessons.map((l) => (
-            <button key={l.id} type="button" className={`lesson-option ${l.id === recommended?.id ? 'selected' : ''}`} onClick={() => startLesson(l.id)}>
+            <button key={l.id} type="button" className={`lesson-option ${l.id === recommended?.id ? 'selected' : ''}`} onClick={() => void startLesson(l.id)}>
               <div className="lesson-option-title">{l.id === recommended?.id && '⭐ '}{l.title}</div>
               <div className="lesson-option-meta">{l.durationMin} min · {l.steps.length} questions</div>
             </button>
@@ -135,7 +262,7 @@ export default function TutorSession() {
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate('/dashboard')}>←</button>
         <div className="tutor-avatar">👩‍🏫</div>
         <div>
-          <div className="tutor-info-name">Ms. Bright</div>
+          <div className="tutor-info-name">Ms. Bright{llmAvailable ? ' · AI' : ''}</div>
           <div className="tutor-info-subject">{meta.label} · {lesson?.title}</div>
         </div>
       </header>
@@ -148,8 +275,8 @@ export default function TutorSession() {
       </div>
       {phase === 'session' ? (
         <div className="tutor-input-bar">
-          <textarea ref={inputRef} className="tutor-input" rows={1} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSubmit(); } }} placeholder="Type your answer..." disabled={waiting} />
-          <button type="button" className="tutor-send" onClick={() => void handleSubmit()} disabled={!input.trim() || waiting}>↑</button>
+          <textarea ref={inputRef} className="tutor-input" rows={1} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }} placeholder="Type your answer..." disabled={waiting} />
+          <button type="button" className="tutor-send" onClick={handleSubmit} disabled={!input.trim() || waiting}>↑</button>
         </div>
       ) : (
         <div style={{ padding: 16 }}><button type="button" className="btn btn-primary" onClick={() => navigate('/dashboard')}>Back to Dashboard</button></div>
