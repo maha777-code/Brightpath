@@ -12,6 +12,7 @@ export interface LlmProvider {
 
 /** Active Gemini models — new API keys need 3.x (2.5 blocked for new users, Jul 2026). */
 const GEMINI_MODEL_DEFAULTS = [
+  'gemini-3.6-flash',
   'gemini-3.1-flash-lite',
   'gemini-3.5-flash',
   'gemini-3.5-flash-lite',

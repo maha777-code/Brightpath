@@ -400,6 +400,36 @@ body {
   color: var(--slate-600);
 }
 
+.tutor-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tutor-speaking-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--indigo);
+}
+
+.tutor-voice-toggle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--slate-200);
+  background: white;
+  font-size: 1.1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tutor-voice-toggle.on {
+  border-color: var(--indigo);
+  background: var(--indigo-50, #eef2ff);
+}
+
 .tutor-messages {
   flex: 1;
   overflow-y: auto;
@@ -417,6 +447,27 @@ body {
   font-size: 0.95rem;
   line-height: 1.5;
   animation: fadeUp 0.3s ease;
+  position: relative;
+}
+
+.message-content {
+  white-space: pre-wrap;
+}
+
+.message-replay {
+  margin-top: 8px;
+  padding: 4px 8px;
+  border: none;
+  background: var(--slate-100);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.message-replay:hover {
+  opacity: 1;
+  background: var(--slate-200);
 }
 
 @keyframes fadeUp {
@@ -465,6 +516,46 @@ body {
   background: white;
   border-top: 1px solid var(--slate-200);
   flex-shrink: 0;
+  align-items: flex-end;
+}
+
+.tutor-mic {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--slate-100);
+  border: 2px solid var(--slate-200);
+  font-size: 1.2rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.tutor-mic:hover:not(:disabled) {
+  background: var(--slate-200);
+}
+
+.tutor-mic.listening {
+  background: #fef2f2;
+  border-color: #ef4444;
+  animation: micPulse 1.2s ease-in-out infinite;
+}
+
+.tutor-mic:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@keyframes micPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+
+.tutor-input-listening {
+  border-color: #ef4444 !important;
 }
 
 .tutor-input {
