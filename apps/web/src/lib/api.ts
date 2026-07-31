@@ -81,6 +81,24 @@ export const api = {
 
   tutorWarmup: () =>
     request<{ ok: boolean; provider: string }>('/tutor/warmup', { method: 'POST', body: '{}' }),
+
+  tutorTranscribe: async (audioBlob: Blob, mimeType: string, locale?: string) => {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const comma = result.indexOf(',');
+        resolve(comma >= 0 ? result.slice(comma + 1) : result);
+      };
+      reader.onerror = () => reject(new Error('Failed to read audio'));
+      reader.readAsDataURL(audioBlob);
+    });
+
+    return request<{ text: string }>('/tutor/transcribe', {
+      method: 'POST',
+      body: JSON.stringify({ audioBase64: base64, mimeType, locale }),
+    });
+  },
 };
 
 export function saveAuth(token: string, parent: ParentUser) {

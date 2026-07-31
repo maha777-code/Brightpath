@@ -4,6 +4,7 @@ import type { TutorStatusResponse } from '@brightpath/shared';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { evaluateAnswer, generateGreeting } from '../lib/tutor/evaluate.js';
 import { getActiveProvider, getActiveProviderName } from '../lib/llm/provider.js';
+import { transcribeWithGemini } from '../lib/speech/transcribe.js';
 
 const ageBands = ['5-7', '8-10', '11-14', '15-18'] as const;
 
@@ -47,6 +48,12 @@ const greetingSchema = z.object({
   subject: z.string().min(3),
   lessonTitle: z.string(),
   firstPrompt: z.string(),
+});
+
+const transcribeSchema = z.object({
+  audioBase64: z.string().min(100).max(3_000_000),
+  mimeType: z.string().min(3).max(80),
+  locale: z.string().min(2).optional(),
 });
 
 router.get('/status', (_req, res) => {
@@ -98,6 +105,33 @@ router.post('/greeting', requireAuth, async (req: AuthRequest, res) => {
     const message = err instanceof Error ? err.message : 'Tutor unavailable';
     console.error('Tutor greeting error:', message);
     res.status(502).json({ error: message, fallback: true });
+  }
+});
+
+/** Speech-to-text via Gemini (records audio in browser, transcribes server-side). */
+router.post('/transcribe', requireAuth, async (req: AuthRequest, res) => {
+  const parsed = transcribeSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid audio upload', details: parsed.error.flatten() });
+    return;
+  }
+
+  if (!process.env.GEMINI_API_KEY?.trim()) {
+    res.status(503).json({ error: 'GEMINI_API_KEY not configured' });
+    return;
+  }
+
+  try {
+    const text = await transcribeWithGemini(
+      parsed.data.audioBase64,
+      parsed.data.mimeType,
+      parsed.data.locale ?? 'en-US',
+    );
+    res.json({ text });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Transcription failed';
+    console.error('Tutor transcribe error:', message);
+    res.status(502).json({ error: message });
   }
 });
 

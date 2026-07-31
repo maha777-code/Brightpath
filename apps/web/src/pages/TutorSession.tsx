@@ -125,16 +125,17 @@ export default function TutorSession() {
 
   const submitAnswerRef = useRef<(answer: string) => void>(() => {});
 
-  const { supported, listening, speaking, transcript, speechError, speak, toggleListening, stopListening } =
+  const { supported, recording, transcribing, speaking, speechError, speak, toggleListening, stopListening } =
     useSpeech({
       locale: speechLocale,
       voiceEnabled,
-      onListeningEnd: (text) => {
-        if (text) setInput(text);
+      sttEnabled: llmAvailable,
+      transcribeAudio: async (blob, mimeType, loc) => {
+        const { text } = await api.tutorTranscribe(blob, mimeType, loc);
+        return text;
       },
+      onTranscribed: (text) => setInput(text),
     });
-
-  const activeInput = listening ? transcript : input;
 
   const handleSubmitScripted = useCallback(
     async (answer: string) => {
@@ -279,9 +280,9 @@ export default function TutorSession() {
   submitAnswerRef.current = submitAnswer;
 
   const handleSubmit = () => {
-    const answer = activeInput.trim();
+    const answer = input.trim();
     if (!answer) return;
-    if (listening) stopListening();
+    if (recording) stopListening();
     submitAnswer(answer);
   };
 
@@ -351,11 +352,13 @@ export default function TutorSession() {
         ? '✨ AI key found — waiting for connection'
         : null;
 
-  const inputPlaceholder = listening
-    ? 'Listening… speak your answer'
-    : supported.stt
-      ? 'Type or tap 🎤 to speak your answer…'
-      : 'Type your answer…';
+  const inputPlaceholder = recording
+    ? '🔴 Recording… speak your answer, then tap 🎤 again'
+    : transcribing
+      ? 'Transcribing your speech…'
+      : supported.stt
+        ? 'Type or tap 🎤 → speak → tap 🎤 again'
+        : 'Type your answer…';
 
   if (!profile || !meta) return null;
 
@@ -375,7 +378,7 @@ export default function TutorSession() {
             )}
             {supported.stt && supported.tts && (
               <span style={{ display: 'block', marginTop: 6, color: 'var(--slate-600)', fontSize: '0.85rem' }}>
-                Voice mode: speak your answers; Ms. Bright reads replies aloud.
+                Voice: tap 🎤 → speak → tap 🎤 again → text appears → press ↑ to send.
               </span>
             )}
             {aiError && (
@@ -453,11 +456,11 @@ export default function TutorSession() {
           {supported.stt && (
             <button
               type="button"
-              className={`tutor-mic ${listening ? 'listening' : ''}`}
+              className={`tutor-mic ${recording ? 'listening' : ''}`}
               onClick={toggleListening}
-              disabled={waiting}
-              title={listening ? 'Stop listening' : 'Speak your answer'}
-              aria-label={listening ? 'Stop listening' : 'Speak your answer'}
+              disabled={waiting || transcribing}
+              title={recording ? 'Stop recording & transcribe' : 'Record your answer'}
+              aria-label={recording ? 'Stop recording' : 'Record answer'}
             >
               🎤
             </button>
@@ -465,9 +468,9 @@ export default function TutorSession() {
           <div className="tutor-input-wrap">
             <textarea
               ref={inputRef}
-              className={`tutor-input ${listening ? 'tutor-input-listening' : ''}`}
+              className={`tutor-input ${recording ? 'tutor-input-listening' : ''}`}
               rows={1}
-              value={activeInput}
+              value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -476,16 +479,18 @@ export default function TutorSession() {
                 }
               }}
               placeholder={inputPlaceholder}
-              disabled={waiting}
-              readOnly={listening}
+              disabled={waiting || transcribing}
             />
             {speechError && <div className="tutor-speech-error">{speechError}</div>}
+            {transcribing && !speechError && (
+              <div className="tutor-speech-status">Transcribing with AI…</div>
+            )}
           </div>
           <button
             type="button"
             className="tutor-send"
             onClick={handleSubmit}
-            disabled={!activeInput.trim() || waiting}
+            disabled={!input.trim() || waiting || transcribing || recording}
           >
             ↑
           </button>

@@ -31,7 +31,7 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json());
+app.use(express.json({ limit: '4mb' }));
 
 app.get('/health', (_req, res) => {
   const llm = Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);
