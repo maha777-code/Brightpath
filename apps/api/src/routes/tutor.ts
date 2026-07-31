@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { TutorStatusResponse } from '@brightpath/shared';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { evaluateAnswer, generateGreeting } from '../lib/tutor/evaluate.js';
-import { getActiveProviderName } from '../lib/llm/provider.js';
+import { getActiveProvider, getActiveProviderName } from '../lib/llm/provider.js';
 
 const ageBands = ['5-7', '8-10', '11-14', '15-18'] as const;
 
@@ -59,10 +59,30 @@ router.get('/status', (_req, res) => {
   res.json(body);
 });
 
+/** Verifies auth + Gemini/OpenAI in one call (used by web on lesson page load). */
+router.post('/warmup', requireAuth, async (_req: AuthRequest, res) => {
+  const provider = getActiveProvider();
+  if (!provider) {
+    res.status(503).json({ error: 'LLM not configured' });
+    return;
+  }
+  try {
+    await provider.completeJson<{ ok: boolean }>({
+      system: 'Reply with JSON only: {"ok":true}',
+      user: 'warmup',
+    });
+    res.json({ ok: true, provider: provider.name });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Warmup failed';
+    console.error('Tutor warmup error:', message);
+    res.status(502).json({ error: message });
+  }
+});
+
 router.post('/greeting', requireAuth, async (req: AuthRequest, res) => {
   const parsed = greetingSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
+    res.status(400).json({ error: 'Invalid greeting request', details: parsed.error.flatten() });
     return;
   }
 
@@ -84,7 +104,7 @@ router.post('/greeting', requireAuth, async (req: AuthRequest, res) => {
 router.post('/respond', requireAuth, async (req: AuthRequest, res) => {
   const parsed = respondSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
+    res.status(400).json({ error: 'Invalid respond request', details: parsed.error.flatten() });
     return;
   }
 

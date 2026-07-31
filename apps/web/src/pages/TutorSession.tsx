@@ -11,7 +11,7 @@ import {
   buildSessionSummary,
 } from '@/lib/tutorEngine';
 import { updateProgressAfterLesson, saveSession } from '@/lib/storage';
-import { api } from '@/lib/api';
+import { api, loadStoredToken } from '@/lib/api';
 import type { Locale, Subject } from '@brightpath/shared';
 import { ageToBand } from '@brightpath/shared';
 
@@ -40,6 +40,7 @@ export default function TutorSession() {
   const [llmAvailable, setLlmAvailable] = useState(false);
   const [llmLive, setLlmLive] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiChecking, setAiChecking] = useState(true);
 
   const lessons = profile ? getLessonsFor(validSubject, profile.ageBand) : [];
   const lesson = lessons.find((l) => l.id === selectedLessonId);
@@ -47,9 +48,43 @@ export default function TutorSession() {
   const progressPct = lesson ? (stepIndex / lesson.steps.length) * 100 : 0;
 
   useEffect(() => {
-    api.tutorStatus()
-      .then((s) => setLlmAvailable(s.llmAvailable))
-      .catch(() => setLlmAvailable(false));
+    let cancelled = false;
+
+    async function checkAi() {
+      setAiChecking(true);
+      try {
+        const status = await api.tutorStatus();
+        if (cancelled) return;
+        setLlmAvailable(status.llmAvailable);
+
+        if (!status.llmAvailable) {
+          setLlmLive(false);
+          setAiError(null);
+          return;
+        }
+
+        if (!loadStoredToken()) {
+          setLlmLive(false);
+          setAiError('Not logged in — open Parent dashboard, log out, log in again, then retry.');
+          return;
+        }
+
+        await api.tutorWarmup();
+        if (cancelled) return;
+        setLlmLive(true);
+        setAiError(null);
+      } catch (err) {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : 'AI check failed';
+        setLlmLive(false);
+        setAiError(msg);
+      } finally {
+        if (!cancelled) setAiChecking(false);
+      }
+    }
+
+    void checkAi();
+    return () => { cancelled = true; };
   }, []);
 
   const tutorContext = useCallback(() => {
@@ -246,7 +281,13 @@ export default function TutorSession() {
     else void handleSubmitScripted();
   };
 
-  const aiBadgeLabel = llmLive ? '✨ AI tutor live' : llmAvailable ? '✨ AI enabled (connecting…)' : null;
+  const aiBadgeLabel = aiChecking
+    ? '✨ AI enabled — checking connection…'
+    : llmLive
+      ? '✨ AI tutor live'
+      : llmAvailable
+        ? '✨ AI key found — waiting for connection'
+        : null;
 
   if (!profile || !meta) return null;
 
@@ -290,8 +331,15 @@ export default function TutorSession() {
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate('/dashboard')}>←</button>
         <div className="tutor-avatar">👩‍🏫</div>
         <div>
-          <div className="tutor-info-name">Ms. Bright{llmLive ? ' · AI' : llmAvailable ? ' · AI?' : ''}</div>
+          <div className="tutor-info-name">
+            Ms. Bright{llmLive ? ' · AI live' : llmAvailable ? ' · backup mode' : ''}
+          </div>
           <div className="tutor-info-subject">{meta.label} · {lesson?.title}</div>
+          {aiError && (
+            <div style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: 4 }}>
+              AI: {aiError.slice(0, 100)}
+            </div>
+          )}
         </div>
       </header>
       <div className="tutor-messages">

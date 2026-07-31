@@ -23,11 +23,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     const msg =
-      typeof err.error === 'string'
-        ? err.error
-        : typeof err.message === 'string'
-          ? err.message
-          : res.statusText || 'Request failed';
+      res.status === 401
+        ? 'Unauthorized — log out and log in again as parent'
+        : typeof err.error === 'string'
+          ? err.error
+          : typeof err.message === 'string'
+            ? err.message
+            : res.statusText || 'Request failed';
     throw new Error(msg);
   }
   if (res.status === 204) return undefined as T;
@@ -76,6 +78,9 @@ export const api = {
 
   tutorRespond: (body: TutorRespondRequest) =>
     request<TutorRespondResponse>('/tutor/respond', { method: 'POST', body: JSON.stringify(body) }),
+
+  tutorWarmup: () =>
+    request<{ ok: boolean; provider: string }>('/tutor/warmup', { method: 'POST', body: '{}' }),
 };
 
 export function saveAuth(token: string, parent: ParentUser) {
