@@ -125,15 +125,16 @@ export default function TutorSession() {
 
   const submitAnswerRef = useRef<(answer: string) => void>(() => {});
 
-  const { supported, listening, speaking, speak, toggleListening, stopListening } = useSpeech({
-    locale: speechLocale,
-    voiceEnabled,
-    onInterimTranscript: (text) => setInput(text),
-    onFinalTranscript: (text) => {
-      setInput(text);
-      if (text.trim()) submitAnswerRef.current(text.trim());
-    },
-  });
+  const { supported, listening, speaking, transcript, speechError, speak, toggleListening, stopListening } =
+    useSpeech({
+      locale: speechLocale,
+      voiceEnabled,
+      onListeningEnd: (text) => {
+        if (text) setInput(text);
+      },
+    });
+
+  const activeInput = listening ? transcript : input;
 
   const handleSubmitScripted = useCallback(
     async (answer: string) => {
@@ -277,7 +278,12 @@ export default function TutorSession() {
 
   submitAnswerRef.current = submitAnswer;
 
-  const handleSubmit = () => submitAnswer(input);
+  const handleSubmit = () => {
+    const answer = activeInput.trim();
+    if (!answer) return;
+    if (listening) stopListening();
+    submitAnswer(answer);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -456,22 +462,33 @@ export default function TutorSession() {
               🎤
             </button>
           )}
-          <textarea
-            ref={inputRef}
-            className={`tutor-input ${listening ? 'tutor-input-listening' : ''}`}
-            rows={1}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
-            placeholder={inputPlaceholder}
-            disabled={waiting}
-          />
-          <button type="button" className="tutor-send" onClick={handleSubmit} disabled={!input.trim() || waiting}>↑</button>
+          <div className="tutor-input-wrap">
+            <textarea
+              ref={inputRef}
+              className={`tutor-input ${listening ? 'tutor-input-listening' : ''}`}
+              rows={1}
+              value={activeInput}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
+              placeholder={inputPlaceholder}
+              disabled={waiting}
+              readOnly={listening}
+            />
+            {speechError && <div className="tutor-speech-error">{speechError}</div>}
+          </div>
+          <button
+            type="button"
+            className="tutor-send"
+            onClick={handleSubmit}
+            disabled={!activeInput.trim() || waiting}
+          >
+            ↑
+          </button>
         </div>
       ) : (
         <div style={{ padding: 16 }}><button type="button" className="btn btn-primary" onClick={() => navigate('/dashboard')}>Back to Dashboard</button></div>

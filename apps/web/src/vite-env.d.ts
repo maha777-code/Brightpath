@@ -31,6 +31,11 @@ interface SpeechRecognitionEvent extends Event {
   readonly results: SpeechRecognitionResultList;
 }
 
+interface SpeechRecognitionErrorEvent extends Event {
+  readonly error: string;
+  readonly message?: string;
+}
+
 interface SpeechRecognition extends EventTarget {
   lang: string;
   continuous: boolean;

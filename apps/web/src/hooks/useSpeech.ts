@@ -10,27 +10,32 @@ import {
 export interface UseSpeechOptions {
   locale: string;
   voiceEnabled: boolean;
-  /** Called when the user finishes speaking (final transcript). */
-  onFinalTranscript?: (text: string) => void;
-  /** Live partial transcript while the mic is on. */
-  onInterimTranscript?: (text: string) => void;
+  /** Fired when listening stops with the captured text (may be empty). */
+  onListeningEnd?: (text: string) => void;
 }
 
-export function useSpeech({
-  locale,
-  voiceEnabled,
-  onFinalTranscript,
-  onInterimTranscript,
-}: UseSpeechOptions) {
+function readResults(event: SpeechRecognitionEvent): string {
+  let text = '';
+  for (let i = 0; i < event.results.length; i++) {
+    text += event.results[i][0]?.transcript ?? '';
+  }
+  return text.trim();
+}
+
+export function useSpeech({ locale, voiceEnabled, onListeningEnd }: UseSpeechOptions) {
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [speechError, setSpeechError] = useState<string | null>(null);
   const [supported] = useState(() => speechSupported());
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const speakQueueRef = useRef<string[]>([]);
   const speakingRef = useRef(false);
-  const callbacksRef = useRef({ onFinalTranscript, onInterimTranscript });
-  callbacksRef.current = { onFinalTranscript, onInterimTranscript };
+  const transcriptRef = useRef('');
+  const onListeningEndRef = useRef(onListeningEnd);
+  const keepListeningRef = useRef(false);
+  onListeningEndRef.current = onListeningEnd;
 
   const lang = localeToSpeechLang(locale);
 
@@ -88,58 +93,105 @@ export function useSpeech({
   );
 
   const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
-    setListening(false);
+    keepListeningRef.current = false;
+    const rec = recognitionRef.current;
+    if (rec) {
+      try {
+        rec.stop();
+      } catch {
+        setListening(false);
+        onListeningEndRef.current?.(transcriptRef.current);
+      }
+    } else {
+      setListening(false);
+      onListeningEndRef.current?.(transcriptRef.current);
+    }
   }, []);
 
-  const startListening = useCallback(() => {
+  const startListening = useCallback(async () => {
     const Ctor = getSpeechRecognitionCtor();
-    if (!Ctor) return;
+    if (!Ctor) {
+      setSpeechError('Speech recognition is not supported in this browser. Try Chrome.');
+      return;
+    }
 
     stopSpeaking();
+    setSpeechError(null);
+    transcriptRef.current = '';
+    setTranscript('');
+
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setSpeechError('Microphone access denied. Allow the mic in browser settings.');
+      return;
+    }
+
+    try {
+      recognitionRef.current?.abort();
+    } catch {
+      /* ignore */
+    }
 
     const recognition = new Ctor();
     recognition.lang = lang;
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = '';
-      let finalText = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        const transcript = result[0]?.transcript ?? '';
-        if (result.isFinal) finalText += transcript;
-        else interim += transcript;
-      }
-
-      const live = (finalText || interim).trim();
-      if (live) callbacksRef.current.onInterimTranscript?.(live);
-
-      if (finalText.trim()) {
-        callbacksRef.current.onFinalTranscript?.(finalText.trim());
-      }
+      const text = readResults(event);
+      transcriptRef.current = text;
+      setTranscript(text);
+      if (text) setSpeechError(null);
     };
 
-    recognition.onerror = () => {
-      setListening(false);
+    recognition.onerror = (event: Event) => {
+      const err = event as SpeechRecognitionErrorEvent;
+      const code = err.error ?? 'unknown';
+      if (code === 'no-speech') {
+        setSpeechError('No speech heard — try again and speak clearly.');
+      } else if (code === 'not-allowed') {
+        setSpeechError('Microphone blocked. Allow access and retry.');
+      } else if (code !== 'aborted') {
+        setSpeechError(`Speech error: ${code}`);
+      }
+      if (code !== 'aborted') {
+        keepListeningRef.current = false;
+      }
     };
 
     recognition.onend = () => {
+      if (keepListeningRef.current) {
+        try {
+          recognition.start();
+        } catch {
+          keepListeningRef.current = false;
+          setListening(false);
+          onListeningEndRef.current?.(transcriptRef.current);
+        }
+        return;
+      }
       setListening(false);
+      onListeningEndRef.current?.(transcriptRef.current);
     };
 
     recognitionRef.current = recognition;
+    keepListeningRef.current = true;
     setListening(true);
-    callbacksRef.current.onInterimTranscript?.('');
-    recognition.start();
+
+    try {
+      recognition.start();
+    } catch {
+      keepListeningRef.current = false;
+      setSpeechError('Could not start microphone. Tap 🎤 again.');
+      setListening(false);
+    }
   }, [lang, stopSpeaking]);
 
   const toggleListening = useCallback(() => {
     if (listening) stopListening();
-    else startListening();
+    else void startListening();
   }, [listening, startListening, stopListening]);
 
   useEffect(() => {
@@ -150,15 +202,24 @@ export function useSpeech({
     return () => window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
   }, [lang]);
 
-  useEffect(() => () => {
-    recognitionRef.current?.abort();
-    stopSpeaking();
-  }, [stopSpeaking]);
+  useEffect(
+    () => () => {
+      try {
+        recognitionRef.current?.abort();
+      } catch {
+        /* ignore */
+      }
+      stopSpeaking();
+    },
+    [stopSpeaking],
+  );
 
   return {
     supported,
     listening,
     speaking,
+    transcript,
+    speechError,
     speak,
     stopSpeaking,
     startListening,

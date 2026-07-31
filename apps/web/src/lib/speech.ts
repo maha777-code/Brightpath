@@ -11,7 +11,8 @@ export function localeToSpeechLang(locale: string): string {
   if (locale.startsWith('hi')) return 'hi-IN';
   if (locale.startsWith('ar')) return 'ar-KW';
   if (locale === 'en-US') return 'en-US';
-  return 'en-IN';
+  // en-IN recognition can be flaky in Chrome — en-US understands Indian English well
+  return 'en-US';
 }
 
 export function getSpeechRecognitionCtor(): (new () => SpeechRecognition) | null {
