@@ -34,43 +34,77 @@ export function parseLlmJson<T>(text: string): T {
   return JSON.parse(raw) as T;
 }
 
+/** Models that work with Google AI Studio generateContent. */
+const GEMINI_MODEL_DEFAULTS = [
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-flash-002',
+  'gemini-1.5-flash',
+] as const;
+
 function geminiModels(): string[] {
   const preferred = process.env.GEMINI_MODEL?.trim();
-  const defaults = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-8b'];
-  if (preferred) return [preferred, ...defaults.filter((m) => m !== preferred)];
-  return defaults;
+  if (preferred) {
+    return [preferred, ...GEMINI_MODEL_DEFAULTS.filter((m) => m !== preferred)];
+  }
+  return [...GEMINI_MODEL_DEFAULTS];
 }
 
 function createGeminiProvider(apiKey: string): LlmProvider {
   return {
     name: 'gemini',
     async completeJson<T>(req: LlmJsonRequest): Promise<T> {
-      let lastError: Error | null = null;
+      const tried: string[] = [];
+      const errors: string[] = [];
 
       for (const model of geminiModels()) {
+        tried.push(model);
         try {
           return await callGemini<T>(apiKey, model, req);
         } catch (err) {
-          lastError = err instanceof Error ? err : new Error(String(err));
-          console.warn(`[LLM] Gemini model ${model} failed:`, lastError.message);
+          const msg = err instanceof Error ? err.message : String(err);
+          errors.push(`${model}: ${msg.slice(0, 120)}`);
+          console.warn(`[LLM] Gemini model ${model} failed:`, msg);
         }
       }
 
-      throw lastError ?? new Error('All Gemini models failed');
+      throw new Error(
+        `All Gemini models failed (tried: ${tried.join(', ')}). ` +
+          `Set GEMINI_MODEL=gemini-2.0-flash in apps/api/.env. Last: ${errors.at(-1) ?? 'unknown'}`,
+      );
     },
   };
 }
 
 async function callGemini<T>(apiKey: string, model: string, req: LlmJsonRequest): Promise<T> {
+  try {
+    return await callGeminiOnce<T>(apiKey, model, req, true);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('404') || msg.includes('not found') || msg.includes('responseMimeType')) {
+      return callGeminiOnce<T>(apiKey, model, req, false);
+    }
+    throw err;
+  }
+}
+
+async function callGeminiOnce<T>(
+  apiKey: string,
+  model: string,
+  req: LlmJsonRequest,
+  jsonMode: boolean,
+): Promise<T> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const generationConfig: Record<string, unknown> = { temperature: 0.5 };
+  if (jsonMode) {
+    generationConfig.responseMimeType = 'application/json';
+  }
 
   const body = {
     systemInstruction: { parts: [{ text: req.system }] },
     contents: [{ role: 'user', parts: [{ text: req.user }] }],
-    generationConfig: {
-      temperature: 0.5,
-      responseMimeType: 'application/json',
-    },
+    generationConfig,
   };
 
   const res = await fetch(url, {
@@ -81,7 +115,7 @@ async function callGemini<T>(apiKey: string, model: string, req: LlmJsonRequest)
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Gemini ${model} HTTP ${res.status}: ${err.slice(0, 300)}`);
+    throw new Error(`HTTP ${res.status}: ${err.slice(0, 200)}`);
   }
 
   const data = (await res.json()) as {
@@ -95,7 +129,7 @@ async function callGemini<T>(apiKey: string, model: string, req: LlmJsonRequest)
 
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) {
-    throw new Error(`Gemini ${model} returned empty content`);
+    throw new Error('empty response');
   }
 
   return parseLlmJson<T>(text);
