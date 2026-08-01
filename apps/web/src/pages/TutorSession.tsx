@@ -125,7 +125,7 @@ export default function TutorSession() {
 
   const submitAnswerRef = useRef<(answer: string) => void>(() => {});
 
-  const { supported, recording, transcribing, speaking, speechError, speak, toggleListening, stopListening } =
+  const { supported, sttReady, recording, transcribing, speaking, speechError, speak, toggleListening, stopListening } =
     useSpeech({
       locale: speechLocale,
       voiceEnabled,
@@ -458,8 +458,14 @@ export default function TutorSession() {
               type="button"
               className={`tutor-mic ${recording ? 'listening' : ''}`}
               onClick={toggleListening}
-              disabled={waiting || transcribing}
-              title={recording ? 'Stop recording & transcribe' : 'Record your answer'}
+              disabled={waiting || transcribing || (!sttReady && !recording)}
+              title={
+                recording
+                  ? 'Stop recording & transcribe'
+                  : sttReady
+                    ? 'Record your answer'
+                    : 'Waiting for AI tutor…'
+              }
               aria-label={recording ? 'Stop recording' : 'Record answer'}
             >
               🎤

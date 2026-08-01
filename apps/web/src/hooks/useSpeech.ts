@@ -35,10 +35,19 @@ export function useSpeech({
   const [transcribing, setTranscribing] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
-  const [supported] = useState(() => ({
-    stt: sttEnabled && typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
+
+  const browserCanRecord =
+    typeof navigator !== 'undefined' &&
+    Boolean(navigator.mediaDevices?.getUserMedia) &&
+    typeof MediaRecorder !== 'undefined';
+
+  const supported = {
+    /** Mic button visible when browser can record audio */
+    stt: browserCanRecord,
     tts: speechSupported().tts,
-  }));
+  };
+  /** Gemini STT available on server */
+  const sttReady = sttEnabled && browserCanRecord;
 
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -164,7 +173,12 @@ export function useSpeech({
   }, [locale]);
 
   const startRecording = useCallback(() => {
-    if (!supported.stt || recording || transcribing) return;
+    if (!browserCanRecord || recording || transcribing) return;
+
+    if (!sttReady) {
+      setSpeechError('AI tutor is not ready yet — wait for “AI live”, then try 🎤 again.');
+      return;
+    }
 
     stopSpeaking();
     setSpeechError(null);
@@ -194,7 +208,7 @@ export function useSpeech({
         setSpeechError('Microphone access denied. Allow the mic in Chrome settings.');
       }
     })();
-  }, [finishRecording, recording, supported.stt, transcribing, stopSpeaking]);
+  }, [browserCanRecord, finishRecording, recording, sttReady, transcribing, stopSpeaking]);
 
   const toggleRecording = useCallback(() => {
     if (transcribing) return;
@@ -226,6 +240,7 @@ export function useSpeech({
 
   return {
     supported,
+    sttReady,
     recording,
     transcribing,
     /** @deprecated use recording */
