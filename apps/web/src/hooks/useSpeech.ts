@@ -6,8 +6,10 @@ export interface UseSpeechOptions {
   voiceEnabled: boolean;
   /** Server-side STT (Gemini). When false, mic is hidden. */
   sttEnabled: boolean;
-  transcribeAudio: (blob: Blob, mimeType: string, locale: string) => Promise<string>;
+  transcribeAudio: (blob: Blob, mimeType: string, locale: string, contextHint?: string) => Promise<string>;
   onTranscribed?: (text: string) => void;
+  /** Current tutor question — helps STT avoid guessing lesson answers */
+  getTranscribeContext?: () => string;
 }
 
 function pickRecorderMimeType(): string {
@@ -30,6 +32,7 @@ export function useSpeech({
   sttEnabled,
   transcribeAudio,
   onTranscribed,
+  getTranscribeContext,
 }: UseSpeechOptions) {
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
@@ -58,8 +61,10 @@ export function useSpeech({
   const speakingRef = useRef(false);
   const onTranscribedRef = useRef(onTranscribed);
   const transcribeAudioRef = useRef(transcribeAudio);
+  const getTranscribeContextRef = useRef(getTranscribeContext);
   onTranscribedRef.current = onTranscribed;
   transcribeAudioRef.current = transcribeAudio;
+  getTranscribeContextRef.current = getTranscribeContext;
 
   const lang = localeToSpeechLang(locale);
 
@@ -161,7 +166,8 @@ export function useSpeech({
     }
 
     try {
-      const text = await transcribeAudioRef.current(blob, mimeType, locale);
+      const contextHint = getTranscribeContextRef.current?.() ?? '';
+      const text = await transcribeAudioRef.current(blob, mimeType, locale, contextHint);
       setSpeechError(null);
       onTranscribedRef.current?.(text);
     } catch (err) {
@@ -186,13 +192,23 @@ export function useSpeech({
 
     void (async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            channelCount: 1,
+          },
+        });
         streamRef.current = stream;
 
         const mimeType = pickRecorderMimeType();
         mimeTypeRef.current = mimeType;
 
-        const recorder = new MediaRecorder(stream, { mimeType });
+        const recorder = new MediaRecorder(stream, {
+          mimeType,
+          audioBitsPerSecond: 128_000,
+        });
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0) chunksRef.current.push(event.data);
         };

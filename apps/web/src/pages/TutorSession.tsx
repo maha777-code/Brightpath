@@ -130,10 +130,11 @@ export default function TutorSession() {
       locale: speechLocale,
       voiceEnabled,
       sttEnabled: llmAvailable,
-      transcribeAudio: async (blob, mimeType, loc) => {
-        const { text } = await api.tutorTranscribe(blob, mimeType, loc);
+      transcribeAudio: async (blob, mimeType, loc, contextHint) => {
+        const { text } = await api.tutorTranscribe(blob, mimeType, loc, contextHint);
         return text;
       },
+      getTranscribeContext: () => currentStep?.tutorPrompt ?? '',
       onTranscribed: (text) => setInput(text),
     });
 
@@ -489,7 +490,7 @@ export default function TutorSession() {
             />
             {speechError && <div className="tutor-speech-error">{speechError}</div>}
             {transcribing && !speechError && (
-              <div className="tutor-speech-status">Transcribing with AI…</div>
+              <div className="tutor-speech-status">Transcribing with AI… (you can edit before sending)</div>
             )}
           </div>
           <button

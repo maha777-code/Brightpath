@@ -54,6 +54,7 @@ const transcribeSchema = z.object({
   audioBase64: z.string().min(100).max(3_000_000),
   mimeType: z.string().min(3).max(80),
   locale: z.string().min(2).optional(),
+  contextHint: z.string().max(500).optional(),
 });
 
 router.get('/status', (_req, res) => {
@@ -122,11 +123,10 @@ router.post('/transcribe', requireAuth, async (req: AuthRequest, res) => {
   }
 
   try {
-    const text = await transcribeWithGemini(
-      parsed.data.audioBase64,
-      parsed.data.mimeType,
-      parsed.data.locale ?? 'en-US',
-    );
+    const text = await transcribeWithGemini(parsed.data.audioBase64, parsed.data.mimeType, {
+      locale: parsed.data.locale ?? 'en-US',
+      contextHint: parsed.data.contextHint,
+    });
     res.json({ text });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Transcription failed';
