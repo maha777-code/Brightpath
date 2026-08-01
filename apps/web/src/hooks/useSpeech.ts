@@ -4,12 +4,9 @@ import { localeToSpeechLang, pickVoice, speechSupported, stripForSpeech } from '
 export interface UseSpeechOptions {
   locale: string;
   voiceEnabled: boolean;
-  /** Server-side STT (Gemini). When false, mic is hidden. */
   sttEnabled: boolean;
-  transcribeAudio: (blob: Blob, mimeType: string, locale: string, contextHint?: string) => Promise<string>;
+  transcribeAudio: (blob: Blob, mimeType: string, locale: string) => Promise<string>;
   onTranscribed?: (text: string) => void;
-  /** Current tutor question — helps STT avoid guessing lesson answers */
-  getTranscribeContext?: () => string;
 }
 
 function pickRecorderMimeType(): string {
@@ -32,12 +29,14 @@ export function useSpeech({
   sttEnabled,
   transcribeAudio,
   onTranscribed,
-  getTranscribeContext,
 }: UseSpeechOptions) {
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
+
+  const voiceEnabledRef = useRef(voiceEnabled);
+  voiceEnabledRef.current = voiceEnabled;
 
   const browserCanRecord =
     typeof navigator !== 'undefined' &&
@@ -45,11 +44,9 @@ export function useSpeech({
     typeof MediaRecorder !== 'undefined';
 
   const supported = {
-    /** Mic button visible when browser can record audio */
     stt: browserCanRecord,
     tts: speechSupported().tts,
   };
-  /** Gemini STT available on server */
   const sttReady = sttEnabled && browserCanRecord;
 
   const streamRef = useRef<MediaStream | null>(null);
@@ -61,10 +58,8 @@ export function useSpeech({
   const speakingRef = useRef(false);
   const onTranscribedRef = useRef(onTranscribed);
   const transcribeAudioRef = useRef(transcribeAudio);
-  const getTranscribeContextRef = useRef(getTranscribeContext);
   onTranscribedRef.current = onTranscribed;
   transcribeAudioRef.current = transcribeAudio;
-  getTranscribeContextRef.current = getTranscribeContext;
 
   const lang = localeToSpeechLang(locale);
 
@@ -77,9 +72,13 @@ export function useSpeech({
     setSpeaking(false);
   }, []);
 
+  useEffect(() => {
+    if (!voiceEnabled) stopSpeaking();
+  }, [voiceEnabled, stopSpeaking]);
+
   const drainSpeakQueue = useCallback(() => {
     if (speakingRef.current || speakQueueRef.current.length === 0) return;
-    if (!voiceEnabled || !supported.tts) {
+    if (!voiceEnabledRef.current || !supported.tts) {
       speakQueueRef.current = [];
       return;
     }
@@ -109,10 +108,11 @@ export function useSpeech({
     };
 
     window.speechSynthesis.speak(utterance);
-  }, [lang, supported.tts, voiceEnabled]);
+  }, [lang, supported.tts]);
 
   const speak = useCallback(
     (text: string) => {
+      if (!voiceEnabledRef.current) return;
       const cleaned = stripForSpeech(text);
       if (!cleaned || !supported.tts) return;
       speakQueueRef.current.push(cleaned);
@@ -166,8 +166,7 @@ export function useSpeech({
     }
 
     try {
-      const contextHint = getTranscribeContextRef.current?.() ?? '';
-      const text = await transcribeAudioRef.current(blob, mimeType, locale, contextHint);
+      const text = await transcribeAudioRef.current(blob, mimeType, locale);
       setSpeechError(null);
       onTranscribedRef.current?.(text);
     } catch (err) {
@@ -259,7 +258,6 @@ export function useSpeech({
     sttReady,
     recording,
     transcribing,
-    /** @deprecated use recording */
     listening: recording || transcribing,
     speaking,
     speechError,

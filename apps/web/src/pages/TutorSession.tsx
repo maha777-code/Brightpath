@@ -125,16 +125,15 @@ export default function TutorSession() {
 
   const submitAnswerRef = useRef<(answer: string) => void>(() => {});
 
-  const { supported, sttReady, recording, transcribing, speaking, speechError, speak, toggleListening, stopListening } =
+  const { supported, sttReady, recording, transcribing, speaking, speechError, speak, stopSpeaking, toggleListening, stopListening } =
     useSpeech({
       locale: speechLocale,
       voiceEnabled,
       sttEnabled: llmAvailable,
-      transcribeAudio: async (blob, mimeType, loc, contextHint) => {
-        const { text } = await api.tutorTranscribe(blob, mimeType, loc, contextHint);
+      transcribeAudio: async (blob, mimeType, loc) => {
+        const { text } = await api.tutorTranscribe(blob, mimeType, loc);
         return text;
       },
-      getTranscribeContext: () => currentStep?.tutorPrompt ?? '',
       onTranscribed: (text) => setInput(text),
     });
 
@@ -292,11 +291,11 @@ export default function TutorSession() {
   }, [messages]);
 
   useEffect(() => {
-    if (!voiceEnabled || phase !== 'session') return;
+    if (phase !== 'session') return;
     for (const msg of messages) {
       if (msg.role === 'tutor' && !spokenIdsRef.current.has(msg.id)) {
         spokenIdsRef.current.add(msg.id);
-        speak(msg.content);
+        if (voiceEnabled) speak(msg.content);
       }
     }
   }, [messages, phase, speak, voiceEnabled]);
@@ -422,8 +421,13 @@ export default function TutorSession() {
         {supported.tts && (
           <button
             type="button"
-            className={`tutor-voice-toggle ${voiceEnabled ? 'on' : ''}`}
-            onClick={() => setVoiceEnabled((v) => !v)}
+            className={`tutor-voice-toggle ${voiceEnabled ? 'on' : 'muted'}`}
+            onClick={() => {
+              setVoiceEnabled((v) => {
+                if (v) stopSpeaking();
+                return !v;
+              });
+            }}
             title={voiceEnabled ? 'Mute tutor voice' : 'Enable tutor voice'}
             aria-label={voiceEnabled ? 'Mute tutor voice' : 'Enable tutor voice'}
           >
@@ -435,7 +439,7 @@ export default function TutorSession() {
         {messages.map((msg) => (
           <div key={msg.id} className={`message message-${msg.role}`}>
             <div className="message-content">{msg.content}</div>
-            {msg.role === 'tutor' && supported.tts && (
+            {msg.role === 'tutor' && supported.tts && voiceEnabled && (
               <button
                 type="button"
                 className="message-replay"

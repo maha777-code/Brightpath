@@ -430,6 +430,12 @@ body {
   background: var(--indigo-50, #eef2ff);
 }
 
+.tutor-voice-toggle.muted {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  opacity: 1;
+}
+
 .tutor-messages {
   flex: 1;
   overflow-y: auto;
@@ -510,28 +516,31 @@ body {
 }
 
 .tutor-input-bar {
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 10px;
+  padding: 12px 16px calc(12px + var(--safe-bottom, 0px));
   background: white;
   border-top: 1px solid var(--slate-200);
   flex-shrink: 0;
-  align-items: flex-end;
+  align-items: end;
 }
 
 .tutor-mic {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--slate-100);
   border: 2px solid var(--slate-200);
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   cursor: pointer;
-  flex-shrink: 0;
+  grid-column: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  padding: 0;
+  line-height: 1;
 }
 
 .tutor-mic:hover:not(:disabled) {
@@ -559,7 +568,8 @@ body {
 }
 
 .tutor-input-wrap {
-  flex: 1;
+  grid-column: 2;
+  width: 100%;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -581,41 +591,50 @@ body {
 }
 
 .tutor-input {
-  flex: 1;
   width: 100%;
-  padding: 12px 16px;
+  padding: 14px 18px;
   border: 2px solid var(--slate-200);
-  border-radius: 999px;
+  border-radius: 16px;
   font-family: var(--font);
   font-size: 1rem;
+  line-height: 1.4;
   resize: none;
   appearance: none;
   -webkit-appearance: none;
   box-sizing: border-box;
-  min-height: 48px;
-  max-height: 120px;
+  min-height: 52px;
+  max-height: 140px;
   overflow-y: auto;
+  background: var(--slate-50, #f8fafc);
 }
 
 .tutor-input:focus {
   outline: none;
   border-color: var(--indigo);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
 .tutor-send {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
+  grid-column: 3;
   border-radius: 50%;
   background: var(--indigo);
   color: white;
   border: none;
   font-size: 1.2rem;
   cursor: pointer;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.15s;
+  padding: 0;
+}
+
+.tutor-send:not(:disabled):hover {
+  background: var(--indigo-light, #818cf8);
+  transform: scale(1.04);
 }
 
 .tutor-send:disabled {

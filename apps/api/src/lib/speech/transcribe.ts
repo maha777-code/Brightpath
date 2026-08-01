@@ -2,8 +2,6 @@ import { parseLlmJson } from '../llm/provider.js';
 
 export interface TranscribeOptions {
   locale?: string;
-  /** Current tutor question — reference only, must NOT be used as the answer */
-  contextHint?: string;
 }
 
 const TRANSCRIBE_MODELS = [
@@ -14,6 +12,7 @@ const TRANSCRIBE_MODELS = [
   'gemini-2.5-flash',
 ].filter(Boolean) as string[];
 
+/** Pure verbatim STT — no tutor question context (that caused "buh" hallucinations). */
 export async function transcribeWithGemini(
   audioBase64: string,
   mimeType: string,
@@ -27,8 +26,8 @@ export async function transcribeWithGemini(
 
   for (const model of [...new Set(TRANSCRIBE_MODELS)]) {
     try {
-      const text = await transcribeOnce(apiKey, model, audioBase64, mimeType, locale, options.contextHint);
-      console.log(`[STT] Transcribed with ${model}: "${text.slice(0, 80)}"`);
+      const text = await transcribeOnce(apiKey, model, audioBase64, mimeType, locale);
+      console.log(`[STT] Transcribed with ${model}: "${text.slice(0, 100)}"`);
       return text;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -39,45 +38,16 @@ export async function transcribeWithGemini(
   throw new Error(`Speech transcription failed. ${errors.at(-1) ?? 'Unknown error'}`);
 }
 
-function buildTranscribePrompt(locale: string, contextHint?: string): string {
-  const contextBlock = contextHint?.trim()
-    ? `\nThe tutor's current question (FOR CONTEXT ONLY — do NOT answer it, do NOT substitute its expected answer):\n"${contextHint.trim()}"\n`
-    : '';
-
-  return (
-    `You are a verbatim speech-to-text engine for a children's tutoring app (${locale}).\n` +
-    `Listen to the audio and write EXACTLY what the student said — word for word, in order.\n` +
-    contextBlock +
-    `\nRules:\n` +
-    `- Transcribe every word spoken, including greetings ("hello how are you"), questions, and full sentences\n` +
-    `- Do NOT guess a "lesson answer" (e.g. do NOT output "buh", "zero", or "five" unless the student actually said that)\n` +
-    `- Do NOT answer the tutor's question — only transcribe the student's speech\n` +
-    `- Do NOT summarize, shorten, or "correct" the student\n` +
-    `- Preserve natural casing (e.g. "hello how are you" not "Zero")\n` +
-    `- If audio is unclear, transcribe your best literal guess of what was spoken\n` +
-    `\nReturn JSON only: {"text":"verbatim transcription here"}`
-  );
-}
-
 async function transcribeOnce(
   apiKey: string,
   model: string,
   audioBase64: string,
   mimeType: string,
   locale: string,
-  contextHint?: string,
 ): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const body = {
-    systemInstruction: {
-      parts: [
-        {
-          text:
-            'You only perform verbatim speech transcription. Never invent answers to tutor questions.',
-        },
-      ],
-    },
     contents: [
       {
         parts: [
@@ -88,7 +58,18 @@ async function transcribeOnce(
             },
           },
           {
-            text: buildTranscribePrompt(locale, contextHint),
+            text:
+              `Speech-to-text task (${locale}). Write EXACTLY what the person says in the audio — every word, in order.\n\n` +
+              `Examples of correct output:\n` +
+              `- Speaker says "yes ms bright i am ready for question" → {"text":"yes ms bright i am ready for question"}\n` +
+              `- Speaker says "hello how are you" → {"text":"hello how are you"}\n` +
+              `- Speaker says "buh" → {"text":"buh"}\n\n` +
+              `Rules:\n` +
+              `- Verbatim only — do NOT answer questions, do NOT guess lesson answers\n` +
+              `- Do NOT replace speech with a single phoneme unless they only said one phoneme\n` +
+              `- Include names like "Ms Bright" if spoken\n` +
+              `- Lowercase is fine\n\n` +
+              `Return JSON only: {"text":"exact words spoken"}`,
           },
         ],
       },

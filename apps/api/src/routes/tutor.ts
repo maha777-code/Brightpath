@@ -125,7 +125,6 @@ router.post('/transcribe', requireAuth, async (req: AuthRequest, res) => {
   try {
     const text = await transcribeWithGemini(parsed.data.audioBase64, parsed.data.mimeType, {
       locale: parsed.data.locale ?? 'en-US',
-      contextHint: parsed.data.contextHint,
     });
     res.json({ text });
   } catch (err) {
