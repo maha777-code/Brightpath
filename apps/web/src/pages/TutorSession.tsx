@@ -125,7 +125,7 @@ export default function TutorSession() {
 
   const submitAnswerRef = useRef<(answer: string) => void>(() => {});
 
-  const { supported, sttReady, recording, transcribing, speaking, speechError, speak, stopSpeaking, toggleListening, stopListening } =
+  const { supported, sttReady, recording, transcribing, liveTranscript, speaking, speechError, speak, stopSpeaking, toggleListening, stopListening } =
     useSpeech({
       locale: speechLocale,
       voiceEnabled,
@@ -135,7 +135,12 @@ export default function TutorSession() {
         return text;
       },
       onTranscribed: (text) => setInput(text),
+      onLiveTranscript: (text) => {
+        if (text) setInput(text);
+      },
     });
+
+  const displayInput = recording ? (liveTranscript || input) : input;
 
   const handleSubmitScripted = useCallback(
     async (answer: string) => {
@@ -280,7 +285,7 @@ export default function TutorSession() {
   submitAnswerRef.current = submitAnswer;
 
   const handleSubmit = () => {
-    const answer = input.trim();
+    const answer = (recording ? (liveTranscript || input) : input).trim();
     if (!answer) return;
     if (recording) stopListening();
     submitAnswer(answer);
@@ -353,7 +358,9 @@ export default function TutorSession() {
         : null;
 
   const inputPlaceholder = recording
-    ? '🔴 Recording… speak your answer, then tap 🎤 again'
+    ? liveTranscript
+      ? 'Keep speaking… tap 🎤 when done'
+      : '🔴 Recording… speak now, tap 🎤 when done'
     : transcribing
       ? 'Transcribing your speech…'
       : supported.stt
@@ -481,7 +488,7 @@ export default function TutorSession() {
               ref={inputRef}
               className={`tutor-input ${recording ? 'tutor-input-listening' : ''}`}
               rows={1}
-              value={input}
+              value={displayInput}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -501,7 +508,7 @@ export default function TutorSession() {
             type="button"
             className="tutor-send"
             onClick={handleSubmit}
-            disabled={!input.trim() || waiting || transcribing || recording}
+            disabled={!displayInput.trim() || waiting || transcribing || recording}
           >
             ↑
           </button>

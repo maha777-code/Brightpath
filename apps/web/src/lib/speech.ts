@@ -39,3 +39,32 @@ export function pickVoice(lang: string): SpeechSynthesisVoice | null {
     null
   );
 }
+
+/** Read full transcript from a Web Speech API result event. */
+export function readWebSpeechResults(event: SpeechRecognitionEvent): string {
+  let text = '';
+  for (let i = 0; i < event.results.length; i++) {
+    text += event.results[i][0]?.transcript ?? '';
+  }
+  return text.trim();
+}
+
+/** Detect obvious model hallucinations (not human speech). */
+export function looksLikeHallucinatedTranscript(text: string): boolean {
+  const lower = text.toLowerCase();
+  const bad = [
+    'sound driver',
+    'sound underscore driver',
+    'dashboard parameter',
+    'underscore driver',
+    'api documentation',
+    'npm install',
+    'configure your',
+    'environment variable',
+    'http://',
+    'https://',
+    'github.com',
+    'stack overflow',
+  ];
+  return bad.some((p) => lower.includes(p));
+}

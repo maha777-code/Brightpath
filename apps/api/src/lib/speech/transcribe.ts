@@ -104,5 +104,28 @@ async function transcribeOnce(
   const parsed = parseLlmJson<{ text?: string }>(raw);
   const text = parsed.text?.trim();
   if (!text) throw new Error('No speech detected in recording');
+
+  if (looksLikeBadTranscript(text)) {
+    throw new Error(
+      'Speech was unclear — please tap 🎤 and try again. Speak clearly, close to the mic.',
+    );
+  }
+
   return text;
+}
+
+function looksLikeBadTranscript(text: string): boolean {
+  const lower = text.toLowerCase();
+  const bad = [
+    'sound driver',
+    'sound underscore',
+    'dashboard parameter',
+    'underscore driver',
+    'environment variable',
+    'documentation',
+    'npm ',
+    'http://',
+    'configure your',
+  ];
+  return bad.some((p) => lower.includes(p));
 }
