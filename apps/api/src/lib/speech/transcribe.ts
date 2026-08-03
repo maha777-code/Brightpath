@@ -1,7 +1,10 @@
+import { transcribeWithDeepgram } from './deepgram.js';
+import { looksLikeBadTranscript, pickBestTranscript } from './validate.js';
 import { parseLlmJson } from '../llm/provider.js';
 
 export interface TranscribeOptions {
   locale?: string;
+  browserTranscript?: string;
 }
 
 const TRANSCRIBE_MODELS = [
@@ -9,36 +12,92 @@ const TRANSCRIBE_MODELS = [
   'gemini-3.6-flash',
   'gemini-3.5-flash',
   'gemini-3.1-flash-lite',
-  'gemini-2.5-flash',
 ].filter(Boolean) as string[];
 
-/** Pure verbatim STT — no tutor question context (that caused "buh" hallucinations). */
-export async function transcribeWithGemini(
+export type SttSource = 'deepgram' | 'browser' | 'gemini';
+
+export function getSttEngine(): SttSource | null {
+  if (process.env.DEEPGRAM_API_KEY?.trim()) return 'deepgram';
+  if (process.env.GEMINI_API_KEY?.trim()) return 'gemini';
+  return null;
+}
+
+/** Transcribe audio — Deepgram (best) → validated browser text → Gemini (last resort). */
+export async function transcribeSpeech(
   audioBase64: string,
   mimeType: string,
   options: TranscribeOptions = {},
+): Promise<{ text: string; source: SttSource }> {
+  const audio = Buffer.from(audioBase64, 'base64');
+  const candidates: { text: string; source: SttSource }[] = [];
+  const errors: string[] = [];
+
+  const browser = options.browserTranscript?.trim();
+  if (browser && browser.length >= 2) {
+    candidates.push({ text: browser, source: 'browser' });
+  }
+
+  if (process.env.DEEPGRAM_API_KEY?.trim()) {
+    try {
+      const text = await transcribeWithDeepgram(audio, mimeType);
+      candidates.push({ text, source: 'deepgram' });
+      console.log(`[STT] Deepgram: "${text.slice(0, 100)}"`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`deepgram: ${msg.slice(0, 80)}`);
+    }
+  }
+
+  const pickedEarly = pickBestTranscript(candidates);
+  if (pickedEarly?.source === 'deepgram') {
+    return pickedEarly;
+  }
+
+  if (process.env.GEMINI_API_KEY?.trim()) {
+    try {
+      const text = await transcribeWithGemini(
+        audioBase64,
+        mimeType,
+        options.locale ?? 'en-US',
+      );
+      candidates.push({ text, source: 'gemini' });
+      console.log(`[STT] Gemini: "${text.slice(0, 100)}"`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`gemini: ${msg.slice(0, 80)}`);
+    }
+  }
+
+  const picked = pickBestTranscript(candidates);
+  if (picked) return picked;
+
+  throw new Error(
+    `Could not transcribe speech clearly. ${errors.at(-1) ?? 'Try again — mute Ms. Bright (🔇), use headphones, speak close to the mic.'}`,
+  );
+}
+
+async function transcribeWithGemini(
+  audioBase64: string,
+  mimeType: string,
+  locale: string,
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
-  const locale = options.locale ?? 'en-US';
   const errors: string[] = [];
 
   for (const model of [...new Set(TRANSCRIBE_MODELS)]) {
     try {
-      const text = await transcribeOnce(apiKey, model, audioBase64, mimeType, locale);
-      console.log(`[STT] Transcribed with ${model}: "${text.slice(0, 100)}"`);
-      return text;
+      return await transcribeGeminiOnce(apiKey, model, audioBase64, mimeType, locale);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      errors.push(`${model}: ${msg.slice(0, 80)}`);
+      errors.push(err instanceof Error ? err.message : String(err));
     }
   }
 
-  throw new Error(`Speech transcription failed. ${errors.at(-1) ?? 'Unknown error'}`);
+  throw new Error(errors.at(-1) ?? 'Gemini transcription failed');
 }
 
-async function transcribeOnce(
+async function transcribeGeminiOnce(
   apiKey: string,
   model: string,
   audioBase64: string,
@@ -51,33 +110,16 @@ async function transcribeOnce(
     contents: [
       {
         parts: [
-          {
-            inline_data: {
-              mime_type: mimeType,
-              data: audioBase64,
-            },
-          },
+          { inline_data: { mime_type: mimeType, data: audioBase64 } },
           {
             text:
-              `Speech-to-text task (${locale}). Write EXACTLY what the person says in the audio — every word, in order.\n\n` +
-              `Examples of correct output:\n` +
-              `- Speaker says "yes ms bright i am ready for question" → {"text":"yes ms bright i am ready for question"}\n` +
-              `- Speaker says "hello how are you" → {"text":"hello how are you"}\n` +
-              `- Speaker says "buh" → {"text":"buh"}\n\n` +
-              `Rules:\n` +
-              `- Verbatim only — do NOT answer questions, do NOT guess lesson answers\n` +
-              `- Do NOT replace speech with a single phoneme unless they only said one phoneme\n` +
-              `- Include names like "Ms Bright" if spoken\n` +
-              `- Lowercase is fine\n\n` +
-              `Return JSON only: {"text":"exact words spoken"}`,
+              `Verbatim speech-to-text (${locale}). Write ONLY the words the human speaker said.\n` +
+              `Return JSON: {"text":"exact words"}. Do not invent text.`,
           },
         ],
       },
     ],
-    generationConfig: {
-      temperature: 0,
-      responseMimeType: 'application/json',
-    },
+    generationConfig: { temperature: 0, responseMimeType: 'application/json' },
   };
 
   const res = await fetch(url, {
@@ -87,45 +129,26 @@ async function transcribeOnce(
   });
 
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`HTTP ${res.status}: ${err.slice(0, 200)}`);
+    throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 150)}`);
   }
 
   const data = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
-    error?: { message?: string };
   };
 
-  if (data.error?.message) throw new Error(data.error.message);
-
   const raw = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!raw) throw new Error('Empty transcription response');
+  if (!raw) throw new Error('Empty Gemini response');
 
   const parsed = parseLlmJson<{ text?: string }>(raw);
   const text = parsed.text?.trim();
-  if (!text) throw new Error('No speech detected in recording');
+  if (!text) throw new Error('No speech in audio');
 
   if (looksLikeBadTranscript(text)) {
-    throw new Error(
-      'Speech was unclear — please tap 🎤 and try again. Speak clearly, close to the mic.',
-    );
+    throw new Error(`Rejected hallucinated transcript: "${text.slice(0, 40)}"`);
   }
 
   return text;
 }
 
-function looksLikeBadTranscript(text: string): boolean {
-  const lower = text.toLowerCase();
-  const bad = [
-    'sound driver',
-    'sound underscore',
-    'dashboard parameter',
-    'underscore driver',
-    'environment variable',
-    'documentation',
-    'npm ',
-    'http://',
-    'configure your',
-  ];
-  return bad.some((p) => lower.includes(p));
-}
+// Re-export for tests
+export { looksLikeBadTranscript };

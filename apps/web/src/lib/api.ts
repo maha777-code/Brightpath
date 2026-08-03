@@ -82,7 +82,12 @@ export const api = {
   tutorWarmup: () =>
     request<{ ok: boolean; provider: string }>('/tutor/warmup', { method: 'POST', body: '{}' }),
 
-  tutorTranscribe: async (audioBlob: Blob, mimeType: string, locale?: string) => {
+  tutorTranscribe: async (
+    audioBlob: Blob,
+    mimeType: string,
+    locale?: string,
+    browserTranscript?: string,
+  ) => {
     const base64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -94,9 +99,9 @@ export const api = {
       reader.readAsDataURL(audioBlob);
     });
 
-    return request<{ text: string }>('/tutor/transcribe', {
+    return request<{ text: string; source?: string }>('/tutor/transcribe', {
       method: 'POST',
-      body: JSON.stringify({ audioBase64: base64, mimeType, locale }),
+      body: JSON.stringify({ audioBase64: base64, mimeType, locale, browserTranscript }),
     });
   },
 };

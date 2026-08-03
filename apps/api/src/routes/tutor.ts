@@ -4,7 +4,7 @@ import type { TutorStatusResponse } from '@brightpath/shared';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { evaluateAnswer, generateGreeting } from '../lib/tutor/evaluate.js';
 import { getActiveProvider, getActiveProviderName } from '../lib/llm/provider.js';
-import { transcribeWithGemini } from '../lib/speech/transcribe.js';
+import { getSttEngine, transcribeSpeech } from '../lib/speech/transcribe.js';
 
 const ageBands = ['5-7', '8-10', '11-14', '15-18'] as const;
 
@@ -54,7 +54,7 @@ const transcribeSchema = z.object({
   audioBase64: z.string().min(100).max(3_000_000),
   mimeType: z.string().min(3).max(80),
   locale: z.string().min(2).optional(),
-  contextHint: z.string().max(500).optional(),
+  browserTranscript: z.string().max(2000).optional(),
 });
 
 router.get('/status', (_req, res) => {
@@ -63,6 +63,7 @@ router.get('/status', (_req, res) => {
     llmAvailable: provider !== null,
     provider,
     phase: 1,
+    sttEngine: getSttEngine(),
   };
   res.json(body);
 });
@@ -109,7 +110,7 @@ router.post('/greeting', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-/** Speech-to-text via Gemini (records audio in browser, transcribes server-side). */
+/** Speech-to-text — Deepgram (best) or Gemini + browser fallback. */
 router.post('/transcribe', requireAuth, async (req: AuthRequest, res) => {
   const parsed = transcribeSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -117,16 +118,19 @@ router.post('/transcribe', requireAuth, async (req: AuthRequest, res) => {
     return;
   }
 
-  if (!process.env.GEMINI_API_KEY?.trim()) {
-    res.status(503).json({ error: 'GEMINI_API_KEY not configured' });
+  if (!getSttEngine() && !parsed.data.browserTranscript?.trim()) {
+    res.status(503).json({
+      error: 'Speech recognition not configured. Add DEEPGRAM_API_KEY (recommended) or GEMINI_API_KEY to apps/api/.env',
+    });
     return;
   }
 
   try {
-    const text = await transcribeWithGemini(parsed.data.audioBase64, parsed.data.mimeType, {
+    const result = await transcribeSpeech(parsed.data.audioBase64, parsed.data.mimeType, {
       locale: parsed.data.locale ?? 'en-US',
+      browserTranscript: parsed.data.browserTranscript,
     });
-    res.json({ text });
+    res.json({ text: result.text, source: result.source });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Transcription failed';
     console.error('Tutor transcribe error:', message);

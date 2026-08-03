@@ -13,8 +13,13 @@ export interface UseSpeechOptions {
   locale: string;
   voiceEnabled: boolean;
   sttEnabled: boolean;
-  /** Gemini fallback when browser STT is empty */
-  transcribeAudio: (blob: Blob, mimeType: string, locale: string) => Promise<string>;
+  /** Gemini fallback — server picks best of Deepgram / browser / Gemini */
+  transcribeAudio: (
+    blob: Blob,
+    mimeType: string,
+    locale: string,
+    browserTranscript?: string,
+  ) => Promise<string>;
   onTranscribed?: (text: string) => void;
   onLiveTranscript?: (text: string) => void;
 }
@@ -219,16 +224,16 @@ export function useSpeech({
     [drainSpeakQueue, supported.tts],
   );
 
-  const applyTranscript = useCallback((text: string, source: 'browser' | 'gemini') => {
+  const applyTranscript = useCallback((text: string, source: string) => {
     const trimmed = text.trim();
     if (!trimmed) return false;
     if (looksLikeHallucinatedTranscript(trimmed)) {
       setSpeechError(
-        'Speech was unclear — tap 🎤 and try again. Speak clearly near the mic, away from speakers.',
+        'That doesn\'t look right — likely picked up Ms. Bright\'s voice. Tap 🔇 to mute, use headphones, then try 🎤 again.',
       );
       return false;
     }
-    console.info(`[STT] Using ${source} transcript:`, trimmed.slice(0, 80));
+    console.info(`[STT] Final (${source}):`, trimmed.slice(0, 100));
     setSpeechError(null);
     onTranscribedRef.current?.(trimmed);
     return true;
@@ -275,26 +280,15 @@ export function useSpeech({
     const blob = new Blob(chunksRef.current, { type: mimeType });
     chunksRef.current = [];
 
-    if (webText.length >= 2 && applyTranscript(webText, 'browser')) {
+    if (blob.size < 200 && webText.length < 2) {
       setTranscribing(false);
-      return;
-    }
-
-    if (blob.size < 200) {
-      setTranscribing(false);
-      setSpeechError(
-        webText.length > 0
-          ? 'Could not confirm speech — tap 🎤 and try again.'
-          : 'Recording too short — tap 🎤, speak, then tap 🎤 again.',
-      );
+      setSpeechError('Recording too short — tap 🎤, speak, then tap 🎤 again.');
       return;
     }
 
     try {
-      const text = await transcribeAudioRef.current(blob, mimeType, locale);
-      if (!applyTranscript(text, 'gemini')) {
-        /* error already set */
-      }
+      const text = await transcribeAudioRef.current(blob, mimeType, locale, webText || undefined);
+      applyTranscript(text, 'server');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Could not transcribe speech';
       setSpeechError(msg);
@@ -304,6 +298,8 @@ export function useSpeech({
   }, [applyTranscript, locale, stopWebSpeech]);
 
   const startMediaRecorder = useCallback(async () => {
+    await delay(700);
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -328,13 +324,13 @@ export function useSpeech({
 
       recorderRef.current = recorder;
       recorder.start(200);
-      setRecording(true);
 
       maxDurationRef.current = setTimeout(() => {
         void finishRecording();
       }, 15000);
     } catch {
       stopWebSpeech();
+      setRecording(false);
       setSpeechError('Microphone access denied. Allow the mic in Chrome settings.');
     }
   }, [finishRecording, stopWebSpeech]);
@@ -355,6 +351,7 @@ export function useSpeech({
     stopSpeaking();
     setSpeechError(null);
     chunksRef.current = [];
+    setRecording(true);
 
     if (browserWebSpeech) {
       startWebSpeechSync();

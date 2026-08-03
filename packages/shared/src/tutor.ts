@@ -43,6 +43,8 @@ export interface TutorStatusResponse {
   llmAvailable: boolean;
   provider: 'gemini' | 'openai' | null;
   phase: 1;
+  /** Server STT engine: deepgram (best), gemini, or null */
+  sttEngine?: 'deepgram' | 'gemini' | null;
 }
 
 export interface TutorGreetingRequest {

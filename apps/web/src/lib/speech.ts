@@ -54,17 +54,24 @@ export function looksLikeHallucinatedTranscript(text: string): boolean {
   const lower = text.toLowerCase();
   const bad = [
     'sound driver',
-    'sound underscore driver',
+    'sound underscore',
     'dashboard parameter',
     'underscore driver',
-    'api documentation',
-    'npm install',
-    'configure your',
     'environment variable',
+    'npm install',
     'http://',
     'https://',
-    'github.com',
+    'configure your',
+    'bright shiny star',
+    'shiny star',
+    'a bright shiny',
+    'letter sounds adventure',
+    'welcome to your letter',
+    'ms bright',
+    'mrs bright',
+    'api documentation',
     'stack overflow',
+    'github.com',
   ];
   return bad.some((p) => lower.includes(p));
 }
