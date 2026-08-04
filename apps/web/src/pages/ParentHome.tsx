@@ -64,6 +64,10 @@ export default function ParentHome() {
         {t('parent.addChild')}
       </Link>
 
+      <Link to="/dashboard" className="btn btn-secondary" style={{ marginTop: 8 }}>
+        Open learner dashboard
+      </Link>
+
       <button type="button" className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => { logout(); navigate('/'); }}>
         {t('auth.logout')}
       </button>

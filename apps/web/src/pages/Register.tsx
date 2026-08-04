@@ -21,7 +21,7 @@ export default function Register() {
     setBusy(true);
     try {
       await register(email, password, name || undefined, locale);
-      navigate('/parent');
+      navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
     } finally {

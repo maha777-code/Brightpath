@@ -57,8 +57,8 @@ function TestimonialArt() {
 
 export default function Home() {
   const { parent } = useAuth();
-  const startHref = parent ? '/parent' : '/register';
-  const loginHref = parent ? '/parent' : '/login';
+  const startHref = parent ? '/dashboard' : '/register';
+  const loginHref = parent ? '/dashboard' : '/login';
 
   return (
     <div className="bp-landing">

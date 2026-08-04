@@ -42,14 +42,14 @@ export default function App() {
     <div className="app">
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={parent ? <Navigate to="/parent" replace /> : <Login />} />
-        <Route path="/register" element={parent ? <Navigate to="/parent" replace /> : <Register />} />
+        <Route path="/login" element={parent ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route path="/register" element={parent ? <Navigate to="/dashboard" replace /> : <Register />} />
         <Route path="/parent" element={<ProtectedParent><ParentHome /></ProtectedParent>} />
         <Route path="/parent/children/new" element={<ProtectedParent><AddChild /></ProtectedParent>} />
         <Route path="/onboarding" element={<Navigate to="/parent" replace />} />
-        <Route path="/dashboard" element={<ProtectedLearner><Dashboard /></ProtectedLearner>} />
+        <Route path="/dashboard" element={<ProtectedParent><Dashboard /></ProtectedParent>} />
         <Route path="/learn/:subject" element={<ProtectedLearner><TutorSession /></ProtectedLearner>} />
-        <Route path="/progress" element={<ProtectedLearner><Progress /></ProtectedLearner>} />
+        <Route path="/progress" element={<ProtectedParent><Progress /></ProtectedParent>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

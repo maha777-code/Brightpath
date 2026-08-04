@@ -7,7 +7,19 @@ import BottomNav from '@/components/BottomNav';
 export default function ProgressPage() {
   const { profile } = useProfile();
   const progress = loadProgress();
-  if (!profile) return null;
+
+  if (!profile) {
+    return (
+      <div className="page">
+        <div className="page-header">
+          <h1 className="page-title">Your Progress</h1>
+          <p className="page-subtitle">Add a child profile to start tracking mastery.</p>
+        </div>
+        <Link to="/parent" className="btn btn-primary">Go to Parent dashboard</Link>
+        <Link to="/dashboard" className="btn btn-ghost" style={{ marginTop: 12 }}>Back to Dashboard</Link>
+      </div>
+    );
+  }
 
   const totalLessons = progress.reduce((s, p) => s + p.lessonsCompleted, 0);
   const avgMastery = progress.length ? Math.round(progress.reduce((s, p) => s + p.masteryPercent, 0) / progress.length) : 0;

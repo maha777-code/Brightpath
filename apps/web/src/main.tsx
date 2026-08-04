@@ -5,6 +5,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ProfileProvider } from '@/hooks/useProfile';
 import '@/i18n';
 import App from './App';
+import './styles/tailwind.css';
 import './styles/global.css';
 import './styles/landing.css';
 

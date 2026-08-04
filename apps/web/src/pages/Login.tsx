@@ -18,7 +18,7 @@ export default function Login() {
     setBusy(true);
     try {
       await login(email, password);
-      navigate('/parent');
+      navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
     } finally {

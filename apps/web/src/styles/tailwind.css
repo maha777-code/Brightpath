@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dashboard layout helpers (Tailwind-first app shell) */
+.bp-dash {
+  font-family: Inter, system-ui, sans-serif;
+}
