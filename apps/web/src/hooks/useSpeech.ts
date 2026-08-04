@@ -19,6 +19,7 @@ export interface UseSpeechOptions {
     mimeType: string,
     locale: string,
     browserTranscript?: string,
+    durationSec?: number,
   ) => Promise<string>;
   onTranscribed?: (text: string) => void;
   onLiveTranscript?: (text: string) => void;
@@ -77,6 +78,7 @@ export function useSpeech({
   const chunksRef = useRef<Blob[]>([]);
   const mimeTypeRef = useRef('audio/webm');
   const maxDurationRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recordingStartedRef = useRef(0);
   const speakQueueRef = useRef<string[]>([]);
   const speakingRef = useRef(false);
   const webSpeechRef = useRef<SpeechRecognition | null>(null);
@@ -286,8 +288,19 @@ export function useSpeech({
       return;
     }
 
+    const durationSec =
+      recordingStartedRef.current > 0
+        ? Math.max(1, Math.round((Date.now() - recordingStartedRef.current) / 1000))
+        : undefined;
+
     try {
-      const text = await transcribeAudioRef.current(blob, mimeType, locale, webText || undefined);
+      const text = await transcribeAudioRef.current(
+        blob,
+        mimeType,
+        locale,
+        webText || undefined,
+        durationSec,
+      );
       applyTranscript(text, 'server');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Could not transcribe speech';
@@ -352,6 +365,7 @@ export function useSpeech({
     setSpeechError(null);
     chunksRef.current = [];
     setRecording(true);
+    recordingStartedRef.current = Date.now();
 
     if (browserWebSpeech) {
       startWebSpeechSync();

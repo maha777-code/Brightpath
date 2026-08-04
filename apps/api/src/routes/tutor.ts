@@ -55,6 +55,7 @@ const transcribeSchema = z.object({
   mimeType: z.string().min(3).max(80),
   locale: z.string().min(2).optional(),
   browserTranscript: z.string().max(2000).optional(),
+  durationSec: z.number().min(0).max(120).optional(),
 });
 
 router.get('/status', (_req, res) => {
@@ -129,6 +130,7 @@ router.post('/transcribe', requireAuth, async (req: AuthRequest, res) => {
     const result = await transcribeSpeech(parsed.data.audioBase64, parsed.data.mimeType, {
       locale: parsed.data.locale ?? 'en-US',
       browserTranscript: parsed.data.browserTranscript,
+      durationSec: parsed.data.durationSec,
     });
     res.json({ text: result.text, source: result.source });
   } catch (err) {

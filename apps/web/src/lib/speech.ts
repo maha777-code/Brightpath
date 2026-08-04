@@ -72,6 +72,14 @@ export function looksLikeHallucinatedTranscript(text: string): boolean {
     'api documentation',
     'stack overflow',
     'github.com',
+    'happy life',
+    'tie it to a goal',
+    'not to people or things',
   ];
-  return bad.some((p) => lower.includes(p));
+  if (bad.some((p) => lower.includes(p))) return true;
+  // Long motivational / quote-like text (> 12 words) when user spoke briefly
+  if (lower.split(/\s+/).length > 12 && !lower.includes('mahalakshmi') && !lower.includes('explain')) {
+    return true;
+  }
+  return false;
 }

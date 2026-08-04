@@ -1,34 +1,42 @@
 /** Deepgram Nova-2 — accurate STT (free tier: https://console.deepgram.com/) */
-export async function transcribeWithDeepgram(audio: Buffer, mimeType: string): Promise<string> {
-  const key = process.env.DEEPGRAM_API_KEY?.trim();
-  if (!key) throw new Error('DEEPGRAM_API_KEY not configured');
-
+export async function transcribeWithDeepgram(
+  audio: Buffer,
+  mimeType: string,
+  apiKey: string,
+): Promise<string> {
   const params = new URLSearchParams({
     model: 'nova-2',
     smart_format: 'true',
     language: 'en',
-    punctuate: 'true',
+    punctuate: 'false',
+    filler_words: 'false',
   });
 
   const res = await fetch(`https://api.deepgram.com/v1/listen?${params}`, {
     method: 'POST',
     headers: {
-      Authorization: `Token ${key}`,
-      'Content-Type': mimeType,
+      Authorization: `Token ${apiKey}`,
+      'Content-Type': mimeType || 'audio/webm',
     },
-    body: audio,
+    body: new Uint8Array(audio),
   });
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Deepgram HTTP ${res.status}: ${err.slice(0, 200)}`);
+    throw new Error(`HTTP ${res.status}: ${err.slice(0, 250)}`);
   }
 
   const data = (await res.json()) as {
-    results?: { channels?: { alternatives?: { transcript?: string }[] }[] };
+    results?: { channels?: { alternatives?: { transcript?: string; confidence?: number }[] }[] };
+    metadata?: { duration?: number };
   };
 
-  const text = data.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim();
-  if (!text) throw new Error('Deepgram returned empty transcript');
+  const alt = data.results?.channels?.[0]?.alternatives?.[0];
+  const text = alt?.transcript?.trim();
+  const confidence = alt?.confidence;
+
+  console.log(`[STT] Deepgram raw confidence=${confidence?.toFixed(2) ?? '?'} duration=${data.metadata?.duration ?? '?'}`);
+
+  if (!text) throw new Error('Deepgram returned empty transcript — speak louder or check mic');
   return text;
 }

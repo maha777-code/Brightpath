@@ -44,7 +44,7 @@ export default function TutorSession() {
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiChecking, setAiChecking] = useState(true);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [sttEngine, setSttEngine] = useState<'deepgram' | 'gemini' | null>(null);
+  const [sttEngine, setSttEngine] = useState<'deepgram' | null>(null);
 
   const lessons = profile ? getLessonsFor(validSubject, profile.ageBand) : [];
   const lesson = lessons.find((l) => l.id === selectedLessonId);
@@ -132,8 +132,8 @@ export default function TutorSession() {
       locale: speechLocale,
       voiceEnabled,
       sttEnabled: llmAvailable,
-      transcribeAudio: async (blob, mimeType, loc, browserTranscript) => {
-        const { text } = await api.tutorTranscribe(blob, mimeType, loc, browserTranscript);
+      transcribeAudio: async (blob, mimeType, loc, browserTranscript, durationSec) => {
+        const { text } = await api.tutorTranscribe(blob, mimeType, loc, browserTranscript, durationSec);
         return text;
       },
       onTranscribed: (text) => setInput(text),
@@ -388,9 +388,9 @@ export default function TutorSession() {
             {supported.stt && (
               <span style={{ display: 'block', marginTop: 6, color: 'var(--slate-600)', fontSize: '0.85rem' }}>
                 Voice: tap 🔇 to mute Ms. Bright (or use headphones), then 🎤 → speak → 🎤 → ↑
-                {sttEngine === 'gemini' && (
+                {sttEngine !== 'deepgram' && (
                   <span style={{ display: 'block', color: '#b45309', marginTop: 4 }}>
-                    Tip: add DEEPGRAM_API_KEY in .env for much better speech recognition (free at console.deepgram.com)
+                    Add DEEPGRAM_API_KEY to .env and apps/api/.env, then restart (free at console.deepgram.com)
                   </span>
                 )}
               </span>

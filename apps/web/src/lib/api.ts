@@ -87,6 +87,7 @@ export const api = {
     mimeType: string,
     locale?: string,
     browserTranscript?: string,
+    durationSec?: number,
   ) => {
     const base64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -101,7 +102,7 @@ export const api = {
 
     return request<{ text: string; source?: string }>('/tutor/transcribe', {
       method: 'POST',
-      body: JSON.stringify({ audioBase64: base64, mimeType, locale, browserTranscript }),
+      body: JSON.stringify({ audioBase64: base64, mimeType, locale, browserTranscript, durationSec }),
     });
   },
 };

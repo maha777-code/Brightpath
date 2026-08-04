@@ -22,36 +22,33 @@ export function looksLikeBadTranscript(text: string): boolean {
     'mrs bright',
     'api documentation',
     'stack overflow',
+    'happy life',
+    'tie it to a goal',
+    'not to people or things',
+    'albert einstein',
+    'inspirational quote',
+    'motivational',
   ];
 
   if (badPhrases.some((p) => lower.includes(p))) return true;
 
-  // Single-word "bright" alone is often echo from "Ms. Bright" TTS
   if (/^bright\.?$/i.test(lower)) return true;
 
   return false;
 }
 
-/** Prefer longer, sentence-like browser text over suspicious short echo. */
-export function pickBestTranscript(
-  candidates: { text: string; source: string }[],
-): { text: string; source: string } | null {
-  const valid = candidates.filter((c) => c.text.trim().length >= 1 && !looksLikeBadTranscript(c.text));
-  if (valid.length === 0) return null;
+/** Kids/tutor answers are short — long text is almost always hallucination or echo. */
+export function looksTooLongForSpeech(text: string, maxWords = 24): boolean {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  return words.length > maxWords;
+}
 
-  // Prefer deepgram, then browser with 3+ words, then others
-  const rank = (source: string) => {
-    if (source === 'deepgram') return 0;
-    if (source === 'browser') return 1;
-    if (source === 'gemini') return 2;
-    return 3;
-  };
+export type SttSource = 'deepgram' | 'browser';
 
-  valid.sort((a, b) => {
-    const wordDiff = b.text.trim().split(/\s+/).length - a.text.trim().split(/\s+/).length;
-    if (Math.abs(wordDiff) >= 2) return wordDiff;
-    return rank(a.source) - rank(b.source);
-  });
-
-  return valid[0] ?? null;
+export function validateTranscript(text: string, source: SttSource): string | null {
+  const trimmed = text.trim();
+  if (trimmed.length < 1) return null;
+  if (looksLikeBadTranscript(trimmed)) return null;
+  if (looksTooLongForSpeech(trimmed)) return null;
+  return trimmed;
 }
