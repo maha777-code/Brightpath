@@ -6,6 +6,7 @@ import { ProfileProvider } from '@/hooks/useProfile';
 import '@/i18n';
 import App from './App';
 import './styles/global.css';
+import './styles/landing.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

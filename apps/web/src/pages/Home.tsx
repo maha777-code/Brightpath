@@ -1,61 +1,54 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
 const SUBJECTS = [
-  { name: 'Mathematics', icon: '📐', color: '#0d9488', progress: 72 },
-  { name: 'Reading', icon: '📖', color: '#6366f1', progress: 58 },
-  { name: 'Writing', icon: '✏️', color: '#ec4899', progress: 45 },
-  { name: 'Languages', icon: '🌍', color: '#f59e0b', progress: 33 },
-  { name: 'Sciences', icon: '🔬', color: '#8b5cf6', progress: 61 },
+  { name: 'Mathematics', icon: '%', accent: '#0d9488' },
+  { name: 'Computer Science', icon: '🖥', accent: '#5eead4' },
+  { name: 'Languages', icon: '💬', accent: '#a78bfa' },
+  { name: 'Sciences', icon: '⚗', accent: '#22c55e' },
+  { name: 'Test Prep', icon: '⚙', accent: '#f97316' },
+  { name: 'Test Prep', icon: '📋', accent: '#8b5cf6' },
 ];
 
-const TESTIMONIALS = [
-  {
-    quote: 'Brightpath AI doubled my confidence in just two weeks!',
-    name: 'Emily',
-    grade: '11th Grade',
-    avatar: 'E',
-    color: '#6366f1',
-  },
-  {
-    quote: 'My daughter finally enjoys math — she asks to practice every day.',
-    name: 'Priya',
-    grade: 'Parent, 4th Grade',
-    avatar: 'P',
-    color: '#0d9488',
-  },
-  {
-    quote: 'It feels like a real tutor who knows exactly where I struggle.',
-    name: 'Marcus',
-    grade: '8th Grade',
-    avatar: 'M',
-    color: '#ec4899',
-  },
-];
+function LogoMark() {
+  return <span className="bp-logo-mark" aria-hidden="true" />;
+}
 
-function HeroIllustration() {
+function HeroArt() {
   return (
-    <div className="landing-hero-art" aria-hidden="true">
-      <div className="landing-hero-glass">
-        <div className="landing-hero-scene">
-          <div className="landing-float-card landing-float-card--math">
-            <span className="landing-float-eq">x² + 5x + 6 = 0</span>
-            <span className="landing-float-eq landing-float-eq--sm">(x + 2)(x + 3)</span>
+    <div className="bp-art bp-art--hero" aria-hidden="true">
+      <div className="bp-art-glass">
+        <div className="bp-holo">
+          <span className="bp-holo-eq">x² + 5x + 6</span>
+          <span className="bp-holo-eq bp-holo-eq--sm">(x+2)(x+3)</span>
+          <span className="bp-holo-eq bp-holo-eq--sm">y = mx + b</span>
+        </div>
+        <div className="bp-student">
+          <div className="bp-student-head" />
+          <div className="bp-student-headphones" />
+          <div className="bp-student-body" />
+        </div>
+        <div className="bp-glow-orb" />
+      </div>
+    </div>
+  );
+}
+
+function TestimonialArt() {
+  return (
+    <div className="bp-art bp-art--testimonial" aria-hidden="true">
+      <div className="bp-art-glass">
+        <div className="bp-robot">
+          <div className="bp-robot-glow" />
+          <div className="bp-robot-head">
+            <span className="bp-robot-eye" />
+            <span className="bp-robot-eye" />
           </div>
-          <div className="landing-hero-boy">
-            <div className="landing-boy-head" />
-            <div className="landing-boy-body" />
-            <div className="landing-boy-headphones" />
-          </div>
-          <div className="landing-hero-robot">
-            <div className="landing-robot-face">
-              <span className="landing-robot-eye" />
-              <span className="landing-robot-eye" />
-            </div>
-            <div className="landing-robot-body" />
-            <div className="landing-robot-glow" />
-          </div>
+          <div className="bp-robot-body" />
+        </div>
+        <div className="bp-student bp-student--small">
+          <div className="bp-student-head" />
+          <div className="bp-student-body" />
         </div>
       </div>
     </div>
@@ -64,243 +57,180 @@ function HeroIllustration() {
 
 export default function Home() {
   const { parent } = useAuth();
-  const [testimonialIdx, setTestimonialIdx] = useState(0);
   const startHref = parent ? '/parent' : '/register';
-
-  const prevTestimonial = () =>
-    setTestimonialIdx((i) => (i === 0 ? TESTIMONIALS.length - 1 : i - 1));
-  const nextTestimonial = () =>
-    setTestimonialIdx((i) => (i === TESTIMONIALS.length - 1 ? 0 : i + 1));
-
-  const t = TESTIMONIALS[testimonialIdx];
+  const loginHref = parent ? '/parent' : '/login';
 
   return (
-    <div className="landing">
-      <div className="landing-bg" aria-hidden="true">
-        <div className="landing-bg-blob landing-bg-blob--pink" />
-        <div className="landing-bg-blob landing-bg-blob--blue" />
-        <div className="landing-bg-blob landing-bg-blob--purple" />
+    <div className="bp-landing">
+      <div className="bp-bg" aria-hidden="true">
+        <div className="bp-blob bp-blob--blue" />
+        <div className="bp-blob bp-blob--purple" />
+        <div className="bp-blob bp-blob--pink" />
       </div>
 
-      <header className="landing-nav">
-        <Link to="/" className="landing-logo">
-          <span className="landing-logo-icon" aria-hidden="true" />
-          <span>Brightpath AI</span>
+      {/* 1. Top Navigation */}
+      <header className="bp-nav">
+        <Link to="/" className="bp-logo">
+          <LogoMark />
+          <span>Brightpath AI Tutor</span>
         </Link>
 
-        <nav className="landing-nav-links" aria-label="Main">
+        <nav className="bp-nav-center" aria-label="Main">
           <a href="#subjects">Subjects</a>
           <a href="#how-it-works">How It Works</a>
           <a href="#pricing">Pricing</a>
           <a href="#schools">For Schools</a>
+          <Link to={loginHref}>Log In</Link>
         </nav>
 
-        <div className="landing-nav-actions">
-          {parent ? (
-            <Link to="/parent" className="landing-btn landing-btn--primary landing-btn--sm">
-              Dashboard
-            </Link>
-          ) : (
-            <>
-              <Link to="/login" className="landing-btn landing-btn--ghost landing-btn--sm">
-                Log In
-              </Link>
-              <Link to="/register" className="landing-btn landing-btn--primary landing-btn--sm">
-                Get Started For Free
-              </Link>
-            </>
-          )}
-        </div>
+        <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--nav">
+          Get Started For Free
+        </Link>
       </header>
 
       <main>
-        <section className="landing-hero">
-          <div className="landing-hero-content">
-            <h1 className="landing-hero-title">
-              Unlock Your Full Potential with Your Personal AI Tutor
-            </h1>
-            <p className="landing-hero-sub">
+        {/* 2. Hero */}
+        <section className="bp-hero">
+          <div className="bp-hero-copy">
+            <h1>Unlock Your Full Potential with Your Personal AI Tutor</h1>
+            <p>
               Adaptive, 24/7 learning that evolves with you. Master any subject, from Math to
               Mandarin.
             </p>
-            <Link to={startHref} className="landing-btn landing-btn--primary landing-btn--lg">
+            <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--lg">
               Start Your Personalized Journey
             </Link>
           </div>
-          <HeroIllustration />
+          <HeroArt />
         </section>
 
-        <section className="landing-benefits" aria-label="Key benefits">
-          <div className="landing-benefits-inner">
-            <div className="landing-benefit">
-              <span className="landing-benefit-icon" aria-hidden="true">📈</span>
+        {/* 3. Features Row */}
+        <section className="bp-features" aria-label="Key features">
+          <div className="bp-features-glass">
+            <div className="bp-feature">
+              <span className="bp-feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 17l6-6 4 4 8-8" />
+                  <path d="M14 7h7v7" />
+                </svg>
+              </span>
               <div>
                 <strong>Adaptive Learning</strong>
-                <p>Lessons adjust to your pace and skill level</p>
+                <span>Grapho learning and points</span>
               </div>
             </div>
-            <div className="landing-benefit">
-              <span className="landing-benefit-icon" aria-hidden="true">🕐</span>
+            <div className="bp-feature-divider" aria-hidden="true" />
+            <div className="bp-feature">
+              <span className="bp-feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+              </span>
               <div>
                 <strong>24/7 Support</strong>
-                <p>Your tutor is always ready when you are</p>
+                <span>Chekwsout 24/7 support</span>
               </div>
             </div>
-            <div className="landing-benefit">
-              <span className="landing-benefit-icon" aria-hidden="true">🛤️</span>
+            <div className="bp-feature-divider" aria-hidden="true" />
+            <div className="bp-feature">
+              <span className="bp-feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 3v6" />
+                  <path d="M12 9l-5 8" />
+                  <path d="M12 9l5 8" />
+                  <circle cx="7" cy="19" r="1.5" fill="currentColor" stroke="none" />
+                  <circle cx="17" cy="19" r="1.5" fill="currentColor" stroke="none" />
+                  <circle cx="12" cy="3" r="1.5" fill="currentColor" stroke="none" />
+                </svg>
+              </span>
               <div>
                 <strong>Personalized Path</strong>
-                <p>A roadmap built just for you</p>
+                <span>Unickly branching roadmap</span>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="subjects" className="landing-section">
-          <h2 className="landing-section-title">Subjects</h2>
-          <div className="landing-subjects-grid">
-            {SUBJECTS.map((subject) => (
-              <article key={subject.name} className="landing-subject-card">
-                <div
-                  className="landing-subject-icon"
-                  style={{ background: `${subject.color}18`, color: subject.color }}
-                >
-                  {subject.icon}
+        {/* 4. Subjects Grid */}
+        <section id="subjects" className="bp-section">
+          <h2 className="bp-section-title">Subjects</h2>
+          <div className="bp-subjects">
+            {SUBJECTS.map((s, i) => (
+              <article key={`${s.name}-${i}`} className="bp-subject-card">
+                <div className="bp-subject-icon" style={{ color: s.accent }}>
+                  {s.icon}
                 </div>
-                <h3>{subject.name}</h3>
-                <div className="landing-subject-progress">
-                  <div
-                    className="landing-subject-progress-fill"
-                    style={{ width: `${subject.progress}%`, background: subject.color }}
-                  />
-                </div>
+                <h3>{s.name}</h3>
+                <div className="bp-subject-line" style={{ background: s.accent }} />
               </article>
             ))}
           </div>
         </section>
 
-        <section id="how-it-works" className="landing-section landing-chat-section">
-          <h2 className="landing-section-title">Meet Your Brightpath AI</h2>
-          <div className="landing-chat-card">
-            <div className="landing-chat-header">
-              <div className="landing-chat-avatar" aria-hidden="true">🤖</div>
-              <div>
-                <strong>Brightpath AI</strong>
-                <span>Your personal tutor</span>
+        {/* 5. Testimonials */}
+        <section id="how-it-works" className="bp-section bp-testimonial-section">
+          <div className="bp-testimonial-layout">
+            <div className="bp-testimonial-card">
+              <p className="bp-quote">
+                &ldquo;Brightpath AI doubled my confidence in just two weeks! The tutor explains
+                concepts until they finally click.&rdquo;
+              </p>
+              <div className="bp-quote-author">
+                <div className="bp-quote-avatar">E</div>
+                <div>
+                  <strong>Emily</strong>
+                  <span>11th Grade</span>
+                </div>
               </div>
             </div>
-            <div className="landing-chat-messages">
-              <div className="landing-chat-bubble landing-chat-bubble--student">
-                <span className="landing-chat-label">Student</span>
-                I need help with quadratic equations.
-              </div>
-              <div className="landing-chat-bubble landing-chat-bubble--ai">
-                <span className="landing-chat-label">Brightpath AI</span>
-                Let&apos;s start with a simple one. Can you factor this? x² + 5x + 6 = 0
-              </div>
-              <div className="landing-chat-bubble landing-chat-bubble--student">
-                <span className="landing-chat-label">Student</span>
-                Is it (x + 2)(x + 3)?
-              </div>
-              <div className="landing-chat-bubble landing-chat-bubble--ai">
-                <span className="landing-chat-label">Brightpath AI</span>
-                Exactly right! 🎉 You&apos;re getting the hang of factoring.
-              </div>
-            </div>
-            <div className="landing-chat-input">
-              <span>Type or speak your answer…</span>
-              <button type="button" className="landing-chat-mic" aria-label="Voice input">
-                🎤
-              </button>
-            </div>
+            <TestimonialArt />
           </div>
         </section>
 
-        <section className="landing-section landing-testimonials-section">
-          <h2 className="landing-section-title">Testimonials</h2>
-          <div className="landing-testimonial-carousel">
-            <button
-              type="button"
-              className="landing-carousel-btn"
-              onClick={prevTestimonial}
-              aria-label="Previous testimonial"
-            >
-              ‹
-            </button>
-            <article className="landing-testimonial-card">
-              <div
-                className="landing-testimonial-avatar"
-                style={{ background: `linear-gradient(135deg, ${t.color}, ${t.color}99)` }}
-              >
-                {t.avatar}
-              </div>
-              <div className="landing-testimonial-body">
-                <blockquote>&ldquo;{t.quote}&rdquo;</blockquote>
-                <footer>
-                  <strong>{t.name}</strong>
-                  <span>{t.grade}</span>
-                </footer>
-              </div>
-            </article>
-            <button
-              type="button"
-              className="landing-carousel-btn"
-              onClick={nextTestimonial}
-              aria-label="Next testimonial"
-            >
-              ›
-            </button>
-          </div>
-          <div className="landing-carousel-dots" role="tablist" aria-label="Testimonials">
-            {TESTIMONIALS.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                role="tab"
-                aria-selected={i === testimonialIdx}
-                aria-label={`Testimonial ${i + 1}`}
-                className={`landing-carousel-dot${i === testimonialIdx ? ' active' : ''}`}
-                onClick={() => setTestimonialIdx(i)}
-              />
-            ))}
-          </div>
-        </section>
-
-        <section id="pricing" className="landing-section landing-cta-section">
-          <div className="landing-cta-card">
-            <h2>Ready to learn smarter?</h2>
+        {/* Pricing / CTA anchor */}
+        <section id="pricing" className="bp-section bp-cta-wrap">
+          <div className="bp-cta-glass">
+            <h2>Ready to unlock your potential?</h2>
             <p>Private tutoring quality at app-store prices. Start free today.</p>
-            <Link to={startHref} className="landing-btn landing-btn--primary landing-btn--lg">
+            <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--lg">
               Get Started For Free
             </Link>
           </div>
         </section>
 
-        <section id="schools" className="landing-section landing-schools-section">
-          <div className="landing-schools-card">
+        <section id="schools" className="bp-section bp-cta-wrap">
+          <div className="bp-cta-glass bp-cta-glass--soft">
             <h2>For Schools</h2>
             <p>
-              Bring adaptive AI tutoring to your classroom. COPPA-ready, parent-managed accounts,
-              and progress tracking built in.
+              Bring adaptive AI tutoring to your classroom. Parent-managed, COPPA-ready accounts
+              with progress tracking built in.
             </p>
-            <a href="mailto:hello@brightpath.ai" className="landing-btn landing-btn--secondary">
+            <a href="mailto:hello@brightpath.ai" className="bp-btn bp-btn--outline">
               Contact Us
             </a>
           </div>
         </section>
       </main>
 
-      <footer className="landing-footer">
-        <nav className="landing-footer-links" aria-label="Footer">
+      {/* 6. Footer */}
+      <footer className="bp-footer">
+        <nav className="bp-footer-links" aria-label="Footer">
           <a href="#how-it-works">About Us</a>
           <a href="#schools">Careers</a>
           <a href="mailto:support@brightpath.ai">Support</a>
           <a href="#pricing">Privacy Policy</a>
         </nav>
-        <div className="landing-footer-social" aria-label="Social media">
-          <a href="#" aria-label="Facebook">f</a>
-          <a href="#" aria-label="Twitter">𝕏</a>
-          <a href="#" aria-label="Instagram">◎</a>
+        <div className="bp-footer-social">
+          <a href="#" aria-label="Facebook" className="bp-social">
+            f
+          </a>
+          <a href="#" aria-label="Twitter" className="bp-social">
+            𝕏
+          </a>
+          <a href="#" aria-label="Instagram" className="bp-social">
+           ◎
+          </a>
         </div>
       </footer>
     </div>

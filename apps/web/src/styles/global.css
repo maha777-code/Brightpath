@@ -1,1 +1,6 @@
+/*
+  App styles live in the monorepo root shared CSS.
+  Landing styles are loaded separately from landing.css (inside this package)
+  so Vite always applies them even if the shared import fails.
+*/
 @import url('../../../../src/styles/global.css');
