@@ -29,12 +29,40 @@ export function ageToBand(age: number): AgeBand {
   return '15-18';
 }
 
+export type {
+  AgeGroup,
+  CurriculumSubject,
+  AgePersona,
+} from './ageCurriculum.js';
+
+export {
+  AGE_GROUPS,
+  AGE_GROUP_LABELS,
+  AGE_GROUP_LEVEL_NAMES,
+  CURRICULUM_BY_AGE_GROUP,
+  PERSONA_BY_AGE_GROUP,
+  getAgeFromDOB,
+  getAgeGroupFromAge,
+  getAgeGroupFromDOB,
+  subjectsForAgeGroup,
+  mergeUnlockedSubjects,
+  resolveCurriculumSubjects,
+  ageGroupToLegacyBand,
+  legacyBandToAgeGroup,
+} from './ageCurriculum.js';
+
+import type { AgeGroup } from './ageCurriculum.js';
+
 export interface ParentUser {
   id: string;
   email: string;
   name: string | null;
   locale: Locale;
   createdAt: string;
+  dateOfBirth: string | null;
+  calculatedAgeGroup: AgeGroup | null;
+  unlockedSubjects: string[];
+  currentAge: number | null;
 }
 
 export interface ChildProfile {
@@ -43,14 +71,27 @@ export interface ChildProfile {
   name: string;
   age: number;
   ageBand: AgeBand;
+  dateOfBirth: string | null;
+  calculatedAgeGroup: AgeGroup;
+  unlockedSubjects: string[];
   subjects: Subject[];
   locale: Locale;
   createdAt: string;
 }
 
+export interface CurriculumUpgradeEvent {
+  upgraded: boolean;
+  previousGroup: AgeGroup | null;
+  newGroup: AgeGroup;
+  unlockedSubjects: string[];
+  currentAge: number;
+  message?: string;
+}
+
 export interface AuthResponse {
   token: string;
   parent: ParentUser;
+  curriculum?: CurriculumUpgradeEvent;
 }
 
 export interface RegisterRequest {
@@ -58,6 +99,8 @@ export interface RegisterRequest {
   password: string;
   name?: string;
   locale?: Locale;
+  /** ISO date string YYYY-MM-DD — required for age-based curriculum */
+  dateOfBirth: string;
 }
 
 export interface LoginRequest {
@@ -65,9 +108,16 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface UpdateAgeSettingsRequest {
+  dateOfBirth?: string;
+  /** Manual override — if set, forces this group (optionally with DOB) */
+  ageGroup?: AgeGroup;
+}
+
 export interface CreateChildRequest {
   name: string;
-  age: number;
+  age?: number;
+  dateOfBirth?: string;
   subjects: Subject[];
   locale?: Locale;
 }
@@ -75,6 +125,7 @@ export interface CreateChildRequest {
 export interface UpdateChildRequest {
   name?: string;
   age?: number;
+  dateOfBirth?: string;
   subjects?: Subject[];
   locale?: Locale;
 }

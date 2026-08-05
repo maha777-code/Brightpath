@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LOCALES, LOCALE_LABELS, type Locale } from '@brightpath/shared';
+import { LOCALES, LOCALE_LABELS, getAgeFromDOB, getAgeGroupFromDOB, AGE_GROUP_LABELS, type Locale } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
+import { BirthDatePicker } from '@/components/age/BirthDatePicker';
 
 export default function Register() {
   const { t } = useTranslation();
@@ -12,15 +13,36 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [locale, setLocaleValue] = useState<Locale>('en-IN');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const preview =
+    dateOfBirth && /^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)
+      ? (() => {
+          const dob = new Date(`${dateOfBirth}T12:00:00`);
+          const age = getAgeFromDOB(dob);
+          const group = getAgeGroupFromDOB(dob);
+          return { age, group };
+        })()
+      : null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!dateOfBirth) {
+      setError('Date of birth is required to personalize the curriculum.');
+      return;
+    }
     setBusy(true);
     try {
-      await register(email, password, name || undefined, locale);
+      await register({
+        email,
+        password,
+        name: name || undefined,
+        locale,
+        dateOfBirth,
+      });
       navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
@@ -48,6 +70,26 @@ export default function Register() {
           <label className="form-label" htmlFor="password">{t('auth.password')}</label>
           <input id="password" type="password" className="form-input" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" />
         </div>
+
+        <BirthDatePicker value={dateOfBirth} onChange={setDateOfBirth} required />
+
+        {preview && (
+          <div
+            style={{
+              marginBottom: 16,
+              padding: '12px 14px',
+              borderRadius: 12,
+              background: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              fontSize: '0.875rem',
+              color: '#065f46',
+            }}
+          >
+            Age <strong>{preview.age}</strong> · Unlocking{' '}
+            <strong>{AGE_GROUP_LABELS[preview.group]}</strong> curriculum
+          </div>
+        )}
+
         <div className="form-group">
           <label className="form-label" htmlFor="locale">Language / locale</label>
           <select id="locale" className="form-input" value={locale} onChange={(e) => setLocaleValue(e.target.value as Locale)}>

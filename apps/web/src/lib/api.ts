@@ -44,6 +44,8 @@ import type {
   ChildProfile,
   CreateChildRequest,
   UpdateChildRequest,
+  UpdateAgeSettingsRequest,
+  CurriculumUpgradeEvent,
   TutorRespondRequest,
   TutorRespondResponse,
   TutorStatusResponse,
@@ -58,7 +60,13 @@ export const api = {
   login: (body: LoginRequest) =>
     request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
 
-  me: () => request<{ parent: ParentUser }>('/auth/me'),
+  me: () => request<{ parent: ParentUser; curriculum?: CurriculumUpgradeEvent }>('/auth/me'),
+
+  updateAgeSettings: (body: UpdateAgeSettingsRequest) =>
+    request<{ parent: ParentUser; curriculum: CurriculumUpgradeEvent }>('/auth/age-settings', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
 
   listChildren: () => request<{ children: ChildProfile[] }>('/children'),
 
@@ -120,7 +128,15 @@ export function clearAuth() {
 export function loadStoredParent(): ParentUser | null {
   try {
     const raw = localStorage.getItem('brightpath_parent');
-    return raw ? (JSON.parse(raw) as ParentUser) : null;
+    if (!raw) return null;
+    const p = JSON.parse(raw) as ParentUser;
+    return {
+      ...p,
+      dateOfBirth: p.dateOfBirth ?? null,
+      calculatedAgeGroup: p.calculatedAgeGroup ?? null,
+      unlockedSubjects: p.unlockedSubjects ?? [],
+      currentAge: p.currentAge ?? null,
+    };
   } catch {
     return null;
   }

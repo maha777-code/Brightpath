@@ -7,28 +7,41 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum AgeGroup {
+  TODDLER_1_3
+  EARLY_4_7
+  UPPER_ELEM_8_10
+  MIDDLE_11_14
+}
+
 model Parent {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String?
-  locale       String   @default("en-IN")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  children     Child[]
+  id                  String     @id @default(cuid())
+  email               String     @unique
+  passwordHash        String
+  name                String?
+  locale              String     @default("en-IN")
+  dateOfBirth         DateTime?
+  calculatedAgeGroup  AgeGroup?
+  unlockedSubjects    String[]   @default([])
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  children            Child[]
 }
 
 model Child {
-  id        String   @id @default(cuid())
-  parentId  String
-  parent    Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
-  name      String
-  age       Int
-  ageBand   String
-  subjects  String[]
-  locale    String   @default("en-IN")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String    @id @default(cuid())
+  parentId            String
+  parent              Parent    @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  name                String
+  age                 Int
+  ageBand             String
+  dateOfBirth         DateTime?
+  calculatedAgeGroup  AgeGroup  @default(EARLY_4_7)
+  unlockedSubjects    String[]  @default([])
+  subjects            String[]
+  locale              String    @default("en-IN")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@index([parentId])
 }
