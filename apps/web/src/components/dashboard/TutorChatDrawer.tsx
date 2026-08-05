@@ -1,8 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MoreHorizontal, Send } from 'lucide-react';
+import type { AiChatConfig } from '@/lib/ageGroupDashboardConfig';
 
 interface TutorChatDrawerProps {
   learnerName: string;
+  persona: AiChatConfig;
+  accent?: string;
+  /** Forces chat to reset when age group changes */
+  ageGroupKey: string;
 }
 
 interface ChatMessage {
@@ -11,22 +16,31 @@ interface ChatMessage {
   text: string;
 }
 
-const INITIAL: ChatMessage[] = [
-  {
-    id: '1',
-    role: 'user',
-    text: 'Can you explain the quadratic formula with examples?',
-  },
-  {
-    id: '2',
-    role: 'tutor',
-    text: "Absolutely! Let's break it down into steps. For ax² + bx + c = 0, the solutions are x = (-b ± √(b² − 4ac)) / 2a. Try a = 1, b = 5, c = 6.",
-  },
-];
+function buildInitial(persona: AiChatConfig, learnerName: string): ChatMessage[] {
+  return persona.initialMessages.map((m, i) => ({
+    id: `seed-${i}`,
+    role: m.role,
+    text: m.text.replaceAll('{name}', learnerName),
+  }));
+}
 
-export function TutorChatDrawer({ learnerName }: TutorChatDrawerProps) {
-  const [messages, setMessages] = useState(INITIAL);
+export function TutorChatDrawer({
+  learnerName,
+  persona,
+  accent = '#0f766e',
+  ageGroupKey,
+}: TutorChatDrawerProps) {
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    buildInitial(persona, learnerName),
+  );
   const [draft, setDraft] = useState('');
+
+  // Clear prior dialogue (e.g. algebra) whenever age group or learner changes
+  useEffect(() => {
+    setMessages(buildInitial(persona, learnerName));
+    setDraft('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only on age/learner identity
+  }, [ageGroupKey, learnerName]);
 
   const send = () => {
     const text = draft.trim();
@@ -37,7 +51,7 @@ export function TutorChatDrawer({ learnerName }: TutorChatDrawerProps) {
       {
         id: `${Date.now()}-r`,
         role: 'tutor',
-        text: `Great question, ${learnerName}! Open a full lesson from My Subjects for a deeper walkthrough — I'm here 24/7.`,
+        text: persona.replyTemplate.replaceAll('{name}', learnerName),
       },
     ]);
     setDraft('');
@@ -45,12 +59,17 @@ export function TutorChatDrawer({ learnerName }: TutorChatDrawerProps) {
 
   return (
     <aside className="flex h-full w-full flex-col overflow-hidden rounded-3xl border border-white/70 bg-white/85 shadow-soft backdrop-blur-md lg:w-80 xl:w-96">
-      <div className="flex items-center justify-between bg-teal-700 px-4 py-3 text-white">
+      <div className="flex items-center justify-between px-4 py-3 text-white" style={{ background: accent }}>
         <div>
           <p className="text-sm font-bold">24/7 AI Tutor</p>
-          <p className="text-xs text-teal-100">{learnerName}&apos;s Tutor</p>
+          <p className="text-xs opacity-90">{learnerName}&apos;s Tutor</p>
         </div>
-        <button type="button" className="rounded-lg p-1.5 hover:bg-teal-600" aria-label="Chat options">
+        <button
+          type="button"
+          className="rounded-lg p-1.5 hover:bg-white/10"
+          aria-label="Chat options"
+          title={persona.tone}
+        >
           <MoreHorizontal className="h-5 w-5" />
         </button>
       </div>
@@ -61,10 +80,9 @@ export function TutorChatDrawer({ learnerName }: TutorChatDrawerProps) {
             key={m.id}
             className={[
               'max-w-[90%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
-              m.role === 'user'
-                ? 'ml-auto bg-teal-700 text-white'
-                : 'mr-auto bg-slate-100 text-slate-700',
+              m.role === 'user' ? 'ml-auto text-white' : 'mr-auto bg-slate-100 text-slate-700',
             ].join(' ')}
+            style={m.role === 'user' ? { background: accent } : undefined}
           >
             {m.text}
           </div>
@@ -77,13 +95,14 @@ export function TutorChatDrawer({ learnerName }: TutorChatDrawerProps) {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && send()}
-            placeholder="Type a message..."
+            placeholder={persona.placeholder}
             className="min-w-0 flex-1 bg-transparent px-2 text-sm text-slate-700 outline-none placeholder:text-slate-400"
           />
           <button
             type="button"
             onClick={send}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-teal-700 text-white transition hover:bg-teal-600"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-white transition hover:opacity-90"
+            style={{ background: accent }}
             aria-label="Send message"
           >
             <Send className="h-4 w-4" />

@@ -3,8 +3,6 @@ import { MessageCircle } from 'lucide-react';
 import {
   PERSONA_BY_AGE_GROUP,
   AGE_GROUP_LABELS,
-  resolveCurriculumSubjects,
-  subjectsForAgeGroup,
   type AgeGroup,
   type CurriculumUpgradeEvent,
   type ParentUser,
@@ -12,11 +10,12 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { loadProgress } from '@/lib/storage';
+import { getAgeGroupDashboardConfig } from '@/lib/ageGroupDashboardConfig';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { WelcomeStats } from '@/components/dashboard/WelcomeStats';
 import { LearningPath } from '@/components/dashboard/LearningPath';
-import { SubjectsCard, type SubjectProgressItem } from '@/components/dashboard/SubjectsCard';
+import { SubjectsCard } from '@/components/dashboard/SubjectsCard';
 import { AnalyticsCard } from '@/components/dashboard/AnalyticsCard';
 import { TutorChatDrawer } from '@/components/dashboard/TutorChatDrawer';
 import { AgeUpgradeModal } from '@/components/age/AgeUpgradeModal';
@@ -31,27 +30,11 @@ export default function Dashboard() {
   const learnerName = profile?.name || parent?.name?.split(' ')[0] || 'Anya';
   const ageGroup: AgeGroup = parent?.calculatedAgeGroup ?? 'EARLY_4_7';
   const persona = PERSONA_BY_AGE_GROUP[ageGroup];
-  const unlocked = parent?.unlockedSubjects?.length
-    ? parent.unlockedSubjects
-    : subjectsForAgeGroup(ageGroup);
+  const activeConfig = useMemo(() => getAgeGroupDashboardConfig(ageGroup), [ageGroup]);
 
-  const subjects: SubjectProgressItem[] = useMemo(() => {
-    const curriculum = resolveCurriculumSubjects(unlocked, ageGroup);
-    return curriculum.map((s) => {
-      const legacyKey = s.learnRoute?.replace('/learn/', '') as 'reading' | 'writing' | 'math' | undefined;
-      const prog = legacyKey ? progress.find((p) => p.subject === legacyKey) : undefined;
-      return {
-        id: s.id,
-        title: s.title,
-        mastery: prog?.masteryPercent ?? Math.min(95, 35 + (s.title.length % 40)),
-        color: s.color,
-        route: s.learnRoute,
-      };
-    });
-  }, [unlocked, ageGroup, progress]);
-
-  const streak = progress.reduce((max, p) => Math.max(max, p.streakDays), 0) || 12;
-  const timeStudied = '8h 15m';
+  const streak = progress.reduce((max, p) => Math.max(max, p.streakDays), 0) || 1;
+  const timeStudied =
+    ageGroup === 'TODDLER_1_3' ? '45m' : ageGroup === 'EARLY_4_7' ? '2h 10m' : '8h 15m';
   const celebration = localUpgrade ?? pendingUpgrade;
 
   const handleCurriculumUpdated = (next: ParentUser, curriculum: CurriculumUpgradeEvent) => {
@@ -107,16 +90,30 @@ export default function Dashboard() {
             </div>
 
             <WelcomeStats name={learnerName} streakDays={streak} timeStudied={timeStudied} />
-            <LearningPath />
+
+            <LearningPath
+              steps={activeConfig.personalizedPath}
+              accent={activeConfig.theme.accent}
+            />
+
             <div className="grid gap-5 xl:grid-cols-2">
-              <SubjectsCard subjects={subjects} />
-              <AnalyticsCard />
+              <SubjectsCard subjects={activeConfig.subjects} />
+              <AnalyticsCard
+                data={activeConfig.analytics}
+                goals={activeConfig.upcomingGoals}
+                accent={activeConfig.theme.accent}
+              />
             </div>
           </main>
 
           <div className="hidden w-80 shrink-0 p-4 pl-0 xl:block xl:w-96 xl:p-6 xl:pl-0">
             <div className="sticky top-20 h-[calc(100dvh-6.5rem)]">
-              <TutorChatDrawer learnerName={learnerName} />
+              <TutorChatDrawer
+                learnerName={learnerName}
+                persona={activeConfig.aiChat}
+                accent={activeConfig.theme.accent}
+                ageGroupKey={ageGroup}
+              />
             </div>
           </div>
         </div>
@@ -125,7 +122,8 @@ export default function Dashboard() {
       <button
         type="button"
         onClick={() => setChatOpen(true)}
-        className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-teal-700 text-white shadow-lg shadow-teal-700/40 xl:hidden"
+        className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg xl:hidden"
+        style={{ background: activeConfig.theme.accent }}
         aria-label="Open AI tutor chat"
       >
         <MessageCircle className="h-6 w-6" />
@@ -141,7 +139,12 @@ export default function Dashboard() {
             Close
           </button>
           <div className="min-h-0 flex-1">
-            <TutorChatDrawer learnerName={learnerName} />
+            <TutorChatDrawer
+              learnerName={learnerName}
+              persona={activeConfig.aiChat}
+              accent={activeConfig.theme.accent}
+              ageGroupKey={ageGroup}
+            />
           </div>
         </div>
       )}

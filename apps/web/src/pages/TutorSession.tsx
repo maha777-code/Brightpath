@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProfile } from '@/hooks/useProfile';
 import { useSpeech } from '@/hooks/useSpeech';
-import { SUBJECT_META, type TutorMessage } from '@/types';
+import { SUBJECT_META, type LessonStep, type TutorMessage } from '@/types';
 import {
   getLessonsFor,
   getRecommendedLesson,
@@ -11,6 +11,12 @@ import {
   buildTutorGreeting,
   buildSessionSummary,
 } from '@/lib/tutorEngine';
+import {
+  shouldTriggerFoundationRemediation,
+  pickFoundationSteps,
+  buildRemediationIntro,
+  buildRemediationOutro,
+} from '@/lib/foundationRemediation';
 import { updateProgressAfterLesson, saveSession } from '@/lib/storage';
 import { api, loadStoredToken } from '@/lib/api';
 import type { Locale, Subject } from '@brightpath/shared';
@@ -46,10 +52,23 @@ export default function TutorSession() {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [sttEngine, setSttEngine] = useState<'deepgram' | null>(null);
 
+  const [consecutiveFailures, setConsecutiveFailures] = useState(0);
+  const [remediationSteps, setRemediationSteps] = useState<LessonStep[] | null>(null);
+  const [remediationIndex, setRemediationIndex] = useState(0);
+
   const lessons = profile ? getLessonsFor(validSubject, profile.ageBand) : [];
   const lesson = lessons.find((l) => l.id === selectedLessonId);
-  const currentStep = lesson?.steps[stepIndex];
-  const progressPct = lesson ? (stepIndex / lesson.steps.length) * 100 : 0;
+  const inRemediation = Boolean(remediationSteps?.length);
+  const currentStep = inRemediation
+    ? remediationSteps![remediationIndex]
+    : lesson?.steps[stepIndex];
+  const progressPct = lesson
+    ? inRemediation
+      ? ((stepIndex + remediationIndex / Math.max(remediationSteps!.length, 1)) /
+          lesson.steps.length) *
+        100
+      : (stepIndex / lesson.steps.length) * 100
+    : 0;
 
   const speechLocale =
     (localStorage.getItem('brightpath_locale') as Locale | null) ?? 'en-IN';
@@ -92,7 +111,9 @@ export default function TutorSession() {
     }
 
     void checkAi();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const tutorContext = useCallback(() => {
@@ -107,9 +128,12 @@ export default function TutorSession() {
     };
   }, [profile, validSubject]);
 
-  const addMessage = useCallback((role: 'tutor' | 'learner', content: string, extra?: Partial<TutorMessage>) => {
-    setMessages((prev) => [...prev, { id: uid(), role, content, timestamp: Date.now(), ...extra }]);
-  }, []);
+  const addMessage = useCallback(
+    (role: 'tutor' | 'learner', content: string, extra?: Partial<TutorMessage>) => {
+      setMessages((prev) => [...prev, { id: uid(), role, content, timestamp: Date.now(), ...extra }]);
+    },
+    [],
+  );
 
   const finishSession = useCallback(
     (finalCorrect: number) => {
@@ -121,28 +145,109 @@ export default function TutorSession() {
       updateProgressAfterLesson(validSubject, finalCorrect / total);
       saveSession(null);
       setPhase('done');
+      setRemediationSteps(null);
     },
     [addMessage, lesson, profile, validSubject],
   );
 
-  const submitAnswerRef = useRef<(answer: string) => void>(() => {});
+  const enterFoundationRemediation = useCallback(
+    async (skillTag: string, suggestedTag?: string) => {
+      if (!profile || !lesson) return false;
+      const picked = pickFoundationSteps(
+        suggestedTag || skillTag,
+        validSubject,
+        profile.age,
+        2,
+      );
+      if (!picked) return false;
 
-  const { supported, sttReady, recording, transcribing, liveTranscript, speaking, speechError, speak, stopSpeaking, toggleListening, stopListening } =
-    useSpeech({
-      locale: speechLocale,
-      voiceEnabled,
-      sttEnabled: llmAvailable,
-      transcribeAudio: async (blob, mimeType, loc, browserTranscript, durationSec) => {
-        const { text } = await api.tutorTranscribe(blob, mimeType, loc, browserTranscript, durationSec);
-        return text;
-      },
-      onTranscribed: (text) => setInput(text),
-      onLiveTranscript: (text) => {
-        if (text) setInput(text);
-      },
-    });
+      addMessage('tutor', buildRemediationIntro(profile.name, picked.bridgeLabel, profile.age));
+      await new Promise((r) => setTimeout(r, 400));
+      setRemediationSteps(picked.steps);
+      setRemediationIndex(0);
+      setShowHint(false);
+      setConsecutiveFailures(0);
+      addMessage('tutor', picked.steps[0].tutorPrompt);
+      return true;
+    },
+    [addMessage, lesson, profile, validSubject],
+  );
 
-  const displayInput = recording ? (liveTranscript || input) : input;
+  const advanceAfterSuccess = useCallback(
+    async (newCorrect: number) => {
+      if (!profile || !lesson) return;
+
+      if (inRemediation && remediationSteps) {
+        if (remediationIndex + 1 < remediationSteps.length) {
+          await new Promise((r) => setTimeout(r, 600));
+          addMessage('tutor', remediationSteps[remediationIndex + 1].tutorPrompt);
+          setRemediationIndex((i) => i + 1);
+          setShowHint(false);
+          return;
+        }
+        addMessage('tutor', buildRemediationOutro(profile.name));
+        setRemediationSteps(null);
+        setRemediationIndex(0);
+        setShowHint(false);
+        await new Promise((r) => setTimeout(r, 500));
+        addMessage('tutor', `Back to it: ${lesson.steps[stepIndex].tutorPrompt}`);
+        return;
+      }
+
+      if (stepIndex + 1 < lesson.steps.length) {
+        await new Promise((r) => setTimeout(r, 600));
+        addMessage('tutor', lesson.steps[stepIndex + 1].tutorPrompt);
+        setStepIndex((i) => i + 1);
+        setShowHint(false);
+      } else {
+        finishSession(newCorrect);
+      }
+    },
+    [
+      addMessage,
+      finishSession,
+      inRemediation,
+      lesson,
+      profile,
+      remediationIndex,
+      remediationSteps,
+      stepIndex,
+    ],
+  );
+
+  const {
+    supported,
+    sttReady,
+    recording,
+    transcribing,
+    liveTranscript,
+    speaking,
+    speechError,
+    speak,
+    stopSpeaking,
+    toggleListening,
+    stopListening,
+  } = useSpeech({
+    locale: speechLocale,
+    voiceEnabled,
+    sttEnabled: llmAvailable,
+    transcribeAudio: async (blob, mimeType, loc, browserTranscript, durationSec) => {
+      const { text } = await api.tutorTranscribe(
+        blob,
+        mimeType,
+        loc,
+        browserTranscript,
+        durationSec,
+      );
+      return text;
+    },
+    onTranscribed: (text) => setInput(text),
+    onLiveTranscript: (text) => {
+      if (text) setInput(text);
+    },
+  });
+
+  const displayInput = recording ? liveTranscript || input : input;
 
   const handleSubmitScripted = useCallback(
     async (answer: string) => {
@@ -155,19 +260,25 @@ export default function TutorSession() {
       const correct = checkAnswer(answer, currentStep);
       const encouragement = tutorEncouragement(profile.name, correct);
       if (correct) {
-        const newCorrect = correctCount + 1;
-        setCorrectCount(newCorrect);
+        setConsecutiveFailures(0);
+        const newCorrect = inRemediation ? correctCount : correctCount + 1;
+        if (!inRemediation) setCorrectCount(newCorrect);
         addMessage('tutor', `${encouragement}\n\n${currentStep.explanation}`, { celebrate: true });
-        if (stepIndex + 1 < lesson.steps.length) {
-          await new Promise((r) => setTimeout(r, 800));
-          addMessage('tutor', lesson.steps[stepIndex + 1].tutorPrompt);
-          setStepIndex((i) => i + 1);
-        } else {
-          finishSession(newCorrect);
-        }
+        await advanceAfterSuccess(newCorrect);
       } else {
+        const nextFails = consecutiveFailures + (inRemediation ? 0 : 1);
+        if (!inRemediation) setConsecutiveFailures(nextFails);
         addMessage('tutor', encouragement);
-        if (!showHint) {
+
+        const shouldScaffold = shouldTriggerFoundationRemediation({
+          consecutiveFailures: nextFails,
+          alreadyInRemediation: inRemediation,
+          learnerAgeBand: profile.ageBand,
+        });
+
+        if (shouldScaffold) {
+          await enterFoundationRemediation(currentStep.skillTag);
+        } else if (!showHint) {
           addMessage('tutor', `💡 Hint: ${currentStep.hint}`, { hint: currentStep.hint });
           setShowHint(true);
         }
@@ -175,7 +286,19 @@ export default function TutorSession() {
       setWaiting(false);
       inputRef.current?.focus();
     },
-    [addMessage, correctCount, currentStep, finishSession, lesson, profile, showHint, stepIndex, waiting],
+    [
+      addMessage,
+      advanceAfterSuccess,
+      consecutiveFailures,
+      correctCount,
+      currentStep,
+      enterFoundationRemediation,
+      inRemediation,
+      lesson,
+      profile,
+      showHint,
+      waiting,
+    ],
   );
 
   const handleSubmitLlm = useCallback(
@@ -189,12 +312,15 @@ export default function TutorSession() {
         const ctx = tutorContext();
         if (!ctx) return;
         const history = messages.map((m) => ({ role: m.role, content: m.content }));
+        const activeSteps = inRemediation && remediationSteps ? remediationSteps : lesson.steps;
+        const activeIndex = inRemediation ? remediationIndex : stepIndex;
+
         const result = await api.tutorRespond({
           ...ctx,
-          lessonId: lesson.id,
-          lessonTitle: lesson.title,
-          stepIndex,
-          totalSteps: lesson.steps.length,
+          lessonId: inRemediation ? `foundation:${lesson.id}` : lesson.id,
+          lessonTitle: inRemediation ? `${lesson.title} · foundation review` : lesson.title,
+          stepIndex: activeIndex,
+          totalSteps: activeSteps.length,
           step: {
             id: currentStep.id,
             tutorPrompt: currentStep.tutorPrompt,
@@ -217,17 +343,33 @@ export default function TutorSession() {
           hint: result.showHint ? currentStep.hint : undefined,
         });
 
-        if (result.advanceStep) {
-          const newCorrect = result.isCorrect ? correctCount + 1 : correctCount;
-          if (result.isCorrect) setCorrectCount(newCorrect);
+        if (result.isCorrect || result.advanceStep) {
+          setConsecutiveFailures(0);
+          const newCorrect =
+            result.isCorrect && !inRemediation ? correctCount + 1 : correctCount;
+          if (result.isCorrect && !inRemediation) setCorrectCount(newCorrect);
 
-          if (result.sessionComplete) {
+          if (result.sessionComplete && !inRemediation) {
             finishSession(newCorrect);
-          } else if (stepIndex + 1 < lesson.steps.length) {
-            await new Promise((r) => setTimeout(r, 600));
-            addMessage('tutor', lesson.steps[stepIndex + 1].tutorPrompt);
-            setStepIndex((i) => i + 1);
-            setShowHint(false);
+          } else if (result.advanceStep || result.isCorrect) {
+            await advanceAfterSuccess(newCorrect);
+          }
+        } else {
+          const nextFails = consecutiveFailures + (inRemediation ? 0 : 1);
+          if (!inRemediation) setConsecutiveFailures(nextFails);
+
+          const shouldScaffold = shouldTriggerFoundationRemediation({
+            consecutiveFailures: nextFails,
+            misconceptionDetected: result.misconceptionDetected,
+            alreadyInRemediation: inRemediation,
+            learnerAgeBand: profile.ageBand,
+          });
+
+          if (shouldScaffold) {
+            await enterFoundationRemediation(
+              currentStep.skillTag,
+              result.suggestedFoundationSkillTag,
+            );
           }
         }
       } catch (err) {
@@ -238,19 +380,27 @@ export default function TutorSession() {
         const correct = checkAnswer(answer, currentStep);
         const encouragement = tutorEncouragement(profile.name, correct);
         if (correct) {
-          const newCorrect = correctCount + 1;
-          setCorrectCount(newCorrect);
-          addMessage('tutor', `${encouragement}\n\n${currentStep.explanation}`, { celebrate: true });
-          if (stepIndex + 1 < lesson.steps.length) {
-            addMessage('tutor', lesson.steps[stepIndex + 1].tutorPrompt);
-            setStepIndex((i) => i + 1);
-            setShowHint(false);
-          } else {
-            finishSession(newCorrect);
-          }
+          setConsecutiveFailures(0);
+          const newCorrect = inRemediation ? correctCount : correctCount + 1;
+          if (!inRemediation) setCorrectCount(newCorrect);
+          addMessage('tutor', `${encouragement}\n\n${currentStep.explanation}`, {
+            celebrate: true,
+          });
+          await advanceAfterSuccess(newCorrect);
         } else {
+          const nextFails = consecutiveFailures + (inRemediation ? 0 : 1);
+          if (!inRemediation) setConsecutiveFailures(nextFails);
           addMessage('tutor', encouragement);
-          if (!showHint) {
+
+          const shouldScaffold = shouldTriggerFoundationRemediation({
+            consecutiveFailures: nextFails,
+            alreadyInRemediation: inRemediation,
+            learnerAgeBand: profile.ageBand,
+          });
+
+          if (shouldScaffold) {
+            await enterFoundationRemediation(currentStep.skillTag);
+          } else if (!showHint) {
             addMessage('tutor', `💡 Hint: ${currentStep.hint}`, { hint: currentStep.hint });
             setShowHint(true);
           }
@@ -262,12 +412,18 @@ export default function TutorSession() {
     },
     [
       addMessage,
+      advanceAfterSuccess,
+      consecutiveFailures,
       correctCount,
       currentStep,
+      enterFoundationRemediation,
       finishSession,
+      inRemediation,
       lesson,
       messages,
       profile,
+      remediationIndex,
+      remediationSteps,
       showHint,
       stepIndex,
       tutorContext,
@@ -284,10 +440,8 @@ export default function TutorSession() {
     [handleSubmitLlm, handleSubmitScripted, llmAvailable, stopListening],
   );
 
-  submitAnswerRef.current = submitAnswer;
-
   const handleSubmit = () => {
-    const answer = (recording ? (liveTranscript || input) : input).trim();
+    const answer = (recording ? liveTranscript || input : input).trim();
     if (!answer) return;
     if (recording) stopListening();
     submitAnswer(answer);
@@ -317,6 +471,9 @@ export default function TutorSession() {
     setStepIndex(0);
     setCorrectCount(0);
     setShowHint(false);
+    setConsecutiveFailures(0);
+    setRemediationSteps(null);
+    setRemediationIndex(0);
     setPhase('session');
     setWaiting(true);
 
@@ -375,38 +532,66 @@ export default function TutorSession() {
     const recommended = getRecommendedLesson(validSubject, profile.ageBand, []);
     return (
       <div className="page">
-        <button type="button" className="btn btn-ghost" onClick={() => navigate('/dashboard')}>← Back</button>
+        <button type="button" className="btn btn-ghost" onClick={() => navigate('/dashboard')}>
+          ← Back
+        </button>
         <div className="page-header">
-          <h1 className="page-title">{meta.emoji} {meta.label}</h1>
+          <h1 className="page-title">
+            {meta.emoji} {meta.label}
+          </h1>
           <p className="page-subtitle">
             Pick a lesson — your tutor will guide you through it.
             {llmAvailable && (
-              <span style={{ display: 'block', marginTop: 6, color: llmLive ? 'var(--green)' : 'var(--indigo)', fontWeight: 700 }}>
+              <span
+                style={{
+                  display: 'block',
+                  marginTop: 6,
+                  color: llmLive ? 'var(--green)' : 'var(--indigo)',
+                  fontWeight: 700,
+                }}
+              >
                 {aiBadgeLabel ?? '✨ AI tutor enabled (Phase 1)'}
               </span>
             )}
             {supported.stt && (
-              <span style={{ display: 'block', marginTop: 6, color: 'var(--slate-600)', fontSize: '0.85rem' }}>
+              <span
+                style={{
+                  display: 'block',
+                  marginTop: 6,
+                  color: 'var(--slate-600)',
+                  fontSize: '0.85rem',
+                }}
+              >
                 Voice: tap 🔇 to mute Ms. Bright (or use headphones), then 🎤 → speak → 🎤 → ↑
                 {sttEngine !== 'deepgram' && (
                   <span style={{ display: 'block', color: '#b45309', marginTop: 4 }}>
-                    Add DEEPGRAM_API_KEY to .env and apps/api/.env, then restart (free at console.deepgram.com)
+                    Add DEEPGRAM_API_KEY to .env and apps/api/.env, then restart
                   </span>
                 )}
               </span>
             )}
             {aiError && (
               <span style={{ display: 'block', marginTop: 6, color: '#dc2626', fontSize: '0.85rem' }}>
-                AI error: {aiError.slice(0, 120)} — using backup tutor. Check API key & restart server.
+                AI error: {aiError.slice(0, 120)} — using backup tutor.
               </span>
             )}
           </p>
         </div>
         <div className="lesson-picker">
           {lessons.map((l) => (
-            <button key={l.id} type="button" className={`lesson-option ${l.id === recommended?.id ? 'selected' : ''}`} onClick={() => void startLesson(l.id)}>
-              <div className="lesson-option-title">{l.id === recommended?.id && '⭐ '}{l.title}</div>
-              <div className="lesson-option-meta">{l.durationMin} min · {l.steps.length} questions</div>
+            <button
+              key={l.id}
+              type="button"
+              className={`lesson-option ${l.id === recommended?.id ? 'selected' : ''}`}
+              onClick={() => void startLesson(l.id)}
+            >
+              <div className="lesson-option-title">
+                {l.id === recommended?.id && '⭐ '}
+                {l.title}
+              </div>
+              <div className="lesson-option-meta">
+                {l.durationMin} min · {l.steps.length} questions
+              </div>
             </button>
           ))}
         </div>
@@ -416,16 +601,36 @@ export default function TutorSession() {
 
   return (
     <div className="tutor-layout">
-      <div className="progress-bar-wrap"><div className="progress-bar-fill" style={{ width: `${phase === 'done' ? 100 : progressPct}%` }} /></div>
+      <div className="progress-bar-wrap">
+        <div
+          className="progress-bar-fill"
+          style={{ width: `${phase === 'done' ? 100 : progressPct}%` }}
+        />
+      </div>
       <header className="tutor-header">
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate('/dashboard')}>←</button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          onClick={() => navigate('/dashboard')}
+        >
+          ←
+        </button>
         <div className="tutor-avatar">👩‍🏫</div>
         <div className="tutor-info">
           <div className="tutor-info-name">
             Ms. Bright{llmLive ? ' · AI live' : llmAvailable ? ' · backup mode' : ''}
-            {speaking && voiceEnabled && <span className="tutor-speaking-badge"> 🔊 speaking</span>}
+            {speaking && voiceEnabled && (
+              <span className="tutor-speaking-badge"> 🔊 speaking</span>
+            )}
           </div>
-          <div className="tutor-info-subject">{meta.label} · {lesson?.title}</div>
+          <div className="tutor-info-subject">
+            {meta.label} · {lesson?.title}
+            {inRemediation && (
+              <span style={{ marginLeft: 8, color: '#0d9488', fontWeight: 700 }}>
+                · Foundation boost
+              </span>
+            )}
+          </div>
           {aiError && (
             <div style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: 4 }}>
               AI: {aiError.slice(0, 100)}
@@ -467,7 +672,14 @@ export default function TutorSession() {
             {msg.celebrate && <div className="message-celebrate">✨</div>}
           </div>
         ))}
-        {waiting && <div className="message message-tutor" style={{ fontStyle: 'italic', color: 'var(--slate-400)' }}>Ms. Bright is thinking...</div>}
+        {waiting && (
+          <div
+            className="message message-tutor"
+            style={{ fontStyle: 'italic', color: 'var(--slate-400)' }}
+          >
+            Ms. Bright is thinking...
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
       {phase === 'session' ? (
@@ -478,13 +690,7 @@ export default function TutorSession() {
               className={`tutor-mic ${recording ? 'listening' : ''}`}
               onClick={toggleListening}
               disabled={waiting || transcribing || (!sttReady && !recording)}
-              title={
-                recording
-                  ? 'Stop recording & transcribe'
-                  : sttReady
-                    ? 'Record your answer'
-                    : 'Waiting for AI tutor…'
-              }
+              title={recording ? 'Stop recording & transcribe' : 'Record your answer'}
               aria-label={recording ? 'Stop recording' : 'Record answer'}
             >
               🎤
@@ -508,7 +714,7 @@ export default function TutorSession() {
             />
             {speechError && <div className="tutor-speech-error">{speechError}</div>}
             {transcribing && !speechError && (
-              <div className="tutor-speech-status">Transcribing with AI… (you can edit before sending)</div>
+              <div className="tutor-speech-status">Transcribing with AI…</div>
             )}
           </div>
           <button
@@ -521,7 +727,15 @@ export default function TutorSession() {
           </button>
         </div>
       ) : (
-        <div style={{ padding: 16 }}><button type="button" className="btn btn-primary" onClick={() => navigate('/dashboard')}>Back to Dashboard</button></div>
+        <div style={{ padding: 16 }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate('/dashboard')}
+          >
+            Back to Dashboard
+          </button>
+        </div>
       )}
     </div>
   );

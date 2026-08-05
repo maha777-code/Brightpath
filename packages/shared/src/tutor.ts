@@ -37,6 +37,13 @@ export interface TutorRespondResponse {
   showHint: boolean;
   sessionComplete: boolean;
   provider: 'gemini' | 'openai';
+  /**
+   * True when the answer shows a conceptual gap (not just a careless slip).
+   * Client may inject Age 4–7 foundation practice without changing dashboard theme.
+   */
+  misconceptionDetected?: boolean;
+  /** Optional skill tag from the EARLY / 5–7 foundation library */
+  suggestedFoundationSkillTag?: string;
 }
 
 export interface TutorStatusResponse {
