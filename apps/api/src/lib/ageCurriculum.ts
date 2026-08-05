@@ -5,12 +5,15 @@ import {
   mergeUnlockedSubjects,
   ageGroupToLegacyBand,
   AGE_GROUP_LEVEL_NAMES,
+  formatStudyTime,
+  startOfWeekMonday,
+  daysBetween,
   type AgeGroup,
   type CurriculumUpgradeEvent,
   type ParentUser,
 } from '@brightpath/shared';
 
-type ParentRow = {
+export type ParentRow = {
   id: string;
   email: string;
   name: string | null;
@@ -19,6 +22,11 @@ type ParentRow = {
   dateOfBirth: Date | null;
   calculatedAgeGroup: AgeGroup | null;
   unlockedSubjects: string[];
+  currentStreak?: number | null;
+  longestStreak?: number | null;
+  lastActiveDate?: Date | null;
+  timeStudiedThisWeek?: number | null;
+  lastWeekResetTimestamp?: Date | null;
 };
 
 export function toParentUser(p: ParentRow, asOf: Date = new Date()): ParentUser {
@@ -33,6 +41,13 @@ export function toParentUser(p: ParentRow, asOf: Date = new Date()): ParentUser 
     calculatedAgeGroup: p.calculatedAgeGroup,
     unlockedSubjects: p.unlockedSubjects ?? [],
     currentAge,
+    currentStreak: p.currentStreak ?? 0,
+    longestStreak: p.longestStreak ?? 0,
+    lastActiveDate: p.lastActiveDate ? p.lastActiveDate.toISOString().slice(0, 10) : null,
+    timeStudiedThisWeek: p.timeStudiedThisWeek ?? 0,
+    lastWeekResetTimestamp: p.lastWeekResetTimestamp
+      ? p.lastWeekResetTimestamp.toISOString()
+      : null,
   };
 }
 
@@ -125,4 +140,88 @@ export function parseDobInput(value: string): Date {
   return dob;
 }
 
-export { getAgeGroupFromAge };
+export { getAgeGroupFromAge, formatStudyTime };
+
+export interface ActivityPatch {
+  currentStreak: number;
+  longestStreak: number;
+  lastActiveDate: Date;
+  timeStudiedThisWeek: number;
+  lastWeekResetTimestamp: Date;
+}
+
+/**
+ * Apply a duration heartbeat against existing progress fields.
+ * Uses the client's local calendar date (YYYY-MM-DD) for streak + week boundaries.
+ */
+export function applyActivityHeartbeat(
+  existing: {
+    currentStreak: number;
+    longestStreak: number;
+    lastActiveDate: Date | null;
+    timeStudiedThisWeek: number;
+    lastWeekResetTimestamp: Date | null;
+  },
+  opts: {
+    durationInSeconds: number;
+    localDate: string;
+    now?: Date;
+  },
+): ActivityPatch {
+  const duration = Math.max(0, Math.min(Math.floor(opts.durationInSeconds), 600));
+  const today = opts.localDate;
+  const now = opts.now ?? new Date();
+
+  // ── Weekly study time ──
+  const weekStart = startOfWeekMonday(today);
+  const lastReset = existing.lastWeekResetTimestamp
+    ? existing.lastWeekResetTimestamp.toISOString().slice(0, 10)
+    : null;
+  const lastResetWeek = lastReset ? startOfWeekMonday(lastReset) : null;
+
+  let timeStudiedThisWeek = existing.timeStudiedThisWeek ?? 0;
+  let lastWeekResetTimestamp = existing.lastWeekResetTimestamp ?? now;
+
+  if (!lastResetWeek || lastResetWeek !== weekStart) {
+    timeStudiedThisWeek = duration;
+    lastWeekResetTimestamp = now;
+  } else {
+    timeStudiedThisWeek += duration;
+  }
+
+  // ── Streak ──
+  const lastActive = existing.lastActiveDate
+    ? existing.lastActiveDate.toISOString().slice(0, 10)
+    : null;
+
+  let currentStreak = existing.currentStreak ?? 0;
+  let longestStreak = existing.longestStreak ?? 0;
+
+  if (!lastActive) {
+    currentStreak = 1;
+  } else if (lastActive === today) {
+    // same day — streak unchanged (ensure at least 1 if somehow 0)
+    if (currentStreak < 1) currentStreak = 1;
+  } else {
+    const gap = daysBetween(lastActive, today);
+    if (gap === 1) {
+      currentStreak += 1;
+    } else if (gap > 1) {
+      currentStreak = 1;
+    }
+    // gap < 0 (clock skew) — leave streak as-is
+  }
+
+  if (currentStreak > longestStreak) longestStreak = currentStreak;
+
+  const [y, m, d] = today.split('-').map(Number);
+  const lastActiveDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+
+  return {
+    currentStreak,
+    longestStreak,
+    lastActiveDate,
+    timeStudiedThisWeek,
+    lastWeekResetTimestamp,
+  };
+}

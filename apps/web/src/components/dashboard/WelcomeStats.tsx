@@ -1,4 +1,5 @@
 import { Flame, Clock3 } from 'lucide-react';
+import { streakFlames } from '@brightpath/shared';
 
 interface WelcomeStatsProps {
   name: string;
@@ -7,6 +8,12 @@ interface WelcomeStatsProps {
 }
 
 export function WelcomeStats({ name, streakDays, timeStudied }: WelcomeStatsProps) {
+  const flames = streakFlames(streakDays);
+  const streakLabel =
+    streakDays <= 0
+      ? 'Start today!'
+      : `${streakDays} Day${streakDays === 1 ? '' : 's'}${flames ? ` ${flames}` : ''}`;
+
   return (
     <section className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-soft backdrop-blur-md sm:p-6">
       <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 sm:text-3xl">
@@ -21,9 +28,7 @@ export function WelcomeStats({ name, streakDays, timeStudied }: WelcomeStatsProp
             <p className="text-xs font-semibold uppercase tracking-wide text-teal-700/80">
               Your Learning Streak
             </p>
-            <p className="text-sm font-bold text-slate-800 sm:text-base">
-              {streakDays} Days 🔥🔥🔥
-            </p>
+            <p className="text-sm font-bold text-slate-800 sm:text-base">{streakLabel}</p>
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-indigo-50 to-sky-50 px-4 py-3 ring-1 ring-indigo-100">

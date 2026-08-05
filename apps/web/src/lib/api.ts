@@ -46,6 +46,8 @@ import type {
   UpdateChildRequest,
   UpdateAgeSettingsRequest,
   CurriculumUpgradeEvent,
+  TrackActivityRequest,
+  TrackActivityResponse,
   TutorRespondRequest,
   TutorRespondResponse,
   TutorStatusResponse,
@@ -67,6 +69,15 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(body),
     }),
+
+  trackActivity: (body: TrackActivityRequest) =>
+    request<TrackActivityResponse>('/user/track-activity', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  userStats: () =>
+    request<TrackActivityResponse>('/user/stats'),
 
   listChildren: () => request<{ children: ChildProfile[] }>('/children'),
 
@@ -136,6 +147,11 @@ export function loadStoredParent(): ParentUser | null {
       calculatedAgeGroup: p.calculatedAgeGroup ?? null,
       unlockedSubjects: p.unlockedSubjects ?? [],
       currentAge: p.currentAge ?? null,
+      currentStreak: p.currentStreak ?? 0,
+      longestStreak: p.longestStreak ?? 0,
+      lastActiveDate: p.lastActiveDate ?? null,
+      timeStudiedThisWeek: p.timeStudiedThisWeek ?? 0,
+      lastWeekResetTimestamp: p.lastWeekResetTimestamp ?? null,
     };
   } catch {
     return null;

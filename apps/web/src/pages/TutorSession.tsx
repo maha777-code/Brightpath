@@ -17,6 +17,7 @@ import {
   buildRemediationIntro,
   buildRemediationOutro,
 } from '@/lib/foundationRemediation';
+import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { updateProgressAfterLesson, saveSession } from '@/lib/storage';
 import { api, loadStoredToken } from '@/lib/api';
 import type { Locale, Subject } from '@brightpath/shared';
@@ -33,6 +34,9 @@ export default function TutorSession() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const spokenIdsRef = useRef(new Set<string>());
+
+  // Count active lesson time toward weekly study + streak
+  useActivityTracker(Boolean(profile));
 
   const validSubject = subject as 'reading' | 'writing' | 'math';
   const meta = SUBJECT_META[validSubject];

@@ -13,6 +13,7 @@ import { createClient } from 'redis';
 import authRoutes from './routes/auth.js';
 import childrenRoutes from './routes/children.js';
 import tutorRoutes from './routes/tutor.js';
+import userRoutes from './routes/user.js';
 
 const PORT = Number(process.env.API_PORT ?? 3001);
 
@@ -46,6 +47,7 @@ app.get('/health', (_req, res) => {
 app.use('/auth', authRoutes);
 app.use('/children', childrenRoutes);
 app.use('/tutor', tutorRoutes);
+app.use('/user', userRoutes);
 
 async function start() {
   if (process.env.REDIS_URL) {

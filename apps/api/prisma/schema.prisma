@@ -15,17 +15,22 @@ enum AgeGroup {
 }
 
 model Parent {
-  id                  String     @id @default(cuid())
-  email               String     @unique
-  passwordHash        String
-  name                String?
-  locale              String     @default("en-IN")
-  dateOfBirth         DateTime?
-  calculatedAgeGroup  AgeGroup?
-  unlockedSubjects    String[]   @default([])
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
-  children            Child[]
+  id                     String     @id @default(cuid())
+  email                  String     @unique
+  passwordHash           String
+  name                   String?
+  locale                 String     @default("en-IN")
+  dateOfBirth            DateTime?
+  calculatedAgeGroup     AgeGroup?
+  unlockedSubjects       String[]   @default([])
+  currentStreak          Int        @default(0)
+  longestStreak          Int        @default(0)
+  lastActiveDate         DateTime?
+  timeStudiedThisWeek    Int        @default(0)
+  lastWeekResetTimestamp DateTime?
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+  children               Child[]
 }
 
 model Child {

@@ -9,7 +9,7 @@ import {
 } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-import { loadProgress } from '@/lib/storage';
+import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { getAgeGroupDashboardConfig } from '@/lib/ageGroupDashboardConfig';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
@@ -25,16 +25,14 @@ export default function Dashboard() {
   const { profile } = useProfile();
   const [chatOpen, setChatOpen] = useState(false);
   const [localUpgrade, setLocalUpgrade] = useState<CurriculumUpgradeEvent | null>(null);
-  const [progress] = useState(() => loadProgress());
+
+  const activity = useActivityTracker(Boolean(parent));
 
   const learnerName = profile?.name || parent?.name?.split(' ')[0] || 'Anya';
   const ageGroup: AgeGroup = parent?.calculatedAgeGroup ?? 'EARLY_4_7';
   const persona = PERSONA_BY_AGE_GROUP[ageGroup];
   const activeConfig = useMemo(() => getAgeGroupDashboardConfig(ageGroup), [ageGroup]);
 
-  const streak = progress.reduce((max, p) => Math.max(max, p.streakDays), 0) || 1;
-  const timeStudied =
-    ageGroup === 'TODDLER_1_3' ? '45m' : ageGroup === 'EARLY_4_7' ? '2h 10m' : '8h 15m';
   const celebration = localUpgrade ?? pendingUpgrade;
 
   const handleCurriculumUpdated = (next: ParentUser, curriculum: CurriculumUpgradeEvent) => {
@@ -89,7 +87,11 @@ export default function Dashboard() {
               )}
             </div>
 
-            <WelcomeStats name={learnerName} streakDays={streak} timeStudied={timeStudied} />
+            <WelcomeStats
+              name={learnerName}
+              streakDays={activity.currentStreak}
+              timeStudied={activity.timeStudiedFormatted}
+            />
 
             <LearningPath
               steps={activeConfig.personalizedPath}

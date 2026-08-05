@@ -51,6 +51,15 @@ export {
   legacyBandToAgeGroup,
 } from './ageCurriculum.js';
 
+export {
+  formatStudyTime,
+  streakFlames,
+  toLocalDateString,
+  startOfWeekMonday,
+  addDays,
+  daysBetween,
+} from './activityStats.js';
+
 import type { AgeGroup } from './ageCurriculum.js';
 
 export interface ParentUser {
@@ -63,6 +72,32 @@ export interface ParentUser {
   calculatedAgeGroup: AgeGroup | null;
   unlockedSubjects: string[];
   currentAge: number | null;
+  /** Consecutive active learning days */
+  currentStreak: number;
+  longestStreak: number;
+  /** YYYY-MM-DD of last active day (local calendar) */
+  lastActiveDate: string | null;
+  /** Accumulated seconds studied in the current calendar week */
+  timeStudiedThisWeek: number;
+  lastWeekResetTimestamp: string | null;
+}
+
+export interface TrackActivityRequest {
+  durationInSeconds: number;
+  /** Client local ISO timestamp */
+  timestamp: string;
+  /** Client local calendar date YYYY-MM-DD */
+  localDate?: string;
+  /** IANA timezone optional */
+  timeZone?: string;
+}
+
+export interface TrackActivityResponse {
+  parent: ParentUser;
+  currentStreak: number;
+  longestStreak: number;
+  timeStudiedThisWeek: number;
+  timeStudiedFormatted: string;
 }
 
 export interface ChildProfile {
