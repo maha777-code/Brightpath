@@ -51,6 +51,9 @@ import type {
   LearningPathResponse,
   SubmitAssessmentRequest,
   SubmitAssessmentResponse,
+  UserAnalyticsResponse,
+  SkillAssessmentRequest,
+  UserGoalItem,
   TutorRespondRequest,
   TutorRespondResponse,
   TutorStatusResponse,
@@ -89,6 +92,20 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+
+  getAnalytics: () => request<UserAnalyticsResponse>('/user/analytics'),
+
+  submitSkillAssessment: (body: SkillAssessmentRequest) =>
+    request<UserAnalyticsResponse>('/user/skill-assessment', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  completeGoal: (goalId: string) =>
+    request<{ goal: UserGoalItem; analytics: UserAnalyticsResponse | null }>(
+      `/user/goals/${goalId}`,
+      { method: 'PATCH', body: '{}' },
+    ),
 
   listChildren: () => request<{ children: ChildProfile[] }>('/children'),
 

@@ -39,6 +39,8 @@ model Parent {
   updatedAt              DateTime             @updatedAt
   children               Child[]
   moduleProgress         UserModuleProgress[]
+  skillMastery           UserSkillMastery[]
+  goals                  UserGoal[]
 }
 
 model Child {
@@ -95,4 +97,76 @@ model UserModuleProgress {
   @@unique([userId, nodeId])
   @@index([userId])
   @@index([nodeId])
+}
+
+/** Age-group subject shown in "My Subjects" (catalog, not lesson Subject enum) */
+model SubjectCatalog {
+  id          String      @id @default(cuid())
+  /** Stable slug e.g. early_reading */
+  slug        String
+  name        String
+  ageGroup    AgeGroup
+  colorTheme  String
+  learnRoute  String?
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  skills      SkillNode[]
+
+  @@unique([ageGroup, slug])
+  @@index([ageGroup, sortOrder])
+  @@map("subjects")
+}
+
+model SkillNode {
+  id            String             @id @default(cuid())
+  subjectId     String
+  subject       SubjectCatalog     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  name          String
+  /** Axis label for radar chart; empty if not a radar skill */
+  radarAxis     String             @default("")
+  parentSkillId String?
+  parent        SkillNode?         @relation("SkillTree", fields: [parentSkillId], references: [id], onDelete: SetNull)
+  children      SkillNode[]        @relation("SkillTree")
+  sortOrder     Int                @default(0)
+  /** Maps module subjectCategory / lesson tags → this skill */
+  skillTags     String[]           @default([])
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  mastery       UserSkillMastery[]
+
+  @@index([subjectId, sortOrder])
+  @@index([parentSkillId])
+}
+
+model UserSkillMastery {
+  id              String    @id @default(cuid())
+  userId          String
+  user            Parent    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillId         String
+  skill           SkillNode @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  totalAttempts   Int       @default(0)
+  correctAttempts Int       @default(0)
+  masteryScore    Float     @default(0)
+  lastEvaluatedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([skillId])
+}
+
+model UserGoal {
+  id          String    @id @default(cuid())
+  userId      String
+  user        Parent    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  isCompleted Boolean   @default(false)
+  dueDate     DateTime?
+  skillId     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, isCompleted])
 }

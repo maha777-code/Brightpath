@@ -11,13 +11,14 @@ import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { useLearningPath } from '@/hooks/useLearningPath';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import { getAgeGroupDashboardConfig } from '@/lib/ageGroupDashboardConfig';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { WelcomeStats } from '@/components/dashboard/WelcomeStats';
 import { LearningPath } from '@/components/dashboard/LearningPath';
-import { SubjectsCard } from '@/components/dashboard/SubjectsCard';
-import { AnalyticsCard } from '@/components/dashboard/AnalyticsCard';
+import { MySubjectsList } from '@/components/dashboard/SubjectsCard';
+import { AnalyticsAndMastery } from '@/components/dashboard/AnalyticsCard';
 import { TutorChatDrawer } from '@/components/dashboard/TutorChatDrawer';
 import { AgeUpgradeModal } from '@/components/age/AgeUpgradeModal';
 
@@ -34,16 +35,22 @@ export default function Dashboard() {
   const persona = PERSONA_BY_AGE_GROUP[ageGroup];
   const activeConfig = useMemo(() => getAgeGroupDashboardConfig(ageGroup), [ageGroup]);
   const learningPath = useLearningPath(Boolean(parent), ageGroup);
+  const analytics = useAnalytics(Boolean(parent), ageGroup);
 
   const bumpActiveModuleFromChat = () => {
     const active = learningPath.nodes.find((n) => n.status === 'IN_PROGRESS');
     if (!active) return;
-    // Gentle practice bump; keep under 80 so completion still requires a real assessment
     const nextScore = Math.min(79, Math.max(active.masteryScore, active.masteryScore + 5));
     if (nextScore === active.masteryScore) return;
-    void learningPath.submitAssessment(active.id, nextScore).catch(() => {
-      /* path sync is best-effort from chat */
-    });
+    void learningPath.submitAssessment(active.id, nextScore).catch(() => {});
+    // EWMA skill bump + refresh subjects / radar
+    void analytics
+      .submitSkillAssessment({
+        scorePercent: nextScore,
+        skillTags: [active.subjectCategory],
+        correct: nextScore >= 60,
+      })
+      .catch(() => {});
   };
 
   const celebration = localUpgrade ?? pendingUpgrade;
@@ -113,11 +120,19 @@ export default function Dashboard() {
             />
 
             <div className="grid gap-5 xl:grid-cols-2">
-              <SubjectsCard subjects={activeConfig.subjects} />
-              <AnalyticsCard
-                data={activeConfig.analytics}
-                goals={activeConfig.upcomingGoals}
+              <MySubjectsList
+                subjects={analytics.data?.subjects ?? []}
+                loading={analytics.loading}
+              />
+              <AnalyticsAndMastery
+                radar={analytics.data?.radar ?? []}
+                skillTree={analytics.data?.skillTree ?? null}
+                goals={analytics.data?.goals ?? []}
+                loading={analytics.loading}
                 accent={activeConfig.theme.accent}
+                onCompleteGoal={async (id) => {
+                  await analytics.completeGoal(id);
+                }}
               />
             </div>
           </main>

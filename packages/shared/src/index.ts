@@ -130,6 +130,56 @@ export interface SubmitAssessmentResponse {
   node: LearningPathNode | null;
 }
 
+export type SkillBranchStatus = 'mastered' | 'in_progress' | 'locked';
+
+export interface AnalyticsSubjectItem {
+  subjectId: string;
+  subjectName: string;
+  masteryPercentage: number;
+  color: string;
+  learnRoute: string | null;
+  slug: string;
+}
+
+export interface AnalyticsRadarPoint {
+  subject: string;
+  skill: string;
+  score: number;
+  value: number;
+  fullMark: number;
+}
+
+export interface SkillBranchNode {
+  id: string;
+  name: string;
+  status: SkillBranchStatus;
+  masteryScore: number;
+  parentSkillId: string | null;
+  children: SkillBranchNode[];
+}
+
+export interface UserGoalItem {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+  dueDate: string | null;
+}
+
+export interface UserAnalyticsResponse {
+  ageGroup: AgeGroup;
+  subjects: AnalyticsSubjectItem[];
+  radar: AnalyticsRadarPoint[];
+  skillTree: SkillBranchNode | null;
+  goals: UserGoalItem[];
+}
+
+export interface SkillAssessmentRequest {
+  scorePercent: number;
+  skillId?: string;
+  skillTags?: string[];
+  correct?: boolean;
+}
+
 export interface ChildProfile {
   id: string;
   parentId: string;

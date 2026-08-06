@@ -168,6 +168,11 @@ export default function TutorSession() {
             nodes.find((n) => n.learnRoute === route && n.status !== 'LOCKED');
           if (match) {
             await api.submitAssessment({ nodeId: match.id, scorePercent });
+            await api.submitSkillAssessment({
+              scorePercent,
+              skillTags: [match.subjectCategory],
+              correct: scorePercent >= 60,
+            });
           }
         } catch (err) {
           console.warn('[learning-path] assessment sync skipped', err);
