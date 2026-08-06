@@ -14,6 +14,7 @@ import authRoutes from './routes/auth.js';
 import childrenRoutes from './routes/children.js';
 import tutorRoutes from './routes/tutor.js';
 import userRoutes from './routes/user.js';
+import curriculumRoutes from './routes/curriculum.js';
 
 const PORT = Number(process.env.API_PORT ?? 3001);
 
@@ -48,6 +49,7 @@ app.use('/auth', authRoutes);
 app.use('/children', childrenRoutes);
 app.use('/tutor', tutorRoutes);
 app.use('/user', userRoutes);
+app.use('/curriculum', curriculumRoutes);
 
 async function start() {
   if (process.env.REDIS_URL) {

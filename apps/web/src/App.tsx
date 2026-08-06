@@ -11,6 +11,9 @@ import Dashboard from '@/pages/Dashboard';
 import TutorSession from '@/pages/TutorSession';
 import Progress from '@/pages/Progress';
 import LessonModulePage from '@/pages/LessonModulePage';
+import SubjectCurriculumPage from '@/pages/SubjectCurriculumPage';
+import VideoLessonPage from '@/pages/VideoLessonPage';
+import ChapterTestPage from '@/pages/ChapterTestPage';
 
 function ProtectedParent({ children }: { children: React.ReactNode }) {
   const { parent, loading } = useAuth();
@@ -49,6 +52,9 @@ export default function App() {
         <Route path="/parent/children/new" element={<ProtectedParent><AddChild /></ProtectedParent>} />
         <Route path="/onboarding" element={<Navigate to="/parent" replace />} />
         <Route path="/dashboard" element={<ProtectedParent><Dashboard /></ProtectedParent>} />
+        <Route path="/dashboard/subjects/:subjectId" element={<ProtectedParent><SubjectCurriculumPage /></ProtectedParent>} />
+        <Route path="/dashboard/subjects/:subjectId/videos/:videoId" element={<ProtectedParent><VideoLessonPage /></ProtectedParent>} />
+        <Route path="/dashboard/chapters/:chapterId/test" element={<ProtectedParent><ChapterTestPage /></ProtectedParent>} />
         <Route path="/lesson/:nodeId" element={<ProtectedParent><LessonModulePage /></ProtectedParent>} />
         <Route path="/learn/:subject" element={<ProtectedLearner><TutorSession /></ProtectedLearner>} />
         <Route path="/progress" element={<ProtectedParent><Progress /></ProtectedParent>} />

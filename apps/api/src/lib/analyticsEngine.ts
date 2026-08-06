@@ -276,9 +276,15 @@ export async function buildUserAnalytics(
   await ensureAnalyticsCatalogSeeded();
   await ensureUserMasteryRows(userId, ageGroup);
 
+  // Seed chapter curriculum so subject % uses video/quiz formula when available
+  const { ensureChapterCurriculumSeeded, getSubjectCurriculumProgress } = await import(
+    './curriculumEngine.js'
+  );
+  await ensureChapterCurriculumSeeded();
+
   const subjects = await prisma.subjectCatalog.findMany({
     where: { ageGroup },
-    include: { skills: true },
+    include: { skills: true, chapters: { include: { videos: true } } },
     orderBy: { sortOrder: 'asc' },
   });
 
@@ -288,19 +294,26 @@ export async function buildUserAnalytics(
   });
   const scoreBySkill = new Map(masteryRows.map((m) => [m.skillId, m.masteryScore]));
 
-  const subjectDtos: AnalyticsSubjectDto[] = subjects.map((sub) => {
-    const scores = sub.skills.map((sk) => scoreBySkill.get(sk.id) ?? 0);
-    const avg =
-      scores.length === 0 ? 0 : scores.reduce((a, b) => a + b, 0) / scores.length;
-    return {
+  const subjectDtos: AnalyticsSubjectDto[] = [];
+  for (const sub of subjects) {
+    const hasCurriculum = sub.chapters.some((c) => c.videos.length > 0);
+    let masteryPercentage: number;
+    if (hasCurriculum) {
+      masteryPercentage = await getSubjectCurriculumProgress(userId, sub.id);
+    } else {
+      const scores = sub.skills.map((sk) => scoreBySkill.get(sk.id) ?? 0);
+      masteryPercentage =
+        scores.length === 0 ? 0 : Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+    }
+    subjectDtos.push({
       subjectId: sub.id,
       subjectName: sub.name,
-      masteryPercentage: Math.round(avg),
+      masteryPercentage,
       color: sub.colorTheme,
       learnRoute: sub.learnRoute,
       slug: sub.slug,
-    };
-  });
+    });
+  }
 
   // Radar: unique axes for this age group (prefer skills with radarAxis set)
   const axisMap = new Map<string, number[]>();

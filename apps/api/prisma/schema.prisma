@@ -41,6 +41,9 @@ model Parent {
   moduleProgress         UserModuleProgress[]
   skillMastery           UserSkillMastery[]
   goals                  UserGoal[]
+  videoProgress          UserVideoProgress[]
+  quizResults            UserQuizResult[]
+  chapterProgress        UserChapterProgress[]
 }
 
 model Child {
@@ -112,10 +115,104 @@ model SubjectCatalog {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   skills      SkillNode[]
+  chapters    Chapter[]
 
   @@unique([ageGroup, slug])
   @@index([ageGroup, sortOrder])
   @@map("subjects")
+}
+
+model Chapter {
+  id            String                @id @default(cuid())
+  subjectId     String
+  subject       SubjectCatalog        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  title         String
+  sequenceOrder Int
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  videos        VideoLesson[]
+  quiz          ChapterQuiz?
+  userProgress  UserChapterProgress[]
+  quizResults   UserQuizResult[]
+
+  @@unique([subjectId, sequenceOrder])
+  @@index([subjectId])
+}
+
+model VideoLesson {
+  id                String              @id @default(cuid())
+  chapterId         String
+  chapter           Chapter             @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  title             String
+  videoUrl          String
+  durationInSeconds Int
+  sequenceOrder     Int
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  progress          UserVideoProgress[]
+
+  @@unique([chapterId, sequenceOrder])
+  @@index([chapterId])
+}
+
+model UserVideoProgress {
+  id               String      @id @default(cuid())
+  userId           String
+  user             Parent      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videoId          String
+  video            VideoLesson @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  watchTimeSeconds Float       @default(0)
+  maxWatchedTime   Float       @default(0)
+  isCompleted      Boolean     @default(false)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@unique([userId, videoId])
+  @@index([userId])
+  @@index([videoId])
+}
+
+model ChapterQuiz {
+  id        String   @id @default(cuid())
+  chapterId String   @unique
+  chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  /** MCQ array: { id, prompt, options: string[], correctIndex: number } */
+  questions Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserQuizResult {
+  id              String   @id @default(cuid())
+  userId          String
+  user            Parent   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapterId       String
+  chapter         Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  scorePercentage Float
+  isPassed        Boolean  @default(false)
+  answers         Json?
+  attemptedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, chapterId])
+  @@index([userId])
+  @@index([chapterId])
+}
+
+model UserChapterProgress {
+  id        String       @id @default(cuid())
+  userId    String
+  user      Parent       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapterId String
+  chapter   Chapter      @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  status    ModuleStatus @default(LOCKED)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([userId, chapterId])
+  @@index([userId])
+  @@index([chapterId])
 }
 
 model SkillNode {

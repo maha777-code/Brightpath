@@ -54,6 +54,10 @@ import type {
   UserAnalyticsResponse,
   SkillAssessmentRequest,
   UserGoalItem,
+  SubjectCurriculumResponse,
+  ChapterQuizResponse,
+  SubmitChapterQuizRequest,
+  SubmitChapterQuizResponse,
   TutorRespondRequest,
   TutorRespondResponse,
   TutorStatusResponse,
@@ -106,6 +110,43 @@ export const api = {
       `/user/goals/${goalId}`,
       { method: 'PATCH', body: '{}' },
     ),
+
+  getSubjectCurriculum: (subjectId: string) =>
+    request<SubjectCurriculumResponse>(`/curriculum/subjects/${subjectId}`),
+
+  trackVideoProgress: (body: {
+    videoId: string;
+    watchTimeSeconds: number;
+    maxWatchedTime: number;
+  }) =>
+    request<{
+      videoId: string;
+      watchTimeSeconds: number;
+      maxWatchedTime: number;
+      isCompleted: boolean;
+    }>('/curriculum/video/track-progress', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  completeVideo: (body: { videoId: string; maxWatchedTime: number }) =>
+    request<{
+      progress: { isCompleted: boolean };
+      masteryPercentage: number;
+      subjectId: string;
+    }>('/curriculum/video/complete', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  getChapterQuiz: (chapterId: string) =>
+    request<ChapterQuizResponse>(`/curriculum/chapters/${chapterId}/quiz`),
+
+  submitChapterQuiz: (chapterId: string, body: SubmitChapterQuizRequest) =>
+    request<SubmitChapterQuizResponse>(`/curriculum/chapters/${chapterId}/quiz`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 
   listChildren: () => request<{ children: ChildProfile[] }>('/children'),
 

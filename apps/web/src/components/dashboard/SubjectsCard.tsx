@@ -32,14 +32,8 @@ export function MySubjectsList({ subjects, loading }: MySubjectsListProps) {
           <button
             key={s.subjectId}
             type="button"
-            onClick={() => s.learnRoute && navigate(s.learnRoute)}
-            disabled={!s.learnRoute}
-            className={[
-              'rounded-2xl border border-slate-100 bg-white p-4 text-left transition',
-              s.learnRoute
-                ? 'cursor-pointer hover:border-teal-200 hover:shadow-sm'
-                : 'cursor-default opacity-95',
-            ].join(' ')}
+            onClick={() => navigate(`/dashboard/subjects/${s.subjectId}`)}
+            className="cursor-pointer rounded-2xl border border-slate-100 bg-white p-4 text-left transition hover:border-teal-200 hover:shadow-sm"
           >
             <div className="mb-2 flex items-center justify-between gap-3">
               <p className="font-bold text-slate-800">{s.subjectName}</p>

@@ -180,6 +180,70 @@ export interface SkillAssessmentRequest {
   correct?: boolean;
 }
 
+export type CurriculumChapterStatus = 'COMPLETED' | 'IN_PROGRESS' | 'UNLOCKED' | 'LOCKED';
+
+export interface CurriculumVideoItem {
+  id: string;
+  title: string;
+  videoUrl: string;
+  durationInSeconds: number;
+  sequenceOrder: number;
+  isCompleted: boolean;
+  watchTimeSeconds: number;
+  maxWatchedTime: number;
+  isLocked: boolean;
+}
+
+export interface CurriculumChapterItem {
+  id: string;
+  title: string;
+  sequenceOrder: number;
+  status: CurriculumChapterStatus;
+  videos: CurriculumVideoItem[];
+  allVideosCompleted: boolean;
+  quizUnlocked: boolean;
+  quizPassed: boolean;
+  quizScore: number | null;
+}
+
+export interface SubjectCurriculumResponse {
+  subjectId: string;
+  subjectName: string;
+  color: string;
+  ageGroup: AgeGroup;
+  masteryPercentage: number;
+  chapters: CurriculumChapterItem[];
+}
+
+export interface ChapterQuizQuestionPublic {
+  id: string;
+  prompt: string;
+  options: string[];
+}
+
+export interface ChapterQuizResponse {
+  chapterId: string;
+  chapterTitle: string;
+  subjectId: string;
+  subjectName: string;
+  questions: ChapterQuizQuestionPublic[];
+}
+
+export interface SubmitChapterQuizRequest {
+  answers: { questionId: string; selectedIndex: number }[];
+}
+
+export interface SubmitChapterQuizResponse {
+  result: {
+    scorePercentage: number;
+    isPassed: boolean;
+    correct: number;
+    total: number;
+  };
+  masteryPercentage: number;
+  subjectId: string;
+}
+
 export interface ChildProfile {
   id: string;
   parentId: string;
