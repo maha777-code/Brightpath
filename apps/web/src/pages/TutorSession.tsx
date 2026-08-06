@@ -150,6 +150,29 @@ export default function TutorSession() {
       saveSession(null);
       setPhase('done');
       setRemediationSteps(null);
+
+      // Sync mastery into personalized learning path (non-blocking)
+      const scorePercent = Math.round((finalCorrect / Math.max(total, 1)) * 100);
+      void (async () => {
+        try {
+          if (!loadStoredToken()) return;
+          const { nodes } = await api.getLearningPath();
+          const route = `/learn/${validSubject}`;
+          const match =
+            nodes.find(
+              (n) =>
+                (n.status === 'IN_PROGRESS' || n.status === 'UNLOCKED') &&
+                n.learnRoute === route,
+            ) ??
+            nodes.find((n) => n.status === 'IN_PROGRESS' && n.learnRoute === route) ??
+            nodes.find((n) => n.learnRoute === route && n.status !== 'LOCKED');
+          if (match) {
+            await api.submitAssessment({ nodeId: match.id, scorePercent });
+          }
+        } catch (err) {
+          console.warn('[learning-path] assessment sync skipped', err);
+        }
+      })();
     },
     [addMessage, lesson, profile, validSubject],
   );

@@ -8,6 +8,8 @@ interface TutorChatDrawerProps {
   accent?: string;
   /** Forces chat to reset when age group changes */
   ageGroupKey: string;
+  /** Called after a learner sends a chat message (path mastery sync) */
+  onPracticeInteraction?: () => void;
 }
 
 interface ChatMessage {
@@ -29,6 +31,7 @@ export function TutorChatDrawer({
   persona,
   accent = '#0f766e',
   ageGroupKey,
+  onPracticeInteraction,
 }: TutorChatDrawerProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
     buildInitial(persona, learnerName),
@@ -55,6 +58,7 @@ export function TutorChatDrawer({
       },
     ]);
     setDraft('');
+    onPracticeInteraction?.();
   };
 
   return (

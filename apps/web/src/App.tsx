@@ -10,6 +10,7 @@ import Onboarding from '@/pages/Onboarding';
 import Dashboard from '@/pages/Dashboard';
 import TutorSession from '@/pages/TutorSession';
 import Progress from '@/pages/Progress';
+import LessonModulePage from '@/pages/LessonModulePage';
 
 function ProtectedParent({ children }: { children: React.ReactNode }) {
   const { parent, loading } = useAuth();
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="/parent/children/new" element={<ProtectedParent><AddChild /></ProtectedParent>} />
         <Route path="/onboarding" element={<Navigate to="/parent" replace />} />
         <Route path="/dashboard" element={<ProtectedParent><Dashboard /></ProtectedParent>} />
+        <Route path="/lesson/:nodeId" element={<ProtectedParent><LessonModulePage /></ProtectedParent>} />
         <Route path="/learn/:subject" element={<ProtectedLearner><TutorSession /></ProtectedLearner>} />
         <Route path="/progress" element={<ProtectedParent><Progress /></ProtectedParent>} />
         <Route path="*" element={<Navigate to="/" replace />} />

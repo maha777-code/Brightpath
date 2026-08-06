@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { formatStudyTime, toLocalDateString } from '@brightpath/shared';
+import { formatStudyTime, toLocalDateString, AGE_GROUPS } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { applyActivityHeartbeat, toParentUser } from '../lib/ageCurriculum.js';
+import { buildLearningPath, submitModuleAssessment } from '../lib/learningPath.js';
 
 const router = Router();
 
@@ -17,12 +18,13 @@ const trackSchema = z.object({
   timeZone: z.string().min(1).max(80).optional(),
 });
 
+const assessmentSchema = z.object({
+  nodeId: z.string().min(1),
+  scorePercent: z.number().min(0).max(100),
+});
+
 router.use(requireAuth);
 
-/**
- * Heartbeat from the client session timer.
- * Updates weekly study seconds + consecutive-day streak.
- */
 router.post('/track-activity', async (req: AuthRequest, res) => {
   const parsed = trackSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -95,6 +97,50 @@ router.get('/stats', async (req: AuthRequest, res) => {
     timeStudiedThisWeek: user.timeStudiedThisWeek,
     timeStudiedFormatted: formatStudyTime(user.timeStudiedThisWeek),
   });
+});
+
+/** Adaptive personalized learning path for the logged-in user's age group */
+router.get('/learning-path', async (req: AuthRequest, res) => {
+  const parent = await prisma.parent.findUnique({ where: { id: req.parentId! } });
+  if (!parent) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+
+  const ageGroup = parent.calculatedAgeGroup ?? 'EARLY_4_7';
+  if (!(AGE_GROUPS as readonly string[]).includes(ageGroup)) {
+    res.status(400).json({ error: 'Invalid age group' });
+    return;
+  }
+
+  try {
+    const nodes = await buildLearningPath(parent.id, ageGroup);
+    res.json({ ageGroup, nodes });
+  } catch (err) {
+    console.error('[learning-path]', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to build path' });
+  }
+});
+
+/** Recalculate mastery for a module node and refresh path statuses */
+router.post('/submit-assessment', async (req: AuthRequest, res) => {
+  const parsed = assessmentSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    const result = await submitModuleAssessment({
+      userId: req.parentId!,
+      nodeId: parsed.data.nodeId,
+      scorePercent: parsed.data.scorePercent,
+    });
+    res.json(result);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Assessment failed';
+    res.status(msg.includes('not found') ? 404 : 500).json({ error: msg });
+  }
 });
 
 export default router;

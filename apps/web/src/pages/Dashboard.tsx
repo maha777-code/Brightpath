@@ -10,6 +10,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
+import { useLearningPath } from '@/hooks/useLearningPath';
 import { getAgeGroupDashboardConfig } from '@/lib/ageGroupDashboardConfig';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
@@ -32,6 +33,18 @@ export default function Dashboard() {
   const ageGroup: AgeGroup = parent?.calculatedAgeGroup ?? 'EARLY_4_7';
   const persona = PERSONA_BY_AGE_GROUP[ageGroup];
   const activeConfig = useMemo(() => getAgeGroupDashboardConfig(ageGroup), [ageGroup]);
+  const learningPath = useLearningPath(Boolean(parent), ageGroup);
+
+  const bumpActiveModuleFromChat = () => {
+    const active = learningPath.nodes.find((n) => n.status === 'IN_PROGRESS');
+    if (!active) return;
+    // Gentle practice bump; keep under 80 so completion still requires a real assessment
+    const nextScore = Math.min(79, Math.max(active.masteryScore, active.masteryScore + 5));
+    if (nextScore === active.masteryScore) return;
+    void learningPath.submitAssessment(active.id, nextScore).catch(() => {
+      /* path sync is best-effort from chat */
+    });
+  };
 
   const celebration = localUpgrade ?? pendingUpgrade;
 
@@ -94,7 +107,8 @@ export default function Dashboard() {
             />
 
             <LearningPath
-              steps={activeConfig.personalizedPath}
+              nodes={learningPath.nodes}
+              loading={learningPath.loading}
               accent={activeConfig.theme.accent}
             />
 
@@ -115,6 +129,7 @@ export default function Dashboard() {
                 persona={activeConfig.aiChat}
                 accent={activeConfig.theme.accent}
                 ageGroupKey={ageGroup}
+                onPracticeInteraction={bumpActiveModuleFromChat}
               />
             </div>
           </div>
@@ -146,6 +161,7 @@ export default function Dashboard() {
               persona={activeConfig.aiChat}
               accent={activeConfig.theme.accent}
               ageGroupKey={ageGroup}
+              onPracticeInteraction={bumpActiveModuleFromChat}
             />
           </div>
         </div>

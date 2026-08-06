@@ -48,6 +48,9 @@ import type {
   CurriculumUpgradeEvent,
   TrackActivityRequest,
   TrackActivityResponse,
+  LearningPathResponse,
+  SubmitAssessmentRequest,
+  SubmitAssessmentResponse,
   TutorRespondRequest,
   TutorRespondResponse,
   TutorStatusResponse,
@@ -78,6 +81,14 @@ export const api = {
 
   userStats: () =>
     request<TrackActivityResponse>('/user/stats'),
+
+  getLearningPath: () => request<LearningPathResponse>('/user/learning-path'),
+
+  submitAssessment: (body: SubmitAssessmentRequest) =>
+    request<SubmitAssessmentResponse>('/user/submit-assessment', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 
   listChildren: () => request<{ children: ChildProfile[] }>('/children'),
 

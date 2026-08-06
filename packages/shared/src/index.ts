@@ -100,6 +100,36 @@ export interface TrackActivityResponse {
   timeStudiedFormatted: string;
 }
 
+export type LearningPathNodeStatus = 'COMPLETED' | 'IN_PROGRESS' | 'UNLOCKED' | 'LOCKED';
+
+export interface LearningPathNode {
+  id: string;
+  title: string;
+  status: LearningPathNodeStatus;
+  masteryScore: number;
+  sequenceOrder: number;
+  subjectCategory: string;
+  learnRoute: string | null;
+  isReview: boolean;
+  reviewOfNodeId: string | null;
+  unlockHint?: string;
+}
+
+export interface LearningPathResponse {
+  ageGroup: AgeGroup;
+  nodes: LearningPathNode[];
+}
+
+export interface SubmitAssessmentRequest {
+  nodeId: string;
+  scorePercent: number;
+}
+
+export interface SubmitAssessmentResponse {
+  path: LearningPathNode[];
+  node: LearningPathNode | null;
+}
+
 export interface ChildProfile {
   id: string;
   parentId: string;
