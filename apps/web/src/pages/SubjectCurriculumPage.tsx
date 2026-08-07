@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Lock, X } from 'lucide-react';
+import { ArrowLeft, Lock, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import type {
   CurriculumChapterItem,
   CurriculumVideoItem,
@@ -62,6 +62,7 @@ export default function SubjectCurriculumPage() {
     { id: string; role: 'tutor' | 'user'; text: string }[]
   >([]);
   const [buddyBounce, setBuddyBounce] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(true);
   const completeRef = useRef<(() => Promise<boolean>) | null>(null);
 
   const load = useCallback(
@@ -222,7 +223,7 @@ export default function SubjectCurriculumPage() {
     <div className="fixed inset-0 z-20 flex h-screen w-full flex-col overflow-hidden bg-white text-slate-800">
       {/* Compact header */}
       <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-4 md:px-6">
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => navigate('/dashboard')}
@@ -231,6 +232,27 @@ export default function SubjectCurriculumPage() {
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
+
+          <button
+            type="button"
+            onClick={() => setIsMapOpen((open) => !open)}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-extrabold text-emerald-800 shadow-sm transition hover:bg-emerald-100 sm:text-sm"
+            aria-pressed={isMapOpen}
+            aria-label={isMapOpen ? 'Collapse adventure map' : 'Show adventure map'}
+          >
+            {isMapOpen ? (
+              <>
+                <PanelLeftClose className="h-4 w-4" />
+                <span className="hidden sm:inline">Collapse Map</span>
+              </>
+            ) : (
+              <>
+                <PanelLeftOpen className="h-4 w-4" />
+                <span>🗺️ Show Adventure Map</span>
+              </>
+            )}
+          </button>
+
           <h1 className="truncate text-lg font-black tracking-tight text-slate-900 md:text-xl">
             📖 {data.subjectName} Quest!
           </h1>
@@ -256,24 +278,38 @@ export default function SubjectCurriculumPage() {
         </div>
       </header>
 
-      {/* Full-height 2-column stage */}
-      <div className="grid h-[calc(100vh-4rem)] w-full grid-cols-12 gap-4 overflow-hidden p-4 md:gap-6 md:p-6">
-        {/* Left: Adventure Map */}
-        <aside className="col-span-12 flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-emerald-50/30 lg:col-span-4">
-          <AdventureMapPath
-            chapters={data.chapters}
-            subjectName={data.subjectName}
-            activeVideoId={activeVideoId}
-            learnerName={learnerName}
-            celebrateNodeId={celebrateNodeId}
-            onSelectVideo={selectVideo}
-            onSelectQuiz={selectQuiz}
-          />
+      {/* Full-height collapsible 2-column stage */}
+      <div className="flex h-[calc(100vh-4rem)] w-full flex-col overflow-hidden p-4 lg:flex-row md:gap-4 md:p-5 lg:gap-6">
+        {/* Left: Adventure Map (collapsible) */}
+        <aside
+          className={[
+            'flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-emerald-50/30 transition-all duration-300 ease-in-out',
+            isMapOpen
+              ? 'mb-3 h-[42%] w-full opacity-100 lg:mb-0 lg:h-full lg:w-[400px] lg:min-w-[400px] lg:max-w-[400px]'
+              : 'pointer-events-none mb-0 h-0 w-0 min-w-0 max-w-0 border-0 opacity-0',
+          ].join(' ')}
+        >
+          {isMapOpen && (
+            <AdventureMapPath
+              chapters={data.chapters}
+              subjectName={data.subjectName}
+              activeVideoId={activeVideoId}
+              learnerName={learnerName}
+              celebrateNodeId={celebrateNodeId}
+              onSelectVideo={selectVideo}
+              onSelectQuiz={selectQuiz}
+            />
+          )}
         </aside>
 
-        {/* Right: Video cinema */}
-        <section className="col-span-12 flex h-full min-h-0 flex-col gap-3 overflow-y-auto lg:col-span-8">
-          <div className="min-h-0 shrink-0 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:p-3">
+        {/* Right: Video cinema — expands when map collapses */}
+        <section className="flex h-full min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto transition-all duration-300 ease-in-out">
+          <div
+            className={[
+              'mx-auto w-full min-h-0 shrink-0 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:p-3',
+              isMapOpen ? 'max-w-5xl' : 'max-w-6xl',
+            ].join(' ')}
+          >
             {active && !active.video.isLocked ? (
               <SecureVideoPlayer
                 variant="kids"
