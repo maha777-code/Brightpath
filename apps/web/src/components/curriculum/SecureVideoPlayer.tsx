@@ -247,29 +247,35 @@ export function SecureVideoPlayer({
         className={[
           'shrink-0',
           kids
-            ? 'space-y-1.5 bg-gradient-to-r from-sky-500 to-emerald-400 px-4 py-3'
+            ? 'flex flex-col gap-2 rounded-b-[1.35rem] border-t border-slate-200 bg-white px-4 py-3 shadow-sm'
             : 'space-y-1.5 bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-3',
         ].join(' ')}
       >
         <div
           className={
             kids
-              ? 'flex items-center justify-between gap-3 text-xs font-bold text-white'
+              ? 'flex items-center justify-between gap-3 text-xs font-black text-slate-700'
               : 'flex items-center justify-between gap-3 text-xs text-slate-200'
           }
         >
-          <span className={kids ? '' : 'font-semibold text-teal-300'}>
+          <span className={kids ? 'text-purple-900' : 'font-semibold text-teal-300'}>
             {kids ? `⭐ Star power ${Math.round(pct)}%` : `Secure progress ${Math.round(pct)}%`}
           </span>
-          <span className={kids ? 'text-white/90' : 'text-slate-400'}>
+          <span className={kids ? 'text-slate-600' : 'text-slate-400'}>
             {kids ? 'Watch to 95% for a star!' : `Max reached ${Math.floor(maxWatched)}s · 95% to complete`}
           </span>
         </div>
-        <div className={kids ? 'h-2.5 overflow-hidden rounded-full bg-white/30' : 'h-1.5 overflow-hidden rounded-full bg-slate-700'}>
+        <div
+          className={
+            kids
+              ? 'h-3 w-full overflow-hidden rounded-full bg-slate-100'
+              : 'h-1.5 overflow-hidden rounded-full bg-slate-700'
+          }
+        >
           <div
             className={
               kids
-                ? 'h-full rounded-full bg-yellow-300 transition-all duration-300'
+                ? 'h-full rounded-full bg-purple-600 transition-all duration-300'
                 : 'h-full rounded-full bg-gradient-to-r from-teal-400 to-emerald-400 transition-all duration-300'
             }
             style={{ width: `${pct}%` }}
