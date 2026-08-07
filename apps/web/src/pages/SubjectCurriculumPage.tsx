@@ -303,15 +303,17 @@ export default function SubjectCurriculumPage() {
         </aside>
 
         {/* Right: Video cinema — expands when map collapses */}
-        <section className="flex h-full min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto transition-all duration-300 ease-in-out">
-          <div
-            className={[
-              'mx-auto w-full min-h-0 shrink-0 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:p-3',
-              isMapOpen ? 'max-w-5xl' : 'max-w-6xl',
-            ].join(' ')}
-          >
+        <section
+          className={[
+            'flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white transition-all duration-300 ease-in-out',
+            isMapOpen ? 'p-0 lg:pl-0' : 'w-full',
+          ].join(' ')}
+        >
+          {/* Video frame fills all leftover space */}
+          <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-3xl bg-black shadow-md">
             {active && !active.video.isLocked ? (
               <SecureVideoPlayer
+                fill
                 variant="kids"
                 videoId={active.video.id}
                 src={active.video.videoUrl}
@@ -325,7 +327,7 @@ export default function SubjectCurriculumPage() {
                 }}
               />
             ) : (
-              <div className="flex aspect-video flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-center">
+              <div className="flex h-full min-h-[220px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 text-center">
                 <span className="text-4xl">🗺️</span>
                 <p className="mt-2 font-extrabold text-slate-700">
                   Tap a glowing node on the map to start!
@@ -334,59 +336,66 @@ export default function SubjectCurriculumPage() {
             )}
           </div>
 
-          <div className="shrink-0 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm font-extrabold text-orange-800">
-            👀 Watch nicely without skipping to unlock your Star Reward!
-          </div>
-
-          {active && (
-            <div className="mt-auto shrink-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-extrabold uppercase tracking-wide text-fuchsia-600">
-                Chapter {active.chapter.sequenceOrder} · Level {active.video.sequenceOrder}
-              </p>
-              <h2 className="mt-1 text-lg font-black text-slate-800">
-                {active.video.title}
-              </h2>
-              <p className="mt-1 text-sm font-semibold text-slate-500">
-                {active.video.isCompleted
-                  ? '⭐⭐⭐ Stage cleared! Ready for the next node?'
-                  : `Watched ${Math.round(watchInfo?.pct ?? 0)}% — keep going for 3 stars!`}
-              </p>
-
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  disabled={busyNext || nextLocked}
-                  onClick={() => void goNext()}
-                  className={[
-                    'inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-black text-white transition',
-                    nextLocked || busyNext
-                      ? 'cursor-not-allowed bg-slate-300'
-                      : 'bg-emerald-500 shadow-sm hover:brightness-105',
-                  ].join(' ')}
-                >
-                  {nextLocked ? (
-                    <>
-                      Next Video <Lock className="h-4 w-4" />
-                    </>
-                  ) : active.video.isCompleted ? (
-                    'Next Node 🚀'
-                  ) : (
-                    'Finish & Next Node ⭐'
-                  )}
-                </button>
-
-                {active.chapter.quizUnlocked && (
-                  <button
-                    type="button"
-                    onClick={() => selectQuiz(active.chapter)}
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-yellow-400 to-amber-500 px-5 py-3 text-sm font-black text-amber-950 shadow-sm"
-                  >
-                    🏆 Chapter Boss Quiz
-                  </button>
-                )}
-              </div>
+          {/* Compact bottom info — never steals video height */}
+          <div className="shrink-0 space-y-2 pt-3">
+            <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-extrabold text-orange-800">
+              👀 Watch nicely without skipping to unlock your Star Reward!
             </div>
-          )}
+
+            {active && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-extrabold uppercase tracking-wide text-fuchsia-600">
+                      Chapter {active.chapter.sequenceOrder} · Level {active.video.sequenceOrder}
+                    </p>
+                    <h2 className="truncate text-base font-black text-slate-800 sm:text-lg">
+                      {active.video.title}
+                    </h2>
+                    <p className="text-sm font-semibold text-slate-500">
+                      {active.video.isCompleted
+                        ? '⭐⭐⭐ Stage cleared! Ready for the next node?'
+                        : `Watched ${Math.round(watchInfo?.pct ?? 0)}% — keep going for 3 stars!`}
+                    </p>
+                  </div>
+
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={busyNext || nextLocked}
+                      onClick={() => void goNext()}
+                      className={[
+                        'inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-black text-white transition',
+                        nextLocked || busyNext
+                          ? 'cursor-not-allowed bg-slate-300'
+                          : 'bg-emerald-500 shadow-sm hover:brightness-105',
+                      ].join(' ')}
+                    >
+                      {nextLocked ? (
+                        <>
+                          Next Video <Lock className="h-4 w-4" />
+                        </>
+                      ) : active.video.isCompleted ? (
+                        'Next Node 🚀'
+                      ) : (
+                        'Finish & Next Node ⭐'
+                      )}
+                    </button>
+
+                    {active.chapter.quizUnlocked && (
+                      <button
+                        type="button"
+                        onClick={() => selectQuiz(active.chapter)}
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-yellow-400 to-amber-500 px-4 py-2.5 text-sm font-black text-amber-950 shadow-sm"
+                      >
+                        🏆 Boss Quiz
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </section>
       </div>
 

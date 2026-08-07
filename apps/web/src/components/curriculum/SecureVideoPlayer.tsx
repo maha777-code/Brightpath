@@ -19,6 +19,8 @@ interface SecureVideoPlayerProps {
   completeRequestRef?: MutableRefObject<(() => Promise<boolean>) | null>;
   /** Kid-friendly chrome around the same anti-skip player */
   variant?: 'default' | 'kids';
+  /** Fill parent height (flex-1 stage) instead of aspect-video box */
+  fill?: boolean;
 }
 
 /**
@@ -35,6 +37,7 @@ export function SecureVideoPlayer({
   onWatchProgress,
   completeRequestRef,
   variant = 'default',
+  fill = false,
 }: SecureVideoPlayerProps) {
   const kids = variant === 'kids';
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -205,11 +208,13 @@ export function SecureVideoPlayer({
 
   return (
     <div
-      className={
+      className={[
+        'relative flex flex-col overflow-hidden bg-black',
+        fill ? 'h-full min-h-0 w-full flex-1' : '',
         kids
-          ? 'relative overflow-hidden rounded-3xl border-4 border-sky-400 bg-sky-950 shadow-[0_10px_0_#38bdf8] ring-4 ring-sky-200/60'
-          : 'relative overflow-hidden rounded-2xl border border-slate-800/40 bg-slate-950 shadow-lg ring-1 ring-white/10'
-      }
+          ? 'rounded-3xl border-4 border-sky-400 shadow-[0_10px_0_#38bdf8] ring-4 ring-sky-200/60'
+          : 'rounded-2xl border border-slate-800/40 shadow-lg ring-1 ring-white/10',
+      ].join(' ')}
     >
       <div
         className={
@@ -221,23 +226,30 @@ export function SecureVideoPlayer({
         <ShieldCheck className="h-3.5 w-3.5" />
         {kids ? '👀 No skipping!' : 'Secure watch · no skip'}
       </div>
-      <video
-        ref={videoRef}
-        key={videoId}
-        className="aspect-video w-full bg-black"
-        src={src}
-        controls
-        controlsList="nodownload noplaybackrate"
-        disablePictureInPicture
-        playsInline
-        preload="metadata"
-      />
+      <div className={fill ? 'relative min-h-0 flex-1 bg-black' : 'relative w-full'}>
+        <video
+          ref={videoRef}
+          key={videoId}
+          className={
+            fill
+              ? 'absolute inset-0 h-full w-full bg-black object-contain'
+              : 'aspect-video w-full bg-black'
+          }
+          src={src}
+          controls
+          controlsList="nodownload noplaybackrate"
+          disablePictureInPicture
+          playsInline
+          preload="metadata"
+        />
+      </div>
       <div
-        className={
+        className={[
+          'shrink-0',
           kids
             ? 'space-y-1.5 bg-gradient-to-r from-sky-500 to-emerald-400 px-4 py-3'
-            : 'space-y-1.5 bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-3'
-        }
+            : 'space-y-1.5 bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-3',
+        ].join(' ')}
       >
         <div
           className={
