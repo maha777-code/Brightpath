@@ -176,29 +176,21 @@ export function AdventureMapPath({
   };
 
   return (
-    <div className="relative flex h-full min-h-[480px] flex-col overflow-hidden rounded-[2rem] border-4 border-lime-300/90 bg-gradient-to-b from-sky-200 via-emerald-100 to-lime-200 shadow-[0_8px_0_#86efac]">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-4 top-12 text-4xl opacity-80">🌲</div>
-        <div className="absolute right-3 top-28 text-3xl opacity-75">🏔️</div>
-        <div className="absolute bottom-20 left-3 text-3xl opacity-70">🌳</div>
-        <div className="absolute right-5 top-[55%] text-2xl opacity-60">🌸</div>
-        <div className="absolute bottom-32 right-6 text-3xl opacity-50">🌊</div>
-        <div
-          className="absolute inset-0 opacity-35"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 25% 15%, #fef08a99 0 36px, transparent 37px), radial-gradient(circle at 75% 55%, #ffffff66 0 48px, transparent 49px)',
-          }}
-        />
+    <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl bg-emerald-50/40">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-50">
+        <div className="absolute -left-4 top-12 text-3xl">🌲</div>
+        <div className="absolute right-3 top-28 text-2xl">🏔️</div>
+        <div className="absolute bottom-20 left-3 text-2xl">🌳</div>
+        <div className="absolute right-5 top-[55%] text-xl">🌸</div>
       </div>
 
-      <div className="relative z-10 px-3 pb-1 pt-3">
-        <p className="rounded-full bg-white/95 px-3 py-1.5 text-center text-xs font-black text-emerald-800 shadow ring-2 ring-lime-200">
+      <div className="relative z-10 shrink-0 px-3 pb-1 pt-3">
+        <p className="rounded-full border border-emerald-100 bg-white px-3 py-1.5 text-center text-xs font-black text-emerald-800 shadow-sm">
           🗺️ {subjectName} Adventure Map
         </p>
       </div>
 
-      <div className="relative z-10 flex-1 overflow-y-auto px-1 pb-4">
+      <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:thin] [scrollbar-color:#86efac_transparent]">
         <div className="relative mx-auto" style={{ width: MAP_WIDTH, height }}>
           <svg
             width={MAP_WIDTH}

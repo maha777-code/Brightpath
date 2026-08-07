@@ -192,8 +192,8 @@ export default function SubjectCurriculumPage() {
 
   if (loading && !data) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-emerald-50">
-        <p className="rounded-full bg-white px-5 py-3 text-sm font-extrabold text-emerald-700 shadow-md">
+      <div className="fixed inset-0 z-20 flex h-screen w-full items-center justify-center overflow-hidden bg-white">
+        <p className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-extrabold text-slate-700 shadow-sm">
           🗺️ Loading adventure map…
         </p>
       </div>
@@ -202,7 +202,7 @@ export default function SubjectCurriculumPage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-dvh bg-sky-50 p-6">
+      <div className="fixed inset-0 z-20 h-screen w-full overflow-hidden bg-white p-6">
         <button
           type="button"
           className="rounded-full bg-sky-500 px-5 py-2.5 text-sm font-extrabold text-white shadow-md"
@@ -219,133 +219,113 @@ export default function SubjectCurriculumPage() {
   const nextLocked = !canGoNext;
 
   return (
-    <div className="relative min-h-dvh overflow-x-hidden bg-gradient-to-br from-sky-100 via-emerald-50 to-lime-100">
-      <div className="relative mx-auto max-w-7xl px-3 py-4 sm:px-5 lg:px-6">
-        <div className="mb-3 rounded-2xl bg-fuchsia-500 px-4 py-2 text-center text-sm font-black text-white shadow-md">
-          🗺️ You are on the Adventure Quest Map (not the old chapter list)
+    <div className="fixed inset-0 z-20 flex h-screen w-full flex-col overflow-hidden bg-white text-slate-800">
+      {/* Compact header */}
+      <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-4 md:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard')}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-sky-500 px-4 py-2 text-sm font-extrabold text-white shadow-sm transition hover:brightness-105"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+          <h1 className="truncate text-lg font-black tracking-tight text-slate-900 md:text-xl">
+            📖 {data.subjectName} Quest!
+          </h1>
         </div>
-        {/* Top bar */}
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center gap-1.5 rounded-full bg-sky-500 px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_4px_0_#0284c7] transition hover:brightness-105 active:translate-y-0.5 active:shadow-none"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </button>
-            <div className="min-w-0">
-              <h1 className="truncate text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">
-                📖 {data.subjectName} Quest!
-              </h1>
-              <p className="mt-0.5 text-xs font-extrabold uppercase tracking-wide text-fuchsia-600">
-                Adventure Map mode · tap nodes on the left
+
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-extrabold text-amber-600">
+            <span>⭐</span>
+            {stars}
+          </div>
+          <div className="hidden min-w-[120px] rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 sm:block">
+            <div className="mb-0.5 flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">
+              <span>Quest</span>
+              <span>{data.masteryPercentage}%</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-emerald-100">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-lime-400 to-emerald-500 transition-all duration-700"
+                style={{ width: `${data.masteryPercentage}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Full-height 2-column stage */}
+      <div className="grid h-[calc(100vh-4rem)] w-full grid-cols-12 gap-4 overflow-hidden p-4 md:gap-6 md:p-6">
+        {/* Left: Adventure Map */}
+        <aside className="col-span-12 flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-emerald-50/30 lg:col-span-4">
+          <AdventureMapPath
+            chapters={data.chapters}
+            subjectName={data.subjectName}
+            activeVideoId={activeVideoId}
+            learnerName={learnerName}
+            celebrateNodeId={celebrateNodeId}
+            onSelectVideo={selectVideo}
+            onSelectQuiz={selectQuiz}
+          />
+        </aside>
+
+        {/* Right: Video cinema */}
+        <section className="col-span-12 flex h-full min-h-0 flex-col gap-3 overflow-y-auto lg:col-span-8">
+          <div className="min-h-0 shrink-0 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:p-3">
+            {active && !active.video.isLocked ? (
+              <SecureVideoPlayer
+                variant="kids"
+                videoId={active.video.id}
+                src={active.video.videoUrl}
+                durationInSeconds={active.video.durationInSeconds}
+                initialMaxWatched={active.video.maxWatchedTime}
+                alreadyCompleted={active.video.isCompleted}
+                completeRequestRef={completeRef}
+                onWatchProgress={setWatchInfo}
+                onCompleted={() => {
+                  void onVideoCompleted(active.video.id);
+                }}
+              />
+            ) : (
+              <div className="flex aspect-video flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 text-center">
+                <span className="text-4xl">🗺️</span>
+                <p className="mt-2 font-extrabold text-slate-700">
+                  Tap a glowing node on the map to start!
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="shrink-0 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm font-extrabold text-orange-800">
+            👀 Watch nicely without skipping to unlock your Star Reward!
+          </div>
+
+          {active && (
+            <div className="mt-auto shrink-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-fuchsia-600">
+                Chapter {active.chapter.sequenceOrder} · Level {active.video.sequenceOrder}
               </p>
-            </div>
-          </div>
+              <h2 className="mt-1 text-lg font-black text-slate-800">
+                {active.video.title}
+              </h2>
+              <p className="mt-1 text-sm font-semibold text-slate-500">
+                {active.video.isCompleted
+                  ? '⭐⭐⭐ Stage cleared! Ready for the next node?'
+                  : `Watched ${Math.round(watchInfo?.pct ?? 0)}% — keep going for 3 stars!`}
+              </p>
 
-          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-amber-600 shadow-md ring-2 ring-amber-200">
-              <span className="text-lg">⭐</span>
-              {stars} Stars
-            </div>
-            <div className="min-w-[140px] rounded-full bg-white px-3 py-2 shadow-md ring-2 ring-emerald-200">
-              <div className="mb-1 flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">
-                <span>Quest</span>
-                <span>{data.masteryPercentage}%</span>
-              </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-emerald-100">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-lime-400 via-emerald-400 to-teal-400 transition-all duration-700"
-                  style={{ width: `${data.masteryPercentage}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Map 40% / Stage 60% — stacks on mobile */}
-        <div className="grid gap-4 lg:grid-cols-[minmax(280px,2fr)_minmax(0,3fr)] lg:gap-5">
-          {/* Left: Adventure Map */}
-          <div className="order-2 min-h-[520px] lg:order-1 lg:max-h-[calc(100dvh-7rem)]">
-            <AdventureMapPath
-              chapters={data.chapters}
-              subjectName={data.subjectName}
-              activeVideoId={activeVideoId}
-              learnerName={learnerName}
-              celebrateNodeId={celebrateNodeId}
-              onSelectVideo={selectVideo}
-              onSelectQuiz={selectQuiz}
-            />
-          </div>
-
-          {/* Right: Video Stage */}
-          <section className="order-1 space-y-3 lg:order-2">
-            <div className="rounded-[1.75rem] bg-white/85 p-2 shadow-lg ring-4 ring-sky-200/80 sm:p-3">
-              {active && !active.video.isLocked ? (
-                <SecureVideoPlayer
-                  variant="kids"
-                  videoId={active.video.id}
-                  src={active.video.videoUrl}
-                  durationInSeconds={active.video.durationInSeconds}
-                  initialMaxWatched={active.video.maxWatchedTime}
-                  alreadyCompleted={active.video.isCompleted}
-                  completeRequestRef={completeRef}
-                  onWatchProgress={setWatchInfo}
-                  onCompleted={() => {
-                    void onVideoCompleted(active.video.id);
-                  }}
-                />
-              ) : (
-                <div className="flex aspect-video flex-col items-center justify-center rounded-3xl border-4 border-dashed border-sky-300 bg-sky-100 text-center">
-                  <span className="text-4xl">🗺️</span>
-                  <p className="mt-2 font-extrabold text-sky-800">
-                    Tap a glowing node on the map to start!
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-3xl border-2 border-orange-300 bg-orange-50 px-4 py-3 text-sm font-extrabold text-orange-800 shadow-sm">
-              👀 Watch nicely without skipping to unlock your Star Reward!
-            </div>
-
-            {active && (
-              <div className="rounded-3xl border-2 border-white bg-white/95 p-4 shadow-lg ring-2 ring-emerald-100 sm:p-5">
-                <p className="text-xs font-extrabold uppercase tracking-wide text-fuchsia-600">
-                  Chapter {active.chapter.sequenceOrder} · Level {active.video.sequenceOrder}
-                </p>
-                <h2 className="mt-1 text-lg font-black text-slate-800 sm:text-xl">
-                  {active.video.title}
-                </h2>
-                <p className="mt-1 text-sm font-semibold text-slate-500">
-                  {active.video.isCompleted
-                    ? '⭐⭐⭐ Stage cleared! Ready for the next node?'
-                    : `Watched ${Math.round(watchInfo?.pct ?? 0)}% — keep going for 3 stars!`}
-                </p>
-
-                <div className="mt-3 flex items-start gap-3 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 px-4 py-3">
-                  <span className="text-2xl">🏆</span>
-                  <div>
-                    <p className="text-sm font-black text-amber-900">
-                      Complete this video to earn 50 XP & 3 Stars!
-                    </p>
-                    <p className="text-xs font-semibold text-amber-800/80">
-                      No fast-forward — progress fills the green path to the next node.
-                    </p>
-                  </div>
-                </div>
-
+              <div className="mt-3 flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   disabled={busyNext || nextLocked}
                   onClick={() => void goNext()}
                   className={[
-                    'mt-4 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-base font-black text-white transition active:translate-y-0.5 sm:w-auto sm:min-w-[220px]',
+                    'inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-black text-white transition',
                     nextLocked || busyNext
-                      ? 'cursor-not-allowed bg-slate-300 shadow-none'
-                      : 'bg-emerald-500 shadow-[0_5px_0_#059669] hover:brightness-105',
+                      ? 'cursor-not-allowed bg-slate-300'
+                      : 'bg-emerald-500 shadow-sm hover:brightness-105',
                   ].join(' ')}
                 >
                   {nextLocked ? (
@@ -363,15 +343,15 @@ export default function SubjectCurriculumPage() {
                   <button
                     type="button"
                     onClick={() => selectQuiz(active.chapter)}
-                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-yellow-400 to-amber-500 px-5 py-3 text-sm font-black text-amber-950 shadow-[0_4px_0_#d97706] sm:w-auto"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-yellow-400 to-amber-500 px-5 py-3 text-sm font-black text-amber-950 shadow-sm"
                   >
-                    🏆 Chapter Boss Quiz Challenge!
+                    🏆 Chapter Boss Quiz
                   </button>
                 )}
               </div>
-            )}
-          </section>
-        </div>
+            </div>
+          )}
+        </section>
       </div>
 
       {/* Floating Buddy */}
