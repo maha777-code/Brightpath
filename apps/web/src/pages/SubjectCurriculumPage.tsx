@@ -221,6 +221,9 @@ export default function SubjectCurriculumPage() {
   return (
     <div className="relative min-h-dvh overflow-x-hidden bg-gradient-to-br from-sky-100 via-emerald-50 to-lime-100">
       <div className="relative mx-auto max-w-7xl px-3 py-4 sm:px-5 lg:px-6">
+        <div className="mb-3 rounded-2xl bg-fuchsia-500 px-4 py-2 text-center text-sm font-black text-white shadow-md">
+          🗺️ You are on the Adventure Quest Map (not the old chapter list)
+        </div>
         {/* Top bar */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-wrap items-center gap-3">
@@ -232,9 +235,14 @@ export default function SubjectCurriculumPage() {
               <ArrowLeft className="h-4 w-4" />
               Back
             </button>
-            <h1 className="truncate text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">
-              📖 {data.subjectName} Quest!
-            </h1>
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">
+                📖 {data.subjectName} Quest!
+              </h1>
+              <p className="mt-0.5 text-xs font-extrabold uppercase tracking-wide text-fuchsia-600">
+                Adventure Map mode · tap nodes on the left
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
