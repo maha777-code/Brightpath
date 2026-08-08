@@ -283,7 +283,7 @@ export default function SubjectCurriculumPage() {
         {/* Left: Adventure Map (collapsible) */}
         <aside
           className={[
-            'flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-emerald-50/30 transition-all duration-300 ease-in-out',
+            'flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[#C1E1C1] transition-all duration-300 ease-in-out',
             isMapOpen
               ? 'mb-3 h-[42%] w-full opacity-100 lg:mb-0 lg:h-full lg:w-[400px] lg:min-w-[400px] lg:max-w-[400px]'
               : 'pointer-events-none mb-0 h-0 w-0 min-w-0 max-w-0 border-0 opacity-0',

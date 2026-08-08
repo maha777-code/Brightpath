@@ -122,9 +122,9 @@ function CityPlaymatBackdrop({ width, height }: { width: number; height: number 
     >
       <defs>
         <pattern id="grass" width="28" height="28" patternUnits="userSpaceOnUse">
-          <rect width="28" height="28" fill="#86efac" />
-          <circle cx="6" cy="10" r="2" fill="#4ade80" opacity="0.45" />
-          <circle cx="20" cy="22" r="1.5" fill="#22c55e" opacity="0.35" />
+          <rect width="28" height="28" fill="#C1E1C1" />
+          <circle cx="6" cy="10" r="2" fill="#a8d5a8" opacity="0.55" />
+          <circle cx="20" cy="22" r="1.5" fill="#b5dbb5" opacity="0.45" />
         </pattern>
         <linearGradient id="river" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#7dd3fc" />
@@ -133,15 +133,16 @@ function CityPlaymatBackdrop({ width, height }: { width: number; height: number 
         </linearGradient>
       </defs>
 
-      <rect width={width} height={height} fill="url(#grass)" />
-      <rect x="0" y="0" width={width} height="120" fill="#e0f2fe" opacity="0.5" />
+      <rect width={width} height={height} fill="#C1E1C1" />
+      <rect width={width} height={height} fill="url(#grass)" opacity="0.65" />
+      <rect x="0" y="0" width={width} height="120" fill="#e0f2fe" opacity="0.35" />
       <rect
         x="0"
         y={Math.max(0, height - 180)}
         width={width}
         height="180"
         fill="#fde68a"
-        opacity="0.32"
+        opacity="0.22"
       />
 
       <path
@@ -160,14 +161,14 @@ function CityPlaymatBackdrop({ width, height }: { width: number; height: number 
         return (
           <g key={`deco-${i}`}>
             <circle cx="48" cy={y} r="28" fill="#2d3748" />
-            <circle cx="48" cy={y} r="14" fill="#4ade80" />
+            <circle cx="48" cy={y} r="14" fill="#C1E1C1" />
             <text
               x="48"
               y={y + 5}
               textAnchor="middle"
               fontSize="12"
               fontWeight="900"
-              fill="#166534"
+              fill="#3d6b3d"
             >
               H
             </text>
@@ -279,7 +280,7 @@ export function AdventureMapPath({
   };
 
   return (
-    <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-emerald-200/60 bg-[#bbf7d0]">
+    <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-[#a8d0a8] bg-[#C1E1C1]">
       <div className="relative z-10 shrink-0 px-3 pb-1 pt-3">
         <p className="rounded-full border border-white/80 bg-white/95 px-3 py-1.5 text-center text-xs font-black text-emerald-800 shadow-sm">
           🗺️ {subjectName} City Quest Map
@@ -300,20 +301,29 @@ export function AdventureMapPath({
             }}
           />
 
-          {/* Landmark stickers along the road */}
-          {nodes.map((node, i) => (
-            <span
-              key={`lm-${node.id}`}
-              className="pointer-events-none absolute z-[5] text-xl drop-shadow-sm"
-              style={{
-                left: node.x + (i % 2 === 0 ? 52 : -64),
-                top: node.y - 18,
-              }}
-              aria-hidden
-            >
-              {LANDMARKS[i % LANDMARKS.length]}
-            </span>
-          ))}
+          {/* Landmark stickers — 4× size, parked in grassy pockets beside each node */}
+          {nodes.map((node, i) => {
+            const onRight = i % 2 === 0;
+            // Place in open grass away from asphalt + level badge
+            const left = onRight
+              ? Math.min(MAP_WIDTH - 36, node.x + 108)
+              : Math.max(36, node.x - 108);
+            const top = node.y + (i % 3 === 0 ? -28 : i % 3 === 1 ? 8 : -8);
+            return (
+              <span
+                key={`lm-${node.id}`}
+                className="pointer-events-none absolute z-[5] origin-center select-none text-[5rem] leading-none drop-shadow-md"
+                style={{
+                  left,
+                  top,
+                  transform: 'translate(-50%, -50%)',
+                }}
+                aria-hidden
+              >
+                {LANDMARKS[i % LANDMARKS.length]}
+              </span>
+            );
+          })}
 
           {/* Asphalt road + lane dashes + progress glow */}
           <svg
