@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import {
   PERSONA_BY_AGE_GROUP,
@@ -13,19 +13,22 @@ import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { useLearningPath } from '@/hooks/useLearningPath';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { getAgeGroupDashboardConfig } from '@/lib/ageGroupDashboardConfig';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { DashboardHeader, type SubjectFilter } from '@/components/dashboard/DashboardHeader';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { WelcomeStats } from '@/components/dashboard/WelcomeStats';
 import { LearningPath } from '@/components/dashboard/LearningPath';
 import { MySubjectsList } from '@/components/dashboard/SubjectsCard';
 import { AnalyticsAndMastery } from '@/components/dashboard/AnalyticsCard';
 import { TutorChatDrawer } from '@/components/dashboard/TutorChatDrawer';
+import { DashboardSettingsDrawer } from '@/components/dashboard/DashboardSettingsDrawer';
 import { AgeUpgradeModal } from '@/components/age/AgeUpgradeModal';
 
 export default function Dashboard() {
   const { parent, pendingUpgrade, clearPendingUpgrade, updateParent } = useAuth();
   const { profile } = useProfile();
   const [chatOpen, setChatOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [subjectFilter, setSubjectFilter] = useState<SubjectFilter>('all');
   const [localUpgrade, setLocalUpgrade] = useState<CurriculumUpgradeEvent | null>(null);
 
   const activity = useActivityTracker(Boolean(parent));
@@ -37,13 +40,21 @@ export default function Dashboard() {
   const learningPath = useLearningPath(Boolean(parent), ageGroup);
   const analytics = useAnalytics(Boolean(parent), ageGroup);
 
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (!hash) return;
+    const id = window.setTimeout(() => {
+      document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' });
+    }, 150);
+    return () => window.clearTimeout(id);
+  }, []);
+
   const bumpActiveModuleFromChat = () => {
     const active = learningPath.nodes.find((n) => n.status === 'IN_PROGRESS');
     if (!active) return;
     const nextScore = Math.min(79, Math.max(active.masteryScore, active.masteryScore + 5));
     if (nextScore === active.masteryScore) return;
     void learningPath.submitAssessment(active.id, nextScore).catch(() => {});
-    // EWMA skill bump + refresh subjects / radar
     void analytics
       .submitSkillAssessment({
         scorePercent: nextScore,
@@ -84,11 +95,14 @@ export default function Dashboard() {
       <DashboardHeader
         learnerName={learnerName}
         ageGroup={ageGroup}
+        subjectFilter={subjectFilter}
+        onSubjectFilterChange={setSubjectFilter}
+        onOpenSettings={() => setSettingsOpen(true)}
         onCurriculumUpdated={handleCurriculumUpdated}
       />
 
       <div className="flex min-h-0 flex-1">
-        <DashboardSidebar />
+        <DashboardSidebar onOpenSettings={() => setSettingsOpen(true)} />
 
         <div className="flex min-w-0 flex-1 flex-col xl:flex-row">
           <main className="min-w-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
@@ -105,6 +119,11 @@ export default function Dashboard() {
                   Age {parent.currentAge}
                 </span>
               )}
+              {subjectFilter !== 'all' && (
+                <span className="ml-2 rounded-full bg-teal-50 px-2 py-0.5 text-xs font-semibold capitalize text-teal-700">
+                  Filter: {subjectFilter}
+                </span>
+              )}
             </div>
 
             <WelcomeStats
@@ -117,12 +136,14 @@ export default function Dashboard() {
               nodes={learningPath.nodes}
               loading={learningPath.loading}
               accent={activeConfig.theme.accent}
+              subjectFilter={subjectFilter}
             />
 
             <div className="grid gap-5 xl:grid-cols-2">
               <MySubjectsList
                 subjects={analytics.data?.subjects ?? []}
                 loading={analytics.loading}
+                subjectFilter={subjectFilter}
               />
               <AnalyticsAndMastery
                 radar={analytics.data?.radar ?? []}
@@ -181,6 +202,11 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      <DashboardSettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
 
       <AgeUpgradeModal
         open={Boolean(celebration?.upgraded && celebration.newGroup)}

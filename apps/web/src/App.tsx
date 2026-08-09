@@ -6,8 +6,10 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ParentHome from '@/pages/ParentHome';
 import AddChild from '@/pages/AddChild';
-import Onboarding from '@/pages/Onboarding';
 import Dashboard from '@/pages/Dashboard';
+import AiTutorPage from '@/pages/AiTutorPage';
+import SubjectsLibraryPage from '@/pages/SubjectsLibraryPage';
+import DashboardSectionRedirect from '@/pages/DashboardSectionRedirect';
 import TutorSession from '@/pages/TutorSession';
 import Progress from '@/pages/Progress';
 import LessonModulePage from '@/pages/LessonModulePage';
@@ -52,6 +54,16 @@ export default function App() {
         <Route path="/parent/children/new" element={<ProtectedParent><AddChild /></ProtectedParent>} />
         <Route path="/onboarding" element={<Navigate to="/parent" replace />} />
         <Route path="/dashboard" element={<ProtectedParent><Dashboard /></ProtectedParent>} />
+        <Route path="/dashboard/ai-tutor" element={<ProtectedParent><AiTutorPage /></ProtectedParent>} />
+        <Route
+          path="/dashboard/learning-path"
+          element={<ProtectedParent><DashboardSectionRedirect hash="path" /></ProtectedParent>}
+        />
+        <Route
+          path="/dashboard/analytics"
+          element={<ProtectedParent><DashboardSectionRedirect hash="analytics" /></ProtectedParent>}
+        />
+        <Route path="/dashboard/subjects" element={<ProtectedParent><SubjectsLibraryPage /></ProtectedParent>} />
         <Route path="/dashboard/subjects/:subjectId" element={<ProtectedParent><SubjectCurriculumPage /></ProtectedParent>} />
         <Route path="/dashboard/subjects/:subjectId/videos/:videoId" element={<ProtectedParent><VideoLessonPage /></ProtectedParent>} />
         <Route path="/dashboard/chapters/:chapterId/test" element={<ProtectedParent><ChapterTestPage /></ProtectedParent>} />

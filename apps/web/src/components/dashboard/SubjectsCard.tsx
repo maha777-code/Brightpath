@@ -4,11 +4,22 @@ import type { AnalyticsSubjectItem } from '@brightpath/shared';
 interface MySubjectsListProps {
   subjects: AnalyticsSubjectItem[];
   loading?: boolean;
+  subjectFilter?: string;
+}
+
+function matchesFilter(name: string, filter?: string) {
+  if (!filter || filter === 'all') return true;
+  const n = name.toLowerCase();
+  if (filter === 'phonics') return /phon|read|sight|letter|english|literacy/.test(n);
+  if (filter === 'math') return /math|number|arith|count/.test(n);
+  if (filter === 'science') return /sci|chem|nature|space/.test(n);
+  return true;
 }
 
 /** Live "My Subjects" progress list driven by GET /user/analytics */
-export function MySubjectsList({ subjects, loading }: MySubjectsListProps) {
+export function MySubjectsList({ subjects, loading, subjectFilter = 'all' }: MySubjectsListProps) {
   const navigate = useNavigate();
+  const visible = subjects.filter((s) => matchesFilter(s.subjectName, subjectFilter));
 
   return (
     <section
@@ -27,8 +38,14 @@ export function MySubjectsList({ subjects, loading }: MySubjectsListProps) {
         </p>
       )}
 
+      {!loading && subjects.length > 0 && visible.length === 0 && (
+        <p className="py-4 text-center text-sm text-slate-500">
+          No subjects match this filter.
+        </p>
+      )}
+
       <div className="grid gap-3">
-        {subjects.map((s) => (
+        {visible.map((s) => (
           <button
             key={s.subjectId}
             type="button"

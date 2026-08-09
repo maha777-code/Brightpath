@@ -11,6 +11,8 @@
   "dependencies": {
     "@brightpath/i18n": "*",
     "@brightpath/shared": "*",
+    "canvas-confetti": "^1.9.4",
+    "framer-motion": "^13.0.0",
     "i18next": "^24.2.0",
     "lucide-react": "^0.474.0",
     "react": "^19.0.0",
@@ -20,10 +22,11 @@
     "recharts": "^2.15.0"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
-    "@types/node": "^22.10.0",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",

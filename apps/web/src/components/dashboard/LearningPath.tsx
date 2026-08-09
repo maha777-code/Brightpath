@@ -7,7 +7,18 @@ interface LearningPathProps {
   nodes: LearningPathNode[];
   loading?: boolean;
   accent?: string;
+  /** Optional category filter: phonics | math | science | all */
+  subjectFilter?: string;
   onLockedClick?: (hint: string) => void;
+}
+
+function matchesSubjectFilter(node: LearningPathNode, filter?: string): boolean {
+  if (!filter || filter === 'all') return true;
+  const cat = `${node.subjectCategory} ${node.title}`.toLowerCase();
+  if (filter === 'phonics') return /phon|read|sight|letter|sound|word/.test(cat);
+  if (filter === 'math') return /math|number|add|count|arith/.test(cat);
+  if (filter === 'science') return /sci|chem|atom|nature|space/.test(cat);
+  return true;
 }
 
 function displayTitle(node: LearningPathNode): string {
@@ -28,10 +39,12 @@ export function LearningPath({
   nodes,
   loading,
   accent = '#0d9488',
+  subjectFilter = 'all',
   onLockedClick,
 }: LearningPathProps) {
   const navigate = useNavigate();
   const [toast, setToast] = useState<string | null>(null);
+  const visible = nodes.filter((n) => matchesSubjectFilter(n, subjectFilter));
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -43,8 +56,8 @@ export function LearningPath({
     if (node.status === 'LOCKED') {
       showToast(
         node.unlockHint
-          ? `Complete ${node.unlockHint} to unlock this module!`
-          : 'Complete the previous module to unlock this one!',
+          ? `Complete ${node.unlockHint} to unlock!`
+          : 'Complete the previous module to unlock!',
       );
       return;
     }
@@ -82,14 +95,27 @@ export function LearningPath({
         </p>
       )}
 
+      {!loading && nodes.length > 0 && visible.length === 0 && (
+        <p className="py-6 text-center text-sm text-slate-500">
+          No path cards match this subject filter.
+        </p>
+      )}
+
       <div className="flex items-stretch gap-2 overflow-x-auto pb-2">
-        {nodes.map((node, index) => {
+        {visible.map((node, index) => {
           const clickable = node.status !== 'LOCKED';
           return (
             <div key={node.id} className="flex min-w-0 flex-1 items-center gap-2">
               <button
                 type="button"
                 onClick={() => onClickNode(node)}
+                title={
+                  node.status === 'LOCKED'
+                    ? node.unlockHint
+                      ? `Complete ${node.unlockHint} to unlock!`
+                      : 'Locked'
+                    : 'Open lesson'
+                }
                 className={[
                   'flex min-w-[148px] flex-1 flex-col items-center rounded-2xl px-3 py-4 text-center transition',
                   clickable ? 'cursor-pointer hover:scale-[1.02]' : 'cursor-not-allowed',
@@ -139,7 +165,7 @@ export function LearningPath({
                   </p>
                 )}
               </button>
-              {index < nodes.length - 1 && (
+              {index < visible.length - 1 && (
                 <ArrowRight className="h-4 w-4 shrink-0 text-slate-300" />
               )}
             </div>

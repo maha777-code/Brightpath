@@ -129,7 +129,10 @@ export function AnalyticsAndMastery({
   };
 
   return (
-    <section className="relative rounded-3xl border border-white/70 bg-white/80 p-5 shadow-soft backdrop-blur-md sm:p-6">
+    <section
+      id="analytics"
+      className="relative rounded-3xl border border-white/70 bg-white/80 p-5 shadow-soft backdrop-blur-md sm:p-6"
+    >
       <h2 className="mb-4 text-lg font-extrabold text-slate-800">Analytics & Mastery</h2>
 
       {loading && (

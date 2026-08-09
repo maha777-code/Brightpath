@@ -1,20 +1,51 @@
 import { Link } from 'react-router-dom';
-import { ChevronDown, LogOut, UserRound, Cake } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDown, LogOut, UserRound, Cake, Settings2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { AGE_GROUP_LABELS, type AgeGroup, type CurriculumUpgradeEvent, type ParentUser } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { AgeSettingsModal } from '@/components/age/AgeSettingsModal';
 
+export type SubjectFilter = 'all' | 'phonics' | 'math' | 'science';
+
 interface DashboardHeaderProps {
   learnerName: string;
   ageGroup: AgeGroup | null;
+  subjectFilter?: SubjectFilter;
+  onSubjectFilterChange?: (filter: SubjectFilter) => void;
+  onOpenSettings?: () => void;
   onCurriculumUpdated: (parent: ParentUser, curriculum: CurriculumUpgradeEvent) => void;
 }
 
-export function DashboardHeader({ learnerName, ageGroup, onCurriculumUpdated }: DashboardHeaderProps) {
+const SUBJECT_FILTERS: { id: SubjectFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'phonics', label: 'Phonics' },
+  { id: 'math', label: 'Math' },
+  { id: 'science', label: 'Science' },
+];
+
+export function DashboardHeader({
+  learnerName,
+  ageGroup,
+  subjectFilter = 'all',
+  onSubjectFilterChange,
+  onOpenSettings,
+  onCurriculumUpdated,
+}: DashboardHeaderProps) {
   const { parent, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [subjectsOpen, setSubjectsOpen] = useState(false);
   const [ageOpen, setAgeOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const subjectsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setOpen(false);
+      if (!subjectsRef.current?.contains(e.target as Node)) setSubjectsOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
 
   return (
     <>
@@ -27,15 +58,56 @@ export function DashboardHeader({ learnerName, ageGroup, onCurriculumUpdated }: 
             </span>
           </Link>
 
-          <nav className="mx-auto hidden items-center gap-6 text-sm font-semibold text-slate-500 lg:flex">
-            <a href="/#subjects" className="hover:text-teal-700">Subjects</a>
-            <a href="/#how-it-works" className="hover:text-teal-700">How It Works</a>
-            <a href="/#pricing" className="hover:text-teal-700">Pricing</a>
-            <a href="/#schools" className="hover:text-teal-700">For Schools</a>
-            <Link to="/parent" className="hover:text-teal-700">Parent</Link>
+          <nav className="mx-auto hidden items-center gap-5 text-sm font-semibold text-slate-500 lg:flex">
+            <div className="relative" ref={subjectsRef}>
+              <button
+                type="button"
+                onClick={() => setSubjectsOpen((v) => !v)}
+                className={[
+                  'inline-flex items-center gap-1 hover:text-teal-700',
+                  subjectFilter !== 'all' ? 'text-teal-700' : '',
+                ].join(' ')}
+              >
+                Subjects
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+              {subjectsOpen && (
+                <div className="absolute left-0 mt-2 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                  {SUBJECT_FILTERS.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      className={[
+                        'block w-full px-3 py-2 text-left text-sm hover:bg-teal-50',
+                        subjectFilter === f.id ? 'font-bold text-teal-700' : 'text-slate-700',
+                      ].join(' ')}
+                      onClick={() => {
+                        onSubjectFilterChange?.(f.id);
+                        setSubjectsOpen(false);
+                        document.getElementById('path')?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <a href="/#how-it-works" className="hover:text-teal-700">
+              How It Works
+            </a>
+            <a href="/#pricing" className="hover:text-teal-700">
+              Pricing
+            </a>
+            <a href="/#schools" className="hover:text-teal-700">
+              For Schools
+            </a>
+            <Link to="/parent" className="hover:text-teal-700">
+              Parent
+            </Link>
           </nav>
 
-          <div className="relative ml-auto">
+          <div className="relative ml-auto" ref={menuRef}>
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
@@ -63,6 +135,16 @@ export function DashboardHeader({ learnerName, ageGroup, onCurriculumUpdated }: 
                   className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
                   onClick={() => {
                     setOpen(false);
+                    onOpenSettings?.();
+                  }}
+                >
+                  <Settings2 className="h-4 w-4" /> Profile Settings
+                </button>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                  onClick={() => {
+                    setOpen(false);
                     setAgeOpen(true);
                   }}
                 >
@@ -73,7 +155,7 @@ export function DashboardHeader({ learnerName, ageGroup, onCurriculumUpdated }: 
                   className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
                   onClick={() => setOpen(false)}
                 >
-                  <UserRound className="h-4 w-4" /> Manage children
+                  <UserRound className="h-4 w-4" /> Switch Child
                 </Link>
                 <button
                   type="button"

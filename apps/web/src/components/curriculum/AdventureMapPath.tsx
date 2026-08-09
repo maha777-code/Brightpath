@@ -289,34 +289,37 @@ export function AdventureMapPath({
 
       <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4 [scrollbar-width:thin] [scrollbar-color:#64748b_transparent]">
         <div className="relative mx-auto" style={{ width: MAP_WIDTH, height }}>
-          <CityPlaymatBackdrop width={MAP_WIDTH} height={height} />
-          {/* Photo playmat overlay when asset is available */}
-          <div
-            className="pointer-events-none absolute inset-0 z-[1] opacity-40 mix-blend-multiply"
-            style={{
-              backgroundImage: 'url(/maps/city-playmat.png)',
-              backgroundSize: '100% auto',
-              backgroundPosition: 'center top',
-              backgroundRepeat: 'repeat-y',
-            }}
-          />
+          {/* Layer 1 — base canvas + river */}
+          <div className="pointer-events-none absolute inset-0 z-0">
+            <CityPlaymatBackdrop width={MAP_WIDTH} height={height} />
+            <div
+              className="absolute inset-0 opacity-40 mix-blend-multiply"
+              style={{
+                backgroundImage: 'url(/maps/city-playmat.png)',
+                backgroundSize: '100% auto',
+                backgroundPosition: 'center top',
+                backgroundRepeat: 'repeat-y',
+              }}
+            />
+          </div>
 
-          {/* Landmark stickers — 4× size, parked in grassy pockets beside each node */}
+          {/* Layer 2 — landmarks in curve hollows (under the road) */}
           {nodes.map((node, i) => {
-            const onRight = i % 2 === 0;
-            // Place in open grass away from asphalt + level badge
-            const left = onRight
-              ? Math.min(MAP_WIDTH - 36, node.x + 108)
-              : Math.max(36, node.x - 108);
-            const top = node.y + (i % 3 === 0 ? -28 : i % 3 === 1 ? 8 : -8);
+            // Even index → node on LEFT (road bent ←) → landmark on RIGHT grass (near river)
+            // Odd index → node on RIGHT (road bent →) → landmark on LEFT grass
+            const nodeOnRight = i % 2 === 1;
+            // Left margin grass vs right pocket between curb and river (~x 300)
+            const left = nodeOnRight ? 20 : MAP_WIDTH - 52;
+            // Park in the open pocket beside the bend, slightly off the node Y
+            const top = node.y + (nodeOnRight ? -22 : 18);
             return (
               <span
                 key={`lm-${node.id}`}
-                className="pointer-events-none absolute z-[5] origin-center select-none text-[5rem] leading-none drop-shadow-md"
+                className="pointer-events-none absolute z-10 select-none text-5xl leading-none drop-shadow-md"
                 style={{
                   left,
                   top,
-                  transform: 'translate(-50%, -50%)',
+                  transform: 'translate(-50%, -50%) scale(1.35)',
                 }}
                 aria-hidden
               >
@@ -325,11 +328,11 @@ export function AdventureMapPath({
             );
           })}
 
-          {/* Asphalt road + lane dashes + progress glow */}
+          {/* Layer 3 — asphalt road + lane dashes + progress glow (above landmarks) */}
           <svg
             width={MAP_WIDTH}
             height={height}
-            className="absolute inset-0 z-10"
+            className="pointer-events-none absolute inset-0 z-20"
             viewBox={`0 0 ${MAP_WIDTH} ${height}`}
           >
             {/* Road shoulder */}
@@ -382,7 +385,7 @@ export function AdventureMapPath({
             return (
               <div
                 key={`sign-${ch.id}`}
-                className="pointer-events-none absolute z-20 -translate-x-1/2 rounded-xl bg-sky-600 px-2 py-1 text-[10px] font-black text-white shadow-md ring-2 ring-white"
+                className="pointer-events-none absolute z-30 -translate-x-1/2 rounded-xl bg-sky-600 px-2 py-1 text-[10px] font-black text-white shadow-md ring-2 ring-white"
                 style={{ left: MAP_WIDTH / 2, top: Math.max(8, first.y - 52) }}
               >
                 🚏 Ch {ch.sequenceOrder}: {islandLabel(idx, subjectName)}

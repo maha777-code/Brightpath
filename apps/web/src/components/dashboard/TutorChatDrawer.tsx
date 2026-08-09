@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MoreHorizontal, Send } from 'lucide-react';
 import type { AiChatConfig } from '@/lib/ageGroupDashboardConfig';
 
@@ -16,6 +16,7 @@ interface ChatMessage {
   id: string;
   role: 'user' | 'tutor';
   text: string;
+  streaming?: boolean;
 }
 
 function buildInitial(persona: AiChatConfig, learnerName: string): ChatMessage[] {
@@ -24,6 +25,14 @@ function buildInitial(persona: AiChatConfig, learnerName: string): ChatMessage[]
     role: m.role,
     text: m.text.replaceAll('{name}', learnerName),
   }));
+}
+
+function kidReply(template: string, learnerName: string, userText: string): string {
+  const base = template.replaceAll('{name}', learnerName);
+  const tip = userText.toLowerCase().includes('?')
+    ? ' Great question — let\'s break it into tiny steps!'
+    : ' Nice try! Want a hint or a fun example next?';
+  return `${base}${tip}`;
 }
 
 export function TutorChatDrawer({
@@ -37,28 +46,59 @@ export function TutorChatDrawer({
     buildInitial(persona, learnerName),
   );
   const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
+  const streamTimer = useRef<number | null>(null);
 
-  // Clear prior dialogue (e.g. algebra) whenever age group or learner changes
   useEffect(() => {
     setMessages(buildInitial(persona, learnerName));
     setDraft('');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only on age/learner identity
   }, [ageGroupKey, learnerName]);
 
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  useEffect(
+    () => () => {
+      if (streamTimer.current) window.clearInterval(streamTimer.current);
+    },
+    [],
+  );
+
+  const streamReply = (full: string) => {
+    const id = `${Date.now()}-r`;
+    setMessages((prev) => [...prev, { id, role: 'tutor', text: '', streaming: true }]);
+    let i = 0;
+    if (streamTimer.current) window.clearInterval(streamTimer.current);
+    streamTimer.current = window.setInterval(() => {
+      i += Math.max(1, Math.floor(full.length / 40));
+      const slice = full.slice(0, i);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === id
+            ? { ...m, text: slice, streaming: i < full.length }
+            : m,
+        ),
+      );
+      if (i >= full.length) {
+        if (streamTimer.current) window.clearInterval(streamTimer.current);
+        streamTimer.current = null;
+        setBusy(false);
+      }
+    }, 28);
+  };
+
   const send = () => {
     const text = draft.trim();
-    if (!text) return;
-    setMessages((prev) => [
-      ...prev,
-      { id: String(Date.now()), role: 'user', text },
-      {
-        id: `${Date.now()}-r`,
-        role: 'tutor',
-        text: persona.replyTemplate.replaceAll('{name}', learnerName),
-      },
-    ]);
+    if (!text || busy) return;
+    setBusy(true);
+    setMessages((prev) => [...prev, { id: String(Date.now()), role: 'user', text }]);
     setDraft('');
     onPracticeInteraction?.();
+    const reply = kidReply(persona.replyTemplate, learnerName, text);
+    window.setTimeout(() => streamReply(reply), 220);
   };
 
   return (
@@ -89,8 +129,10 @@ export function TutorChatDrawer({
             style={m.role === 'user' ? { background: accent } : undefined}
           >
             {m.text}
+            {m.streaming && <span className="ml-0.5 inline-block animate-pulse">▍</span>}
           </div>
         ))}
+        <div ref={endRef} />
       </div>
 
       <div className="border-t border-slate-100 p-3">
@@ -99,13 +141,14 @@ export function TutorChatDrawer({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && send()}
-            placeholder={persona.placeholder}
+            placeholder={persona.placeholder || 'Type your answer...'}
             className="min-w-0 flex-1 bg-transparent px-2 text-sm text-slate-700 outline-none placeholder:text-slate-400"
           />
           <button
             type="button"
             onClick={send}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-white transition hover:opacity-90"
+            disabled={busy}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-white transition hover:opacity-90 disabled:opacity-50"
             style={{ background: accent }}
             aria-label="Send message"
           >
