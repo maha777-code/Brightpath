@@ -5,7 +5,13 @@ import {
   type TranscriptMessage,
 } from '@/types/aiClassroom';
 
-export function useAiClassroomSession(learnerName: string) {
+export function useAiClassroomSession(
+  learnerName: string,
+  opts?: { onTutorSpeak?: (text: string) => void },
+) {
+  const onTutorSpeakRef = useRef(opts?.onTutorSpeak);
+  onTutorSpeakRef.current = opts?.onTutorSpeak;
+
   const [transcript, setTranscript] = useState<TranscriptMessage[]>(() => [
     {
       id: 'msg-1',
@@ -57,7 +63,7 @@ export function useAiClassroomSession(learnerName: string) {
     (
       sender: TranscriptMessage['sender'],
       text: string,
-      opts?: { isDoubtTrigger?: boolean },
+      messageOpts?: { isDoubtTrigger?: boolean; silent?: boolean },
     ) => {
       const msg: TranscriptMessage = {
         id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -65,9 +71,12 @@ export function useAiClassroomSession(learnerName: string) {
         senderName: sender === 'tutor' ? 'Prof. Spark' : learnerName,
         text,
         timestamp: formatClock(),
-        isDoubtTrigger: opts?.isDoubtTrigger,
+        isDoubtTrigger: messageOpts?.isDoubtTrigger,
       };
       setTranscript((prev) => [...prev, msg]);
+      if (sender === 'tutor' && !messageOpts?.silent) {
+        onTutorSpeakRef.current?.(text);
+      }
       return msg;
     },
     [learnerName],

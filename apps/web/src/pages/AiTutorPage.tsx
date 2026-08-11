@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -7,6 +7,7 @@ import {
   Camera,
   Check,
   HelpCircle,
+  Loader2,
   Mic,
   Pause,
   Play,
@@ -17,6 +18,7 @@ import {
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/context/AuthContext';
 import { useAiClassroomSession } from '@/hooks/useAiClassroomSession';
+import { useClassroomVoice } from '@/hooks/useClassroomVoice';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { DashboardSettingsDrawer } from '@/components/dashboard/DashboardSettingsDrawer';
 
@@ -115,18 +117,24 @@ export default function AiTutorPage() {
   const learnerName = profile?.name || parent?.name?.split(' ')[0] || 'maha';
 
   const {
+    isSpeaking,
+    isListening,
+    sttSupported,
+    speakText,
+    startListening,
+    stopListening,
+  } = useClassroomVoice();
+
+  const {
     transcript,
     summaryNotes,
     transcriptEndRef,
     appendTranscript,
     addSummaryNote,
     replyAsTutor,
-  } = useAiClassroomSession(learnerName);
+  } = useAiClassroomSession(learnerName, { onTutorSpeak: speakText });
 
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [micOn, setMicOn] = useState(false);
-  const [camOn, setCamOn] = useState(false);
-  const [speaking, setSpeaking] = useState(true);
   const [bubble, setBubble] = useState(
     "Hi there! Ask a doubt or tap a chip — I'll explain with a video.",
   );
@@ -139,6 +147,7 @@ export default function AiTutorPage() {
   const [selectedAtom, setSelectedAtom] = useState<'H1' | 'H2' | 'O' | null>(null);
   const [doubtDraft, setDoubtDraft] = useState('');
   const [doubtBusy, setDoubtBusy] = useState(false);
+  const [voiceHint, setVoiceHint] = useState<string | null>(null);
 
   const [rendering, setRendering] = useState(false);
   const [renderPct, setRenderPct] = useState(0);
@@ -146,6 +155,10 @@ export default function AiTutorPage() {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [completeFlash, setCompleteFlash] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const greetedRef = useRef(false);
+  const submitDoubtRef = useRef<(raw: string) => void>(() => {});
 
   useEffect(() => {
     if (!playing || !video) return;
@@ -161,20 +174,33 @@ export default function AiTutorPage() {
     return () => window.clearInterval(id);
   }, [playing, video]);
 
+  // Speak greeting once when the classroom opens
   useEffect(() => {
-    const id = window.setInterval(() => setSpeaking((s) => !s), 2200);
-    return () => window.clearInterval(id);
-  }, []);
+    if (greetedRef.current) return;
+    greetedRef.current = true;
+    const hello = `Hi ${learnerName}! I'm Prof. Spark. Today we'll build water from atoms. Ready?`;
+    setBubble(hello);
+    const id = window.setTimeout(() => speakText(hello), 400);
+    return () => window.clearTimeout(id);
+  }, [learnerName, speakText]);
 
   const runVideoEngine = useCallback(
-    (clip: VideoClip, studentLine: string, sparkReply: string) => {
-      appendTranscript('student', studentLine, { isDoubtTrigger: true });
+    (
+      clip: VideoClip,
+      studentLine: string,
+      sparkReply: string,
+      options?: { skipStudentMessage?: boolean },
+    ) => {
+      if (!options?.skipStudentMessage) {
+        appendTranscript('student', studentLine, { isDoubtTrigger: true });
+      }
       setRendering(true);
       setRenderPct(0);
       setVideo(null);
       setPlaying(false);
       setProgress(0);
       setBubble("Hang tight — I'm rendering a custom molecular animation for you!");
+      speakText("Hang tight — I'm rendering a custom molecular animation for you!");
 
       let pct = 0;
       const tick = window.setInterval(() => {
@@ -199,36 +225,43 @@ export default function AiTutorPage() {
         }
       }, 180);
     },
-    [addSummaryNote, appendTranscript, replyAsTutor],
+    [addSummaryNote, appendTranscript, replyAsTutor, speakText],
   );
 
   const onChip = (chip: (typeof DOUBT_CHIPS)[number]) => {
     runVideoEngine(chip.video, chip.label, chip.reply);
   };
 
-  const submitDoubt = (raw: string) => {
-    const text = raw.trim();
-    if (!text || doubtBusy) return;
-    setDoubtBusy(true);
-    appendTranscript('student', text, { isDoubtTrigger: true });
-    setDoubtDraft('');
-    setBubble('Great doubt — thinking…');
+  const submitDoubt = useCallback(
+    (raw: string) => {
+      const text = raw.trim();
+      if (!text || doubtBusy) return;
+      setDoubtBusy(true);
+      appendTranscript('student', text, { isDoubtTrigger: true });
+      setDoubtDraft('');
+      setBubble('Great doubt — thinking…');
 
-    const matched = DOUBT_CHIPS.find((c) =>
-      text.toLowerCase().includes(c.id === 'share' ? 'share' : c.id === 'vs' ? 'ionic' : 'shell'),
-    );
+      const matched = DOUBT_CHIPS.find((c) =>
+        text.toLowerCase().includes(c.id === 'share' ? 'share' : c.id === 'vs' ? 'ionic' : 'shell'),
+      );
 
-    window.setTimeout(() => {
-      if (matched) {
-        runVideoEngine(matched.video, matched.label, matched.reply);
-      } else {
-        const reply = tutorReplyForDoubt(text);
-        setBubble(reply);
-        replyAsTutor(reply, 100);
-      }
-      setDoubtBusy(false);
-    }, 500);
-  };
+      window.setTimeout(() => {
+        if (matched) {
+          runVideoEngine(matched.video, matched.label, matched.reply, {
+            skipStudentMessage: true,
+          });
+        } else {
+          const reply = tutorReplyForDoubt(text);
+          setBubble(reply);
+          replyAsTutor(reply, 100);
+        }
+        setDoubtBusy(false);
+      }, 500);
+    },
+    [appendTranscript, doubtBusy, replyAsTutor, runVideoEngine],
+  );
+
+  submitDoubtRef.current = submitDoubt;
 
   const onAskDoubt = () => {
     if (doubtDraft.trim()) {
@@ -240,27 +273,45 @@ export default function AiTutorPage() {
   };
 
   const onMicToggle = () => {
-    setMicOn((v) => {
-      const next = !v;
-      if (next) {
-        appendTranscript('student', '🎙️ (voice) Why does Oxygen need two Hydrogens?', {
-          isDoubtTrigger: true,
-        });
-        setBubble('I heard you! Oxygen needs 2 electrons…');
-        replyAsTutor(
-          'Great listening! Oxygen needs 2 more electrons — each Hydrogen shares one, so we need two H friends.',
-          600,
-        );
-        addSummaryNote({
-          title: 'Oxygen Valence',
-          description: 'Oxygen needs 2 shared electrons (two Hydrogens) to fill its outer shell.',
-          category: 'rule',
-        });
-        window.setTimeout(() => setMicOn(false), 2400);
-      }
-      return next;
+    if (isListening) {
+      stopListening();
+      return;
+    }
+    if (!sttSupported) {
+      setVoiceHint('Speech recognition needs Chrome or Edge. You can still type your doubt.');
+      return;
+    }
+    setVoiceHint(null);
+    startListening({
+      onInterim: (text) => setDoubtDraft(text),
+      onFinal: (text) => {
+        setDoubtDraft(text);
+        stopListening();
+        window.setTimeout(() => submitDoubtRef.current(text), 120);
+      },
+      onError: (message) => setVoiceHint(message),
     });
   };
+
+  const onCameraClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    appendTranscript('student', `📷 Image Uploaded: ${file.name}`, { isDoubtTrigger: true });
+    setBubble('Thanks for uploading! Let me analyze this diagram for you.');
+    replyAsTutor('Thanks for uploading! Let me analyze this diagram for you.', 400);
+    addSummaryNote({
+      title: 'Homework Photo',
+      description: `Uploaded diagram: ${file.name}. Prof. Spark is ready to help explain it.`,
+      category: 'concept',
+    });
+  };
+
+  const avatarActive = isSpeaking || isListening;
 
   const onAtomClick = (atom: 'H1' | 'H2' | 'O') => {
     if (!selectedAtom) {
@@ -385,8 +436,8 @@ export default function AiTutorPage() {
             <div className="relative overflow-hidden rounded-2xl bg-slate-900 px-4 pb-4 pt-6 text-center">
               <motion.div
                 className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-violet-500 shadow-lg shadow-violet-500/40"
-                animate={{ scale: speaking ? [1, 1.04, 1] : 1 }}
-                transition={{ duration: 0.8, repeat: speaking ? Infinity : 0 }}
+                animate={{ scale: avatarActive ? [1, 1.04, 1] : 1 }}
+                transition={{ duration: 0.8, repeat: avatarActive ? Infinity : 0 }}
               >
                 <div className="relative">
                   <div className="absolute -top-3 left-1/2 h-5 w-16 -translate-x-1/2 rounded-full bg-white/90" />
@@ -396,8 +447,8 @@ export default function AiTutorPage() {
                   </div>
                   <motion.div
                     className="mx-auto mt-3 h-2 w-10 rounded-full border-b-2 border-white"
-                    animate={{ scaleX: speaking ? [1, 1.35, 1] : 1 }}
-                    transition={{ duration: 0.45, repeat: speaking ? Infinity : 0 }}
+                    animate={{ scaleX: isSpeaking ? [1, 1.35, 1] : 1 }}
+                    transition={{ duration: 0.45, repeat: isSpeaking ? Infinity : 0 }}
                   />
                 </div>
               </motion.div>
@@ -413,40 +464,56 @@ export default function AiTutorPage() {
                   {bubble}
                 </motion.div>
               </AnimatePresence>
-              <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-slate-800 px-3 py-1.5 text-[10px] font-bold tracking-wide text-slate-200">
+              <div
+                className={[
+                  'mt-3 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-wide',
+                  isSpeaking
+                    ? 'animate-pulse bg-violet-600 text-white'
+                    : isListening
+                      ? 'animate-pulse bg-red-500 text-white'
+                      : 'bg-slate-800 text-slate-200',
+                ].join(' ')}
+              >
                 {[8, 14, 6, 16, 10].map((h, i) => (
                   <motion.span
                     key={i}
-                    className="inline-block w-1 rounded-full bg-violet-400"
-                    animate={{ height: micOn || speaking ? [h, h + 8, h] : h * 0.5 }}
+                    className="inline-block w-1 rounded-full bg-current opacity-80"
+                    animate={{ height: avatarActive ? [h, h + 8, h] : h * 0.5 }}
                     transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.08 }}
                     style={{ height: h }}
                   />
                 ))}
-                {micOn ? ' LISTENING…' : ' READY'}
+                {isSpeaking ? ' 🔊 SPEAKING…' : isListening ? ' 🎙️ LISTENING…' : ' || READY'}
               </div>
             </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onFileSelected}
+            />
 
             <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
               <button
                 type="button"
                 onClick={onMicToggle}
                 className={[
-                  'flex h-10 w-10 items-center justify-center rounded-full text-white',
-                  micOn ? 'bg-red-500' : 'bg-slate-400',
+                  'flex h-10 w-10 items-center justify-center rounded-full text-white transition',
+                  isListening ? 'animate-pulse bg-red-500' : 'bg-slate-400 hover:bg-slate-500',
                 ].join(' ')}
-                aria-label="Toggle microphone"
+                aria-label={isListening ? 'Stop listening' : 'Start listening'}
+                title={sttSupported ? 'Speak your doubt' : 'Mic STT needs Chrome/Edge'}
               >
                 <Mic className="h-4 w-4" />
               </button>
               <button
                 type="button"
-                onClick={() => setCamOn((v) => !v)}
-                className={[
-                  'flex h-10 w-10 items-center justify-center rounded-full text-white',
-                  camOn ? 'bg-blue-500' : 'bg-slate-400',
-                ].join(' ')}
-                aria-label="Toggle camera"
+                onClick={onCameraClick}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 text-white transition hover:bg-blue-600"
+                aria-label="Upload homework photo"
+                title="Upload a textbook or homework photo"
               >
                 <Camera className="h-4 w-4" />
               </button>
@@ -460,24 +527,31 @@ export default function AiTutorPage() {
               </button>
             </div>
 
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5">
+            <div className="my-3 flex w-full items-center gap-2 rounded-2xl border-2 border-purple-200 bg-white p-2.5 shadow-sm transition-all focus-within:border-purple-500 focus-within:ring-4 focus-within:ring-purple-100">
               <input
                 value={doubtDraft}
                 onChange={(e) => setDoubtDraft(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && submitDoubt(doubtDraft)}
                 placeholder="Type your doubt…"
-                className="min-w-0 flex-1 bg-transparent px-2 text-xs text-slate-700 outline-none placeholder:text-slate-400"
+                className="flex-1 border-none bg-transparent px-2 text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
               />
               <button
                 type="button"
                 onClick={() => submitDoubt(doubtDraft)}
                 disabled={doubtBusy || !doubtDraft.trim()}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500 text-white disabled:opacity-40"
+                className="rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 p-2.5 text-white shadow-md transition-transform hover:from-purple-700 hover:to-indigo-700 active:scale-90 disabled:opacity-40"
                 aria-label="Send doubt"
               >
-                <Send className="h-3.5 w-3.5" />
+                {doubtBusy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </button>
             </div>
+            {voiceHint && (
+              <p className="mb-2 text-[11px] font-semibold text-amber-700">{voiceHint}</p>
+            )}
 
             <div>
               <p className="mb-2 text-sm font-extrabold text-slate-800">Quick Doubt Chips</p>
