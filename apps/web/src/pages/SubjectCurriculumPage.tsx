@@ -336,8 +336,8 @@ export default function SubjectCurriculumPage() {
             )}
           </div>
 
-          {/* Compact bottom info — never steals video height */}
-          <div className="shrink-0 space-y-2 pt-3">
+          {/* Compact bottom info — leave room for floating help FAB */}
+          <div className="shrink-0 space-y-2 pb-24 pt-3 sm:pb-20">
             <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-extrabold text-orange-800">
               👀 Watch nicely without skipping to unlock your Star Reward!
             </div>
@@ -359,7 +359,7 @@ export default function SubjectCurriculumPage() {
                     </p>
                   </div>
 
-                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 pr-2 sm:pr-4">
                     <button
                       type="button"
                       disabled={busyNext || nextLocked}
@@ -399,29 +399,21 @@ export default function SubjectCurriculumPage() {
         </section>
       </div>
 
-      {/* Floating Buddy */}
+      {/* Integrated Buddy help FAB — single pill, clear of video controls */}
       <button
         type="button"
         onClick={() => setChatOpen(true)}
-        className="fixed bottom-5 right-5 z-40 flex items-end gap-2"
+        className={[
+          'fixed z-50 flex items-center gap-2.5 rounded-full border-2 border-amber-200 bg-white px-4 py-2 shadow-lg transition-all hover:border-amber-400 active:scale-95',
+          'bottom-20 right-4 sm:bottom-6 sm:right-6',
+          buddyBounce ? '-translate-y-1' : 'translate-y-0',
+        ].join(' ')}
         aria-label="Ask Buddy for help"
       >
-        <span
-          className={[
-            'mb-2 max-w-[9rem] rounded-3xl rounded-br-md bg-white px-3 py-2 text-xs font-extrabold text-sky-700 shadow-lg ring-2 ring-sky-200 transition',
-            buddyBounce ? '-translate-y-1' : 'translate-y-0',
-          ].join(' ')}
-        >
-          Need Help? 💬
-        </span>
-        <span
-          className={[
-            'flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-orange-300 text-3xl shadow-[0_6px_0_#ea580c] ring-4 ring-white transition',
-            buddyBounce ? '-translate-y-1' : 'translate-y-0',
-          ].join(' ')}
-        >
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-orange-300 text-lg shadow-inner ring-2 ring-white">
           🐥
         </span>
+        <span className="text-sm font-bold text-slate-700">Need Help?</span>
       </button>
 
       {chatOpen && (
