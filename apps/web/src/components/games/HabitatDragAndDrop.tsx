@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { RefreshCw, Sparkles, Volume2 } from 'lucide-react';
+import { RefreshCw, Sparkles, Volume2, X } from 'lucide-react';
 import { pickVoice, stripForSpeech } from '@/lib/speech';
 
 export interface AnimalItem {
@@ -11,6 +11,12 @@ export interface AnimalItem {
   habitatId: string;
   isMatched: boolean;
   soundPhrase: string;
+  /** Realistic photo URL */
+  photoUrl: string;
+  /** Optional remote/local audio clip */
+  soundUrl?: string;
+  /** Web Audio synth preset when clip fails */
+  synth: 'roar' | 'splash' | 'moo' | 'chatter' | 'click' | 'oink';
 }
 
 export interface HabitatTarget {
@@ -53,6 +59,10 @@ const INITIAL_ANIMALS: AnimalItem[] = [
     habitatId: 'jungle',
     isMatched: false,
     soundPhrase: 'Roar! I live in the Jungle!',
+    photoUrl:
+      'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=800&q=80',
+    soundUrl: '/animals/sounds/lion.mp3',
+    synth: 'roar',
   },
   {
     id: 'a2',
@@ -61,6 +71,10 @@ const INITIAL_ANIMALS: AnimalItem[] = [
     habitatId: 'ocean',
     isMatched: false,
     soundPhrase: 'Splish splash! I live in the Ocean!',
+    photoUrl:
+      'https://images.unsplash.com/photo-1524704654690-b56c05c78a04?auto=format&fit=crop&w=800&q=80',
+    soundUrl: '/animals/sounds/fish.mp3',
+    synth: 'splash',
   },
   {
     id: 'a3',
@@ -69,6 +83,10 @@ const INITIAL_ANIMALS: AnimalItem[] = [
     habitatId: 'farm',
     isMatched: false,
     soundPhrase: 'Moo! I live on the Farm!',
+    photoUrl:
+      'https://images.unsplash.com/photo-1570042223110-7b0cce0f1f29?auto=format&fit=crop&w=800&q=80',
+    soundUrl: '/animals/sounds/cow.mp3',
+    synth: 'moo',
   },
   {
     id: 'a4',
@@ -77,6 +95,10 @@ const INITIAL_ANIMALS: AnimalItem[] = [
     habitatId: 'jungle',
     isMatched: false,
     soundPhrase: 'Ooh ooh! I live in the Jungle!',
+    photoUrl:
+      'https://images.unsplash.com/photo-1540573133985-87b6da6d54a9?auto=format&fit=crop&w=800&q=80',
+    soundUrl: '/animals/sounds/monkey.mp3',
+    synth: 'chatter',
   },
   {
     id: 'a5',
@@ -85,6 +107,10 @@ const INITIAL_ANIMALS: AnimalItem[] = [
     habitatId: 'ocean',
     isMatched: false,
     soundPhrase: 'Click click! I live in the Ocean!',
+    photoUrl:
+      'https://images.unsplash.com/photo-1607153333879-c174d265f1d2?auto=format&fit=crop&w=800&q=80',
+    soundUrl: '/animals/sounds/dolphin.mp3',
+    synth: 'click',
   },
   {
     id: 'a6',
@@ -93,6 +119,10 @@ const INITIAL_ANIMALS: AnimalItem[] = [
     habitatId: 'farm',
     isMatched: false,
     soundPhrase: 'Oink! I live on the Farm!',
+    photoUrl:
+      'https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&w=800&q=80',
+    soundUrl: '/animals/sounds/pig.mp3',
+    synth: 'oink',
   },
 ];
 
@@ -124,6 +154,92 @@ function speakKid(text: string) {
   window.setTimeout(() => window.speechSynthesis.speak(utter), 40);
 }
 
+let audioCtx: AudioContext | null = null;
+
+function getAudioCtx(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  if (!AC) return null;
+  if (!audioCtx) audioCtx = new AC();
+  if (audioCtx.state === 'suspended') void audioCtx.resume();
+  return audioCtx;
+}
+
+/** Fun kid-friendly animal sound when mp3 assets are missing */
+function playSynth(kind: AnimalItem['synth']) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const master = ctx.createGain();
+  master.gain.value = 0.22;
+  master.connect(ctx.destination);
+
+  const beep = (freq: number, start: number, dur: number, type: OscillatorType = 'sawtooth') => {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now + start);
+    g.gain.setValueAtTime(0.0001, now + start);
+    g.gain.exponentialRampToValueAtTime(0.9, now + start + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + start + dur);
+    osc.connect(g);
+    g.connect(master);
+    osc.start(now + start);
+    osc.stop(now + start + dur + 0.02);
+  };
+
+  switch (kind) {
+    case 'roar':
+      beep(120, 0, 0.45, 'sawtooth');
+      beep(90, 0.15, 0.55, 'triangle');
+      beep(70, 0.35, 0.5, 'sawtooth');
+      break;
+    case 'moo':
+      beep(180, 0, 0.35, 'triangle');
+      beep(140, 0.2, 0.55, 'sine');
+      break;
+    case 'oink':
+      beep(320, 0, 0.12, 'square');
+      beep(260, 0.14, 0.12, 'square');
+      beep(300, 0.28, 0.14, 'square');
+      break;
+    case 'chatter':
+      beep(520, 0, 0.08, 'square');
+      beep(480, 0.1, 0.08, 'square');
+      beep(560, 0.2, 0.08, 'square');
+      beep(500, 0.3, 0.1, 'square');
+      break;
+    case 'click':
+      beep(880, 0, 0.06, 'sine');
+      beep(1100, 0.1, 0.06, 'sine');
+      beep(980, 0.2, 0.08, 'sine');
+      break;
+    case 'splash':
+      beep(600, 0, 0.08, 'triangle');
+      beep(420, 0.08, 0.12, 'sine');
+      beep(300, 0.18, 0.18, 'triangle');
+      break;
+    default:
+      beep(440, 0, 0.2, 'sine');
+  }
+}
+
+async function playAnimalAudio(animal: AnimalItem) {
+  // Prefer real clip from /public; fall back to synth
+  if (animal.soundUrl) {
+    try {
+      const audio = new Audio(animal.soundUrl);
+      audio.volume = 0.9;
+      await audio.play();
+      return;
+    } catch {
+      /* missing file or autoplay — synth below */
+    }
+  }
+  playSynth(animal.synth);
+}
+
 interface HabitatDragAndDropProps {
   onStarEarned?: () => void;
   onLevelComplete?: () => void;
@@ -138,6 +254,8 @@ type DragState = {
   offsetY: number;
 } | null;
 
+const DRAG_THRESHOLD = 12;
+
 export function HabitatDragAndDrop({
   onStarEarned,
   onLevelComplete,
@@ -150,10 +268,14 @@ export function HabitatDragAndDrop({
   const [hoverHabitat, setHoverHabitat] = useState<string | null>(null);
   const [justMatched, setJustMatched] = useState<string | null>(null);
   const [showComplete, setShowComplete] = useState(false);
+  const [previewAnimal, setPreviewAnimal] = useState<AnimalItem | null>(null);
+
   const habitatRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const boardRef = useRef<HTMLDivElement>(null);
   const introPlayed = useRef(false);
   const dragAnimalId = useRef<string | null>(null);
+  const pointerStart = useRef<{ x: number; y: number; animalId: string } | null>(null);
+  const didDrag = useRef(false);
 
   const unmatched = animals.filter((a) => !a.isMatched);
   const matchedByHabitat = (habitatId: string) =>
@@ -164,7 +286,7 @@ export function HabitatDragAndDrop({
     introPlayed.current = true;
     const id = window.setTimeout(() => {
       speakKid(
-        'Hi little helper! Help the animals find their home! Drag each animal to where they live!',
+        'Hi little helper! Help the animals find their home! Drag each animal to where they live! Tap an animal to see a real picture!',
       );
     }, 500);
     return () => window.clearTimeout(id);
@@ -172,7 +294,7 @@ export function HabitatDragAndDrop({
 
   const replayIntro = () => {
     speakKid(
-      'Hi little helper! Help the animals find their home! Drag each animal to where they live!',
+      'Hi little helper! Help the animals find their home! Drag each animal to where they live! Tap an animal to see a real picture!',
     );
   };
 
@@ -182,11 +304,18 @@ export function HabitatDragAndDrop({
     setHoverHabitat(null);
     setJustMatched(null);
     setShowComplete(false);
+    setPreviewAnimal(null);
     dragAnimalId.current = null;
     window.setTimeout(() => {
       speakKid('New animals! Help them find their homes!');
     }, 200);
   };
+
+  const openAnimalPreview = useCallback((animal: AnimalItem) => {
+    setPreviewAnimal(animal);
+    void playAnimalAudio(animal);
+    speakKid(`That's a real ${animal.name}! ${animal.soundPhrase}`);
+  }, []);
 
   const habitatUnderPoint = useCallback((clientX: number, clientY: number) => {
     for (const h of INITIAL_HABITATS) {
@@ -220,7 +349,9 @@ export function HabitatDragAndDrop({
       window.setTimeout(() => setJustMatched(null), 900);
 
       confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-      speakKid(`Yay! Super job! The ${animal.name} belongs in the ${INITIAL_HABITATS.find((h) => h.id === habitatId)?.title}!`);
+      speakKid(
+        `Yay! Super job! The ${animal.name} belongs in the ${INITIAL_HABITATS.find((h) => h.id === habitatId)?.title}!`,
+      );
       onStarEarned?.();
 
       const remaining = animals.filter((a) => !a.isMatched && a.id !== animalId).length;
@@ -238,27 +369,67 @@ export function HabitatDragAndDrop({
     [animals, onLevelComplete, onStarEarned],
   );
 
-  const endDrag = useCallback(
+  const endPointer = useCallback(
     (clientX: number, clientY: number) => {
+      const start = pointerStart.current;
       const id = dragAnimalId.current;
+      const moved = didDrag.current;
+
+      pointerStart.current = null;
       dragAnimalId.current = null;
+      didDrag.current = false;
       setDrag(null);
-      const habitatId = habitatUnderPoint(clientX, clientY);
       setHoverHabitat(null);
-      if (id && habitatId) placeAnimal(id, habitatId);
+
+      if (!start || !id) return;
+
+      if (!moved) {
+        const animal = animals.find((a) => a.id === id);
+        if (animal) openAnimalPreview(animal);
+        return;
+      }
+
+      const habitatId = habitatUnderPoint(clientX, clientY);
+      if (habitatId) placeAnimal(id, habitatId);
     },
-    [habitatUnderPoint, placeAnimal],
+    [animals, habitatUnderPoint, openAnimalPreview, placeAnimal],
   );
 
   useEffect(() => {
-    if (!drag) return;
+    if (!pointerStart.current && !drag) return;
 
     const onMove = (e: PointerEvent) => {
-      setDrag((d) => (d ? { ...d, x: e.clientX, y: e.clientY } : d));
-      setHoverHabitat(habitatUnderPoint(e.clientX, e.clientY));
+      const start = pointerStart.current;
+      if (!start) return;
+
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (!didDrag.current && dist >= DRAG_THRESHOLD) {
+        didDrag.current = true;
+        dragAnimalId.current = start.animalId;
+        const animal = animals.find((a) => a.id === start.animalId);
+        setDrag({
+          animalId: start.animalId,
+          x: e.clientX,
+          y: e.clientY,
+          offsetX: 56,
+          offsetY: 56,
+        });
+        if (animal) {
+          speakKid(`That's a ${animal.name}! Where does the ${animal.name} live?`);
+        }
+      }
+
+      if (didDrag.current) {
+        setDrag((d) => (d ? { ...d, x: e.clientX, y: e.clientY } : d));
+        setHoverHabitat(habitatUnderPoint(e.clientX, e.clientY));
+      }
     };
+
     const onUp = (e: PointerEvent) => {
-      endDrag(e.clientX, e.clientY);
+      endPointer(e.clientX, e.clientY);
     };
 
     window.addEventListener('pointermove', onMove);
@@ -269,21 +440,14 @@ export function HabitatDragAndDrop({
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
     };
-  }, [drag, endDrag, habitatUnderPoint]);
+  }, [animals, drag, endPointer, habitatUnderPoint]);
 
   const onPointerDownAnimal = (animal: AnimalItem, e: React.PointerEvent) => {
     if (animal.isMatched) return;
     e.preventDefault();
+    didDrag.current = false;
     dragAnimalId.current = animal.id;
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setDrag({
-      animalId: animal.id,
-      x: e.clientX,
-      y: e.clientY,
-      offsetX: e.clientX - rect.left,
-      offsetY: e.clientY - rect.top,
-    });
-    speakKid(`That's a ${animal.name}! Where does the ${animal.name} live?`);
+    pointerStart.current = { x: e.clientX, y: e.clientY, animalId: animal.id };
   };
 
   const draggingAnimal = drag ? animals.find((a) => a.id === drag.animalId) : null;
@@ -292,17 +456,17 @@ export function HabitatDragAndDrop({
     <div
       ref={boardRef}
       className={[
-        'relative overflow-hidden rounded-3xl border-2 border-violet-100 bg-gradient-to-b from-violet-50 via-white to-sky-50 p-4 shadow-soft sm:p-5',
+        'relative flex min-h-0 flex-col overflow-hidden rounded-3xl border-2 border-violet-100 bg-gradient-to-b from-violet-50 via-white to-sky-50 p-4 shadow-soft sm:p-5',
         className,
       ].join(' ')}
     >
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 className="flex items-center gap-2 text-lg font-black text-slate-800">
             <Sparkles className="h-5 w-5 text-amber-500" /> Animal Homes
           </h3>
           <p className="text-sm font-semibold text-slate-500">
-            Drag each animal to the place they live!
+            Tap for a real photo & sound — drag to a home!
           </p>
         </div>
         <div className="flex gap-2">
@@ -328,7 +492,7 @@ export function HabitatDragAndDrop({
       </div>
 
       {/* Habitats */}
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+      <div className="mb-4 grid shrink-0 gap-3 sm:grid-cols-3">
         {INITIAL_HABITATS.map((habitat) => {
           const glowing = hoverHabitat === habitat.id && Boolean(drag);
           const placed = matchedByHabitat(habitat.id);
@@ -339,7 +503,7 @@ export function HabitatDragAndDrop({
                 habitatRefs.current[habitat.id] = el;
               }}
               className={[
-                'min-h-[140px] rounded-3xl border-4 p-3 transition-all',
+                'min-h-[120px] rounded-3xl border-4 p-3 transition-all',
                 habitat.bgColor,
                 glowing
                   ? 'scale-[1.02] border-dashed border-emerald-400 bg-emerald-50/80 shadow-lg ring-4 ring-emerald-200'
@@ -350,24 +514,26 @@ export function HabitatDragAndDrop({
                 <span className="mr-1 text-2xl">{habitat.emoji}</span>
                 {habitat.title}
               </p>
-              <div className="flex min-h-[72px] flex-wrap items-center justify-center gap-2">
+              <div className="flex min-h-[64px] flex-wrap items-center justify-center gap-2">
                 {placed.length === 0 && (
                   <p className="text-xs font-bold text-slate-400">Drop animals here</p>
                 )}
                 {placed.map((a) => (
-                  <motion.div
+                  <motion.button
                     key={a.id}
+                    type="button"
                     initial={{ scale: 0.6 }}
                     animate={{
                       scale: justMatched === a.id ? [1, 1.2, 1] : 1,
                       y: justMatched === a.id ? [0, -8, 0] : 0,
                     }}
                     transition={{ type: 'spring', stiffness: 400, damping: 12 }}
-                    className="flex h-20 w-20 flex-col items-center justify-center rounded-2xl bg-white text-3xl shadow-md"
+                    onClick={() => openAnimalPreview(a)}
+                    className="flex h-16 w-16 flex-col items-center justify-center rounded-2xl bg-white text-2xl shadow-md"
                   >
                     <span aria-hidden>{a.emoji}</span>
                     <span className="text-[10px] font-black text-slate-600">{a.name}</span>
-                  </motion.div>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -375,12 +541,12 @@ export function HabitatDragAndDrop({
         })}
       </div>
 
-      {/* Animal tray */}
-      <div className="rounded-3xl border-2 border-dashed border-violet-200 bg-white/80 p-3">
-        <p className="mb-3 text-center text-sm font-black text-violet-700">
+      {/* Animal tray — large cards filling space */}
+      <div className="flex min-h-[220px] flex-1 flex-col rounded-3xl border-2 border-dashed border-violet-200 bg-white/80 p-3 sm:min-h-[260px] sm:p-4">
+        <p className="mb-3 text-center text-base font-black text-violet-700">
           Animals waiting for a home ({unmatched.length})
         </p>
-        <div className="flex flex-wrap justify-center gap-3">
+        <div className="grid min-h-0 flex-1 grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
           {unmatched.map((animal) => {
             const isDragging = drag?.animalId === animal.id;
             return (
@@ -389,35 +555,107 @@ export function HabitatDragAndDrop({
                 type="button"
                 onPointerDown={(e) => onPointerDownAnimal(animal, e)}
                 className={[
-                  'flex h-24 w-24 touch-none select-none flex-col items-center justify-center rounded-3xl border-4 border-white bg-gradient-to-b from-white to-violet-50 text-4xl shadow-lg transition active:scale-95',
-                  isDragging ? 'scale-110 opacity-40 shadow-2xl' : 'hover:scale-105',
+                  'flex min-h-[110px] touch-none select-none flex-col items-center justify-center gap-1 rounded-3xl border-4 border-white bg-gradient-to-b from-white to-violet-50 px-2 py-3 shadow-lg transition active:scale-95 sm:min-h-[130px]',
+                  isDragging ? 'scale-105 opacity-40 shadow-2xl' : 'hover:scale-[1.03]',
                 ].join(' ')}
-                aria-label={`Drag ${animal.name}`}
+                aria-label={`Tap or drag ${animal.name}`}
               >
-                <span aria-hidden>{animal.emoji}</span>
-                <span className="mt-0.5 text-xs font-black text-slate-700">{animal.name}</span>
+                <span className="text-5xl leading-none sm:text-6xl" aria-hidden>
+                  {animal.emoji}
+                </span>
+                <span className="text-sm font-black text-slate-800 sm:text-base">{animal.name}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wide text-violet-500">
+                  Tap · Drag
+                </span>
               </button>
             );
           })}
           {unmatched.length === 0 && !showComplete && (
-            <p className="py-4 text-sm font-bold text-emerald-600">All animals are home!</p>
+            <p className="col-span-full self-center py-6 text-center text-base font-bold text-emerald-600">
+              All animals are home!
+            </p>
           )}
         </div>
       </div>
 
-      {/* Floating drag ghost (pointer / touch) */}
+      {/* Floating drag ghost */}
       {draggingAnimal && drag && (
         <div
-          className="pointer-events-none fixed z-50 flex h-24 w-24 scale-110 flex-col items-center justify-center rounded-3xl border-4 border-violet-300 bg-white text-4xl opacity-90 shadow-2xl"
+          className="pointer-events-none fixed z-50 flex h-28 w-28 scale-110 flex-col items-center justify-center rounded-3xl border-4 border-violet-300 bg-white text-5xl opacity-90 shadow-2xl"
           style={{
             left: drag.x - drag.offsetX,
             top: drag.y - drag.offsetY,
           }}
         >
           <span aria-hidden>{draggingAnimal.emoji}</span>
-          <span className="text-xs font-black text-slate-700">{draggingAnimal.name}</span>
+          <span className="text-sm font-black text-slate-700">{draggingAnimal.name}</span>
         </div>
       )}
+
+      {/* Real animal photo popup */}
+      <AnimatePresence>
+        {previewAnimal && (
+          <motion.div
+            className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setPreviewAnimal(null)}
+          >
+            <motion.div
+              role="dialog"
+              aria-label={`Real ${previewAnimal.name}`}
+              initial={{ scale: 0.5, y: 80 }}
+              animate={{
+                scale: [0.5, 1.12, 0.96, 1.06, 1],
+                y: [80, -28, 8, -12, 0],
+              }}
+              exit={{ scale: 0.8, opacity: 0, y: 40 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setPreviewAnimal(null)}
+                className="absolute right-3 top-3 z-10 rounded-full bg-white/90 p-2 text-slate-600 shadow"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                <motion.img
+                  key={previewAnimal.id}
+                  src={previewAnimal.photoUrl}
+                  alt={`Real ${previewAnimal.name}`}
+                  className="h-full w-full object-cover"
+                  initial={{ y: 40, scale: 0.9 }}
+                  animate={{ y: [40, -18, 0, -10, 0], scale: [0.9, 1.08, 1, 1.04, 1] }}
+                  transition={{ duration: 0.85, ease: 'easeOut' }}
+                  draggable={false}
+                />
+                <span className="absolute bottom-3 left-3 rounded-full bg-black/50 px-3 py-1 text-2xl">
+                  {previewAnimal.emoji}
+                </span>
+              </div>
+              <div className="p-4 text-center">
+                <h4 className="text-2xl font-black text-slate-800">{previewAnimal.name}!</h4>
+                <p className="mt-1 text-sm font-semibold text-slate-500">{previewAnimal.soundPhrase}</p>
+                <button
+                  type="button"
+                  onClick={() => void playAnimalAudio(previewAnimal)}
+                  className="mt-3 inline-flex items-center gap-2 rounded-full bg-violet-500 px-4 py-2 text-sm font-bold text-white"
+                >
+                  <Volume2 className="h-4 w-4" /> Play sound again
+                </button>
+                <p className="mt-2 text-xs font-bold text-violet-600">
+                  Now drag me to my home!
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Level complete modal */}
       <AnimatePresence>
