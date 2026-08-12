@@ -5,7 +5,6 @@ import confetti from 'canvas-confetti';
 import {
   ArrowLeft,
   Camera,
-  Check,
   HelpCircle,
   Loader2,
   Mic,
@@ -19,10 +18,9 @@ import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/context/AuthContext';
 import { useAiClassroomSession } from '@/hooks/useAiClassroomSession';
 import { useClassroomVoice } from '@/hooks/useClassroomVoice';
+import { HabitatDragAndDrop } from '@/components/games/HabitatDragAndDrop';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { DashboardSettingsDrawer } from '@/components/dashboard/DashboardSettingsDrawer';
-
-type BondEdge = 'h1-o' | 'h2-o';
 
 interface VideoClip {
   id: string;
@@ -140,11 +138,6 @@ export default function AiTutorPage() {
   );
   const [stars, setStars] = useState(12);
   const [mistake, setMistake] = useState<{ wrong: string; fix: string } | null>(null);
-  const [bonds, setBonds] = useState<Record<BondEdge, boolean>>({
-    'h1-o': false,
-    'h2-o': false,
-  });
-  const [selectedAtom, setSelectedAtom] = useState<'H1' | 'H2' | 'O' | null>(null);
   const [doubtDraft, setDoubtDraft] = useState('');
   const [doubtBusy, setDoubtBusy] = useState(false);
   const [voiceHint, setVoiceHint] = useState<string | null>(null);
@@ -312,67 +305,6 @@ export default function AiTutorPage() {
   };
 
   const avatarActive = isSpeaking || isListening;
-
-  const onAtomClick = (atom: 'H1' | 'H2' | 'O') => {
-    if (!selectedAtom) {
-      setSelectedAtom(atom);
-      return;
-    }
-    if (selectedAtom === atom) {
-      setSelectedAtom(null);
-      return;
-    }
-    const pair = [selectedAtom, atom].sort().join('-');
-    if (pair === 'H1-O' || pair === 'O-H1') {
-      setBonds((b) => ({ ...b, 'h1-o': true }));
-      appendTranscript('student', `Connected ${selectedAtom} — O`);
-    } else if (pair === 'H2-O' || pair === 'O-H2') {
-      setBonds((b) => ({ ...b, 'h2-o': true }));
-      appendTranscript('student', `Connected ${selectedAtom} — O`);
-    } else {
-      setMistake({
-        wrong: `Tried to bond ${selectedAtom} to ${atom}`,
-        fix: "Bond each Hydrogen to Oxygen — H atoms don't bond to each other for water.",
-      });
-      setBubble('Almost! In water, both H atoms connect to O, not to each other.');
-      appendTranscript('student', `Tried bonding ${selectedAtom} to ${atom}`);
-      replyAsTutor('Hint: connect H → O ← H. That makes H₂O!', 400);
-      addSummaryNote({
-        title: 'Electron Shell Rule',
-        description: 'Oxygen needs 2 shared pairs to fill its valence shell!',
-        category: 'rule',
-      });
-    }
-    setSelectedAtom(null);
-  };
-
-  const checkWork = () => {
-    appendTranscript('student', 'Checking my H₂O molecule…');
-    if (bonds['h1-o'] && bonds['h2-o']) {
-      setMistake(null);
-      setStars((s) => Math.min(15, s + 1));
-      setBubble("Perfect! That's H₂O — you built a water molecule! ⭐");
-      replyAsTutor('Excellent work, Super Chemist! H—O—H is correct. +1 Star!', 350);
-      confetti({ particleCount: 80, spread: 70, origin: { y: 0.65 } });
-      addSummaryNote({
-        title: 'Water Formula (H₂O)',
-        description: 'Two Hydrogen atoms bonded to one Oxygen atom.',
-        category: 'formula',
-      });
-    } else {
-      setMistake({
-        wrong: 'Molecule incomplete',
-        fix: 'Connect BOTH Hydrogen atoms (H) to the Oxygen (O) atom, then check again.',
-      });
-      setBubble('Not quite yet — Oxygen still needs another Hydrogen friend!');
-      replyAsTutor('Keep going! Click H, then O, for each Hydrogen.', 400);
-      addSummaryNote({
-        title: 'Electron Shell Rule',
-        description: 'Oxygen needs 2 shared pairs to fill its valence shell!',
-        category: 'rule',
-      });
-    }
-  };
 
   const handleCompleteLesson = () => {
     setCompleteFlash(true);
@@ -584,13 +516,13 @@ export default function AiTutorPage() {
                 </div>
               ) : (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-                  All clear — ask a doubt or build H₂O on the board!
+                  All clear — drag animals to their homes in the game!
                 </div>
               )}
             </div>
           </section>
 
-          {/* CENTER — Video + board */}
+          {/* CENTER — Video + habitat game */}
           <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:min-h-0 lg:overflow-y-auto">
             <div className="relative overflow-hidden rounded-2xl bg-[#090d16] text-white">
               {rendering && (
@@ -668,65 +600,29 @@ export default function AiTutorPage() {
               )}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-[#fdfbf7] p-4">
-              <p className="mb-3 text-sm font-extrabold text-slate-800">
-                ✍️ Interactive Practice Board — Build H₂O
-              </p>
-              <p className="mb-4 text-xs text-slate-500">
-                Click two atoms to bond them (H → O ← H), then check your work.
-              </p>
-
-              <div className="relative mx-auto mb-4 h-44 max-w-md">
-                <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 400 180">
-                  {bonds['h1-o'] && (
-                    <line x1="80" y1="90" x2="200" y2="90" stroke="#059669" strokeWidth="6" strokeLinecap="round" />
-                  )}
-                  {bonds['h2-o'] && (
-                    <line x1="320" y1="90" x2="200" y2="90" stroke="#059669" strokeWidth="6" strokeLinecap="round" />
-                  )}
-                </svg>
-                <button
-                  type="button"
-                  onClick={() => onAtomClick('H1')}
-                  className={[
-                    'absolute left-4 top-1/2 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full text-lg font-black text-white shadow-md',
-                    selectedAtom === 'H1' ? 'ring-4 ring-amber-300 bg-rose-500' : 'bg-rose-500',
-                  ].join(' ')}
-                >
-                  H
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onAtomClick('O')}
-                  className={[
-                    'absolute left-1/2 top-1/2 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-xl font-black text-white shadow-md',
-                    selectedAtom === 'O' ? 'ring-4 ring-amber-300 bg-emerald-500' : 'bg-emerald-500',
-                  ].join(' ')}
-                >
-                  O
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onAtomClick('H2')}
-                  className={[
-                    'absolute right-4 top-1/2 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full text-lg font-black text-white shadow-md',
-                    selectedAtom === 'H2' ? 'ring-4 ring-amber-300 bg-rose-500' : 'bg-rose-500',
-                  ].join(' ')}
-                >
-                  H
-                </button>
-              </div>
-
-              <div className="flex justify-center">
-                <button
-                  type="button"
-                  onClick={checkWork}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#059669] px-5 py-2.5 text-sm font-extrabold text-white shadow-md hover:bg-emerald-700"
-                >
-                  <Check className="h-4 w-4" /> Check My Work ✓
-                </button>
-              </div>
-            </div>
+            <HabitatDragAndDrop
+              onStarEarned={() => {
+                setStars((s) => Math.min(15, s + 1));
+                setMistake(null);
+                setBubble('Yay! That animal found its home! ⭐');
+                appendTranscript('student', 'Placed an animal in its habitat!');
+                replyAsTutor('Super job! Keep helping the animals find home!', 300);
+                addSummaryNote({
+                  title: 'Animal Habitats',
+                  description: 'Animals live in places that match their needs — jungle, ocean, or farm.',
+                  category: 'concept',
+                });
+              }}
+              onLevelComplete={() => {
+                setBubble("Hooray! You're a Super Animal Helper! 🚀");
+                replyAsTutor("Hooray! You did it! You're a Super Animal Helper!", 200);
+                addSummaryNote({
+                  title: 'Habitat Master',
+                  description: 'Matched every animal to Jungle, Ocean, or Barn Farm!',
+                  category: 'concept',
+                });
+              }}
+            />
           </section>
 
           {/* RIGHT — Dynamic transcript & summary */}
