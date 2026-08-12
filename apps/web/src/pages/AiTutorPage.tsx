@@ -119,6 +119,7 @@ export default function AiTutorPage() {
     isListening,
     sttSupported,
     speakText,
+    stopSpeaking,
     startListening,
     stopListening,
   } = useClassroomVoice();
@@ -268,21 +269,41 @@ export default function AiTutorPage() {
   const onMicToggle = () => {
     if (isListening) {
       stopListening();
+      setVoiceHint(null);
       return;
     }
     if (!sttSupported) {
-      setVoiceHint('Speech recognition needs Chrome or Edge. You can still type your doubt.');
+      window.alert(
+        'Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.',
+      );
+      setVoiceHint('Speech recognition needs Chrome, Edge, or Safari.');
       return;
     }
-    setVoiceHint(null);
-    startListening({
-      onInterim: (text) => setDoubtDraft(text),
-      onFinal: (text) => {
+
+    setVoiceHint('Listening… speak your doubt clearly.');
+    setDoubtDraft('');
+    stopSpeaking();
+
+    void startListening({
+      onInterim: (text) => {
         setDoubtDraft(text);
-        stopListening();
-        window.setTimeout(() => submitDoubtRef.current(text), 120);
+        setVoiceHint('Hearing you… keep talking!');
       },
-      onError: (message) => setVoiceHint(message),
+      onFinal: (text) => {
+        const trimmed = text.trim();
+        setDoubtDraft(trimmed);
+        setVoiceHint(null);
+        // Brief pause so the child sees the words, then ask Prof. Spark
+        window.setTimeout(() => {
+          if (trimmed) submitDoubtRef.current(trimmed);
+        }, 500);
+      },
+      onError: (message) => {
+        setVoiceHint(message);
+        if (/denied/i.test(message)) {
+          window.alert(message);
+        }
+      },
     });
   };
 
@@ -415,7 +436,11 @@ export default function AiTutorPage() {
                     style={{ height: h }}
                   />
                 ))}
-                {isSpeaking ? ' 🔊 SPEAKING…' : isListening ? ' 🎙️ LISTENING…' : ' || READY'}
+                {isSpeaking
+                  ? ' 🔊 SPEAKING…'
+                  : isListening
+                    ? ' 🎙️ LISTENING TO YOU…'
+                    : ' || READY'}
               </div>
             </div>
 
@@ -432,13 +457,15 @@ export default function AiTutorPage() {
                 type="button"
                 onClick={onMicToggle}
                 className={[
-                  'flex h-10 w-10 items-center justify-center rounded-full text-white transition',
-                  isListening ? 'animate-pulse bg-red-500' : 'bg-slate-400 hover:bg-slate-500',
+                  'flex h-11 w-11 items-center justify-center rounded-full text-white transition',
+                  isListening
+                    ? 'animate-pulse border-2 border-red-600 bg-red-500 shadow-lg shadow-red-500/40'
+                    : 'bg-slate-400 hover:bg-slate-500',
                 ].join(' ')}
                 aria-label={isListening ? 'Stop listening' : 'Start listening'}
-                title={sttSupported ? 'Speak your doubt' : 'Mic STT needs Chrome/Edge'}
+                title={sttSupported ? 'Speak your doubt' : 'Mic STT needs Chrome/Edge/Safari'}
               >
-                <Mic className="h-4 w-4" />
+                <Mic className="h-5 w-5" />
               </button>
               <button
                 type="button"
@@ -459,12 +486,17 @@ export default function AiTutorPage() {
               </button>
             </div>
 
-            <div className="my-3 flex w-full items-center gap-2 rounded-2xl border-2 border-purple-200 bg-white p-2.5 shadow-sm transition-all focus-within:border-purple-500 focus-within:ring-4 focus-within:ring-purple-100">
+            <div
+              className={[
+                'my-3 flex w-full items-center gap-2 rounded-2xl border-2 bg-white p-2.5 shadow-sm transition-all focus-within:border-purple-500 focus-within:ring-4 focus-within:ring-purple-100',
+                isListening ? 'border-red-400 ring-4 ring-red-100' : 'border-purple-200',
+              ].join(' ')}
+            >
               <input
                 value={doubtDraft}
                 onChange={(e) => setDoubtDraft(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && submitDoubt(doubtDraft)}
-                placeholder="Type your doubt…"
+                placeholder={isListening ? 'Listening… speak now' : 'Type your doubt…'}
                 className="flex-1 border-none bg-transparent px-2 text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
               />
               <button
