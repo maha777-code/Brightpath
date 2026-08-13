@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { AGE_GROUPS, LOCALES, type ParentUser } from '@brightpath/shared';
+import { AGE_GROUPS, LOCALES } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import { signTeacherToken, signToken } from '../lib/jwt.js';
 import { requireAuth, requireTeacher, type AuthRequest } from '../middleware/auth.js';
@@ -18,13 +18,29 @@ const router = Router();
 const localeSchema = z.enum(['en-IN', 'en-US', 'hi-IN', 'ar-AE', 'ar-KW']);
 const ageGroupSchema = z.enum(AGE_GROUPS);
 
-const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  name: z.string().min(1).optional(),
-  locale: localeSchema.optional(),
-  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'dateOfBirth must be YYYY-MM-DD'),
-});
+const registerSchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(8),
+    name: z.string().min(1).optional(),
+    locale: localeSchema.optional(),
+    role: z.enum(['student', 'teacher']),
+    dateOfBirth: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'dateOfBirth must be YYYY-MM-DD')
+      .optional(),
+    schoolName: z.string().optional(),
+    subjectFocus: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === 'student' && !data.dateOfBirth) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'dateOfBirth is required for student signup',
+        path: ['dateOfBirth'],
+      });
+    }
+  });
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -40,23 +56,60 @@ const ageSettingsSchema = z
     message: 'Provide dateOfBirth and/or ageGroup',
   });
 
-router.post('/register', async (req, res) => {
+async function registerStudentOrTeacher(req: Request, res: Response) {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.flatten() });
     return;
   }
 
-  const { email, password, name, locale, dateOfBirth } = parsed.data;
+  const { email, password, name, locale, role, dateOfBirth, schoolName, subjectFocus } = parsed.data;
+
+  if (role === 'teacher') {
+    const existingTeacher = await prisma.teacher.findUnique({ where: { email } });
+    if (existingTeacher) {
+      res.status(409).json({ error: 'Email already registered' });
+      return;
+    }
+    const existingParent = await prisma.parent.findUnique({ where: { email } });
+    if (existingParent) {
+      res.status(409).json({ error: 'Email already registered as a student account' });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const teacher = await prisma.teacher.create({
+      data: {
+        email,
+        passwordHash,
+        name: name ?? null,
+        schoolName: schoolName ?? null,
+        subjectFocus: subjectFocus ?? 'Science',
+      },
+    });
+    const user = toTeacherUser(teacher);
+    res.status(201).json({
+      token: signTeacherToken(user),
+      teacher: user,
+      role: 'teacher' as const,
+    });
+    return;
+  }
+
   const existing = await prisma.parent.findUnique({ where: { email } });
   if (existing) {
     res.status(409).json({ error: 'Email already registered' });
     return;
   }
+  const existingTeacher = await prisma.teacher.findUnique({ where: { email } });
+  if (existingTeacher) {
+    res.status(409).json({ error: 'Email already registered as a teacher account' });
+    return;
+  }
 
   let dob: Date;
   try {
-    dob = parseDobInput(dateOfBirth);
+    dob = parseDobInput(dateOfBirth!);
   } catch (err) {
     res.status(400).json({ error: err instanceof Error ? err.message : 'Invalid dateOfBirth' });
     return;
@@ -78,8 +131,9 @@ router.post('/register', async (req, res) => {
 
   const user = toParentUser(parent);
   res.status(201).json({
-    token: signToken(user),
+    token: signToken(user, 'student'),
     parent: user,
+    role: 'student' as const,
     curriculum: {
       upgraded: false,
       previousGroup: null,
@@ -88,7 +142,11 @@ router.post('/register', async (req, res) => {
       currentAge: curriculum.age,
     },
   });
-});
+}
+
+router.post('/register', registerStudentOrTeacher);
+/** Alias for clients expecting /auth/signup */
+router.post('/signup', registerStudentOrTeacher);
 
 router.post('/login', async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
@@ -133,8 +191,9 @@ router.post('/login', async (req, res) => {
 
   const user = toParentUser(updated);
   res.json({
-    token: signToken(user),
+    token: signToken(user, 'student'),
     parent: user,
+    role: 'student' as const,
     curriculum: curriculumEvent,
   });
 });
@@ -239,12 +298,19 @@ router.get('/me', requireAuth, async (req: AuthRequest, res) => {
           unlockedSubjects: result.unlockedSubjects,
         },
       });
-      res.json({ parent: toParentUser(updated), curriculum: result.event });
+      res.json({
+        parent: toParentUser(updated),
+        role: req.auth?.role === 'parent' ? 'parent' : 'student',
+        curriculum: result.event,
+      });
       return;
     }
   }
 
-  res.json({ parent: toParentUser(parent) });
+  res.json({
+    parent: toParentUser(parent),
+    role: req.auth?.role === 'parent' ? 'parent' : 'student',
+  });
 });
 
 /** Update DOB / age group and refresh unlocked curriculum (keeps prior unlocks). */

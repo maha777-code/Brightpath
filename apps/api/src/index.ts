@@ -35,7 +35,9 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: '25mb' }));
+// 120mb covers ~80 MB PDFs sent as base64 JSON (~33% encoding overhead + wrapper).
+app.use(express.json({ limit: '120mb' }));
+app.use(express.urlencoded({ limit: '120mb', extended: true }));
 
 app.get('/health', (_req, res) => {
   const llm = Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);
@@ -53,6 +55,25 @@ app.use('/tutor', tutorRoutes);
 app.use('/user', userRoutes);
 app.use('/curriculum', curriculumRoutes);
 app.use('/teacher', teacherRoutes);
+
+/** Graceful JSON for oversized payloads (express / body-parser 413). */
+app.use(
+  (
+    err: { type?: string; status?: number; statusCode?: number; message?: string },
+    _req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    const status = err.status ?? err.statusCode;
+    if (err.type === 'entity.too.large' || status === 413) {
+      res.status(413).json({
+        error: 'File size exceeds the 80 MB limit. Please select a smaller PDF.',
+      });
+      return;
+    }
+    next(err);
+  },
+);
 
 async function start() {
   if (process.env.REDIS_URL) {

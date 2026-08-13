@@ -1,3 +1,5 @@
+import type { SignupRole, TeacherUser, UserRole } from './teacher.js';
+
 /** Supported locales — India, US, UAE (Dubai), Kuwait */
 export type Locale = 'en-IN' | 'en-US' | 'hi-IN' | 'ar-AE' | 'ar-KW';
 
@@ -269,7 +271,9 @@ export interface CurriculumUpgradeEvent {
 
 export interface AuthResponse {
   token: string;
-  parent: ParentUser;
+  role: UserRole;
+  parent?: ParentUser;
+  teacher?: TeacherUser;
   curriculum?: CurriculumUpgradeEvent;
 }
 
@@ -278,8 +282,12 @@ export interface RegisterRequest {
   password: string;
   name?: string;
   locale?: Locale;
-  /** ISO date string YYYY-MM-DD — required for age-based curriculum */
-  dateOfBirth: string;
+  /** Required on signup — drives post-register routing and JWT role */
+  role: SignupRole;
+  /** ISO date string YYYY-MM-DD — required when role is student */
+  dateOfBirth?: string;
+  schoolName?: string;
+  subjectFocus?: string;
 }
 
 export interface LoginRequest {
@@ -321,6 +329,7 @@ export type {
 
 export type {
   UserRole,
+  SignupRole,
   TextbookStatus,
   DoubtStatus,
   TeacherUser,
@@ -339,4 +348,5 @@ export type {
   AttachSubtopicMediaRequest,
   TeacherAuthResponse,
   TeacherLoginRequest,
+  TeacherRegisterRequest,
 } from './teacher.js';

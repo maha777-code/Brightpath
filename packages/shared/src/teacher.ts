@@ -1,6 +1,9 @@
 /** Teacher Dashboard domain models & API contracts */
 
-export type UserRole = 'parent' | 'teacher';
+/** Account roles. `parent` remains for legacy sessions; new learner signups use `student`. */
+export type UserRole = 'parent' | 'student' | 'teacher';
+
+export type SignupRole = 'student' | 'teacher';
 
 export type TextbookStatus = 'UPLOADED' | 'VERIFYING' | 'INDEXED' | 'FAILED';
 
@@ -137,4 +140,12 @@ export interface TeacherAuthResponse {
 export interface TeacherLoginRequest {
   email: string;
   password: string;
+}
+
+export interface TeacherRegisterRequest {
+  email: string;
+  password: string;
+  name?: string;
+  schoolName?: string;
+  subjectFocus?: string;
 }

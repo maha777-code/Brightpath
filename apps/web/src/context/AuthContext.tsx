@@ -13,6 +13,7 @@ import type {
   RegisterRequest,
   TeacherUser,
   UserRole,
+  SignupRole,
 } from '@brightpath/shared';
 import {
   api,
@@ -23,6 +24,7 @@ import {
   loadStoredTeacher,
   loadStoredToken,
   loadStoredRole,
+  isLearnerRole,
 } from '@/lib/api';
 import { setLocale } from '@/i18n';
 
@@ -35,7 +37,13 @@ interface AuthContextValue {
   clearPendingUpgrade: () => void;
   login: (email: string, password: string) => Promise<CurriculumUpgradeEvent | undefined>;
   loginTeacher: (email: string, password: string) => Promise<void>;
-  register: (data: Omit<RegisterRequest, 'email' | 'password'> & { email: string; password: string }) => Promise<void>;
+  register: (
+    data: Omit<RegisterRequest, 'email' | 'password' | 'role'> & {
+      email: string;
+      password: string;
+      role: SignupRole;
+    },
+  ) => Promise<{ role: UserRole }>;
   updateParent: (parent: ParentUser) => void;
   logout: () => void;
   refresh: () => Promise<CurriculumUpgradeEvent | undefined>;
@@ -55,9 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateParent = useCallback((p: ParentUser) => {
     setParent(p);
     setTeacher(null);
-    setRole('parent');
+    const nextRole = loadStoredRole() === 'parent' ? 'parent' : 'student';
+    setRole(nextRole);
     const token = loadStoredToken();
-    if (token) saveAuth(token, p);
+    if (token) saveAuth(token, p, nextRole);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -93,10 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return undefined;
       }
 
+      const learnerRole: Extract<UserRole, 'parent' | 'student'> =
+        res.role === 'parent' ? 'parent' : 'student';
       setParent(res.parent!);
       setTeacher(null);
-      setRole('parent');
-      saveAuth(loadStoredToken()!, res.parent!);
+      setRole(learnerRole);
+      saveAuth(loadStoredToken()!, res.parent!, learnerRole);
       void setLocale(res.parent!.locale);
       if (res.curriculum?.upgraded) {
         setPendingUpgrade(res.curriculum);
@@ -119,11 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setTeacher(stored);
         setRole('teacher');
       }
-    } else {
+    } else if (isLearnerRole(storedRole)) {
       const stored = loadStoredParent();
       if (stored) {
         setParent(stored);
-        setRole('parent');
+        setRole(storedRole);
         void setLocale(stored.locale);
       }
     }
@@ -131,12 +142,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { token, parent: p, curriculum } = await api.login({ email, password });
-    saveAuth(token, p);
-    setParent(p);
+    const { token, parent: p, curriculum, role: loginRole } = await api.login({ email, password });
+    const learnerRole: Extract<UserRole, 'parent' | 'student'> =
+      loginRole === 'parent' ? 'parent' : 'student';
+    saveAuth(token, p!, learnerRole);
+    setParent(p!);
     setTeacher(null);
-    setRole('parent');
-    void setLocale(p.locale);
+    setRole(learnerRole);
+    void setLocale(p!.locale);
     if (curriculum?.upgraded) setPendingUpgrade(curriculum);
     return curriculum;
   }, []);
@@ -151,13 +164,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const register = useCallback(
-    async (data: Omit<RegisterRequest, 'email' | 'password'> & { email: string; password: string }) => {
-      const { token, parent: p } = await api.register(data);
-      saveAuth(token, p);
-      setParent(p);
+    async (
+      data: Omit<RegisterRequest, 'email' | 'password' | 'role'> & {
+        email: string;
+        password: string;
+        role: SignupRole;
+      },
+    ) => {
+      const res = await api.register(data);
+      if (res.role === 'teacher' && res.teacher) {
+        saveTeacherAuth(res.token, res.teacher);
+        setTeacher(res.teacher);
+        setParent(null);
+        setRole('teacher');
+        setPendingUpgrade(null);
+        return { role: 'teacher' as const };
+      }
+
+      const learnerRole: Extract<UserRole, 'parent' | 'student'> =
+        res.role === 'parent' ? 'parent' : 'student';
+      saveAuth(res.token, res.parent!, learnerRole);
+      setParent(res.parent!);
       setTeacher(null);
-      setRole('parent');
-      void setLocale(p.locale);
+      setRole(learnerRole);
+      void setLocale(res.parent!.locale);
+      return { role: learnerRole };
     },
     [],
   );

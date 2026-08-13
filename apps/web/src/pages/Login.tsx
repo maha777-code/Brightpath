@@ -3,13 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 
-type LoginMode = 'parent' | 'teacher';
+type LoginMode = 'student' | 'teacher';
 
 export default function Login() {
   const { t } = useTranslation();
   const { login, loginTeacher } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<LoginMode>('parent');
+  const [mode, setMode] = useState<LoginMode>('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -39,20 +39,20 @@ export default function Login() {
       <div className="page-header">
         <h1 className="page-title">{t('auth.login')}</h1>
         <p className="page-subtitle">
-          {mode === 'teacher' ? 'Sign in to the Teacher Dashboard' : t('auth.parentRequired')}
+          {mode === 'teacher' ? 'Sign in to the Teacher Dashboard' : 'Sign in to continue learning'}
         </p>
       </div>
 
       <div className="mb-4 flex rounded-xl bg-slate-100 p-1">
         <button
           type="button"
-          onClick={() => setMode('parent')}
+          onClick={() => setMode('student')}
           className={[
             'flex-1 rounded-lg py-2 text-sm font-bold transition',
-            mode === 'parent' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500',
+            mode === 'student' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500',
           ].join(' ')}
         >
-          Parent
+          Student
         </button>
         <button
           type="button"
@@ -109,11 +109,9 @@ export default function Login() {
           {t('auth.login')}
         </button>
       </form>
-      {mode === 'parent' && (
-        <p style={{ textAlign: 'center', marginTop: 20, fontSize: '0.9rem' }}>
-          {t('auth.noAccount')} <Link to="/register">{t('auth.register')}</Link>
-        </p>
-      )}
+      <p style={{ textAlign: 'center', marginTop: 20, fontSize: '0.9rem' }}>
+        {t('auth.noAccount')} <Link to="/register">{t('auth.register')}</Link>
+      </p>
     </div>
   );
 }

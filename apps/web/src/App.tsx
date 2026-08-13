@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
+import { isLearnerRole } from '@/lib/api';
 import Home from '@/pages/Home';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -22,7 +23,7 @@ function ProtectedParent({ children }: { children: React.ReactNode }) {
   const { parent, role, loading } = useAuth();
   if (loading) return <div className="app-loading"><div className="loader" /></div>;
   if (role === 'teacher') return <Navigate to="/teacher/dashboard" replace />;
-  if (!parent) return <Navigate to="/login" replace />;
+  if (!parent || !isLearnerRole(role)) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
@@ -45,7 +46,7 @@ function ProtectedLearner({ children }: { children: React.ReactNode }) {
 function LoginGate() {
   const { parent, teacher, role } = useAuth();
   if (role === 'teacher' && teacher) return <Navigate to="/teacher/dashboard" replace />;
-  if (parent) return <Navigate to="/dashboard" replace />;
+  if (parent && isLearnerRole(role)) return <Navigate to="/dashboard" replace />;
   return <Login />;
 }
 

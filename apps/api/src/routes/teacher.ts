@@ -18,6 +18,7 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/textbooks');
+const MAX_PDF_BYTES = 80 * 1024 * 1024;
 
 const router = Router();
 router.use(requireTeacher);
@@ -74,6 +75,12 @@ router.post('/textbooks/upload', async (req: AuthRequest, res) => {
 
   ensureUploadDir();
   const buffer = Buffer.from(fileBase64.replace(/^data:application\/pdf;base64,/, ''), 'base64');
+  if (buffer.length > MAX_PDF_BYTES) {
+    res.status(413).json({
+      error: 'File size exceeds the 80 MB limit. Please select a smaller PDF.',
+    });
+    return;
+  }
   const storageName = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
   const storagePath = path.join(UPLOAD_DIR, storageName);
   fs.writeFileSync(storagePath, buffer);

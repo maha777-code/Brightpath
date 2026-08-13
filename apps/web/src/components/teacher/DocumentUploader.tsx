@@ -10,6 +10,8 @@ interface DocumentUploaderProps {
 }
 
 const ACCENT = '#5B46BA';
+const MAX_PDF_BYTES = 80 * 1024 * 1024;
+const MAX_PDF_ERROR = 'File size exceeds the 80 MB limit. Please select a smaller PDF.';
 
 export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,6 +37,10 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
       setError('Please upload a PDF textbook.');
       return;
     }
+    if (file.size > MAX_PDF_BYTES) {
+      setError(MAX_PDF_ERROR);
+      return;
+    }
     setError(null);
     setBusy('upload');
     try {
@@ -48,7 +54,12 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
       });
       onUploaded(res.textbook);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload failed');
+      const msg = e instanceof Error ? e.message : 'Upload failed';
+      if (/payload too large|request entity too large|413/i.test(msg)) {
+        setError(MAX_PDF_ERROR);
+      } else {
+        setError(msg);
+      }
     } finally {
       setBusy(null);
     }
@@ -113,7 +124,7 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
       >
         <FileUp className="mb-2 h-8 w-8" style={{ color: ACCENT }} />
         <p className="text-sm font-bold text-slate-700">Upload State Textbook (PDF)</p>
-        <p className="mt-1 text-xs text-slate-500">Drag & drop or click to browse</p>
+        <p className="mt-1 text-xs text-slate-500">Drag & drop or click to browse · Max 80 MB</p>
         <input
           ref={inputRef}
           type="file"

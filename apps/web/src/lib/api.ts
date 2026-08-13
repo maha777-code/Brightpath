@@ -23,13 +23,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     const msg =
-      res.status === 401
-        ? 'Unauthorized — log out and log in again as parent'
-        : typeof err.error === 'string'
+      res.status === 413
+        ? typeof err.error === 'string'
           ? err.error
-          : typeof err.message === 'string'
-            ? err.message
-            : res.statusText || 'Request failed';
+          : 'File size exceeds the 80 MB limit. Please select a smaller PDF.'
+        : res.status === 401
+          ? 'Unauthorized — log out and log in again as parent'
+          : typeof err.error === 'string'
+            ? err.error
+            : typeof err.message === 'string'
+              ? err.message
+              : res.statusText || 'Request failed';
     throw new Error(msg);
   }
   if (res.status === 204) return undefined as T;
@@ -86,7 +90,13 @@ export const api = {
   login: (body: LoginRequest) =>
     request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
 
-  me: () => request<{ parent: ParentUser; curriculum?: CurriculumUpgradeEvent }>('/auth/me'),
+  me: () =>
+    request<{
+      parent?: ParentUser;
+      teacher?: TeacherUser;
+      role?: UserRole;
+      curriculum?: CurriculumUpgradeEvent;
+    }>('/auth/me'),
 
   updateAgeSettings: (body: UpdateAgeSettingsRequest) =>
     request<{ parent: ParentUser; curriculum: CurriculumUpgradeEvent }>('/auth/age-settings', {
@@ -253,10 +263,14 @@ export const api = {
   },
 };
 
-export function saveAuth(token: string, parent: ParentUser) {
+export function saveAuth(
+  token: string,
+  parent: ParentUser,
+  role: Extract<UserRole, 'parent' | 'student'> = 'student',
+) {
   localStorage.setItem('brightpath_token', token);
   localStorage.setItem('brightpath_parent', JSON.stringify(parent));
-  localStorage.setItem('brightpath_role', 'parent');
+  localStorage.setItem('brightpath_role', role);
   localStorage.removeItem('brightpath_teacher');
 }
 
@@ -276,7 +290,11 @@ export function clearAuth() {
 
 export function loadStoredRole(): UserRole | null {
   const role = localStorage.getItem('brightpath_role');
-  return role === 'teacher' || role === 'parent' ? role : null;
+  return role === 'teacher' || role === 'parent' || role === 'student' ? role : null;
+}
+
+export function isLearnerRole(role: UserRole | null | undefined): boolean {
+  return role === 'parent' || role === 'student';
 }
 
 export function loadStoredTeacher(): TeacherUser | null {

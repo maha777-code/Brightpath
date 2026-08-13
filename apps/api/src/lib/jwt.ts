@@ -9,17 +9,23 @@ export type JwtPayload = {
   role: UserRole;
 };
 
-export function signParentToken(parent: ParentUser): string {
+export function signParentToken(
+  parent: ParentUser,
+  role: Extract<UserRole, 'parent' | 'student'> = 'parent',
+): string {
   return jwt.sign(
-    { sub: parent.id, email: parent.email, role: 'parent' satisfies UserRole },
+    { sub: parent.id, email: parent.email, role },
     JWT_SECRET,
     { expiresIn: '30d' },
   );
 }
 
 /** @deprecated use signParentToken — kept for existing imports */
-export function signToken(parent: ParentUser): string {
-  return signParentToken(parent);
+export function signToken(
+  parent: ParentUser,
+  role: Extract<UserRole, 'parent' | 'student'> = 'parent',
+): string {
+  return signParentToken(parent, role);
 }
 
 export function signTeacherToken(teacher: TeacherUser): string {
