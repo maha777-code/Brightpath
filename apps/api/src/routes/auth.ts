@@ -3,14 +3,15 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { AGE_GROUPS, LOCALES, type ParentUser } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
-import { signToken } from '../lib/jwt.js';
-import { requireAuth, type AuthRequest } from '../middleware/auth.js';
+import { signTeacherToken, signToken } from '../lib/jwt.js';
+import { requireAuth, requireTeacher, type AuthRequest } from '../middleware/auth.js';
 import {
   computeAgeUpgrade,
   initialCurriculumFromDob,
   parseDobInput,
   toParentUser,
 } from '../lib/ageCurriculum.js';
+import { toTeacherUser } from '../lib/teacherSerializers.js';
 
 const router = Router();
 
@@ -138,7 +139,69 @@ router.post('/login', async (req, res) => {
   });
 });
 
+router.post('/teacher/login', async (req, res) => {
+  const parsed = loginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+  const { email, password } = parsed.data;
+  const teacher = await prisma.teacher.findUnique({ where: { email } });
+  if (!teacher || !(await bcrypt.compare(password, teacher.passwordHash))) {
+    res.status(401).json({ error: 'Invalid email or password' });
+    return;
+  }
+  const user = toTeacherUser(teacher);
+  res.json({ token: signTeacherToken(user), teacher: user, role: 'teacher' as const });
+});
+
+router.post('/teacher/register', async (req, res) => {
+  const schema = z.object({
+    email: z.string().email(),
+    password: z.string().min(8),
+    name: z.string().min(1).optional(),
+    schoolName: z.string().optional(),
+    subjectFocus: z.string().optional(),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+  const { email, password, name, schoolName, subjectFocus } = parsed.data;
+  const existing = await prisma.teacher.findUnique({ where: { email } });
+  if (existing) {
+    res.status(409).json({ error: 'Teacher already registered' });
+    return;
+  }
+  const passwordHash = await bcrypt.hash(password, 10);
+  const teacher = await prisma.teacher.create({
+    data: { email, passwordHash, name: name ?? null, schoolName: schoolName ?? null, subjectFocus: subjectFocus ?? 'Science' },
+  });
+  const user = toTeacherUser(teacher);
+  res.status(201).json({ token: signTeacherToken(user), teacher: user, role: 'teacher' as const });
+});
+
+router.get('/teacher/me', requireTeacher, async (req: AuthRequest, res) => {
+  const teacher = await prisma.teacher.findUnique({ where: { id: req.teacherId! } });
+  if (!teacher) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  res.json({ teacher: toTeacherUser(teacher), role: 'teacher' as const });
+});
+
 router.get('/me', requireAuth, async (req: AuthRequest, res) => {
+  if (req.auth?.role === 'teacher' || req.teacherId) {
+    const teacher = await prisma.teacher.findUnique({ where: { id: req.teacherId! } });
+    if (!teacher) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
+    res.json({ teacher: toTeacherUser(teacher), role: 'teacher' as const });
+    return;
+  }
+
   const parent = await prisma.parent.findUnique({ where: { id: req.parentId! } });
   if (!parent) {
     res.status(404).json({ error: 'Not found' });

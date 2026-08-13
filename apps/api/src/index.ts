@@ -15,6 +15,7 @@ import childrenRoutes from './routes/children.js';
 import tutorRoutes from './routes/tutor.js';
 import userRoutes from './routes/user.js';
 import curriculumRoutes from './routes/curriculum.js';
+import teacherRoutes from './routes/teacher.js';
 
 const PORT = Number(process.env.API_PORT ?? 3001);
 
@@ -33,7 +34,7 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: '4mb' }));
+app.use(express.json({ limit: '25mb' }));
 
 app.get('/health', (_req, res) => {
   const llm = Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);
@@ -50,6 +51,7 @@ app.use('/children', childrenRoutes);
 app.use('/tutor', tutorRoutes);
 app.use('/user', userRoutes);
 app.use('/curriculum', curriculumRoutes);
+app.use('/teacher', teacherRoutes);
 
 async function start() {
   if (process.env.REDIS_URL) {

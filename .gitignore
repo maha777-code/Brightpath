@@ -4,5 +4,6 @@ dist
 .env.local
 *.local
 apps/api/dist
+apps/api/uploads
 apps/web/dist
 packages/*/dist

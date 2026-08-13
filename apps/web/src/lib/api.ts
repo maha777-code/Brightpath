@@ -63,6 +63,20 @@ import type {
   TutorStatusResponse,
   TutorGreetingRequest,
   TutorGreetingResponse,
+  TeacherAuthResponse,
+  TeacherLoginRequest,
+  TeacherUser,
+  TeacherChapterListResponse,
+  TeacherDoubtsResponse,
+  UploadTextbookRequest,
+  UploadTextbookResponse,
+  VerifyTextbookResponse,
+  ReviewDoubtRequest,
+  ReviewDoubtResponse,
+  AttachSubtopicMediaRequest,
+  TeacherSubtopic,
+  TeacherChapter,
+  UserRole,
 } from '@brightpath/shared';
 
 export const api = {
@@ -170,6 +184,50 @@ export const api = {
   tutorWarmup: () =>
     request<{ ok: boolean; provider: string }>('/tutor/warmup', { method: 'POST', body: '{}' }),
 
+  teacherLogin: (body: TeacherLoginRequest) =>
+    request<TeacherAuthResponse>('/auth/teacher/login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  teacherMe: () =>
+    request<{ teacher: TeacherUser; role: 'teacher' }>('/auth/teacher/me'),
+
+  teacherChapters: () =>
+    request<TeacherChapterListResponse>('/teacher/chapters'),
+
+  teacherChapter: (id: string) =>
+    request<{ chapter: TeacherChapter }>(`/teacher/chapters/${id}`),
+
+  uploadTextbook: (body: UploadTextbookRequest) =>
+    request<UploadTextbookResponse>('/teacher/textbooks/upload', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  verifyTextbook: (id: string) =>
+    request<VerifyTextbookResponse>(`/teacher/textbooks/${id}/verify`, {
+      method: 'POST',
+      body: '{}',
+    }),
+
+  teacherDoubts: (status?: string) =>
+    request<TeacherDoubtsResponse>(
+      status ? `/teacher/doubts?status=${encodeURIComponent(status)}` : '/teacher/doubts',
+    ),
+
+  reviewDoubt: (id: string, body: ReviewDoubtRequest) =>
+    request<ReviewDoubtResponse>(`/teacher/doubts/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateSubtopicMedia: (id: string, body: AttachSubtopicMediaRequest) =>
+    request<{ subtopic: TeacherSubtopic }>(`/teacher/subtopics/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
   tutorTranscribe: async (
     audioBlob: Blob,
     mimeType: string,
@@ -198,11 +256,36 @@ export const api = {
 export function saveAuth(token: string, parent: ParentUser) {
   localStorage.setItem('brightpath_token', token);
   localStorage.setItem('brightpath_parent', JSON.stringify(parent));
+  localStorage.setItem('brightpath_role', 'parent');
+  localStorage.removeItem('brightpath_teacher');
+}
+
+export function saveTeacherAuth(token: string, teacher: TeacherUser) {
+  localStorage.setItem('brightpath_token', token);
+  localStorage.setItem('brightpath_teacher', JSON.stringify(teacher));
+  localStorage.setItem('brightpath_role', 'teacher');
+  localStorage.removeItem('brightpath_parent');
 }
 
 export function clearAuth() {
   localStorage.removeItem('brightpath_token');
   localStorage.removeItem('brightpath_parent');
+  localStorage.removeItem('brightpath_teacher');
+  localStorage.removeItem('brightpath_role');
+}
+
+export function loadStoredRole(): UserRole | null {
+  const role = localStorage.getItem('brightpath_role');
+  return role === 'teacher' || role === 'parent' ? role : null;
+}
+
+export function loadStoredTeacher(): TeacherUser | null {
+  try {
+    const raw = localStorage.getItem('brightpath_teacher');
+    return raw ? (JSON.parse(raw) as TeacherUser) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function loadStoredParent(): ParentUser | null {

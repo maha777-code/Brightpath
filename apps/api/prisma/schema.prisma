@@ -267,3 +267,115 @@ model UserGoal {
 
   @@index([userId, isCompleted])
 }
+
+// ─── Teacher Dashboard ───────────────────────────────────────────────
+
+enum TextbookStatus {
+  UPLOADED
+  VERIFYING
+  INDEXED
+  FAILED
+}
+
+enum DoubtStatus {
+  PENDING
+  AI_DRAFT
+  APPROVED
+  OVERRIDDEN
+  REJECTED
+}
+
+model Teacher {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String?
+  schoolName   String?
+  subjectFocus String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  textbooks    Textbook[]
+  doubts       StudentDoubt[]
+}
+
+model Textbook {
+  id                String         @id @default(cuid())
+  teacherId         String
+  teacher           Teacher        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  title             String
+  fileName          String
+  fileSizeBytes     Int            @default(0)
+  subject           String         @default("Science")
+  gradeLabel        String         @default("Class 9")
+  status            TextbookStatus @default(UPLOADED)
+  pageCount         Int?
+  indexedChunkCount Int            @default(0)
+  storagePath       String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  chapters          TeacherChapter[]
+
+  @@index([teacherId])
+}
+
+model TeacherChapter {
+  id               String   @id @default(cuid())
+  textbookId       String
+  textbook         Textbook @relation(fields: [textbookId], references: [id], onDelete: Cascade)
+  title            String
+  sequenceOrder    Int
+  summary          String   @default("")
+  classProgressPct Int      @default(0)
+  studentCount     Int      @default(0)
+  completedCount   Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  subtopics        TeacherSubtopic[]
+  doubts           StudentDoubt[]
+
+  @@index([textbookId])
+  @@unique([textbookId, sequenceOrder])
+}
+
+model TeacherSubtopic {
+  id                  String         @id @default(cuid())
+  chapterId           String
+  chapter             TeacherChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  code                String
+  title               String
+  sequenceOrder       Int
+  hasVideoExplainer   Boolean        @default(false)
+  hasGamifiedActivity Boolean        @default(false)
+  videoTitle          String?
+  activityTitle       String?
+  videoUrl            String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  doubts              StudentDoubt[]
+
+  @@index([chapterId])
+  @@unique([chapterId, sequenceOrder])
+}
+
+model StudentDoubt {
+  id                  String          @id @default(cuid())
+  teacherId           String
+  teacher             Teacher         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  chapterId           String
+  chapter             TeacherChapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  subtopicId          String?
+  subtopic            TeacherSubtopic? @relation(fields: [subtopicId], references: [id], onDelete: SetNull)
+  studentName         String
+  question            String
+  status              DoubtStatus     @default(PENDING)
+  aiAnswerText        String?
+  aiGroundedSources   String[]        @default([])
+  aiConfidence        Float           @default(0)
+  teacherOverrideText String?
+  pointsAwarded       Int             @default(0)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([teacherId, status])
+  @@index([chapterId])
+}

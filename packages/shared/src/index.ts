@@ -318,3 +318,25 @@ export type {
   TutorGreetingRequest,
   TutorGreetingResponse,
 } from './tutor.js';
+
+export type {
+  UserRole,
+  TextbookStatus,
+  DoubtStatus,
+  TeacherUser,
+  Textbook,
+  TeacherChapter,
+  TeacherSubtopic,
+  AIResponse,
+  StudentDoubt,
+  TeacherChapterListResponse,
+  TeacherDoubtsResponse,
+  UploadTextbookRequest,
+  UploadTextbookResponse,
+  VerifyTextbookResponse,
+  ReviewDoubtRequest,
+  ReviewDoubtResponse,
+  AttachSubtopicMediaRequest,
+  TeacherAuthResponse,
+  TeacherLoginRequest,
+} from './teacher.js';

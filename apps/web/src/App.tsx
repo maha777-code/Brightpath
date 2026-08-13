@@ -16,11 +16,20 @@ import LessonModulePage from '@/pages/LessonModulePage';
 import SubjectCurriculumPage from '@/pages/SubjectCurriculumPage';
 import VideoLessonPage from '@/pages/VideoLessonPage';
 import ChapterTestPage from '@/pages/ChapterTestPage';
+import TeacherDashboard from '@/pages/TeacherDashboard';
 
 function ProtectedParent({ children }: { children: React.ReactNode }) {
-  const { parent, loading } = useAuth();
+  const { parent, role, loading } = useAuth();
   if (loading) return <div className="app-loading"><div className="loader" /></div>;
+  if (role === 'teacher') return <Navigate to="/teacher/dashboard" replace />;
   if (!parent) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function ProtectedTeacher({ children }: { children: React.ReactNode }) {
+  const { teacher, role, loading } = useAuth();
+  if (loading) return <div className="app-loading"><div className="loader" /></div>;
+  if (role !== 'teacher' || !teacher) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
@@ -33,8 +42,15 @@ function ProtectedLearner({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function LoginGate() {
+  const { parent, teacher, role } = useAuth();
+  if (role === 'teacher' && teacher) return <Navigate to="/teacher/dashboard" replace />;
+  if (parent) return <Navigate to="/dashboard" replace />;
+  return <Login />;
+}
+
 export default function App() {
-  const { parent, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return (
@@ -48,8 +64,8 @@ export default function App() {
     <div className="app">
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={parent ? <Navigate to="/dashboard" replace /> : <Login />} />
-        <Route path="/register" element={parent ? <Navigate to="/dashboard" replace /> : <Register />} />
+        <Route path="/login" element={<LoginGate />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/parent" element={<ProtectedParent><ParentHome /></ProtectedParent>} />
         <Route path="/parent/children/new" element={<ProtectedParent><AddChild /></ProtectedParent>} />
         <Route path="/onboarding" element={<Navigate to="/parent" replace />} />
@@ -70,6 +86,7 @@ export default function App() {
         <Route path="/lesson/:nodeId" element={<ProtectedParent><LessonModulePage /></ProtectedParent>} />
         <Route path="/learn/:subject" element={<ProtectedLearner><TutorSession /></ProtectedLearner>} />
         <Route path="/progress" element={<ProtectedParent><Progress /></ProtectedParent>} />
+        <Route path="/teacher/dashboard" element={<ProtectedTeacher><TeacherDashboard /></ProtectedTeacher>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
