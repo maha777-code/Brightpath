@@ -35,9 +35,9 @@ app.use(
     credentials: true,
   }),
 );
-// 120mb covers ~80 MB PDFs sent as base64 JSON (~33% encoding overhead + wrapper).
-app.use(express.json({ limit: '120mb' }));
-app.use(express.urlencoded({ limit: '120mb', extended: true }));
+// JSON/urlencoded stay generous for other routes; textbook PDFs use multipart (multer 80 MB).
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 app.get('/health', (_req, res) => {
   const llm = Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);

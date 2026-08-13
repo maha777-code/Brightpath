@@ -40,9 +40,20 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api/, ''),
-        // Large textbook PDFs (base64 JSON) need a long timeout.
-        timeout: 120_000,
-        proxyTimeout: 120_000,
+        // Stream large multipart PDF uploads; do not buffer the body.
+        timeout: 300_000,
+        proxyTimeout: 300_000,
+      },
+    },
+  },
+  preview: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api/, ''),
+        timeout: 300_000,
+        proxyTimeout: 300_000,
       },
     },
   },

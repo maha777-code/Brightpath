@@ -20,23 +20,12 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState('NCERT Science Class 9');
 
-  const readFile = (file: File) =>
-    new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const comma = result.indexOf(',');
-        resolve(comma >= 0 ? result.slice(comma + 1) : result);
-      };
-      reader.onerror = () => reject(new Error('Failed to read PDF'));
-      reader.readAsDataURL(file);
-    });
-
   const uploadFile = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
+    if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
       setError('Please upload a PDF textbook.');
       return;
     }
+    // Client-side gate before any network upload (80 MB raw file).
     if (file.size > MAX_PDF_BYTES) {
       setError(MAX_PDF_ERROR);
       return;
@@ -44,18 +33,17 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
     setError(null);
     setBusy('upload');
     try {
-      const fileBase64 = await readFile(file);
       const res = await api.uploadTextbook({
         title: title.trim() || file.name.replace(/\.pdf$/i, ''),
         fileName: file.name,
-        fileBase64,
+        file,
         subject: 'Science',
         gradeLabel: 'Class 9',
       });
       onUploaded(res.textbook);
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Upload failed';
-      if (/payload too large|request entity too large|413/i.test(msg)) {
+      if (/payload too large|request entity too large|413|file too large|limit/i.test(msg)) {
         setError(MAX_PDF_ERROR);
       } else {
         setError(msg);

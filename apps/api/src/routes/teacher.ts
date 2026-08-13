@@ -1,8 +1,9 @@
-import { Router } from 'express';
+import { Router, type NextFunction, type Response } from 'express';
 import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import multer from 'multer';
 import { prisma } from '../lib/prisma.js';
 import { requireTeacher, type AuthRequest } from '../middleware/auth.js';
 import {
@@ -19,12 +20,54 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/textbooks');
 const MAX_PDF_BYTES = 80 * 1024 * 1024;
+const MAX_PDF_ERROR = 'File size exceeds the 80 MB limit. Please select a smaller PDF.';
 
 const router = Router();
 router.use(requireTeacher);
 
 function ensureUploadDir() {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+const textbookUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      ensureUploadDir();
+      cb(null, UPLOAD_DIR);
+    },
+    filename: (_req, file, cb) => {
+      const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+      cb(null, `${Date.now()}-${safe}`);
+    },
+  }),
+  limits: { fileSize: MAX_PDF_BYTES },
+  fileFilter: (_req, file, cb) => {
+    const isPdf =
+      file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      cb(new Error('Only PDF textbooks are supported'));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
+function handleTextbookUpload(req: AuthRequest, res: Response, next: NextFunction) {
+  textbookUpload.single('file')(req, res, (err: unknown) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        res.status(413).json({ error: MAX_PDF_ERROR });
+        return;
+      }
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    if (err instanceof Error) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    next();
+  });
 }
 
 /** GET /teacher/chapters — course structure + textbook */
@@ -52,51 +95,46 @@ router.get('/chapters', async (req: AuthRequest, res) => {
   });
 });
 
-/** POST /teacher/textbooks/upload — accept PDF (base64) for RAG pipeline */
-router.post('/textbooks/upload', async (req: AuthRequest, res) => {
+/** POST /teacher/textbooks/upload — multipart PDF (field: file) for RAG pipeline */
+router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, res) => {
+  const file = req.file;
+  if (!file) {
+    res.status(400).json({ error: 'PDF file is required (multipart field name: file)' });
+    return;
+  }
+
   const schema = z.object({
     title: z.string().min(2),
     subject: z.string().optional(),
     gradeLabel: z.string().optional(),
-    fileName: z.string().min(1),
-    fileBase64: z.string().min(16),
   });
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
+    fs.unlink(file.path, () => undefined);
     res.status(400).json({ error: parsed.error.flatten() });
     return;
   }
 
-  const { title, subject, gradeLabel, fileName, fileBase64 } = parsed.data;
-  if (!fileName.toLowerCase().endsWith('.pdf')) {
-    res.status(400).json({ error: 'Only PDF textbooks are supported' });
+  const { title, subject, gradeLabel } = parsed.data;
+  const fileName = file.originalname;
+  if (file.size > MAX_PDF_BYTES) {
+    fs.unlink(file.path, () => undefined);
+    res.status(413).json({ error: MAX_PDF_ERROR });
     return;
   }
-
-  ensureUploadDir();
-  const buffer = Buffer.from(fileBase64.replace(/^data:application\/pdf;base64,/, ''), 'base64');
-  if (buffer.length > MAX_PDF_BYTES) {
-    res.status(413).json({
-      error: 'File size exceeds the 80 MB limit. Please select a smaller PDF.',
-    });
-    return;
-  }
-  const storageName = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-  const storagePath = path.join(UPLOAD_DIR, storageName);
-  fs.writeFileSync(storagePath, buffer);
 
   const textbook = await prisma.textbook.create({
     data: {
       teacherId: req.teacherId!,
       title,
       fileName,
-      fileSizeBytes: buffer.length,
+      fileSizeBytes: file.size,
       subject: subject ?? 'Science',
       gradeLabel: gradeLabel ?? 'Class 9',
       status: 'UPLOADED',
       pageCount: null,
       indexedChunkCount: 0,
-      storagePath,
+      storagePath: file.path,
     },
   });
 

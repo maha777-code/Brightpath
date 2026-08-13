@@ -1,11 +1,24 @@
 const BASE = import.meta.env.VITE_API_URL ?? '/api';
 
-function authHeaders(): HeadersInit {
+function authHeaders(json = true): HeadersInit {
   const token = localStorage.getItem('brightpath_token');
   return {
-    'Content-Type': 'application/json',
+    ...(json ? { 'Content-Type': 'application/json' } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
+}
+
+async function parseError(res: Response): Promise<string> {
+  const err = await res.json().catch(() => ({ error: res.statusText }));
+  if (res.status === 413) {
+    return typeof err.error === 'string'
+      ? err.error
+      : 'File size exceeds the 80 MB limit. Please select a smaller PDF.';
+  }
+  if (res.status === 401) return 'Unauthorized — log out and log in again as parent';
+  if (typeof err.error === 'string') return err.error;
+  if (typeof err.message === 'string') return err.message;
+  return res.statusText || 'Request failed';
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -13,29 +26,33 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(`${BASE}${path}`, {
       ...init,
-      headers: { ...authHeaders(), ...init?.headers },
+      headers: { ...authHeaders(true), ...init?.headers },
     });
   } catch {
     throw new Error(
       'Cannot reach the API server. From the project root run: npm run dev (starts web + api). Check http://localhost:3001/health',
     );
   }
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    const msg =
-      res.status === 413
-        ? typeof err.error === 'string'
-          ? err.error
-          : 'File size exceeds the 80 MB limit. Please select a smaller PDF.'
-        : res.status === 401
-          ? 'Unauthorized — log out and log in again as parent'
-          : typeof err.error === 'string'
-            ? err.error
-            : typeof err.message === 'string'
-              ? err.message
-              : res.statusText || 'Request failed';
-    throw new Error(msg);
+  if (!res.ok) throw new Error(await parseError(res));
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+/** Multipart upload — do not set Content-Type (browser sets boundary). */
+async function requestFormData<T>(path: string, form: FormData): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method: 'POST',
+      headers: authHeaders(false),
+      body: form,
+    });
+  } catch {
+    throw new Error(
+      'Cannot reach the API server. From the project root run: npm run dev (starts web + api). Check http://localhost:3001/health',
+    );
   }
+  if (!res.ok) throw new Error(await parseError(res));
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
@@ -209,11 +226,16 @@ export const api = {
   teacherChapter: (id: string) =>
     request<{ chapter: TeacherChapter }>(`/teacher/chapters/${id}`),
 
-  uploadTextbook: (body: UploadTextbookRequest) =>
-    request<UploadTextbookResponse>('/teacher/textbooks/upload', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
+  uploadTextbook: (body: UploadTextbookRequest & { file: File | Blob }) => {
+    const form = new FormData();
+    form.append('title', body.title);
+    if (body.subject) form.append('subject', body.subject);
+    if (body.gradeLabel) form.append('gradeLabel', body.gradeLabel);
+    const fileName =
+      body.fileName ?? (body.file instanceof File ? body.file.name : 'textbook.pdf');
+    form.append('file', body.file, fileName);
+    return requestFormData<UploadTextbookResponse>('/teacher/textbooks/upload', form);
+  },
 
   verifyTextbook: (id: string) =>
     request<VerifyTextbookResponse>(`/teacher/textbooks/${id}/verify`, {

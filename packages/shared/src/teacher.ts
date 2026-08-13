@@ -93,13 +93,12 @@ export interface TeacherDoubtsResponse {
   doubts: StudentDoubt[];
 }
 
+/** Metadata fields for textbook upload (PDF sent as multipart binary field `file`). */
 export interface UploadTextbookRequest {
   title: string;
   subject?: string;
   gradeLabel?: string;
-  fileName: string;
-  /** Base64-encoded PDF (no data: prefix) */
-  fileBase64: string;
+  fileName?: string;
 }
 
 export interface UploadTextbookResponse {
