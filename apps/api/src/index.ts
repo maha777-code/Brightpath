@@ -16,6 +16,7 @@ import tutorRoutes from './routes/tutor.js';
 import userRoutes from './routes/user.js';
 import curriculumRoutes from './routes/curriculum.js';
 import teacherRoutes from './routes/teacher.js';
+import { ensureDemoTeacher } from './lib/ensureDemoTeacher.js';
 
 const PORT = Number(process.env.API_PORT ?? 3001);
 
@@ -65,6 +66,8 @@ async function start() {
       console.warn('Redis unavailable (optional in Phase 0):', err);
     }
   }
+
+  await ensureDemoTeacher();
 
   app.listen(PORT, () => {
     console.log(`BrightPath API listening on http://localhost:${PORT}`);

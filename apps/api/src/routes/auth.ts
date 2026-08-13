@@ -146,13 +146,26 @@ router.post('/teacher/login', async (req, res) => {
     return;
   }
   const { email, password } = parsed.data;
-  const teacher = await prisma.teacher.findUnique({ where: { email } });
-  if (!teacher || !(await bcrypt.compare(password, teacher.passwordHash))) {
-    res.status(401).json({ error: 'Invalid email or password' });
-    return;
+  try {
+    const teacher = await prisma.teacher.findUnique({ where: { email } });
+    if (!teacher || !(await bcrypt.compare(password, teacher.passwordHash))) {
+      res.status(401).json({ error: 'Invalid email or password' });
+      return;
+    }
+    const user = toTeacherUser(teacher);
+    res.json({ token: signTeacherToken(user), teacher: user, role: 'teacher' as const });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Teacher login failed:', message);
+    if (/does not exist|P2021|Teacher/i.test(message)) {
+      res.status(503).json({
+        error:
+          'Teacher database tables are missing. From apps/api run: npx prisma db push && npx tsx src/scripts/seedTeacher.ts — then restart the API.',
+      });
+      return;
+    }
+    res.status(500).json({ error: 'Teacher login failed. Check API logs and that the database is running.' });
   }
-  const user = toTeacherUser(teacher);
-  res.json({ token: signTeacherToken(user), teacher: user, role: 'teacher' as const });
 });
 
 router.post('/teacher/register', async (req, res) => {
