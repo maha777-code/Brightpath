@@ -1,9 +1,7 @@
 /** Teacher Dashboard domain models & API contracts */
 
-/** Account roles. `parent` remains for legacy sessions; new learner signups use `student`. */
-export type UserRole = 'parent' | 'student' | 'teacher';
-
-export type SignupRole = 'student' | 'teacher';
+export type { UserRole, SignupRole, AppRole, PlanType } from './rbac.js';
+import type { PlanType } from './rbac.js';
 
 export type TextbookStatus = 'UPLOADED' | 'VERIFYING' | 'INDEXED' | 'FAILED';
 
@@ -17,6 +15,8 @@ export interface TeacherUser {
   subjectFocus: string | null;
   createdAt: string;
   role: 'teacher';
+  planType?: PlanType;
+  organizationId?: string | null;
 }
 
 export interface Textbook {

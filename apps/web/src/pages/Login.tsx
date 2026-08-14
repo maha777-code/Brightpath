@@ -3,13 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 
-type LoginMode = 'student' | 'teacher';
-
 export default function Login() {
   const { t } = useTranslation();
-  const { login, loginTeacher } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<LoginMode>('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -20,13 +17,8 @@ export default function Login() {
     setError('');
     setBusy(true);
     try {
-      if (mode === 'teacher') {
-        await loginTeacher(email, password);
-        navigate('/teacher/dashboard');
-      } else {
-        await login(email, password);
-        navigate('/dashboard');
-      }
+      const result = await login(email, password);
+      navigate(result.path);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
     } finally {
@@ -38,32 +30,7 @@ export default function Login() {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">{t('auth.login')}</h1>
-        <p className="page-subtitle">
-          {mode === 'teacher' ? 'Sign in to the Teacher Dashboard' : 'Sign in to continue learning'}
-        </p>
-      </div>
-
-      <div className="mb-4 flex rounded-xl bg-slate-100 p-1">
-        <button
-          type="button"
-          onClick={() => setMode('student')}
-          className={[
-            'flex-1 rounded-lg py-2 text-sm font-bold transition',
-            mode === 'student' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500',
-          ].join(' ')}
-        >
-          Student
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('teacher')}
-          className={[
-            'flex-1 rounded-lg py-2 text-sm font-bold transition',
-            mode === 'teacher' ? 'bg-white text-[#5B46BA] shadow-sm' : 'text-slate-500',
-          ].join(' ')}
-        >
-          Teacher
-        </button>
+        <p className="page-subtitle">Sign in — we&apos;ll open the right dashboard for your role.</p>
       </div>
 
       <form onSubmit={submit}>
@@ -77,7 +44,6 @@ export default function Login() {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
-            placeholder={mode === 'teacher' ? 'teacher@brightpath.ai' : undefined}
           />
         </div>
         <div className="form-group">
@@ -89,23 +55,15 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={mode === 'teacher' ? 6 : 8}
+            minLength={6}
             autoComplete="current-password"
-            placeholder={mode === 'teacher' ? 'teacher123' : undefined}
           />
         </div>
-        {mode === 'teacher' && (
-          <p className="mb-3 text-xs text-slate-500">
-            Demo: <strong>teacher@brightpath.ai</strong> / <strong>teacher123</strong>
-          </p>
-        )}
+        <p className="mb-3 text-xs text-slate-500">
+          Demo teacher: <strong>teacher@brightpath.ai</strong> / <strong>teacher123</strong>
+        </p>
         {error && <p style={{ color: '#dc2626', marginBottom: 16, fontSize: '0.9rem' }}>{error}</p>}
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={busy}
-          style={mode === 'teacher' ? { background: '#5B46BA' } : undefined}
-        >
+        <button type="submit" className="btn btn-primary" disabled={busy} style={{ background: '#5B46BA' }}>
           {t('auth.login')}
         </button>
       </form>

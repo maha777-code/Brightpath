@@ -1,4 +1,11 @@
 import type { SignupRole, TeacherUser, UserRole } from './teacher.js';
+import type {
+  AppRole,
+  PlanType,
+  OrgType,
+  PlatformUserPublic,
+  OrganizationPublic,
+} from './rbac.js';
 
 /** Supported locales — India, US, UAE (Dubai), Kuwait */
 export type Locale = 'en-IN' | 'en-US' | 'hi-IN' | 'ar-AE' | 'ar-KW';
@@ -272,6 +279,10 @@ export interface CurriculumUpgradeEvent {
 export interface AuthResponse {
   token: string;
   role: UserRole;
+  planType?: PlanType;
+  organizationId?: string | null;
+  user?: PlatformUserPublic;
+  organization?: OrganizationPublic | null;
   parent?: ParentUser;
   teacher?: TeacherUser;
   curriculum?: CurriculumUpgradeEvent;
@@ -288,6 +299,13 @@ export interface RegisterRequest {
   dateOfBirth?: string;
   schoolName?: string;
   subjectFocus?: string;
+  organizationName?: string;
+  orgType?: OrgType;
+  planType?: PlanType;
+  /** Optional class invite code for students */
+  classCode?: string;
+  /** Optional parent link code for students */
+  parentCode?: string;
 }
 
 export interface LoginRequest {
@@ -350,3 +368,27 @@ export type {
   TeacherLoginRequest,
   TeacherRegisterRequest,
 } from './teacher.js';
+
+export type {
+  AppRole,
+  OrgType,
+  PlanType,
+  FeatureName,
+  FeatureLimits,
+  PlatformUserPublic,
+  OrganizationPublic,
+  ClassBatchPublic,
+} from './rbac.js';
+
+export {
+  DEFAULT_PLAN_FOR_ROLE,
+  HOME_PATH_FOR_ROLE,
+  PLAN_LIMITS,
+  homePathForRole,
+  isAppRole,
+  toAppRole,
+  getPlanLimits,
+  hasFeatureAccess,
+  maxPdfBytes,
+  maxPdfCount,
+} from './rbac.js';

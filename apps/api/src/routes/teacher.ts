@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
+import { hasFeatureAccess, maxPdfBytes, maxPdfCount } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireTeacher, type AuthRequest } from '../middleware/auth.js';
 import {
@@ -19,7 +20,7 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/textbooks');
-const MAX_PDF_BYTES = 80 * 1024 * 1024;
+const HARD_MAX_PDF_BYTES = 80 * 1024 * 1024;
 const MAX_PDF_ERROR = 'File size exceeds the 80 MB limit. Please select a smaller PDF.';
 
 const router = Router();
@@ -40,7 +41,7 @@ const textbookUpload = multer({
       cb(null, `${Date.now()}-${safe}`);
     },
   }),
-  limits: { fileSize: MAX_PDF_BYTES },
+  limits: { fileSize: HARD_MAX_PDF_BYTES },
   fileFilter: (_req, file, cb) => {
     const isPdf =
       file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
@@ -103,6 +104,31 @@ router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, 
     return;
   }
 
+  const planType = req.planType ?? 'teacher_free';
+  const planMaxBytes = maxPdfBytes(planType);
+  const planMaxCount = maxPdfCount(planType);
+
+  if (file.size > planMaxBytes) {
+    fs.unlink(file.path, () => undefined);
+    res.status(413).json({
+      error: `File size exceeds the ${Math.round(planMaxBytes / (1024 * 1024))} MB limit for your plan. Upgrade to upload larger textbooks.`,
+      planType,
+    });
+    return;
+  }
+
+  if (planMaxCount !== null) {
+    const existingCount = await prisma.textbook.count({ where: { teacherId: req.teacherId! } });
+    if (existingCount >= planMaxCount) {
+      fs.unlink(file.path, () => undefined);
+      res.status(402).json({
+        error: `Free plan allows ${planMaxCount} PDF upload. Upgrade to Teacher Pro for unlimited textbooks.`,
+        planType,
+      });
+      return;
+    }
+  }
+
   const schema = z.object({
     title: z.string().min(2),
     subject: z.string().optional(),
@@ -117,11 +143,6 @@ router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, 
 
   const { title, subject, gradeLabel } = parsed.data;
   const fileName = file.originalname;
-  if (file.size > MAX_PDF_BYTES) {
-    fs.unlink(file.path, () => undefined);
-    res.status(413).json({ error: MAX_PDF_ERROR });
-    return;
-  }
 
   const textbook = await prisma.textbook.create({
     data: {
@@ -141,12 +162,21 @@ router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, 
   res.status(201).json({
     textbook: toTextbook(textbook),
     message: 'Textbook uploaded. Click Verify Document to parse chapters and build the RAG index.',
+    planType,
+    ragIndexing: hasFeatureAccess(planType, 'rag_indexing'),
   });
 });
 
 /** POST /teacher/textbooks/:id/verify — parse + vector index pipeline (simulated) */
 router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
   const teacherId = req.teacherId!;
+  if (!hasFeatureAccess(req.planType ?? 'teacher_free', 'rag_indexing')) {
+    res.status(402).json({
+      error: 'RAG indexing requires Teacher Pro or an organization plan. Upgrade to verify documents.',
+      planType: req.planType,
+    });
+    return;
+  }
   const textbook = await prisma.textbook.findFirst({
     where: { id: req.params.id, teacherId },
   });

@@ -1,10 +1,16 @@
 import { Router, type Request, type Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { AGE_GROUPS, LOCALES } from '@brightpath/shared';
+import {
+  AGE_GROUPS,
+  LOCALES,
+  DEFAULT_PLAN_FOR_ROLE,
+  type AppRole,
+  type PlanType,
+} from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
-import { signTeacherToken, signToken } from '../lib/jwt.js';
-import { requireAuth, requireTeacher, type AuthRequest } from '../middleware/auth.js';
+import { signPlatformToken, signTeacherToken, signToken } from '../lib/jwt.js';
+import { requireAuth, requireRoles, type AuthRequest } from '../middleware/auth.js';
 import {
   computeAgeUpgrade,
   initialCurriculumFromDob,
@@ -12,11 +18,29 @@ import {
   toParentUser,
 } from '../lib/ageCurriculum.js';
 import { toTeacherUser } from '../lib/teacherSerializers.js';
+import {
+  randomCode,
+  toOrganization,
+  toPlatformUser,
+  uniqueInviteCode,
+} from '../lib/platformSerializers.js';
 
 const router = Router();
 
 const localeSchema = z.enum(['en-IN', 'en-US', 'hi-IN', 'ar-AE', 'ar-KW']);
 const ageGroupSchema = z.enum(AGE_GROUPS);
+const appRoleSchema = z.enum(['org_admin', 'center_admin', 'teacher', 'parent', 'student']);
+const planTypeSchema = z.enum([
+  'free',
+  'teacher_free',
+  'teacher_pro',
+  'tutor_center_pro',
+  'school_enterprise',
+  'family_plan',
+  'parent_free',
+  'student_free',
+  'student_pro',
+]);
 
 const registerSchema = z
   .object({
@@ -24,13 +48,18 @@ const registerSchema = z
     password: z.string().min(8),
     name: z.string().min(1).optional(),
     locale: localeSchema.optional(),
-    role: z.enum(['student', 'teacher']),
+    role: appRoleSchema,
     dateOfBirth: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'dateOfBirth must be YYYY-MM-DD')
       .optional(),
     schoolName: z.string().optional(),
     subjectFocus: z.string().optional(),
+    organizationName: z.string().min(2).optional(),
+    orgType: z.enum(['school', 'tutor_center']).optional(),
+    planType: planTypeSchema.optional(),
+    classCode: z.string().min(4).max(12).optional(),
+    parentCode: z.string().min(4).max(12).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.role === 'student' && !data.dateOfBirth) {
@@ -38,6 +67,13 @@ const registerSchema = z
         code: z.ZodIssueCode.custom,
         message: 'dateOfBirth is required for student signup',
         path: ['dateOfBirth'],
+      });
+    }
+    if ((data.role === 'org_admin' || data.role === 'center_admin') && !data.organizationName) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'organizationName is required',
+        path: ['organizationName'],
       });
     }
   });
@@ -56,97 +92,241 @@ const ageSettingsSchema = z
     message: 'Provide dateOfBirth and/or ageGroup',
   });
 
-async function registerStudentOrTeacher(req: Request, res: Response) {
+async function emailTaken(email: string): Promise<string | null> {
+  if (await prisma.platformUser.findUnique({ where: { email } })) return 'Email already registered';
+  if (await prisma.teacher.findUnique({ where: { email } })) return 'Email already registered';
+  if (await prisma.parent.findUnique({ where: { email } })) return 'Email already registered';
+  return null;
+}
+
+async function registerUnified(req: Request, res: Response) {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.flatten() });
     return;
   }
 
-  const { email, password, name, locale, role, dateOfBirth, schoolName, subjectFocus } = parsed.data;
+  const data = parsed.data;
+  const taken = await emailTaken(data.email);
+  if (taken) {
+    res.status(409).json({ error: taken });
+    return;
+  }
 
-  if (role === 'teacher') {
-    const existingTeacher = await prisma.teacher.findUnique({ where: { email } });
-    if (existingTeacher) {
-      res.status(409).json({ error: 'Email already registered' });
+  const passwordHash = await bcrypt.hash(data.password, 12);
+  const role = data.role as AppRole;
+  let planType = (data.planType ?? DEFAULT_PLAN_FOR_ROLE[role]) as PlanType;
+
+  try {
+    if (role === 'org_admin' || role === 'center_admin') {
+      planType =
+        data.planType ??
+        (role === 'org_admin' ? 'school_enterprise' : 'tutor_center_pro');
+      const orgType = data.orgType ?? (role === 'org_admin' ? 'school' : 'tutor_center');
+
+      const user = await prisma.platformUser.create({
+        data: {
+          email: data.email,
+          passwordHash,
+          name: data.name ?? null,
+          role,
+          planType,
+        },
+      });
+
+      const org = await prisma.organization.create({
+        data: {
+          name: data.organizationName!,
+          type: orgType,
+          planType,
+          maxLicenses: role === 'org_admin' ? 200 : 50,
+          adminUserId: user.id,
+        },
+      });
+
+      const updated = await prisma.platformUser.update({
+        where: { id: user.id },
+        data: { organizationId: org.id },
+      });
+
+      res.status(201).json({
+        token: signPlatformToken({
+          id: updated.id,
+          email: updated.email,
+          role,
+          planType,
+          organizationId: org.id,
+        }),
+        role,
+        planType,
+        organizationId: org.id,
+        user: toPlatformUser(updated),
+        organization: toOrganization(org),
+      });
       return;
     }
-    const existingParent = await prisma.parent.findUnique({ where: { email } });
-    if (existingParent) {
-      res.status(409).json({ error: 'Email already registered as a student account' });
+
+    if (role === 'teacher') {
+      planType = (data.planType ?? 'teacher_free') as PlanType;
+      const teacher = await prisma.teacher.create({
+        data: {
+          email: data.email,
+          passwordHash,
+          name: data.name ?? null,
+          schoolName: data.schoolName ?? null,
+          subjectFocus: data.subjectFocus ?? 'Science',
+          planType,
+        },
+      });
+      const user = await prisma.platformUser.create({
+        data: {
+          email: data.email,
+          passwordHash,
+          name: data.name ?? null,
+          role: 'teacher',
+          planType,
+          teacherId: teacher.id,
+        },
+      });
+      const teacherPublic = toTeacherUser(teacher);
+      res.status(201).json({
+        token: signPlatformToken({
+          id: user.id,
+          email: user.email,
+          role: 'teacher',
+          planType,
+          teacherId: teacher.id,
+        }),
+        role: 'teacher' as const,
+        planType,
+        user: toPlatformUser(user),
+        teacher: teacherPublic,
+      });
       return;
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    const teacher = await prisma.teacher.create({
+    if (role === 'parent') {
+      planType = (data.planType ?? 'parent_free') as PlanType;
+      const parentProfile = await prisma.parent.create({
+        data: {
+          email: data.email,
+          passwordHash,
+          name: data.name ?? null,
+          locale: data.locale ?? 'en-IN',
+        },
+      });
+      const linkCode = await uniqueInviteCode(async (c) =>
+        Boolean(await prisma.platformUser.findUnique({ where: { parentLinkCode: c } })),
+      );
+      const user = await prisma.platformUser.create({
+        data: {
+          email: data.email,
+          passwordHash,
+          name: data.name ?? null,
+          role: 'parent',
+          planType,
+          parentProfileId: parentProfile.id,
+          parentLinkCode: linkCode,
+        },
+      });
+      res.status(201).json({
+        token: signPlatformToken({
+          id: user.id,
+          email: user.email,
+          role: 'parent',
+          planType,
+          parentProfileId: parentProfile.id,
+        }),
+        role: 'parent' as const,
+        planType,
+        user: toPlatformUser(user),
+        parent: toParentUser(parentProfile),
+      });
+      return;
+    }
+
+    // student
+    planType = (data.planType ?? 'student_free') as PlanType;
+    let dob: Date;
+    try {
+      dob = parseDobInput(data.dateOfBirth!);
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Invalid dateOfBirth' });
+      return;
+    }
+    const curriculum = initialCurriculumFromDob(dob);
+    const parentProfile = await prisma.parent.create({
       data: {
-        email,
+        email: data.email,
         passwordHash,
-        name: name ?? null,
-        schoolName: schoolName ?? null,
-        subjectFocus: subjectFocus ?? 'Science',
+        name: data.name ?? null,
+        locale: data.locale ?? 'en-IN',
+        dateOfBirth: dob,
+        calculatedAgeGroup: curriculum.calculatedAgeGroup,
+        unlockedSubjects: curriculum.unlockedSubjects,
       },
     });
-    const user = toTeacherUser(teacher);
-    res.status(201).json({
-      token: signTeacherToken(user),
-      teacher: user,
-      role: 'teacher' as const,
+    const user = await prisma.platformUser.create({
+      data: {
+        email: data.email,
+        passwordHash,
+        name: data.name ?? null,
+        role: 'student',
+        planType,
+        parentProfileId: parentProfile.id,
+      },
     });
-    return;
-  }
 
-  const existing = await prisma.parent.findUnique({ where: { email } });
-  if (existing) {
-    res.status(409).json({ error: 'Email already registered' });
-    return;
-  }
-  const existingTeacher = await prisma.teacher.findUnique({ where: { email } });
-  if (existingTeacher) {
-    res.status(409).json({ error: 'Email already registered as a teacher account' });
-    return;
-  }
+    if (data.parentCode) {
+      const parentUser = await prisma.platformUser.findFirst({
+        where: { parentLinkCode: data.parentCode.toUpperCase(), role: 'parent' },
+      });
+      if (parentUser) {
+        await prisma.studentParentLink.create({
+          data: { parentUserId: parentUser.id, studentUserId: user.id },
+        });
+      }
+    }
 
-  let dob: Date;
-  try {
-    dob = parseDobInput(dateOfBirth!);
+    if (data.classCode) {
+      const batch = await prisma.classBatch.findUnique({
+        where: { inviteCode: data.classCode.toUpperCase() },
+      });
+      if (batch) {
+        await prisma.classEnrollment.create({
+          data: { studentUserId: user.id, classBatchId: batch.id },
+        });
+      }
+    }
+
+    res.status(201).json({
+      token: signPlatformToken({
+        id: user.id,
+        email: user.email,
+        role: 'student',
+        planType,
+        parentProfileId: parentProfile.id,
+      }),
+      role: 'student' as const,
+      planType,
+      user: toPlatformUser(user),
+      parent: toParentUser(parentProfile),
+      curriculum: {
+        upgraded: false,
+        previousGroup: null,
+        newGroup: curriculum.calculatedAgeGroup,
+        unlockedSubjects: curriculum.unlockedSubjects,
+        currentAge: curriculum.age,
+      },
+    });
   } catch (err) {
-    res.status(400).json({ error: err instanceof Error ? err.message : 'Invalid dateOfBirth' });
-    return;
+    console.error('Register failed:', err);
+    res.status(500).json({ error: 'Registration failed' });
   }
-
-  const curriculum = initialCurriculumFromDob(dob);
-  const passwordHash = await bcrypt.hash(password, 12);
-  const parent = await prisma.parent.create({
-    data: {
-      email,
-      passwordHash,
-      name: name ?? null,
-      locale: locale ?? 'en-IN',
-      dateOfBirth: dob,
-      calculatedAgeGroup: curriculum.calculatedAgeGroup,
-      unlockedSubjects: curriculum.unlockedSubjects,
-    },
-  });
-
-  const user = toParentUser(parent);
-  res.status(201).json({
-    token: signToken(user, 'student'),
-    parent: user,
-    role: 'student' as const,
-    curriculum: {
-      upgraded: false,
-      previousGroup: null,
-      newGroup: curriculum.calculatedAgeGroup,
-      unlockedSubjects: curriculum.unlockedSubjects,
-      currentAge: curriculum.age,
-    },
-  });
 }
 
-router.post('/register', registerStudentOrTeacher);
-/** Alias for clients expecting /auth/signup */
-router.post('/signup', registerStudentOrTeacher);
+router.post('/register', registerUnified);
+router.post('/signup', registerUnified);
 
 router.post('/login', async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
@@ -154,8 +334,59 @@ router.post('/login', async (req, res) => {
     res.status(400).json({ error: parsed.error.flatten() });
     return;
   }
-
   const { email, password } = parsed.data;
+
+  const platform = await prisma.platformUser.findUnique({ where: { email } });
+  if (platform && (await bcrypt.compare(password, platform.passwordHash))) {
+    let organization = null;
+    if (platform.organizationId) {
+      organization = await prisma.organization.findUnique({ where: { id: platform.organizationId } });
+    }
+    let teacher = null;
+    if (platform.teacherId) {
+      teacher = await prisma.teacher.findUnique({ where: { id: platform.teacherId } });
+    }
+    let parent = null;
+    if (platform.parentProfileId) {
+      parent = await prisma.parent.findUnique({ where: { id: platform.parentProfileId } });
+    }
+
+    res.json({
+      token: signPlatformToken({
+        id: platform.id,
+        email: platform.email,
+        role: platform.role as AppRole,
+        planType: platform.planType as PlanType,
+        organizationId: platform.organizationId,
+        teacherId: platform.teacherId,
+        parentProfileId: platform.parentProfileId,
+      }),
+      role: platform.role,
+      planType: platform.planType,
+      organizationId: platform.organizationId,
+      user: toPlatformUser(platform),
+      organization: organization ? toOrganization(organization) : null,
+      teacher: teacher ? toTeacherUser(teacher) : undefined,
+      parent: parent ? toParentUser(parent) : undefined,
+    });
+    return;
+  }
+
+  // Legacy teacher fallback
+  const teacher = await prisma.teacher.findUnique({ where: { email } });
+  if (teacher && (await bcrypt.compare(password, teacher.passwordHash))) {
+    const user = toTeacherUser(teacher);
+    res.json({
+      token: signTeacherToken(user),
+      teacher: user,
+      role: 'teacher' as const,
+      planType: teacher.planType,
+      organizationId: teacher.organizationId,
+    });
+    return;
+  }
+
+  // Legacy parent/student fallback
   const parent = await prisma.parent.findUnique({ where: { email } });
   if (!parent || !(await bcrypt.compare(password, parent.passwordHash))) {
     res.status(401).json({ error: 'Invalid email or password' });
@@ -164,14 +395,12 @@ router.post('/login', async (req, res) => {
 
   let updated = parent;
   let curriculumEvent = undefined;
-
   if (parent.dateOfBirth) {
     const result = computeAgeUpgrade({
       dateOfBirth: parent.dateOfBirth,
       calculatedAgeGroup: parent.calculatedAgeGroup,
       unlockedSubjects: parent.unlockedSubjects,
     });
-
     if (
       result.calculatedAgeGroup !== parent.calculatedAgeGroup ||
       result.unlockedSubjects.length !== parent.unlockedSubjects.length ||
@@ -185,15 +414,16 @@ router.post('/login', async (req, res) => {
         },
       });
     }
-
     curriculumEvent = result.event;
   }
 
   const user = toParentUser(updated);
+  const role = parent.dateOfBirth ? ('student' as const) : ('parent' as const);
   res.json({
-    token: signToken(user, 'student'),
+    token: signToken(user, role),
     parent: user,
-    role: 'student' as const,
+    role,
+    planType: role === 'student' ? 'student_free' : 'parent_free',
     curriculum: curriculumEvent,
   });
 });
@@ -206,13 +436,44 @@ router.post('/teacher/login', async (req, res) => {
   }
   const { email, password } = parsed.data;
   try {
+    const platform = await prisma.platformUser.findFirst({
+      where: { email, role: 'teacher' },
+    });
+    if (platform && (await bcrypt.compare(password, platform.passwordHash))) {
+      const teacher = platform.teacherId
+        ? await prisma.teacher.findUnique({ where: { id: platform.teacherId } })
+        : null;
+      if (teacher) {
+        res.json({
+          token: signPlatformToken({
+            id: platform.id,
+            email: platform.email,
+            role: 'teacher',
+            planType: platform.planType as PlanType,
+            teacherId: teacher.id,
+            organizationId: platform.organizationId,
+          }),
+          teacher: toTeacherUser(teacher),
+          role: 'teacher' as const,
+          planType: platform.planType,
+          user: toPlatformUser(platform),
+        });
+        return;
+      }
+    }
+
     const teacher = await prisma.teacher.findUnique({ where: { email } });
     if (!teacher || !(await bcrypt.compare(password, teacher.passwordHash))) {
       res.status(401).json({ error: 'Invalid email or password' });
       return;
     }
     const user = toTeacherUser(teacher);
-    res.json({ token: signTeacherToken(user), teacher: user, role: 'teacher' as const });
+    res.json({
+      token: signTeacherToken(user),
+      teacher: user,
+      role: 'teacher' as const,
+      planType: teacher.planType,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('Teacher login failed:', message);
@@ -228,49 +489,66 @@ router.post('/teacher/login', async (req, res) => {
 });
 
 router.post('/teacher/register', async (req, res) => {
-  const schema = z.object({
-    email: z.string().email(),
-    password: z.string().min(8),
-    name: z.string().min(1).optional(),
-    schoolName: z.string().optional(),
-    subjectFocus: z.string().optional(),
-  });
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
-    return;
-  }
-  const { email, password, name, schoolName, subjectFocus } = parsed.data;
-  const existing = await prisma.teacher.findUnique({ where: { email } });
-  if (existing) {
-    res.status(409).json({ error: 'Teacher already registered' });
-    return;
-  }
-  const passwordHash = await bcrypt.hash(password, 10);
-  const teacher = await prisma.teacher.create({
-    data: { email, passwordHash, name: name ?? null, schoolName: schoolName ?? null, subjectFocus: subjectFocus ?? 'Science' },
-  });
-  const user = toTeacherUser(teacher);
-  res.status(201).json({ token: signTeacherToken(user), teacher: user, role: 'teacher' as const });
+  req.body = { ...req.body, role: 'teacher' };
+  return registerUnified(req, res);
 });
 
-router.get('/teacher/me', requireTeacher, async (req: AuthRequest, res) => {
-  const teacher = await prisma.teacher.findUnique({ where: { id: req.teacherId! } });
+router.get('/teacher/me', requireRoles('teacher'), async (req: AuthRequest, res) => {
+  const teacherId = req.teacherId;
+  if (!teacherId) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  const teacher = await prisma.teacher.findUnique({ where: { id: teacherId } });
   if (!teacher) {
     res.status(404).json({ error: 'Not found' });
     return;
   }
-  res.json({ teacher: toTeacherUser(teacher), role: 'teacher' as const });
+  res.json({
+    teacher: toTeacherUser(teacher),
+    role: 'teacher' as const,
+    planType: teacher.planType,
+    user: req.platformUserId
+      ? toPlatformUser(await prisma.platformUser.findUniqueOrThrow({ where: { id: req.platformUserId } }))
+      : undefined,
+  });
 });
 
 router.get('/me', requireAuth, async (req: AuthRequest, res) => {
+  if (req.platformUserId) {
+    const user = await prisma.platformUser.findUnique({ where: { id: req.platformUserId } });
+    if (!user) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
+    const organization = user.organizationId
+      ? await prisma.organization.findUnique({ where: { id: user.organizationId } })
+      : null;
+    const teacher = user.teacherId
+      ? await prisma.teacher.findUnique({ where: { id: user.teacherId } })
+      : null;
+    const parent = user.parentProfileId
+      ? await prisma.parent.findUnique({ where: { id: user.parentProfileId } })
+      : null;
+    res.json({
+      role: user.role,
+      planType: user.planType,
+      organizationId: user.organizationId,
+      user: toPlatformUser(user),
+      organization: organization ? toOrganization(organization) : null,
+      teacher: teacher ? toTeacherUser(teacher) : undefined,
+      parent: parent ? toParentUser(parent) : undefined,
+    });
+    return;
+  }
+
   if (req.auth?.role === 'teacher' || req.teacherId) {
     const teacher = await prisma.teacher.findUnique({ where: { id: req.teacherId! } });
     if (!teacher) {
       res.status(404).json({ error: 'Not found' });
       return;
     }
-    res.json({ teacher: toTeacherUser(teacher), role: 'teacher' as const });
+    res.json({ teacher: toTeacherUser(teacher), role: 'teacher' as const, planType: teacher.planType });
     return;
   }
 
@@ -280,7 +558,6 @@ router.get('/me', requireAuth, async (req: AuthRequest, res) => {
     return;
   }
 
-  // Soft refresh curriculum on session restore (no celebration unless upgraded)
   if (parent.dateOfBirth) {
     const result = computeAgeUpgrade({
       dateOfBirth: parent.dateOfBirth,
@@ -313,7 +590,6 @@ router.get('/me', requireAuth, async (req: AuthRequest, res) => {
   });
 });
 
-/** Update DOB / age group and refresh unlocked curriculum (keeps prior unlocks). */
 router.patch('/age-settings', requireAuth, async (req: AuthRequest, res) => {
   const parsed = ageSettingsSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -321,7 +597,12 @@ router.patch('/age-settings', requireAuth, async (req: AuthRequest, res) => {
     return;
   }
 
-  const parent = await prisma.parent.findUnique({ where: { id: req.parentId! } });
+  if (!req.parentId) {
+    res.status(403).json({ error: 'Learner profile required' });
+    return;
+  }
+
+  const parent = await prisma.parent.findUnique({ where: { id: req.parentId } });
   if (!parent) {
     res.status(404).json({ error: 'Not found' });
     return;
@@ -372,5 +653,148 @@ router.patch('/age-settings', requireAuth, async (req: AuthRequest, res) => {
 router.get('/locales', (_req, res) => {
   res.json({ locales: LOCALES });
 });
+
+/** Parent link code */
+router.get('/parent/link-code', requireRoles('parent'), async (req: AuthRequest, res) => {
+  if (!req.platformUserId) {
+    res.status(400).json({ error: 'Platform parent account required' });
+    return;
+  }
+  const user = await prisma.platformUser.findUnique({ where: { id: req.platformUserId } });
+  if (!user) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  let code = user.parentLinkCode;
+  if (!code) {
+    code = await uniqueInviteCode(async (c) =>
+      Boolean(await prisma.platformUser.findUnique({ where: { parentLinkCode: c } })),
+    );
+    await prisma.platformUser.update({
+      where: { id: user.id },
+      data: { parentLinkCode: code },
+    });
+  }
+  res.json({ parentLinkCode: code });
+});
+
+router.post('/parent/link-code/rotate', requireRoles('parent'), async (req: AuthRequest, res) => {
+  if (!req.platformUserId) {
+    res.status(400).json({ error: 'Platform parent account required' });
+    return;
+  }
+  const code = await uniqueInviteCode(async (c) =>
+    Boolean(await prisma.platformUser.findUnique({ where: { parentLinkCode: c } })),
+  );
+  const user = await prisma.platformUser.update({
+    where: { id: req.platformUserId },
+    data: { parentLinkCode: code },
+  });
+  res.json({ parentLinkCode: user.parentLinkCode });
+});
+
+router.get('/parent/linked-students', requireRoles('parent'), async (req: AuthRequest, res) => {
+  if (!req.platformUserId) {
+    res.json({ students: [] });
+    return;
+  }
+  const links = await prisma.studentParentLink.findMany({
+    where: { parentUserId: req.platformUserId },
+    include: { studentUser: true },
+  });
+  res.json({
+    students: links.map((l) => ({
+      id: l.studentUser.id,
+      email: l.studentUser.email,
+      name: l.studentUser.name,
+      planType: l.studentUser.planType,
+    })),
+  });
+});
+
+router.post('/student/join-class', requireRoles('student'), async (req: AuthRequest, res) => {
+  const schema = z.object({ classCode: z.string().min(4).max(12) });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+  if (!req.platformUserId) {
+    res.status(400).json({ error: 'Platform student account required' });
+    return;
+  }
+  const batch = await prisma.classBatch.findUnique({
+    where: { inviteCode: parsed.data.classCode.toUpperCase() },
+  });
+  if (!batch) {
+    res.status(404).json({ error: 'Invalid class code' });
+    return;
+  }
+  await prisma.classEnrollment.upsert({
+    where: {
+      studentUserId_classBatchId: {
+        studentUserId: req.platformUserId,
+        classBatchId: batch.id,
+      },
+    },
+    create: { studentUserId: req.platformUserId, classBatchId: batch.id },
+    update: {},
+  });
+  res.json({ ok: true, classBatch: { id: batch.id, name: batch.name, inviteCode: batch.inviteCode } });
+});
+
+router.get('/org/me', requireRoles('org_admin', 'center_admin'), async (req: AuthRequest, res) => {
+  if (!req.organizationId) {
+    res.status(404).json({ error: 'No organization linked' });
+    return;
+  }
+  const org = await prisma.organization.findUnique({ where: { id: req.organizationId } });
+  if (!org) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  const memberCount = await prisma.platformUser.count({ where: { organizationId: org.id } });
+  const batchCount = await prisma.classBatch.count({ where: { organizationId: org.id } });
+  res.json({
+    organization: toOrganization(org),
+    stats: { memberCount, batchCount, maxLicenses: org.maxLicenses },
+  });
+});
+
+router.post('/teacher/batches', requireRoles('teacher'), async (req: AuthRequest, res) => {
+  const schema = z.object({ name: z.string().min(2) });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+  if (!req.teacherId) {
+    res.status(403).json({ error: 'Teacher profile required' });
+    return;
+  }
+  const inviteCode = await uniqueInviteCode(async (c) =>
+    Boolean(await prisma.classBatch.findUnique({ where: { inviteCode: c } })),
+  );
+  const batch = await prisma.classBatch.create({
+    data: {
+      name: parsed.data.name,
+      teacherId: req.teacherId,
+      organizationId: req.organizationId ?? null,
+      inviteCode,
+    },
+  });
+  res.status(201).json({
+    classBatch: {
+      id: batch.id,
+      name: batch.name,
+      inviteCode: batch.inviteCode,
+      teacherId: batch.teacherId,
+      organizationId: batch.organizationId,
+    },
+  });
+});
+
+// silence unused import if tree-shaken oddly
+void randomCode;
 
 export default router;

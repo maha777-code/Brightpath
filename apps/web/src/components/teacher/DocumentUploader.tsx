@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
 import { FileUp, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import type { Textbook } from '@brightpath/shared';
+import { getPlanLimits, maxPdfBytes } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 interface DocumentUploaderProps {
   textbook: Textbook | null;
@@ -10,24 +12,29 @@ interface DocumentUploaderProps {
 }
 
 const ACCENT = '#5B46BA';
-const MAX_PDF_BYTES = 80 * 1024 * 1024;
-const MAX_PDF_ERROR = 'File size exceeds the 80 MB limit. Please select a smaller PDF.';
 
 export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentUploaderProps) {
+  const { planType } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState<'upload' | 'verify' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState('NCERT Science Class 9');
 
+  const limits = getPlanLimits(planType ?? 'teacher_free');
+  const maxBytes = maxPdfBytes(planType ?? 'teacher_free');
+  const maxMb = limits.pdfUploadMb;
+  const maxCountLabel = limits.pdfUploadCount === null ? 'Unlimited' : String(limits.pdfUploadCount);
+
   const uploadFile = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
       setError('Please upload a PDF textbook.');
       return;
     }
-    // Client-side gate before any network upload (80 MB raw file).
-    if (file.size > MAX_PDF_BYTES) {
-      setError(MAX_PDF_ERROR);
+    if (file.size > maxBytes) {
+      setError(
+        `File size exceeds the ${maxMb} MB limit for your plan. Please select a smaller PDF or upgrade.`,
+      );
       return;
     }
     setError(null);
@@ -42,12 +49,7 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
       });
       onUploaded(res.textbook);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Upload failed';
-      if (/payload too large|request entity too large|413|file too large|limit/i.test(msg)) {
-        setError(MAX_PDF_ERROR);
-      } else {
-        setError(msg);
-      }
+      setError(e instanceof Error ? e.message : 'Upload failed');
     } finally {
       setBusy(null);
     }
@@ -80,6 +82,10 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
         <div>
           <h2 className="text-lg font-extrabold text-slate-800">Textbook / Curriculum</h2>
           <p className="text-sm text-slate-500">Upload a state textbook PDF, then verify for RAG indexing.</p>
+          <p className="mt-1 text-xs font-semibold text-slate-400">
+            Plan limit: {maxMb} MB · {maxCountLabel} PDF{limits.pdfUploadCount === 1 ? '' : 's'}
+            {limits.pdfUploadCount === 1 ? ' · Upgrade for unlimited' : ''}
+          </p>
         </div>
         {textbook?.status === 'INDEXED' && (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200">
@@ -112,7 +118,7 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
       >
         <FileUp className="mb-2 h-8 w-8" style={{ color: ACCENT }} />
         <p className="text-sm font-bold text-slate-700">Upload State Textbook (PDF)</p>
-        <p className="mt-1 text-xs text-slate-500">Drag & drop or click to browse · Max 80 MB</p>
+        <p className="mt-1 text-xs text-slate-500">Drag & drop or click · Max {maxMb} MB</p>
         <input
           ref={inputRef}
           type="file"

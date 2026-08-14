@@ -23,6 +23,8 @@ export function toTeacherUser(t: DbTeacher): TeacherUser {
     subjectFocus: t.subjectFocus,
     createdAt: t.createdAt.toISOString(),
     role: 'teacher',
+    planType: t.planType as TeacherUser['planType'],
+    organizationId: t.organizationId,
   };
 }
 

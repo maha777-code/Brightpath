@@ -1,13 +1,13 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-import { isLearnerRole } from '@/lib/api';
+import { isLearnerRole, isParentPortalRole } from '@/lib/api';
+import { homePathForRole, isAppRole, type AppRole } from '@brightpath/shared';
 import Home from '@/pages/Home';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ParentHome from '@/pages/ParentHome';
 import AddChild from '@/pages/AddChild';
-import Dashboard from '@/pages/Dashboard';
 import AiTutorPage from '@/pages/AiTutorPage';
 import SubjectsLibraryPage from '@/pages/SubjectsLibraryPage';
 import DashboardSectionRedirect from '@/pages/DashboardSectionRedirect';
@@ -18,11 +18,33 @@ import SubjectCurriculumPage from '@/pages/SubjectCurriculumPage';
 import VideoLessonPage from '@/pages/VideoLessonPage';
 import ChapterTestPage from '@/pages/ChapterTestPage';
 import TeacherDashboard from '@/pages/TeacherDashboard';
+import SchoolDashboard from '@/pages/SchoolDashboard';
+import CenterDashboard from '@/pages/CenterDashboard';
+import ParentPortalDashboard from '@/pages/ParentPortalDashboard';
+import StudentDashboard from '@/pages/StudentDashboard';
 
-function ProtectedParent({ children }: { children: React.ReactNode }) {
+function RequireRole({
+  roles,
+  children,
+}: {
+  roles: AppRole[];
+  children: React.ReactNode;
+}) {
+  const { role, loading, homePath } = useAuth();
+  if (loading) return <div className="app-loading"><div className="loader" /></div>;
+  if (!role || !isAppRole(role) || !roles.includes(role)) {
+    return <Navigate to={homePath === '/login' ? '/login' : homePath} replace />;
+  }
+  return <>{children}</>;
+}
+
+function ProtectedStudent({ children }: { children: React.ReactNode }) {
   const { parent, role, loading } = useAuth();
   if (loading) return <div className="app-loading"><div className="loader" /></div>;
   if (role === 'teacher') return <Navigate to="/teacher/dashboard" replace />;
+  if (role === 'org_admin') return <Navigate to="/admin/school-dashboard" replace />;
+  if (role === 'center_admin') return <Navigate to="/admin/center-dashboard" replace />;
+  if (isParentPortalRole(role)) return <Navigate to="/parent/dashboard" replace />;
   if (!parent || !isLearnerRole(role)) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
@@ -44,9 +66,10 @@ function ProtectedLearner({ children }: { children: React.ReactNode }) {
 }
 
 function LoginGate() {
-  const { parent, teacher, role } = useAuth();
-  if (role === 'teacher' && teacher) return <Navigate to="/teacher/dashboard" replace />;
-  if (parent && isLearnerRole(role)) return <Navigate to="/dashboard" replace />;
+  const { role, parent, teacher, user } = useAuth();
+  if (role && isAppRole(role) && (user || parent || teacher)) {
+    return <Navigate to={homePathForRole(role)} replace />;
+  }
   return <Login />;
 }
 
@@ -67,26 +90,60 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginGate />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/parent" element={<ProtectedParent><ParentHome /></ProtectedParent>} />
-        <Route path="/parent/children/new" element={<ProtectedParent><AddChild /></ProtectedParent>} />
+
+        <Route
+          path="/admin/school-dashboard"
+          element={
+            <RequireRole roles={['org_admin']}>
+              <SchoolDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/center-dashboard"
+          element={
+            <RequireRole roles={['center_admin']}>
+              <CenterDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/parent/dashboard"
+          element={
+            <RequireRole roles={['parent']}>
+              <ParentPortalDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/student/dashboard"
+          element={
+            <ProtectedStudent>
+              <StudentDashboard />
+            </ProtectedStudent>
+          }
+        />
+
+        <Route path="/parent" element={<ProtectedStudent><ParentHome /></ProtectedStudent>} />
+        <Route path="/parent/children/new" element={<ProtectedStudent><AddChild /></ProtectedStudent>} />
         <Route path="/onboarding" element={<Navigate to="/parent" replace />} />
-        <Route path="/dashboard" element={<ProtectedParent><Dashboard /></ProtectedParent>} />
-        <Route path="/dashboard/ai-tutor" element={<ProtectedParent><AiTutorPage /></ProtectedParent>} />
+        <Route path="/dashboard" element={<Navigate to="/student/dashboard" replace />} />
+        <Route path="/dashboard/ai-tutor" element={<ProtectedStudent><AiTutorPage /></ProtectedStudent>} />
         <Route
           path="/dashboard/learning-path"
-          element={<ProtectedParent><DashboardSectionRedirect hash="path" /></ProtectedParent>}
+          element={<ProtectedStudent><DashboardSectionRedirect hash="path" /></ProtectedStudent>}
         />
         <Route
           path="/dashboard/analytics"
-          element={<ProtectedParent><DashboardSectionRedirect hash="analytics" /></ProtectedParent>}
+          element={<ProtectedStudent><DashboardSectionRedirect hash="analytics" /></ProtectedStudent>}
         />
-        <Route path="/dashboard/subjects" element={<ProtectedParent><SubjectsLibraryPage /></ProtectedParent>} />
-        <Route path="/dashboard/subjects/:subjectId" element={<ProtectedParent><SubjectCurriculumPage /></ProtectedParent>} />
-        <Route path="/dashboard/subjects/:subjectId/videos/:videoId" element={<ProtectedParent><VideoLessonPage /></ProtectedParent>} />
-        <Route path="/dashboard/chapters/:chapterId/test" element={<ProtectedParent><ChapterTestPage /></ProtectedParent>} />
-        <Route path="/lesson/:nodeId" element={<ProtectedParent><LessonModulePage /></ProtectedParent>} />
+        <Route path="/dashboard/subjects" element={<ProtectedStudent><SubjectsLibraryPage /></ProtectedStudent>} />
+        <Route path="/dashboard/subjects/:subjectId" element={<ProtectedStudent><SubjectCurriculumPage /></ProtectedStudent>} />
+        <Route path="/dashboard/subjects/:subjectId/videos/:videoId" element={<ProtectedStudent><VideoLessonPage /></ProtectedStudent>} />
+        <Route path="/dashboard/chapters/:chapterId/test" element={<ProtectedStudent><ChapterTestPage /></ProtectedStudent>} />
+        <Route path="/lesson/:nodeId" element={<ProtectedStudent><LessonModulePage /></ProtectedStudent>} />
         <Route path="/learn/:subject" element={<ProtectedLearner><TutorSession /></ProtectedLearner>} />
-        <Route path="/progress" element={<ProtectedParent><Progress /></ProtectedParent>} />
+        <Route path="/progress" element={<ProtectedStudent><Progress /></ProtectedStudent>} />
         <Route path="/teacher/dashboard" element={<ProtectedTeacher><TeacherDashboard /></ProtectedTeacher>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

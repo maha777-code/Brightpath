@@ -98,6 +98,9 @@ import type {
   TeacherSubtopic,
   TeacherChapter,
   UserRole,
+  PlanType,
+  PlatformUserPublic,
+  OrganizationPublic,
 } from '@brightpath/shared';
 
 export const api = {
@@ -112,8 +115,48 @@ export const api = {
       parent?: ParentUser;
       teacher?: TeacherUser;
       role?: UserRole;
+      planType?: PlanType;
+      organizationId?: string | null;
+      user?: PlatformUserPublic;
+      organization?: OrganizationPublic | null;
       curriculum?: CurriculumUpgradeEvent;
     }>('/auth/me'),
+
+  orgMe: () =>
+    request<{
+      organization: OrganizationPublic;
+      stats: { memberCount: number; batchCount: number; maxLicenses: number };
+    }>('/auth/org/me'),
+
+  parentLinkCode: () => request<{ parentLinkCode: string }>('/auth/parent/link-code'),
+
+  rotateParentLinkCode: () =>
+    request<{ parentLinkCode: string }>('/auth/parent/link-code/rotate', {
+      method: 'POST',
+      body: '{}',
+    }),
+
+  linkedStudents: () =>
+    request<{
+      students: { id: string; email: string; name: string | null; planType: string }[];
+    }>('/auth/parent/linked-students'),
+
+  joinClass: (classCode: string) =>
+    request<{ ok: boolean; classBatch: { id: string; name: string; inviteCode: string } }>(
+      '/auth/student/join-class',
+      { method: 'POST', body: JSON.stringify({ classCode }) },
+    ),
+
+  createBatch: (name: string) =>
+    request<{
+      classBatch: {
+        id: string;
+        name: string;
+        inviteCode: string;
+        teacherId: string;
+        organizationId: string | null;
+      };
+    }>('/auth/teacher/batches', { method: 'POST', body: JSON.stringify({ name }) }),
 
   updateAgeSettings: (body: UpdateAgeSettingsRequest) =>
     request<{ parent: ParentUser; curriculum: CurriculumUpgradeEvent }>('/auth/age-settings', {
@@ -285,22 +328,50 @@ export const api = {
   },
 };
 
+export function saveSession(input: {
+  token: string;
+  role: UserRole;
+  planType?: PlanType | null;
+  parent?: ParentUser | null;
+  teacher?: TeacherUser | null;
+  user?: PlatformUserPublic | null;
+  organization?: OrganizationPublic | null;
+}) {
+  localStorage.setItem('brightpath_token', input.token);
+  localStorage.setItem('brightpath_role', input.role);
+  if (input.planType) localStorage.setItem('brightpath_plan', input.planType);
+  else localStorage.removeItem('brightpath_plan');
+
+  if (input.parent) localStorage.setItem('brightpath_parent', JSON.stringify(input.parent));
+  else localStorage.removeItem('brightpath_parent');
+
+  if (input.teacher) localStorage.setItem('brightpath_teacher', JSON.stringify(input.teacher));
+  else localStorage.removeItem('brightpath_teacher');
+
+  if (input.user) localStorage.setItem('brightpath_user', JSON.stringify(input.user));
+  else localStorage.removeItem('brightpath_user');
+
+  if (input.organization) {
+    localStorage.setItem('brightpath_org', JSON.stringify(input.organization));
+  } else localStorage.removeItem('brightpath_org');
+}
+
+/** @deprecated prefer saveSession */
 export function saveAuth(
   token: string,
   parent: ParentUser,
   role: Extract<UserRole, 'parent' | 'student'> = 'student',
 ) {
-  localStorage.setItem('brightpath_token', token);
-  localStorage.setItem('brightpath_parent', JSON.stringify(parent));
-  localStorage.setItem('brightpath_role', role);
-  localStorage.removeItem('brightpath_teacher');
+  saveSession({ token, role, parent, planType: role === 'student' ? 'student_free' : 'parent_free' });
 }
 
 export function saveTeacherAuth(token: string, teacher: TeacherUser) {
-  localStorage.setItem('brightpath_token', token);
-  localStorage.setItem('brightpath_teacher', JSON.stringify(teacher));
-  localStorage.setItem('brightpath_role', 'teacher');
-  localStorage.removeItem('brightpath_parent');
+  saveSession({
+    token,
+    role: 'teacher',
+    teacher,
+    planType: teacher.planType ?? 'teacher_free',
+  });
 }
 
 export function clearAuth() {
@@ -308,15 +379,52 @@ export function clearAuth() {
   localStorage.removeItem('brightpath_parent');
   localStorage.removeItem('brightpath_teacher');
   localStorage.removeItem('brightpath_role');
+  localStorage.removeItem('brightpath_plan');
+  localStorage.removeItem('brightpath_user');
+  localStorage.removeItem('brightpath_org');
 }
+
+const ALL_ROLES: UserRole[] = [
+  'org_admin',
+  'center_admin',
+  'teacher',
+  'parent',
+  'student',
+];
 
 export function loadStoredRole(): UserRole | null {
   const role = localStorage.getItem('brightpath_role');
-  return role === 'teacher' || role === 'parent' || role === 'student' ? role : null;
+  return role && ALL_ROLES.includes(role as UserRole) ? (role as UserRole) : null;
+}
+
+export function loadStoredPlanType(): PlanType | null {
+  return (localStorage.getItem('brightpath_plan') as PlanType | null) ?? null;
+}
+
+export function loadStoredUser(): PlatformUserPublic | null {
+  try {
+    const raw = localStorage.getItem('brightpath_user');
+    return raw ? (JSON.parse(raw) as PlatformUserPublic) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function loadStoredOrganization(): OrganizationPublic | null {
+  try {
+    const raw = localStorage.getItem('brightpath_org');
+    return raw ? (JSON.parse(raw) as OrganizationPublic) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function isLearnerRole(role: UserRole | null | undefined): boolean {
-  return role === 'parent' || role === 'student';
+  return role === 'student';
+}
+
+export function isParentPortalRole(role: UserRole | null | undefined): boolean {
+  return role === 'parent';
 }
 
 export function loadStoredTeacher(): TeacherUser | null {

@@ -44,6 +44,7 @@ model Parent {
   videoProgress          UserVideoProgress[]
   quizResults            UserQuizResult[]
   chapterProgress        UserChapterProgress[]
+  platformUsers          PlatformUser[]
 }
 
 model Child {
@@ -285,17 +286,49 @@ enum DoubtStatus {
   REJECTED
 }
 
+enum OrgType {
+  school
+  tutor_center
+}
+
+enum AppRole {
+  org_admin
+  center_admin
+  teacher
+  parent
+  student
+}
+
+enum PlanType {
+  free
+  teacher_free
+  teacher_pro
+  tutor_center_pro
+  school_enterprise
+  family_plan
+  parent_free
+  student_free
+  student_pro
+}
+
 model Teacher {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  passwordHash String
-  name         String?
-  schoolName   String?
-  subjectFocus String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  textbooks    Textbook[]
-  doubts       StudentDoubt[]
+  id             String        @id @default(cuid())
+  email          String        @unique
+  passwordHash   String
+  name           String?
+  schoolName     String?
+  subjectFocus   String?
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  planType       PlanType      @default(teacher_free)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  textbooks      Textbook[]
+  doubts         StudentDoubt[]
+  classBatches   ClassBatch[]
+  platformUsers  PlatformUser[]
+
+  @@index([organizationId])
 }
 
 model Textbook {
@@ -378,4 +411,93 @@ model StudentDoubt {
 
   @@index([teacherId, status])
   @@index([chapterId])
+}
+
+// ─── Multi-tenant SaaS identity ──────────────────────────────────────
+
+model Organization {
+  id           String         @id @default(cuid())
+  name         String
+  type         OrgType
+  logoUrl      String?
+  planType     PlanType
+  maxLicenses  Int            @default(50)
+  adminUserId  String?        @unique
+  adminUser    PlatformUser?  @relation("OrgAdmin", fields: [adminUserId], references: [id], onDelete: SetNull)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  members      PlatformUser[] @relation("OrgMembers")
+  teachers     Teacher[]
+  classBatches ClassBatch[]
+}
+
+model PlatformUser {
+  id               String         @id @default(cuid())
+  email            String         @unique
+  passwordHash     String
+  name             String?
+  role             AppRole
+  planType         PlanType       @default(free)
+  organizationId   String?
+  organization     Organization?  @relation("OrgMembers", fields: [organizationId], references: [id], onDelete: SetNull)
+  adminOfOrg       Organization?  @relation("OrgAdmin")
+  teacherId        String?
+  teacher          Teacher?       @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  parentProfileId  String?
+  parentProfile    Parent?        @relation(fields: [parentProfileId], references: [id], onDelete: SetNull)
+  parentLinkCode   String?        @unique
+  aiDoubtsUsedToday Int           @default(0)
+  aiDoubtsResetAt  DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  parentLinksAsParent  StudentParentLink[] @relation("ParentLinks")
+  parentLinksAsStudent StudentParentLink[] @relation("StudentLinks")
+  enrollments      ClassEnrollment[]
+
+  @@index([organizationId])
+  @@index([role])
+  @@index([teacherId])
+  @@index([parentProfileId])
+}
+
+model ClassBatch {
+  id             String            @id @default(cuid())
+  organizationId String?
+  organization   Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  teacherId      String
+  teacher        Teacher           @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  name           String
+  inviteCode     String            @unique
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  enrollments    ClassEnrollment[]
+
+  @@index([organizationId])
+  @@index([teacherId])
+}
+
+model StudentParentLink {
+  id            String       @id @default(cuid())
+  parentUserId  String
+  parentUser    PlatformUser @relation("ParentLinks", fields: [parentUserId], references: [id], onDelete: Cascade)
+  studentUserId String
+  studentUser   PlatformUser @relation("StudentLinks", fields: [studentUserId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+
+  @@unique([parentUserId, studentUserId])
+  @@index([parentUserId])
+  @@index([studentUserId])
+}
+
+model ClassEnrollment {
+  id            String       @id @default(cuid())
+  studentUserId String
+  studentUser   PlatformUser @relation(fields: [studentUserId], references: [id], onDelete: Cascade)
+  classBatchId  String
+  classBatch    ClassBatch   @relation(fields: [classBatchId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+
+  @@unique([studentUserId, classBatchId])
+  @@index([studentUserId])
+  @@index([classBatchId])
 }

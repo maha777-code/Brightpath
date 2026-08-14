@@ -13,6 +13,7 @@ export async function ensureDemoTeacher() {
         name: 'Prof. Ananya',
         schoolName: 'Brightpath Academy',
         subjectFocus: 'Science',
+        planType: 'teacher_pro',
       },
       create: {
         email,
@@ -20,6 +21,7 @@ export async function ensureDemoTeacher() {
         name: 'Prof. Ananya',
         schoolName: 'Brightpath Academy',
         subjectFocus: 'Science',
+        planType: 'teacher_pro',
       },
     });
     console.log('Demo teacher ready: teacher@brightpath.ai / teacher123');
