@@ -158,6 +158,88 @@ export const api = {
       };
     }>('/auth/teacher/batches', { method: 'POST', body: JSON.stringify({ name }) }),
 
+  bulkImportUsers: (body: {
+    rows: { name: string; email: string; classGrade?: string; role: 'student' | 'teacher' }[];
+    sendInvites?: boolean;
+  }) =>
+    request<{
+      createdCount: number;
+      skippedCount: number;
+      created: { email: string; role: string; tempPassword: string; inviteSent: boolean }[];
+      skipped: { email: string; reason: string }[];
+    }>('/admin/users/bulk-import', { method: 'POST', body: JSON.stringify(body) }),
+
+  getBranding: () => request<{ organization: OrganizationPublic }>('/org/branding'),
+
+  updateBranding: (body: {
+    name?: string;
+    primaryColor?: string;
+    primaryHoverColor?: string;
+    accentColor?: string;
+  }) =>
+    request<{ organization: OrganizationPublic }>('/org/branding', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  uploadOrgLogo: (file: File) => {
+    const form = new FormData();
+    form.append('logo', file);
+    return requestFormData<{ organization: OrganizationPublic; logoUrl: string }>(
+      '/org/branding/logo',
+      form,
+    );
+  },
+
+  createStripeCheckout: (body: {
+    planType: string;
+    interval: 'monthly' | 'yearly';
+    successUrl?: string;
+    cancelUrl?: string;
+  }) =>
+    request<{ url: string | null; sessionId: string }>('/payments/stripe/create-checkout-session', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  createRazorpayOrder: (body: { planType: string; interval: 'monthly' | 'yearly' }) =>
+    request<{
+      orderId: string;
+      amount: number;
+      currency: string;
+      keyId: string;
+      planType: string;
+      interval: string;
+    }>('/payments/razorpay/create-order', { method: 'POST', body: JSON.stringify(body) }),
+
+  verifyRazorpayPayment: (body: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+    planType: string;
+    interval: 'monthly' | 'yearly';
+  }) =>
+    request<{ ok: boolean; planType: string; subscriptionStatus: string }>(
+      '/payments/razorpay/verify-signature',
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  paymentStatus: () =>
+    request<{
+      scope: string;
+      planType?: string;
+      subscriptionStatus: string;
+      active: boolean;
+      billingInterval?: string | null;
+    }>('/payments/status'),
+
+  doubtAssistant: (q: string) =>
+    request<{
+      query: string;
+      answer: string;
+      sources: { textbookId: string; title: string; excerpt: string; score: number }[];
+    }>(`/ai/doubt-assistant?q=${encodeURIComponent(q)}`),
+
   updateAgeSettings: (body: UpdateAgeSettingsRequest) =>
     request<{ parent: ParentUser; curriculum: CurriculumUpgradeEvent }>('/auth/age-settings', {
       method: 'PATCH',

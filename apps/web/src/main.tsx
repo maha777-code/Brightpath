@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
+import { OrgThemeProvider } from '@/context/OrgThemeProvider';
 import { ProfileProvider } from '@/hooks/useProfile';
 import '@/i18n';
 import App from './App';
@@ -13,9 +14,11 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <ProfileProvider>
-          <App />
-        </ProfileProvider>
+        <OrgThemeProvider>
+          <ProfileProvider>
+            <App />
+          </ProfileProvider>
+        </OrgThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

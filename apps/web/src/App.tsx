@@ -22,6 +22,7 @@ import SchoolDashboard from '@/pages/SchoolDashboard';
 import CenterDashboard from '@/pages/CenterDashboard';
 import ParentPortalDashboard from '@/pages/ParentPortalDashboard';
 import StudentDashboard from '@/pages/StudentDashboard';
+import BrandingSettingsPage from '@/pages/BrandingSettingsPage';
 
 function RequireRole({
   roles,
@@ -90,6 +91,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginGate />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/signup" element={<Navigate to="/register" replace />} />
 
         <Route
           path="/admin/school-dashboard"
@@ -100,12 +102,36 @@ export default function App() {
           }
         />
         <Route
+          path="/admin/school-dashboard/settings"
+          element={
+            <RequireRole roles={['org_admin', 'center_admin']}>
+              <BrandingSettingsPage />
+            </RequireRole>
+          }
+        />
+        <Route
           path="/admin/center-dashboard"
           element={
             <RequireRole roles={['center_admin']}>
               <CenterDashboard />
             </RequireRole>
           }
+        />
+        <Route
+          path="/admin/center-dashboard/settings"
+          element={
+            <RequireRole roles={['center_admin']}>
+              <BrandingSettingsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/billing/success"
+          element={<div className="page"><h1 className="page-title">Payment successful</h1><p className="page-subtitle">Your subscription is active. You can close this tab.</p></div>}
+        />
+        <Route
+          path="/billing/cancel"
+          element={<div className="page"><h1 className="page-title">Payment canceled</h1><p className="page-subtitle">No charges were made.</p></div>}
         />
         <Route
           path="/parent/dashboard"

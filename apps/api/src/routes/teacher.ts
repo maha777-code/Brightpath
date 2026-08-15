@@ -144,9 +144,14 @@ router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, 
   const { title, subject, gradeLabel } = parsed.data;
   const fileName = file.originalname;
 
+  const teacherRow = await prisma.teacher.findUnique({ where: { id: req.teacherId! } });
+  const organizationId = req.organizationId ?? teacherRow?.organizationId ?? null;
+
   const textbook = await prisma.textbook.create({
     data: {
       teacherId: req.teacherId!,
+      organizationId,
+      isGlobal: false,
       title,
       fileName,
       fileSizeBytes: file.size,
@@ -164,6 +169,7 @@ router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, 
     message: 'Textbook uploaded. Click Verify Document to parse chapters and build the RAG index.',
     planType,
     ragIndexing: hasFeatureAccess(planType, 'rag_indexing'),
+    organizationId,
   });
 });
 
@@ -192,10 +198,15 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
 
   // Clear prior structure for re-verify
   await prisma.studentDoubt.deleteMany({ where: { teacherId, chapter: { textbookId: textbook.id } } });
+  await prisma.ragChunk.deleteMany({ where: { textbookId: textbook.id } });
   await prisma.teacherChapter.deleteMany({ where: { textbookId: textbook.id } });
+
+  const teacherRow = await prisma.teacher.findUnique({ where: { id: teacherId } });
+  const organizationId = textbook.organizationId ?? teacherRow?.organizationId ?? req.organizationId ?? null;
 
   // Simulated PDF parse → chapter/subtopic extraction + embedding index
   let chaptersCreated = 0;
+  const ragChunkCreates: { content: string; pageHint: string; sequence: number }[] = [];
   for (let i = 0; i < DEFAULT_SCIENCE_CHAPTERS.length; i++) {
     const ch = DEFAULT_SCIENCE_CHAPTERS[i];
     const created = await prisma.teacherChapter.create({
@@ -224,6 +235,19 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
     });
     chaptersCreated += 1;
 
+    ragChunkCreates.push({
+      content: `${ch.title}. ${ch.summary}. Subtopics: ${ch.subtopics.map((s) => s.title).join(', ')}.`,
+      pageHint: `Chapter ${i + 1}`,
+      sequence: i + 1,
+    });
+    for (const s of created.subtopics) {
+      ragChunkCreates.push({
+        content: `${ch.title} — ${s.code} ${s.title}. ${ch.summary}`,
+        pageHint: `Chapter ${i + 1} / ${s.code}`,
+        sequence: ragChunkCreates.length + 1,
+      });
+    }
+
     // Seed sample doubts on first verify
     for (const sample of DEFAULT_SAMPLE_DOUBTS.filter((d) => d.chapterIndex === i)) {
       const sub = created.subtopics.find((s) => s.code === sample.subtopicCode);
@@ -243,19 +267,29 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
     }
   }
 
+  await prisma.ragChunk.createMany({
+    data: ragChunkCreates.map((c) => ({
+      textbookId: textbook.id,
+      content: c.content,
+      pageHint: c.pageHint,
+      sequence: c.sequence,
+    })),
+  });
+
   const indexed = await prisma.textbook.update({
     where: { id: textbook.id },
     data: {
       status: 'INDEXED',
-      pageCount: 186,
-      indexedChunkCount: chaptersCreated * 42,
+      organizationId,
+      indexedChunkCount: ragChunkCreates.length,
+      pageCount: DEFAULT_SCIENCE_CHAPTERS.length * 12,
     },
   });
 
   res.json({
     textbook: toTextbook(indexed),
     chaptersCreated,
-    message: `Verified & indexed ${chaptersCreated} chapters into the RAG knowledge base.`,
+    message: `Verified & indexed ${chaptersCreated} chapters (${ragChunkCreates.length} RAG chunks) into the shared school library.`,
   });
 });
 

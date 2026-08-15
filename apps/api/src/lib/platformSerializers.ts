@@ -1,18 +1,27 @@
 import type {
-  OrganizationPublic,
-  PlatformUserPublic,
-  ClassBatchPublic,
   AppRole,
-  PlanType,
+  OrganizationPublic,
   OrgType,
+  PlanType,
+  PlatformUserPublic,
 } from '@brightpath/shared';
 import type {
-  ClassBatch as DbBatch,
   Organization as DbOrg,
   PlatformUser as DbUser,
+  ClassBatch as DbBatch,
 } from '@prisma/client';
+import type { ClassBatchPublic } from '@brightpath/shared';
 
-export function toPlatformUser(u: DbUser): PlatformUserPublic {
+export type SubscriptionStatusPublic =
+  | 'active'
+  | 'past_due'
+  | 'canceled'
+  | 'trialing'
+  | 'inactive';
+
+export function toPlatformUser(u: DbUser): PlatformUserPublic & {
+  subscriptionStatus: SubscriptionStatusPublic;
+} {
   return {
     id: u.id,
     email: u.email,
@@ -24,10 +33,17 @@ export function toPlatformUser(u: DbUser): PlatformUserPublic {
     parentProfileId: u.parentProfileId,
     parentLinkCode: u.parentLinkCode,
     createdAt: u.createdAt.toISOString(),
+    subscriptionStatus: (u.subscriptionStatus ?? 'active') as SubscriptionStatusPublic,
   };
 }
 
-export function toOrganization(o: DbOrg): OrganizationPublic {
+export function toOrganization(o: DbOrg): OrganizationPublic & {
+  subscriptionStatus: SubscriptionStatusPublic;
+  primaryColor: string;
+  primaryHoverColor: string;
+  accentColor: string;
+  billingInterval: string | null;
+} {
   return {
     id: o.id,
     name: o.name,
@@ -36,6 +52,11 @@ export function toOrganization(o: DbOrg): OrganizationPublic {
     planType: o.planType as PlanType,
     maxLicenses: o.maxLicenses,
     adminUserId: o.adminUserId,
+    subscriptionStatus: (o.subscriptionStatus ?? 'active') as SubscriptionStatusPublic,
+    primaryColor: o.primaryColor ?? '#5B46BA',
+    primaryHoverColor: o.primaryHoverColor ?? '#4A3799',
+    accentColor: o.accentColor ?? '#0D9488',
+    billingInterval: o.billingInterval ?? null,
   };
 }
 
@@ -66,4 +87,13 @@ export async function uniqueInviteCode(
     if (!(await exists(code))) return code;
   }
   return randomCode(8);
+}
+
+export function randomPassword(length = 10): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#';
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return out;
 }

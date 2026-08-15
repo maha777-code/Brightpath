@@ -311,6 +311,19 @@ enum PlanType {
   student_pro
 }
 
+enum SubscriptionStatus {
+  active
+  past_due
+  canceled
+  trialing
+  inactive
+}
+
+enum BillingInterval {
+  monthly
+  yearly
+}
+
 model Teacher {
   id             String        @id @default(cuid())
   email          String        @unique
@@ -335,6 +348,9 @@ model Textbook {
   id                String         @id @default(cuid())
   teacherId         String
   teacher           Teacher        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  organizationId    String?
+  organization      Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  isGlobal          Boolean        @default(false)
   title             String
   fileName          String
   fileSizeBytes     Int            @default(0)
@@ -347,8 +363,22 @@ model Textbook {
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   chapters          TeacherChapter[]
+  ragChunks         RagChunk[]
 
   @@index([teacherId])
+  @@index([organizationId])
+}
+
+model RagChunk {
+  id         String   @id @default(cuid())
+  textbookId String
+  textbook   Textbook @relation(fields: [textbookId], references: [id], onDelete: Cascade)
+  content    String
+  pageHint   String?
+  sequence   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([textbookId])
 }
 
 model TeacherChapter {
@@ -416,43 +446,59 @@ model StudentDoubt {
 // ─── Multi-tenant SaaS identity ──────────────────────────────────────
 
 model Organization {
-  id           String         @id @default(cuid())
-  name         String
-  type         OrgType
-  logoUrl      String?
-  planType     PlanType
-  maxLicenses  Int            @default(50)
-  adminUserId  String?        @unique
-  adminUser    PlatformUser?  @relation("OrgAdmin", fields: [adminUserId], references: [id], onDelete: SetNull)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  members      PlatformUser[] @relation("OrgMembers")
-  teachers     Teacher[]
-  classBatches ClassBatch[]
+  id                     String             @id @default(cuid())
+  name                   String
+  type                   OrgType
+  logoUrl                String?
+  planType               PlanType
+  maxLicenses            Int                @default(50)
+  adminUserId            String?            @unique
+  adminUser              PlatformUser?      @relation("OrgAdmin", fields: [adminUserId], references: [id], onDelete: SetNull)
+  subscriptionStatus     SubscriptionStatus @default(active)
+  billingInterval        BillingInterval?
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?
+  razorpayCustomerId     String?
+  razorpaySubscriptionId String?
+  primaryColor           String             @default("#5B46BA")
+  primaryHoverColor      String             @default("#4A3799")
+  accentColor            String             @default("#0D9488")
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  members                PlatformUser[]     @relation("OrgMembers")
+  teachers               Teacher[]
+  classBatches           ClassBatch[]
+  textbooks              Textbook[]
 }
 
 model PlatformUser {
-  id               String         @id @default(cuid())
-  email            String         @unique
-  passwordHash     String
-  name             String?
-  role             AppRole
-  planType         PlanType       @default(free)
-  organizationId   String?
-  organization     Organization?  @relation("OrgMembers", fields: [organizationId], references: [id], onDelete: SetNull)
-  adminOfOrg       Organization?  @relation("OrgAdmin")
-  teacherId        String?
-  teacher          Teacher?       @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  parentProfileId  String?
-  parentProfile    Parent?        @relation(fields: [parentProfileId], references: [id], onDelete: SetNull)
-  parentLinkCode   String?        @unique
-  aiDoubtsUsedToday Int           @default(0)
-  aiDoubtsResetAt  DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  parentLinksAsParent  StudentParentLink[] @relation("ParentLinks")
-  parentLinksAsStudent StudentParentLink[] @relation("StudentLinks")
-  enrollments      ClassEnrollment[]
+  id                     String             @id @default(cuid())
+  email                  String             @unique
+  passwordHash           String
+  name                   String?
+  role                   AppRole
+  planType               PlanType           @default(free)
+  organizationId         String?
+  organization           Organization?      @relation("OrgMembers", fields: [organizationId], references: [id], onDelete: SetNull)
+  adminOfOrg             Organization?      @relation("OrgAdmin")
+  teacherId              String?
+  teacher                Teacher?           @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  parentProfileId        String?
+  parentProfile          Parent?            @relation(fields: [parentProfileId], references: [id], onDelete: SetNull)
+  parentLinkCode         String?            @unique
+  aiDoubtsUsedToday      Int                @default(0)
+  aiDoubtsResetAt        DateTime?
+  subscriptionStatus     SubscriptionStatus @default(active)
+  billingInterval        BillingInterval?
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?
+  razorpayCustomerId     String?
+  razorpaySubscriptionId String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  parentLinksAsParent    StudentParentLink[] @relation("ParentLinks")
+  parentLinksAsStudent   StudentParentLink[] @relation("StudentLinks")
+  enrollments            ClassEnrollment[]
 
   @@index([organizationId])
   @@index([role])

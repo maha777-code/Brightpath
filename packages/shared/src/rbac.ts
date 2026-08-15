@@ -190,6 +190,7 @@ export interface PlatformUserPublic {
   parentProfileId: string | null;
   parentLinkCode: string | null;
   createdAt: string;
+  subscriptionStatus?: 'active' | 'past_due' | 'canceled' | 'trialing' | 'inactive';
 }
 
 export interface OrganizationPublic {
@@ -200,6 +201,50 @@ export interface OrganizationPublic {
   planType: PlanType;
   maxLicenses: number;
   adminUserId: string | null;
+  subscriptionStatus?: 'active' | 'past_due' | 'canceled' | 'trialing' | 'inactive';
+  primaryColor?: string;
+  primaryHoverColor?: string;
+  accentColor?: string;
+  billingInterval?: string | null;
+}
+
+export const STRIPE_PLAN_PRICES: Record<
+  string,
+  { monthlyEnv: string; yearlyEnv: string; label: string }
+> = {
+  teacher_pro: {
+    monthlyEnv: 'STRIPE_PRICE_TEACHER_PRO_MONTHLY',
+    yearlyEnv: 'STRIPE_PRICE_TEACHER_PRO_YEARLY',
+    label: 'Teacher Pro',
+  },
+  tutor_center_pro: {
+    monthlyEnv: 'STRIPE_PRICE_CENTER_PRO_MONTHLY',
+    yearlyEnv: 'STRIPE_PRICE_CENTER_PRO_YEARLY',
+    label: 'Tutor Center Pro',
+  },
+  family_plan: {
+    monthlyEnv: 'STRIPE_PRICE_FAMILY_MONTHLY',
+    yearlyEnv: 'STRIPE_PRICE_FAMILY_YEARLY',
+    label: 'Family Plan',
+  },
+  school_enterprise: {
+    monthlyEnv: 'STRIPE_PRICE_SCHOOL_MONTHLY',
+    yearlyEnv: 'STRIPE_PRICE_SCHOOL_YEARLY',
+    label: 'School Enterprise',
+  },
+};
+
+export const RAZORPAY_PLAN_AMOUNTS_INR: Record<string, { monthly: number; yearly: number }> = {
+  teacher_pro: { monthly: 49900, yearly: 499000 },
+  tutor_center_pro: { monthly: 249900, yearly: 2499000 },
+  family_plan: { monthly: 79900, yearly: 799000 },
+  school_enterprise: { monthly: 999900, yearly: 9999000 },
+};
+
+export function isSubscriptionActive(
+  status: string | null | undefined,
+): boolean {
+  return status === 'active' || status === 'trialing' || !status;
 }
 
 export interface ClassBatchPublic {

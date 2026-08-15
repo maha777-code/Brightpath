@@ -68,7 +68,7 @@ export default function Login() {
         </button>
       </form>
       <p style={{ textAlign: 'center', marginTop: 20, fontSize: '0.9rem' }}>
-        {t('auth.noAccount')} <Link to="/register">{t('auth.register')}</Link>
+        {t('auth.noAccount')} <Link to="/register">Create Account</Link>
       </p>
     </div>
   );

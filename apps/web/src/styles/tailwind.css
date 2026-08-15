@@ -2,7 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --primary-color: #5b46ba;
+  --primary-hover: #4a3799;
+  --accent-color: #0d9488;
+}
+
 /* Dashboard layout helpers (Tailwind-first app shell) */
 .bp-dash {
   font-family: Inter, system-ui, sans-serif;
 }
+
+.btn-primary,
+.bg-brand-primary {
+  background-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+

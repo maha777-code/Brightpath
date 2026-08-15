@@ -1,26 +1,31 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Load root .env, then apps/api/.env (Prisma uses the latter)
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
-
 import express from 'express';
 import cors from 'cors';
 import { createClient } from 'redis';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
 import authRoutes from './routes/auth.js';
 import childrenRoutes from './routes/children.js';
 import tutorRoutes from './routes/tutor.js';
 import userRoutes from './routes/user.js';
 import curriculumRoutes from './routes/curriculum.js';
 import teacherRoutes from './routes/teacher.js';
+import paymentsRoutes, { handleStripeWebhook } from './routes/payments.js';
+import adminRoutes from './routes/admin.js';
+import orgBrandingRoutes from './routes/orgBranding.js';
+import aiRoutes from './routes/ai.js';
 import { ensureDemoTeacher } from './lib/ensureDemoTeacher.js';
+import { migrateLegacyUsers } from './scripts/migrateLegacyUsers.js';
+import type { AuthRequest } from './middleware/auth.js';
 
 const PORT = Number(process.env.API_PORT ?? 3001);
-
 const app = express();
+
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN
@@ -35,9 +40,20 @@ app.use(
     credentials: true,
   }),
 );
-// JSON/urlencoded stay generous for other routes; textbook PDFs use multipart (multer 80 MB).
+
+/** Stripe requires raw body for signature verification */
+app.post(
+  '/payments/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  (req, res) => void handleStripeWebhook(req as AuthRequest, res),
+);
+
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
+app.use(
+  '/uploads',
+  express.static(path.resolve(__dirname, '../uploads'), { maxAge: '7d' }),
+);
 
 app.get('/health', (_req, res) => {
   const llm = Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);
@@ -55,8 +71,11 @@ app.use('/tutor', tutorRoutes);
 app.use('/user', userRoutes);
 app.use('/curriculum', curriculumRoutes);
 app.use('/teacher', teacherRoutes);
+app.use('/payments', paymentsRoutes);
+app.use('/admin', adminRoutes);
+app.use('/org', orgBrandingRoutes);
+app.use('/ai', aiRoutes);
 
-/** Graceful JSON for oversized payloads (express / body-parser 413). */
 app.use(
   (
     err: { type?: string; status?: number; statusCode?: number; message?: string },
@@ -84,8 +103,15 @@ async function start() {
       console.log('Redis connected');
       await redis.disconnect();
     } catch (err) {
-      console.warn('Redis unavailable (optional in Phase 0):', err);
+      console.warn('Redis unavailable (optional):', err);
     }
+  }
+
+  try {
+    const migrated = await migrateLegacyUsers();
+    console.log('Legacy → PlatformUser migration:', migrated);
+  } catch (err) {
+    console.warn('Legacy migration skipped/failed (run prisma db push first):', err);
   }
 
   await ensureDemoTeacher();

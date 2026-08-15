@@ -384,6 +384,8 @@ export {
   DEFAULT_PLAN_FOR_ROLE,
   HOME_PATH_FOR_ROLE,
   PLAN_LIMITS,
+  STRIPE_PLAN_PRICES,
+  RAZORPAY_PLAN_AMOUNTS_INR,
   homePathForRole,
   isAppRole,
   toAppRole,
@@ -391,4 +393,5 @@ export {
   hasFeatureAccess,
   maxPdfBytes,
   maxPdfCount,
+  isSubscriptionActive,
 } from './rbac.js';

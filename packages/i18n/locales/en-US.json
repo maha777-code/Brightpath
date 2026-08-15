@@ -5,7 +5,7 @@
   },
   "auth": {
     "login": "Log in",
-    "register": "Create parent account",
+    "register": "Create Account",
     "logout": "Log out",
     "email": "Email",
     "password": "Password",

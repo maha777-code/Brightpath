@@ -9,7 +9,7 @@ import {
   type PlanType,
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
-import { signPlatformToken, signTeacherToken, signToken } from '../lib/jwt.js';
+import { signPlatformToken } from '../lib/jwt.js';
 import { requireAuth, requireRoles, type AuthRequest } from '../middleware/auth.js';
 import {
   computeAgeUpgrade,
@@ -336,8 +336,28 @@ router.post('/login', async (req, res) => {
   }
   const { email, password } = parsed.data;
 
-  const platform = await prisma.platformUser.findUnique({ where: { email } });
-  if (platform && (await bcrypt.compare(password, platform.passwordHash))) {
+  try {
+    let platform = await prisma.platformUser.findUnique({ where: { email } });
+
+    // Auto-heal: if legacy Teacher/Parent exists but PlatformUser missing, migrate once
+    if (!platform) {
+      try {
+        const { migrateLegacyUsers } = await import('../scripts/migrateLegacyUsers.js');
+        await migrateLegacyUsers();
+        platform = await prisma.platformUser.findUnique({ where: { email } });
+      } catch (migErr) {
+        console.error('On-demand legacy migration failed:', migErr);
+      }
+    }
+
+    if (!platform || !(await bcrypt.compare(password, platform.passwordHash))) {
+      res.status(401).json({ error: 'Invalid email or password' });
+      return;
+    }
+
+    const userRole = (platform.role || 'teacher') as AppRole;
+    const planType = (platform.planType || 'free') as PlanType;
+
     let organization = null;
     if (platform.organizationId) {
       organization = await prisma.organization.findUnique({ where: { id: platform.organizationId } });
@@ -355,77 +375,33 @@ router.post('/login', async (req, res) => {
       token: signPlatformToken({
         id: platform.id,
         email: platform.email,
-        role: platform.role as AppRole,
-        planType: platform.planType as PlanType,
+        role: userRole,
+        planType,
         organizationId: platform.organizationId,
         teacherId: platform.teacherId,
         parentProfileId: platform.parentProfileId,
       }),
-      role: platform.role,
-      planType: platform.planType,
+      role: userRole,
+      planType,
       organizationId: platform.organizationId,
-      user: toPlatformUser(platform),
+      user: toPlatformUser({ ...platform, role: userRole, planType }),
       organization: organization ? toOrganization(organization) : null,
       teacher: teacher ? toTeacherUser(teacher) : undefined,
       parent: parent ? toParentUser(parent) : undefined,
+      subscriptionStatus: platform.subscriptionStatus ?? 'active',
     });
-    return;
-  }
-
-  // Legacy teacher fallback
-  const teacher = await prisma.teacher.findUnique({ where: { email } });
-  if (teacher && (await bcrypt.compare(password, teacher.passwordHash))) {
-    const user = toTeacherUser(teacher);
-    res.json({
-      token: signTeacherToken(user),
-      teacher: user,
-      role: 'teacher' as const,
-      planType: teacher.planType,
-      organizationId: teacher.organizationId,
-    });
-    return;
-  }
-
-  // Legacy parent/student fallback
-  const parent = await prisma.parent.findUnique({ where: { email } });
-  if (!parent || !(await bcrypt.compare(password, parent.passwordHash))) {
-    res.status(401).json({ error: 'Invalid email or password' });
-    return;
-  }
-
-  let updated = parent;
-  let curriculumEvent = undefined;
-  if (parent.dateOfBirth) {
-    const result = computeAgeUpgrade({
-      dateOfBirth: parent.dateOfBirth,
-      calculatedAgeGroup: parent.calculatedAgeGroup,
-      unlockedSubjects: parent.unlockedSubjects,
-    });
-    if (
-      result.calculatedAgeGroup !== parent.calculatedAgeGroup ||
-      result.unlockedSubjects.length !== parent.unlockedSubjects.length ||
-      result.unlockedSubjects.some((s) => !parent.unlockedSubjects.includes(s))
-    ) {
-      updated = await prisma.parent.update({
-        where: { id: parent.id },
-        data: {
-          calculatedAgeGroup: result.calculatedAgeGroup,
-          unlockedSubjects: result.unlockedSubjects,
-        },
+  } catch (err) {
+    console.error('POST /auth/login failed:', err);
+    const message = err instanceof Error ? err.message : String(err);
+    if (/does not exist|P2021|Unknown column|planType|PlatformUser/i.test(message)) {
+      res.status(503).json({
+        error:
+          'Database schema is out of date. From apps/api run: npx prisma db push && npx tsx src/scripts/seedTeacher.ts && npx tsx src/scripts/migrateLegacyUsers.ts — then restart the API.',
       });
+      return;
     }
-    curriculumEvent = result.event;
+    res.status(500).json({ error: 'Login failed. Check API logs for details.' });
   }
-
-  const user = toParentUser(updated);
-  const role = parent.dateOfBirth ? ('student' as const) : ('parent' as const);
-  res.json({
-    token: signToken(user, role),
-    parent: user,
-    role,
-    planType: role === 'student' ? 'student_free' : 'parent_free',
-    curriculum: curriculumEvent,
-  });
 });
 
 router.post('/teacher/login', async (req, res) => {
@@ -436,51 +412,47 @@ router.post('/teacher/login', async (req, res) => {
   }
   const { email, password } = parsed.data;
   try {
-    const platform = await prisma.platformUser.findFirst({
+    let platform = await prisma.platformUser.findFirst({
       where: { email, role: 'teacher' },
     });
-    if (platform && (await bcrypt.compare(password, platform.passwordHash))) {
-      const teacher = platform.teacherId
-        ? await prisma.teacher.findUnique({ where: { id: platform.teacherId } })
-        : null;
-      if (teacher) {
-        res.json({
-          token: signPlatformToken({
-            id: platform.id,
-            email: platform.email,
-            role: 'teacher',
-            planType: platform.planType as PlanType,
-            teacherId: teacher.id,
-            organizationId: platform.organizationId,
-          }),
-          teacher: toTeacherUser(teacher),
-          role: 'teacher' as const,
-          planType: platform.planType,
-          user: toPlatformUser(platform),
-        });
-        return;
-      }
+    if (!platform) {
+      const { migrateLegacyUsers } = await import('../scripts/migrateLegacyUsers.js');
+      await migrateLegacyUsers();
+      platform = await prisma.platformUser.findFirst({ where: { email, role: 'teacher' } });
     }
-
-    const teacher = await prisma.teacher.findUnique({ where: { email } });
-    if (!teacher || !(await bcrypt.compare(password, teacher.passwordHash))) {
+    if (!platform || !(await bcrypt.compare(password, platform.passwordHash))) {
       res.status(401).json({ error: 'Invalid email or password' });
       return;
     }
-    const user = toTeacherUser(teacher);
+    const teacher = platform.teacherId
+      ? await prisma.teacher.findUnique({ where: { id: platform.teacherId } })
+      : null;
+    if (!teacher) {
+      res.status(401).json({ error: 'Teacher profile missing — re-run migrateLegacyUsers' });
+      return;
+    }
     res.json({
-      token: signTeacherToken(user),
-      teacher: user,
+      token: signPlatformToken({
+        id: platform.id,
+        email: platform.email,
+        role: 'teacher',
+        planType: (platform.planType || 'teacher_pro') as PlanType,
+        teacherId: teacher.id,
+        organizationId: platform.organizationId,
+      }),
+      teacher: toTeacherUser(teacher),
       role: 'teacher' as const,
-      planType: teacher.planType,
+      planType: platform.planType || 'teacher_pro',
+      user: toPlatformUser(platform),
+      subscriptionStatus: platform.subscriptionStatus ?? 'active',
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error('Teacher login failed:', message);
-    if (/does not exist|P2021|Teacher/i.test(message)) {
+    console.error('Teacher login failed:', message, err);
+    if (/does not exist|P2021|Teacher|PlatformUser/i.test(message)) {
       res.status(503).json({
         error:
-          'Teacher database tables are missing. From apps/api run: npx prisma db push && npx tsx src/scripts/seedTeacher.ts — then restart the API.',
+          'Teacher database tables are missing. From apps/api run: npx prisma db push && npx tsx src/scripts/seedTeacher.ts && npx tsx src/scripts/migrateLegacyUsers.ts — then restart the API.',
       });
       return;
     }
