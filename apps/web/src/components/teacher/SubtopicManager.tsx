@@ -72,30 +72,33 @@ export function SubtopicManager({
                   )}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex max-w-full flex-wrap justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => onPreviewVideo(sub)}
                   disabled={!sub.hasVideoExplainer}
-                  className="inline-flex items-center gap-1 rounded-xl border border-violet-200 bg-white px-3 py-2 text-xs font-bold text-violet-700 disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-violet-200 bg-white px-2.5 py-2 text-[11px] font-bold text-violet-700 sm:px-3 sm:text-xs disabled:opacity-40"
                 >
-                  <PlayCircle className="h-3.5 w-3.5" /> Video Explainer
+                  <PlayCircle className="h-3.5 w-3.5 shrink-0" />
+                  Generate Video Explainer
                 </button>
                 <button
                   type="button"
                   onClick={() => onAssignActivity(sub)}
                   disabled={!sub.hasGamifiedActivity}
-                  className="inline-flex items-center gap-1 rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-bold text-amber-800 disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-amber-200 bg-white px-2.5 py-2 text-[11px] font-bold text-amber-800 sm:px-3 sm:text-xs disabled:opacity-40"
                 >
-                  <Gamepad2 className="h-3.5 w-3.5" /> Gamified Activity
+                  <Gamepad2 className="h-3.5 w-3.5 shrink-0" />
+                  Generate Gamified Activity
                 </button>
                 <button
                   type="button"
                   onClick={() => void attachDefaults(sub)}
                   disabled={busyId === sub.id}
-                  className="inline-flex items-center gap-1 rounded-xl bg-[#5B46BA] px-3 py-2 text-xs font-bold text-white"
+                  className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#5B46BA] px-2.5 py-2 text-[11px] font-bold text-white sm:px-3 sm:text-xs disabled:opacity-60"
                 >
-                  <Plus className="h-3.5 w-3.5" /> Attach media
+                  <Plus className="h-3.5 w-3.5 shrink-0" />
+                  {busyId === sub.id ? 'Attaching…' : 'Attach media'}
                 </button>
               </div>
             </div>
