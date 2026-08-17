@@ -81,6 +81,9 @@ router.get('/:id/video-stream', async (req: AuthRequest, res) => {
     let title = 'Chapter 1: The Eukaryotic Cell';
     let subjectName = 'Biology';
     let sequenceOrder = 1;
+    let chapterPct = 25;
+    let videoUrl: string | null = null;
+    let lessonDurationSec = 20;
 
     const curriculumChapter = await prisma.chapter.findUnique({
       where: { id: chapterId },
@@ -91,26 +94,38 @@ router.get('/:id/video-stream', async (req: AuthRequest, res) => {
       title = `Chapter ${curriculumChapter.sequenceOrder}: ${curriculumChapter.title}`;
       subjectName = curriculumChapter.subject.name;
       sequenceOrder = curriculumChapter.sequenceOrder;
+      videoUrl = curriculumChapter.videos[0]?.videoUrl ?? null;
+      lessonDurationSec = Math.max(
+        curriculumChapter.videos[0]?.durationInSeconds ?? SAMPLE_VIDEOS[0].durationInSeconds,
+        20,
+      );
     } else {
       const teacherChapter = await prisma.teacherChapter.findUnique({
         where: { id: chapterId },
+        include: {
+          textbook: true,
+          subtopics: { orderBy: { sequenceOrder: 'asc' } },
+        },
       }).catch(() => null);
       if (teacherChapter) {
-        title = `Chapter ${teacherChapter.sequenceOrder}: ${teacherChapter.title}`;
+        title = /^chapter\s+\d+/i.test(teacherChapter.title)
+          ? teacherChapter.title
+          : `Chapter ${teacherChapter.sequenceOrder}: ${teacherChapter.title}`;
         sequenceOrder = teacherChapter.sequenceOrder;
+        subjectName = teacherChapter.textbook?.title?.split(' ')[0] ?? 'Science';
+        chapterPct = teacherChapter.classProgressPct || 25;
+        const withVideo = teacherChapter.subtopics.find((s) => s.videoUrl);
+        if (withVideo?.videoUrl) {
+          videoUrl = withVideo.videoUrl;
+        }
       }
     }
 
     const sample = SAMPLE_VIDEOS[2] ?? SAMPLE_VIDEOS[0];
-    const videoUrl =
-      curriculumChapter?.videos[0]?.videoUrl ??
-      sample.url;
+    const resolvedVideoUrl = videoUrl ?? sample.url;
+    lessonDurationSec = Math.max(lessonDurationSec, sample.durationInSeconds, 20);
 
     const durationSec = 23 * 60; // display budget 23:00 as in design
-    const lessonDurationSec = Math.max(
-      curriculumChapter?.videos[0]?.durationInSeconds ?? sample.durationInSeconds,
-      20,
-    );
 
     res.json({
       chapterId,
@@ -123,7 +138,7 @@ router.get('/:id/video-stream', async (req: AuthRequest, res) => {
           'https://api.dicebear.com/7.x/avataaars/svg?seed=SarahTutor&backgroundColor=b6e3f4',
       },
       stream: {
-        videoUrl,
+        videoUrl: resolvedVideoUrl,
         mimeType: 'video/mp4',
         durationSec: lessonDurationSec,
         displayDurationSec: durationSec,
@@ -131,7 +146,7 @@ router.get('/:id/video-stream', async (req: AuthRequest, res) => {
         defaultQuality: '720p',
       },
       progress: {
-        chapterPct: 25,
+        chapterPct,
         timeSpentSec: 8 * 60 + 12,
         timeBudgetSec: durationSec,
       },

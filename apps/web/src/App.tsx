@@ -58,6 +58,18 @@ function ProtectedTeacher({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** Interactive chapter stage — teachers (preview) and learners */
+function ProtectedChapterExplore({ children }: { children: React.ReactNode }) {
+  const { parent, teacher, role, loading } = useAuth();
+  if (loading) return <div className="app-loading"><div className="loader" /></div>;
+  if (role === 'teacher' && teacher) return <>{children}</>;
+  if (parent && isLearnerRole(role)) return <>{children}</>;
+  if (role === 'org_admin') return <Navigate to="/admin/school-dashboard" replace />;
+  if (role === 'center_admin') return <Navigate to="/admin/center-dashboard" replace />;
+  if (isParentPortalRole(role)) return <Navigate to="/parent/dashboard" replace />;
+  return <Navigate to="/login" replace />;
+}
+
 function ProtectedLearner({ children }: { children: React.ReactNode }) {
   const { parent, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
@@ -168,7 +180,7 @@ export default function App() {
         <Route path="/dashboard/subjects/:subjectId" element={<ProtectedStudent><SubjectCurriculumPage /></ProtectedStudent>} />
         <Route path="/dashboard/subjects/:subjectId/videos/:videoId" element={<ProtectedStudent><VideoLessonPage /></ProtectedStudent>} />
         <Route path="/dashboard/chapters/:chapterId/test" element={<ProtectedStudent><ChapterTestPage /></ProtectedStudent>} />
-        <Route path="/chapter/:id/explore" element={<ProtectedStudent><ChapterExplorePage /></ProtectedStudent>} />
+        <Route path="/chapter/:id/explore" element={<ProtectedChapterExplore><ChapterExplorePage /></ProtectedChapterExplore>} />
         <Route path="/lesson/:nodeId" element={<ProtectedStudent><LessonModulePage /></ProtectedStudent>} />
         <Route path="/learn/:subject" element={<ProtectedLearner><TutorSession /></ProtectedLearner>} />
         <Route path="/progress" element={<ProtectedStudent><Progress /></ProtectedStudent>} />

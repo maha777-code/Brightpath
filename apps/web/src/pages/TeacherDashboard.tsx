@@ -151,6 +151,7 @@ export default function TeacherDashboard() {
                   setSelectedChapter(ch);
                   const withVideo = ch.subtopics.find((s) => s.hasVideoExplainer);
                   if (withVideo) setPreviewSubtopic(withVideo);
+                  navigate(`/chapter/${ch.id}/explore`);
                 }}
               />
               <SubtopicManager

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { GraduationCap } from 'lucide-react';
+import { ArrowLeft, GraduationCap } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import VideoPlayerArena from '@/components/chapterStage/VideoPlayerArena';
 import TutorTranscriptPanel from '@/components/chapterStage/TutorTranscriptPanel';
 import HoldToAskMic from '@/components/chapterStage/HoldToAskMic';
@@ -14,7 +15,11 @@ const SPEEDS = [0.75, 1, 1.25, 1.5, 2] as const;
 
 export default function ChapterExplorePage() {
   const { id = 'demo-eukaryotic-cell' } = useParams<{ id: string }>();
+  const { role } = useAuth();
+  const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const backPath = role === 'teacher' ? '/teacher/dashboard' : '/dashboard/subjects';
+  const backLabel = role === 'teacher' ? 'Back to Teacher Dashboard' : 'Back to subjects';
 
   const [data, setData] = useState<StreamPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -132,8 +137,8 @@ export default function ChapterExplorePage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#0f172a] text-white">
         <p className="text-rose-300">{error ?? 'Stream unavailable'}</p>
-        <Link to="/dashboard/subjects" className="text-sm text-cyan-300 underline">
-          Back to subjects
+        <Link to={backPath} className="text-sm text-cyan-300 underline">
+          {backLabel}
         </Link>
       </div>
     );
@@ -162,6 +167,15 @@ export default function ChapterExplorePage() {
         {/* Header */}
         <header className="mb-4 grid grid-cols-1 items-center gap-3 sm:grid-cols-3">
           <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => navigate(backPath)}
+              className="mr-1 rounded-lg p-1.5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+              aria-label={backLabel}
+              title={backLabel}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 shadow-lg shadow-cyan-500/20">
               <GraduationCap className="h-5 w-5 text-white" />
             </div>
