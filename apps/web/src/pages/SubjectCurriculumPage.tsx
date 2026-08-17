@@ -362,6 +362,13 @@ export default function SubjectCurriculumPage() {
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 pr-2 sm:pr-4">
                     <button
                       type="button"
+                      onClick={() => navigate(`/chapter/${active.chapter.id}/explore`)}
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:brightness-105"
+                    >
+                      Explore Chapter
+                    </button>
+                    <button
+                      type="button"
                       disabled={busyNext || nextLocked}
                       onClick={() => void goNext()}
                       className={[

@@ -19,6 +19,7 @@ import paymentsRoutes, { handleStripeWebhook } from './routes/payments.js';
 import adminRoutes from './routes/admin.js';
 import orgBrandingRoutes from './routes/orgBranding.js';
 import aiRoutes from './routes/ai.js';
+import chaptersRoutes from './routes/chapters.js';
 import { ensureDemoTeacher } from './lib/ensureDemoTeacher.js';
 import { migrateLegacyUsers } from './scripts/migrateLegacyUsers.js';
 import type { AuthRequest } from './middleware/auth.js';
@@ -75,6 +76,7 @@ app.use('/payments', paymentsRoutes);
 app.use('/admin', adminRoutes);
 app.use('/org', orgBrandingRoutes);
 app.use('/ai', aiRoutes);
+app.use('/chapters', chaptersRoutes);
 
 app.use(
   (

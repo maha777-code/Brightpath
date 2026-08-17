@@ -305,6 +305,38 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  getChapterVideoStream: (chapterId: string) =>
+    request<{
+      chapterId: string;
+      title: string;
+      subjectName: string;
+      sequenceOrder: number;
+      tutor: { name: string; avatarUrl: string };
+      stream: {
+        videoUrl: string;
+        mimeType: string;
+        durationSec: number;
+        displayDurationSec: number;
+        qualityOptions: string[];
+        defaultQuality: string;
+      };
+      progress: {
+        chapterPct: number;
+        timeSpentSec: number;
+        timeBudgetSec: number;
+      };
+      transcript: { t: number; text: string }[];
+      callouts: {
+        id: string;
+        label: string;
+        xPct: number;
+        yPct: number;
+        appearAt: number;
+        hideAt: number;
+      }[];
+      captions: { start: number; end: number; text: string }[];
+    }>(`/chapters/${chapterId}/video-stream`),
+
   getChapterQuiz: (chapterId: string) =>
     request<ChapterQuizResponse>(`/curriculum/chapters/${chapterId}/quiz`),
 

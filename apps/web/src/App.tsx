@@ -17,6 +17,7 @@ import LessonModulePage from '@/pages/LessonModulePage';
 import SubjectCurriculumPage from '@/pages/SubjectCurriculumPage';
 import VideoLessonPage from '@/pages/VideoLessonPage';
 import ChapterTestPage from '@/pages/ChapterTestPage';
+import ChapterExplorePage from '@/pages/ChapterExplorePage';
 import TeacherDashboard from '@/pages/TeacherDashboard';
 import SchoolDashboard from '@/pages/SchoolDashboard';
 import CenterDashboard from '@/pages/CenterDashboard';
@@ -167,6 +168,7 @@ export default function App() {
         <Route path="/dashboard/subjects/:subjectId" element={<ProtectedStudent><SubjectCurriculumPage /></ProtectedStudent>} />
         <Route path="/dashboard/subjects/:subjectId/videos/:videoId" element={<ProtectedStudent><VideoLessonPage /></ProtectedStudent>} />
         <Route path="/dashboard/chapters/:chapterId/test" element={<ProtectedStudent><ChapterTestPage /></ProtectedStudent>} />
+        <Route path="/chapter/:id/explore" element={<ProtectedStudent><ChapterExplorePage /></ProtectedStudent>} />
         <Route path="/lesson/:nodeId" element={<ProtectedStudent><LessonModulePage /></ProtectedStudent>} />
         <Route path="/learn/:subject" element={<ProtectedLearner><TutorSession /></ProtectedLearner>} />
         <Route path="/progress" element={<ProtectedStudent><Progress /></ProtectedStudent>} />
