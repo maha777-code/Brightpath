@@ -46,17 +46,44 @@ export function toTextbook(t: DbTextbook): Textbook {
 }
 
 export function toSubtopic(s: DbSubtopic): TeacherSubtopic {
+  const cuesRaw = (s as { animationCuesJson?: unknown }).animationCuesJson;
+  const animationCues = Array.isArray(cuesRaw)
+    ? (cuesRaw as TeacherSubtopic['animationCues'])
+    : [];
+  const manifestRaw = (s as { videoManifestJson?: unknown }).videoManifestJson;
+  const videoManifest =
+    manifestRaw && typeof manifestRaw === 'object'
+      ? (manifestRaw as TeacherSubtopic['videoManifest'])
+      : null;
+
+  let videoStatus = ((s as { videoStatus?: TeacherSubtopic['videoStatus'] }).videoStatus ??
+    'none') as TeacherSubtopic['videoStatus'];
+
+  if (videoStatus === 'none' && s.hasVideoExplainer && s.videoUrl) {
+    videoStatus = 'published';
+  }
+
   return {
     id: s.id,
     chapterId: s.chapterId,
     code: s.code,
     title: s.title,
     sequenceOrder: s.sequenceOrder,
-    hasVideoExplainer: s.hasVideoExplainer,
+    hasVideoExplainer: s.hasVideoExplainer || videoStatus === 'published',
     hasGamifiedActivity: s.hasGamifiedActivity,
     videoTitle: s.videoTitle,
     activityTitle: s.activityTitle,
     videoUrl: s.videoUrl,
+    videoStatus,
+    videoProgress: (s as { videoProgress?: number }).videoProgress ?? 0,
+    videoJobStage: ((s as { videoJobStage?: TeacherSubtopic['videoJobStage'] }).videoJobStage ??
+      null) as TeacherSubtopic['videoJobStage'],
+    videoError: (s as { videoError?: string | null }).videoError ?? null,
+    generatedVideoUrl: (s as { generatedVideoUrl?: string | null }).generatedVideoUrl ?? null,
+    videoAudioUrl: (s as { videoAudioUrl?: string | null }).videoAudioUrl ?? null,
+    videoScript: (s as { videoScript?: string | null }).videoScript ?? null,
+    animationCues,
+    videoManifest,
   };
 }
 
@@ -72,7 +99,13 @@ export function toChapter(
     classProgressPct: c.classProgressPct,
     studentCount: c.studentCount,
     completedCount: c.completedCount,
-    videoCount: c.subtopics.filter((s) => s.hasVideoExplainer).length,
+    videoCount: c.subtopics.filter(
+      (s) =>
+        s.hasVideoExplainer ||
+        (s as { videoStatus?: string }).videoStatus === 'published' ||
+        (s as { videoStatus?: string }).videoStatus === 'pending_review',
+    ).length,
+
     activityCount: c.subtopics.filter((s) => s.hasGamifiedActivity).length,
     subtopics: c.subtopics
       .slice()

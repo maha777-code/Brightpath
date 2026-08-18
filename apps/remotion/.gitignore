@@ -1,0 +1,3 @@
+# Remotion render outputs (written by API pipeline)
+out/
+node_modules/

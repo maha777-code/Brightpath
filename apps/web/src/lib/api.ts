@@ -417,6 +417,38 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  generateTopicVideo: (topicId: string, body?: { prompt?: string }) =>
+    request<{ subtopic: TeacherSubtopic; message: string }>(
+      `/teacher/topics/${topicId}/generate-video`,
+      { method: 'POST', body: JSON.stringify(body ?? {}) },
+    ),
+
+  getTopicVideoStatus: (topicId: string) =>
+    request<{ subtopic: TeacherSubtopic }>(`/teacher/topics/${topicId}/video-status`),
+
+  updateTopicVideoScript: (topicId: string, videoScript: string) =>
+    request<{ subtopic: TeacherSubtopic }>(`/teacher/topics/${topicId}/video-script`, {
+      method: 'PATCH',
+      body: JSON.stringify({ videoScript }),
+    }),
+
+  rejectTopicVideo: (topicId: string) =>
+    request<{ subtopic: TeacherSubtopic }>(`/teacher/topics/${topicId}/reject-video`, {
+      method: 'POST',
+      body: '{}',
+    }),
+
+  approveTopicVideo: (topicId: string) =>
+    request<{
+      subtopic: TeacherSubtopic;
+      published: boolean;
+      studentSync: { synced: boolean; subjectId?: string; chapterId?: string; reason?: string };
+      message: string;
+    }>(`/topics/${topicId}/approve-video`, {
+      method: 'POST',
+      body: '{}',
+    }),
+
   tutorTranscribe: async (
     audioBlob: Blob,
     mimeType: string,

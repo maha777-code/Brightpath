@@ -7,6 +7,50 @@ export type TextbookStatus = 'UPLOADED' | 'VERIFYING' | 'INDEXED' | 'FAILED';
 
 export type DoubtStatus = 'PENDING' | 'AI_DRAFT' | 'APPROVED' | 'OVERRIDDEN' | 'REJECTED';
 
+export type TopicVideoStatus =
+  | 'none'
+  | 'generating'
+  | 'pending_review'
+  | 'published'
+  | 'rejected';
+
+export type TopicVideoJobStage =
+  | 'queued'
+  | 'retrieving'
+  | 'scripting'
+  | 'tts'
+  | 'rendering'
+  | 'done'
+  | 'error';
+
+export interface VideoAnimationCue {
+  timeSec: number;
+  label: string;
+}
+
+export interface VideoSceneParameters {
+  particleDensity?: string;
+  temperature?: number;
+  speedMultiplier?: number;
+  showLabels?: string[];
+  [key: string]: unknown;
+}
+
+export interface VideoSceneSpec {
+  sceneId: number;
+  duration: number;
+  voiceoverText: string;
+  animationType: string;
+  parameters: VideoSceneParameters;
+}
+
+export interface VideoScriptManifest {
+  topicTitle: string;
+  totalDurationSeconds: number;
+  scenes: VideoSceneSpec[];
+  wordTimings?: { word: string; start: number; end: number }[];
+}
+
 export interface TeacherUser {
   id: string;
   email: string;
@@ -59,6 +103,15 @@ export interface TeacherSubtopic {
   videoTitle: string | null;
   activityTitle: string | null;
   videoUrl: string | null;
+  videoStatus: TopicVideoStatus;
+  videoProgress: number;
+  videoJobStage: TopicVideoJobStage | null;
+  videoError: string | null;
+  generatedVideoUrl: string | null;
+  videoAudioUrl: string | null;
+  videoScript: string | null;
+  animationCues: VideoAnimationCue[];
+  videoManifest: VideoScriptManifest | null;
 }
 
 export interface AIResponse {

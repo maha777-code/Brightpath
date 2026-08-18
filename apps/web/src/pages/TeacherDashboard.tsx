@@ -159,7 +159,11 @@ export default function TeacherDashboard() {
                 onUpdated={(id) => void refreshChapter(id)}
                 onPreviewVideo={(sub) => {
                   setPreviewSubtopic(sub);
-                  setEngagementNote(`Previewing ${sub.code} video explainer`);
+                  setEngagementNote(
+                    sub.videoStatus === 'published'
+                      ? `Published video live for students: ${sub.code}`
+                      : `Previewing ${sub.code} video explainer`,
+                  );
                 }}
                 onAssignActivity={(sub) => {
                   setEngagementNote(`Assigned gamified activity: ${sub.activityTitle ?? sub.title}`);

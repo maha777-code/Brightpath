@@ -44,6 +44,10 @@ export default defineConfig({
         timeout: 300_000,
         proxyTimeout: 300_000,
       },
+      '/uploads': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
     },
   },
   preview: {
@@ -54,6 +58,10 @@ export default defineConfig({
         rewrite: (p) => p.replace(/^\/api/, ''),
         timeout: 300_000,
         proxyTimeout: 300_000,
+      },
+      '/uploads': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
       },
     },
   },

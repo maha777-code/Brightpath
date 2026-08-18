@@ -286,6 +286,14 @@ enum DoubtStatus {
   REJECTED
 }
 
+enum TopicVideoStatus {
+  none
+  generating
+  pending_review
+  published
+  rejected
+}
+
 enum OrgType {
   school
   tutor_center
@@ -401,19 +409,31 @@ model TeacherChapter {
 }
 
 model TeacherSubtopic {
-  id                  String         @id @default(cuid())
+  id                  String           @id @default(cuid())
   chapterId           String
-  chapter             TeacherChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  chapter             TeacherChapter   @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   code                String
   title               String
   sequenceOrder       Int
-  hasVideoExplainer   Boolean        @default(false)
-  hasGamifiedActivity Boolean        @default(false)
+  hasVideoExplainer   Boolean          @default(false)
+  hasGamifiedActivity Boolean          @default(false)
   videoTitle          String?
   activityTitle       String?
   videoUrl            String?
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  /** AI video generation workflow */
+  videoStatus         TopicVideoStatus @default(none)
+  videoProgress       Int              @default(0)
+  /** retrieving | scripting | tts | rendering | done | error */
+  videoJobStage       String?
+  videoError          String?
+  generatedVideoUrl   String?
+  videoAudioUrl       String?
+  videoScript         String?
+  animationCuesJson   Json?
+  videoManifestJson   Json?
+  videoJobStartedAt   DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
   doubts              StudentDoubt[]
 
   @@index([chapterId])

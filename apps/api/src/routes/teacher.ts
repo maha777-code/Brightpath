@@ -1,5 +1,6 @@
 import { Router, type NextFunction, type Response } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -228,6 +229,9 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
             videoTitle: s.videoTitle,
             activityTitle: s.activityTitle,
             videoUrl: s.videoUrl,
+            videoStatus: s.hasVideoExplainer && s.videoUrl ? 'published' : 'none',
+            videoProgress: s.hasVideoExplainer && s.videoUrl ? 100 : 0,
+            generatedVideoUrl: s.videoUrl,
           })),
         },
       },
@@ -345,6 +349,138 @@ router.patch('/subtopics/:id', async (req: AuthRequest, res) => {
     },
   });
 
+  res.json({ subtopic: toSubtopic(updated) });
+});
+
+/** POST /teacher/topics/:topicId/generate-video — start hybrid Remotion pipeline */
+router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => {
+  const schema = z.object({
+    prompt: z.string().max(500).optional(),
+  });
+  const parsed = schema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+
+  const existing = await prisma.teacherSubtopic.findFirst({
+    where: {
+      id: req.params.topicId,
+      chapter: { textbook: { teacherId: req.teacherId! } },
+    },
+  });
+  if (!existing) {
+    res.status(404).json({ error: 'Topic not found' });
+    return;
+  }
+
+  const { enqueueHybridVideoJob } = await import('../lib/videoPipeline/runPipeline.js');
+
+  const updated = await prisma.teacherSubtopic.update({
+    where: { id: existing.id },
+    data: {
+      videoStatus: 'generating',
+      videoProgress: 2,
+      videoJobStage: 'queued',
+      videoJobStartedAt: new Date(),
+      generatedVideoUrl: null,
+      videoAudioUrl: null,
+      videoError: null,
+      videoManifestJson: Prisma.JsonNull,
+      hasVideoExplainer: false,
+    },
+  });
+
+  enqueueHybridVideoJob(existing.id, parsed.data.prompt);
+
+  res.status(202).json({
+    subtopic: toSubtopic(updated),
+    message: 'Hybrid video pipeline queued (RAG → LLM → TTS → Remotion)',
+  });
+});
+
+/** GET /teacher/topics/:topicId/video-status — poll generation progress */
+router.get('/topics/:topicId/video-status', async (req: AuthRequest, res) => {
+  const existing = await prisma.teacherSubtopic.findFirst({
+    where: {
+      id: req.params.topicId,
+      chapter: { textbook: { teacherId: req.teacherId! } },
+    },
+  });
+  if (!existing) {
+    res.status(404).json({ error: 'Topic not found' });
+    return;
+  }
+
+  const { advanceVideoJob } = await import('../lib/topicVideoGeneration.js');
+  const advanced = (await advanceVideoJob(existing.id)) ?? existing;
+  const subtopic = toSubtopic(advanced);
+  res.json({
+    subtopic,
+    stage: subtopic.videoJobStage,
+    progress: subtopic.videoProgress,
+  });
+});
+
+/** PATCH /teacher/topics/:topicId/video-script — edit script before re-render / approve */
+router.patch('/topics/:topicId/video-script', async (req: AuthRequest, res) => {
+  const schema = z.object({
+    videoScript: z.string().min(1).max(20_000),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+
+  const existing = await prisma.teacherSubtopic.findFirst({
+    where: {
+      id: req.params.topicId,
+      chapter: { textbook: { teacherId: req.teacherId! } },
+    },
+  });
+  if (!existing) {
+    res.status(404).json({ error: 'Topic not found' });
+    return;
+  }
+
+  const updated = await prisma.teacherSubtopic.update({
+    where: { id: existing.id },
+    data: { videoScript: parsed.data.videoScript },
+  });
+  res.json({ subtopic: toSubtopic(updated) });
+});
+
+/** POST /teacher/topics/:topicId/reject-video — clear generated draft */
+router.post('/topics/:topicId/reject-video', async (req: AuthRequest, res) => {
+  const existing = await prisma.teacherSubtopic.findFirst({
+    where: {
+      id: req.params.topicId,
+      chapter: { textbook: { teacherId: req.teacherId! } },
+    },
+  });
+  if (!existing) {
+    res.status(404).json({ error: 'Topic not found' });
+    return;
+  }
+
+  const updated = await prisma.teacherSubtopic.update({
+    where: { id: existing.id },
+    data: {
+      videoStatus: 'none',
+      videoProgress: 0,
+      generatedVideoUrl: null,
+      videoAudioUrl: null,
+      videoScript: null,
+      animationCuesJson: Prisma.JsonNull,
+      videoManifestJson: Prisma.JsonNull,
+      videoJobStartedAt: null,
+      videoJobStage: null,
+      videoError: null,
+      hasVideoExplainer: false,
+      videoUrl: null,
+    },
+  });
   res.json({ subtopic: toSubtopic(updated) });
 });
 

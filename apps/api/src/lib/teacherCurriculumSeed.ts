@@ -15,7 +15,7 @@ export const DEFAULT_SCIENCE_CHAPTERS = [
         hasGamifiedActivity: true,
         videoTitle: 'What is Matter?',
         activityTitle: 'Particle Hunt Mini-Game',
-        videoUrl: 'https://www.youtube.com/embed/8kL5eGgK2gE',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
       },
       {
         code: '1.2',
@@ -24,7 +24,7 @@ export const DEFAULT_SCIENCE_CHAPTERS = [
         hasGamifiedActivity: false,
         videoTitle: 'Particles Everywhere',
         activityTitle: null,
-        videoUrl: 'https://www.youtube.com/embed/8kL5eGgK2gE',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
       },
       {
         code: '1.3',
@@ -51,7 +51,7 @@ export const DEFAULT_SCIENCE_CHAPTERS = [
         hasGamifiedActivity: true,
         videoTitle: 'Mixtures Explained',
         activityTitle: 'Mix & Match Lab',
-        videoUrl: 'https://www.youtube.com/embed/8kL5eGgK2gE',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
       },
       {
         code: '2.2',
@@ -78,7 +78,7 @@ export const DEFAULT_SCIENCE_CHAPTERS = [
         hasGamifiedActivity: false,
         videoTitle: 'Chemical Combination Laws',
         activityTitle: null,
-        videoUrl: 'https://www.youtube.com/embed/8kL5eGgK2gE',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
       },
       {
         code: '3.2',
@@ -87,7 +87,7 @@ export const DEFAULT_SCIENCE_CHAPTERS = [
         hasGamifiedActivity: true,
         videoTitle: 'Meet the Atom',
         activityTitle: 'Build an Atom',
-        videoUrl: 'https://www.youtube.com/embed/8kL5eGgK2gE',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
       },
     ],
   },
