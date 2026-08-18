@@ -5,14 +5,21 @@ import type { VideoScriptManifest } from '@brightpath/shared';
 import {
   getElevenLabsApiKey,
   getElevenLabsVoiceId,
+  isBillingOrAuthError,
   synthesizeWithElevenLabs,
+  synthesizeWithGoogleTts,
+  estimateWordTimings,
 } from '../speech/elevenlabs.js';
 import type { VoiceSynthesisResult } from './types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AUDIO_DIR = path.resolve(__dirname, '../../../uploads/videos/audio');
 
-/** Step 3 — synthesize voiceover via ElevenLabs TTS only. */
+/**
+ * Step 3 — voiceover TTS.
+ * Prefer ElevenLabs (free premade Sarah/Rachel); on 401/402 fall back to Google TTS
+ * so the Remotion pipeline never hard-fails on billing.
+ */
 export async function synthesizeVoiceover(
   topicId: string,
   manifest: VideoScriptManifest,
@@ -20,37 +27,51 @@ export async function synthesizeVoiceover(
   await fs.mkdir(AUDIO_DIR, { recursive: true });
   const fullText = manifest.scenes.map((s) => s.voiceoverText).join(' ');
 
-  const apiKey = getElevenLabsApiKey();
-  if (!apiKey) {
-    throw new Error(
-      'ELEVENLABS_API_KEY is required for video voiceover. Add it to .env and restart the API.',
-    );
-  }
-
-  const voiceId = getElevenLabsVoiceId();
-  const result = await synthesizeWithElevenLabs(fullText, apiKey, voiceId);
-
   const mp3Path = path.join(AUDIO_DIR, `topic_${topicId}.mp3`);
-  await fs.writeFile(mp3Path, result.audio);
+  const apiKey = getElevenLabsApiKey();
 
-  return {
-    audioPath: mp3Path,
-    audioPublicUrl: `/uploads/videos/audio/topic_${topicId}.mp3`,
-    wordTimings:
-      result.wordTimings.length > 0
-        ? result.wordTimings
-        : estimateWordTimings(fullText, result.durationSec),
-    durationSec: result.durationSec,
-  };
-}
+  try {
+    if (!apiKey) {
+      console.warn('[TTS] No ELEVENLABS_API_KEY — using free Google TTS fallback');
+      const g = await synthesizeWithGoogleTts(fullText);
+      await fs.writeFile(mp3Path, g.audio);
+      return {
+        audioPath: mp3Path,
+        audioPublicUrl: `/uploads/videos/audio/topic_${topicId}.mp3`,
+        wordTimings: g.wordTimings.length ? g.wordTimings : estimateWordTimings(fullText, g.durationSec),
+        durationSec: g.durationSec,
+      };
+    }
 
-function estimateWordTimings(text: string, durationSec: number) {
-  const words = text.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [] as { word: string; start: number; end: number }[];
-  const slot = durationSec / words.length;
-  return words.map((word, i) => ({
-    word,
-    start: Number((i * slot).toFixed(3)),
-    end: Number(((i + 1) * slot).toFixed(3)),
-  }));
+    const voiceId = getElevenLabsVoiceId();
+    const result = await synthesizeWithElevenLabs(fullText, apiKey, voiceId);
+    await fs.writeFile(mp3Path, result.audio);
+    console.log(`[TTS] provider=${result.provider} voice=${voiceId}`);
+
+    return {
+      audioPath: mp3Path,
+      audioPublicUrl: `/uploads/videos/audio/topic_${topicId}.mp3`,
+      wordTimings:
+        result.wordTimings.length > 0
+          ? result.wordTimings
+          : estimateWordTimings(fullText, result.durationSec),
+      durationSec: result.durationSec,
+    };
+  } catch (err) {
+    if (isBillingOrAuthError(err) || !apiKey) {
+      console.warn(
+        '[TTS] ElevenLabs payment required / auth failed. Falling back to free Google TTS…',
+        err instanceof Error ? err.message : err,
+      );
+      const g = await synthesizeWithGoogleTts(fullText);
+      await fs.writeFile(mp3Path, g.audio);
+      return {
+        audioPath: mp3Path,
+        audioPublicUrl: `/uploads/videos/audio/topic_${topicId}.mp3`,
+        wordTimings: g.wordTimings.length ? g.wordTimings : estimateWordTimings(fullText, g.durationSec),
+        durationSec: g.durationSec,
+      };
+    }
+    throw err;
+  }
 }
