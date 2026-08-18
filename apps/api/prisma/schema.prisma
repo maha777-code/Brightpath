@@ -292,6 +292,7 @@ enum TopicVideoStatus {
   pending_review
   published
   rejected
+  failed
 }
 
 enum OrgType {

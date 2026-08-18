@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Eye, Gamepad2, Loader2, PlayCircle, Plus } from 'lucide-react';
+import { AlertTriangle, Eye, Gamepad2, Loader2, PlayCircle, Plus } from 'lucide-react';
 import type { TeacherChapter, TeacherSubtopic, TopicVideoStatus } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import VideoReviewModal from './VideoReviewModal';
@@ -12,6 +12,7 @@ interface SubtopicManagerProps {
 }
 
 function resolveStatus(sub: TeacherSubtopic): TopicVideoStatus {
+  if (sub.videoStatus === 'failed') return 'failed';
   if (sub.videoStatus && sub.videoStatus !== 'none') return sub.videoStatus;
   if (sub.hasVideoExplainer && sub.videoUrl) return 'published';
   return 'none';
@@ -27,30 +28,51 @@ export function SubtopicManager({
   const [localSubs, setLocalSubs] = useState<TeacherSubtopic[]>([]);
   const [reviewSub, setReviewSub] = useState<TeacherSubtopic | null>(null);
   const pollRef = useRef<number | null>(null);
+  const onUpdatedRef = useRef(onUpdated);
+  onUpdatedRef.current = onUpdated;
 
   useEffect(() => {
     setLocalSubs(chapter?.subtopics ?? []);
   }, [chapter]);
 
+  // Poll generating topics every 3s until pending_review / failed
   useEffect(() => {
     const generatingIds = localSubs
       .filter((s) => resolveStatus(s) === 'generating')
       .map((s) => s.id);
-    if (generatingIds.length === 0) {
-      if (pollRef.current) {
-        window.clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-      return;
+
+    if (pollRef.current) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = null;
     }
+
+    if (generatingIds.length === 0) return;
 
     const tick = async () => {
       for (const id of generatingIds) {
         try {
           const res = await api.getTopicVideoStatus(id);
-          setLocalSubs((prev) => prev.map((p) => (p.id === res.subtopic.id ? res.subtopic : p)));
-          if (resolveStatus(res.subtopic) !== 'generating' && chapter) {
-            onUpdated(chapter.id);
+          const next = res.subtopic
+            ? {
+                ...res.subtopic,
+                videoProgress: res.progress ?? res.subtopic.videoProgress,
+                videoError: res.error ?? res.subtopic.videoError,
+                generatedVideoUrl: res.videoUrl ?? res.subtopic.generatedVideoUrl,
+                videoStatus:
+                  res.status === 'failed'
+                    ? ('failed' as const)
+                    : res.status === 'pending_review'
+                      ? ('pending_review' as const)
+                      : ('generating' as const),
+              }
+            : null;
+
+          if (!next) continue;
+
+          setLocalSubs((prev) => prev.map((p) => (p.id === next.id ? { ...p, ...next } : p)));
+
+          if (res.status === 'pending_review' || res.status === 'failed') {
+            if (chapter?.id) onUpdatedRef.current(chapter.id);
           }
         } catch {
           /* keep polling */
@@ -59,15 +81,22 @@ export function SubtopicManager({
     };
 
     void tick();
-    pollRef.current = window.setInterval(() => void tick(), 1200);
+    pollRef.current = window.setInterval(() => void tick(), 3000);
+
     return () => {
       if (pollRef.current) {
         window.clearInterval(pollRef.current);
         pollRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- poll only while generating ids change
-  }, [localSubs.map((s) => `${s.id}:${resolveStatus(s)}:${s.videoProgress}`).join('|'), chapter?.id]);
+  }, [
+    chapter?.id,
+    localSubs
+      .filter((s) => resolveStatus(s) === 'generating')
+      .map((s) => s.id)
+      .sort()
+      .join(','),
+  ]);
 
   if (!chapter) {
     return (
@@ -88,6 +117,13 @@ export function SubtopicManager({
       const res = await api.generateTopicVideo(sub.id);
       patchSub(res.subtopic);
       onUpdated(chapter.id);
+    } catch (e) {
+      patchSub({
+        ...sub,
+        videoStatus: 'failed',
+        videoProgress: 0,
+        videoError: e instanceof Error ? e.message : 'Failed to start generation',
+      });
     } finally {
       setBusyId(null);
     }
@@ -125,7 +161,7 @@ export function SubtopicManager({
                     {sub.title}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold">
-                    <VideoStatusBadge status={status} error={sub.videoError} />
+                    <VideoStatusBadge status={status} error={sub.videoError} progress={sub.videoProgress} />
                     {sub.hasGamifiedActivity ? (
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800">
                         Activity ready
@@ -194,21 +230,23 @@ export function SubtopicManager({
 function VideoStatusBadge({
   status,
   error,
+  progress,
 }: {
   status: TopicVideoStatus;
   error?: string | null;
+  progress?: number;
 }) {
   if (status === 'generating') {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-indigo-700">
-        <Loader2 className="h-3 w-3 animate-spin" /> Generating…
+        <Loader2 className="h-3 w-3 animate-spin" /> Generating… {progress ?? 0}%
       </span>
     );
   }
-  if (status === 'none' && error) {
+  if (status === 'failed') {
     return (
-      <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-700" title={error}>
-        Generation failed
+      <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-700" title={error ?? undefined}>
+        Generation Failed
       </span>
     );
   }
@@ -266,6 +304,25 @@ function GenerateVideoButton({
       >
         <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
         Generating Video… {Math.max(0, Math.min(100, sub.videoProgress ?? 0))}%
+      </button>
+    );
+  }
+
+  if (status === 'failed') {
+    return (
+      <button
+        type="button"
+        onClick={onGenerate}
+        disabled={busy}
+        title={sub.videoError ?? 'Generation failed'}
+        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-rose-300 bg-rose-50 px-2.5 py-2 text-[11px] font-bold text-rose-800 hover:bg-rose-100 sm:px-3 sm:text-xs disabled:opacity-50"
+      >
+        {busy ? (
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+        ) : (
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+        )}
+        Generation Failed - Retry
       </button>
     );
   }

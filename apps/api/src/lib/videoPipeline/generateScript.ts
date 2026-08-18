@@ -1,5 +1,5 @@
 import type { VideoScriptManifest } from '@brightpath/shared';
-import { getActiveProvider, parseLlmJson } from '../llm/provider.js';
+import { getActiveProvider } from '../llm/provider.js';
 import type { TopicContextPacket } from './types.js';
 
 const SYSTEM = `You are an expert education video director for Class 9 Science (NCERT).
@@ -94,10 +94,12 @@ export async function generateStructuredVideoScript(
   if (!provider) return heuristicManifest(ctx);
 
   try {
-    const raw = await provider.completeJson<VideoScriptManifest>({
-      system: SYSTEM,
-      user,
-    });
+    const raw = await Promise.race([
+      provider.completeJson<VideoScriptManifest>({ system: SYSTEM, user }),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('LLM script timed out')), 25_000);
+      }),
+    ]);
     if (!raw?.scenes?.length) return heuristicManifest(ctx);
     const scenes = raw.scenes.map((s, i) => ({
       sceneId: s.sceneId ?? i + 1,
@@ -121,14 +123,7 @@ export async function generateStructuredVideoScript(
       scenes,
     };
   } catch (err) {
-    console.warn('[videoPipeline/script] LLM failed, using heuristic:', err);
-    // try parse from text provider path already handled; fallback
-    try {
-      // secondary: some providers wrap oddly
-      void parseLlmJson;
-    } catch {
-      /* ignore */
-    }
+    console.warn('[videoPipeline/script] LLM failed/timed out, using heuristic:', err);
     return heuristicManifest(ctx);
   }
 }

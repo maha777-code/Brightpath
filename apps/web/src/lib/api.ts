@@ -424,7 +424,15 @@ export const api = {
     ),
 
   getTopicVideoStatus: (topicId: string) =>
-    request<{ subtopic: TeacherSubtopic }>(`/teacher/topics/${topicId}/video-status`),
+    request<{
+      topicId: string;
+      status: 'generating' | 'pending_review' | 'failed';
+      progress: number;
+      error: string | null;
+      videoUrl: string | null;
+      stage?: string | null;
+      subtopic: TeacherSubtopic;
+    }>(`/teacher/topics/${topicId}/video-status`),
 
   updateTopicVideoScript: (topicId: string, videoScript: string) =>
     request<{ subtopic: TeacherSubtopic }>(`/teacher/topics/${topicId}/video-script`, {

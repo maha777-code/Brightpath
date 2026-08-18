@@ -12,7 +12,8 @@ export type TopicVideoStatus =
   | 'generating'
   | 'pending_review'
   | 'published'
-  | 'rejected';
+  | 'rejected'
+  | 'failed';
 
 export type TopicVideoJobStage =
   | 'queued'

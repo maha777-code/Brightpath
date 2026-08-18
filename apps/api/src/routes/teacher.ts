@@ -391,6 +391,7 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => 
     },
   });
 
+  // Clear any stuck in-memory lock by enqueueing fresh job
   enqueueHybridVideoJob(existing.id, parsed.data.prompt);
 
   res.status(202).json({
@@ -401,25 +402,52 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => 
 
 /** GET /teacher/topics/:topicId/video-status — poll generation progress */
 router.get('/topics/:topicId/video-status', async (req: AuthRequest, res) => {
-  const existing = await prisma.teacherSubtopic.findFirst({
-    where: {
-      id: req.params.topicId,
-      chapter: { textbook: { teacherId: req.teacherId! } },
-    },
-  });
-  if (!existing) {
-    res.status(404).json({ error: 'Topic not found' });
-    return;
-  }
+  try {
+    const existing = await prisma.teacherSubtopic.findFirst({
+      where: {
+        id: req.params.topicId,
+        chapter: { textbook: { teacherId: req.teacherId! } },
+      },
+    });
+    if (!existing) {
+      res.status(404).json({ error: 'Topic not found' });
+      return;
+    }
 
-  const { advanceVideoJob } = await import('../lib/topicVideoGeneration.js');
-  const advanced = (await advanceVideoJob(existing.id)) ?? existing;
-  const subtopic = toSubtopic(advanced);
-  res.json({
-    subtopic,
-    stage: subtopic.videoJobStage,
-    progress: subtopic.videoProgress,
-  });
+    const { reconcileVideoJobStatus } = await import('../lib/videoPipeline/runPipeline.js');
+    const row = (await reconcileVideoJobStatus(existing.id)) ?? existing;
+    const subtopic = toSubtopic(row);
+
+    let status: 'generating' | 'pending_review' | 'failed' = 'generating';
+    if (subtopic.videoStatus === 'pending_review' || subtopic.videoStatus === 'published') {
+      status = 'pending_review';
+    } else if (subtopic.videoStatus === 'failed' || subtopic.videoStatus === 'rejected') {
+      status = 'failed';
+    } else if (subtopic.videoStatus === 'generating') {
+      status = 'generating';
+    } else if (subtopic.videoError) {
+      status = 'failed';
+    }
+
+    res.json({
+      topicId: subtopic.id,
+      status,
+      progress: Math.max(0, Math.min(100, subtopic.videoProgress ?? 0)),
+      error: subtopic.videoError,
+      videoUrl: subtopic.generatedVideoUrl || subtopic.videoUrl,
+      stage: subtopic.videoJobStage,
+      subtopic,
+    });
+  } catch (err) {
+    console.error('[video-status]', err);
+    res.status(500).json({
+      topicId: req.params.topicId,
+      status: 'failed',
+      progress: 0,
+      error: err instanceof Error ? err.message : 'Status check failed',
+      videoUrl: null,
+    });
+  }
 });
 
 /** PATCH /teacher/topics/:topicId/video-script — edit script before re-render / approve */
