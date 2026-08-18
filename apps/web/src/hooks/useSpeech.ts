@@ -13,7 +13,7 @@ export interface UseSpeechOptions {
   locale: string;
   voiceEnabled: boolean;
   sttEnabled: boolean;
-  /** Gemini fallback — server picks best of Deepgram / browser / Gemini */
+  /** Browser transcript hint — server uses ElevenLabs STT as primary */
   transcribeAudio: (
     blob: Blob,
     mimeType: string,

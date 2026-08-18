@@ -111,7 +111,7 @@ router.post('/greeting', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-/** Speech-to-text — Deepgram (best) or Gemini + browser fallback. */
+/** Speech-to-text — ElevenLabs Scribe only. */
 router.post('/transcribe', requireAuth, async (req: AuthRequest, res) => {
   const parsed = transcribeSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -121,7 +121,8 @@ router.post('/transcribe', requireAuth, async (req: AuthRequest, res) => {
 
   if (!getSttEngine() && !parsed.data.browserTranscript?.trim()) {
     res.status(503).json({
-      error: 'Speech recognition not configured. Add DEEPGRAM_API_KEY (recommended) or GEMINI_API_KEY to apps/api/.env',
+      error:
+        'Speech recognition not configured. Add ELEVENLABS_API_KEY to .env (repo root or apps/api/.env), then restart the API.',
     });
     return;
   }

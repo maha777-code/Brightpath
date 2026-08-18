@@ -43,7 +43,7 @@ export function looksTooLongForSpeech(text: string, maxWords = 24): boolean {
   return words.length > maxWords;
 }
 
-export type SttSource = 'deepgram' | 'browser';
+export type SttSource = 'elevenlabs' | 'browser';
 
 export function validateTranscript(text: string, source: SttSource): string | null {
   const trimmed = text.trim();

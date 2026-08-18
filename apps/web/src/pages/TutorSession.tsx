@@ -597,7 +597,7 @@ export default function TutorSession() {
                 Voice: tap 🔇 to mute Ms. Bright (or use headphones), then 🎤 → speak → 🎤 → ↑
                 {sttEngine !== 'deepgram' && (
                   <span style={{ display: 'block', color: '#b45309', marginTop: 4 }}>
-                    Add DEEPGRAM_API_KEY to .env and apps/api/.env, then restart
+                    Add ELEVENLABS_API_KEY to .env, then restart
                   </span>
                 )}
               </span>

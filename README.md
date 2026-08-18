@@ -92,7 +92,7 @@ RTL applied automatically for Arabic.
 
 ## Next: Phase 2
 
-Voice (Deepgram, ElevenLabs, LiveKit) — see `.env.example`.
+Voice (ElevenLabs STT + TTS) — see `.env.example`.
 
 ## Phase 1 keys (current)
 
