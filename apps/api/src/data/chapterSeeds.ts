@@ -1,24 +1,24 @@
-/** Public sample videos (short clips for local demos). */
+/** Placeholder durations only — do not use external Google sample MP4 URLs. */
 export const SAMPLE_VIDEOS = [
   {
-    url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-    durationInSeconds: 6,
+    url: '',
+    durationInSeconds: 30,
   },
   {
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    durationInSeconds: 15,
+    url: '',
+    durationInSeconds: 30,
   },
   {
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    durationInSeconds: 15,
+    url: '',
+    durationInSeconds: 30,
   },
   {
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    url: '',
     durationInSeconds: 60,
   },
   {
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-    durationInSeconds: 15,
+    url: '',
+    durationInSeconds: 30,
   },
 ] as const;
 

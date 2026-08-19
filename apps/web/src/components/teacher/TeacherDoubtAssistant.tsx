@@ -52,13 +52,13 @@ export function TeacherDoubtAssistant({
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Lesson media preview */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-900">
-          {previewSubtopic?.videoUrl ? (
-            <iframe
+          {previewSubtopic?.videoUrl && !/commondatastorage|ForBigger/i.test(previewSubtopic.videoUrl) ? (
+            <video
               title={previewSubtopic.videoTitle ?? 'Lesson preview'}
               src={previewSubtopic.videoUrl}
-              className="aspect-video w-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
+              controls
+              playsInline
+              className="aspect-video w-full bg-black"
             />
           ) : (
             <div className="flex aspect-video flex-col items-center justify-center px-4 text-center text-slate-300">

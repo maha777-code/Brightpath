@@ -15,6 +15,23 @@ import type {
 } from '@prisma/client';
 import { toAbsolutePublicMediaUrl } from './videoPipeline/mediaPaths.js';
 
+/** Strip legacy Google/MDN demo MP4s so they never reach the teacher review UI. */
+function sanitizeTeacherMediaUrl(
+  raw: string | null | undefined,
+  topicId?: string,
+): string | null {
+  if (!raw || !String(raw).trim()) return null;
+  const value = String(raw).trim();
+  if (
+    /commondatastorage\.googleapis\.com|gtv-videos-bucket|ForBigger|interactive-examples\.mdn\.mozilla\.net/i.test(
+      value,
+    )
+  ) {
+    return null;
+  }
+  return toAbsolutePublicMediaUrl(value, topicId) ?? value;
+}
+
 export function toTeacherUser(t: DbTeacher): TeacherUser {
   return {
     id: t.id,
@@ -60,12 +77,20 @@ export function toSubtopic(s: DbSubtopic): TeacherSubtopic {
   let videoStatus = ((s as { videoStatus?: TeacherSubtopic['videoStatus'] }).videoStatus ??
     'none') as TeacherSubtopic['videoStatus'];
 
-  if (videoStatus === 'none' && s.hasVideoExplainer && s.videoUrl) {
+  const rawGenerated = (s as { generatedVideoUrl?: string | null }).generatedVideoUrl ?? null;
+  const rawAudio = (s as { videoAudioUrl?: string | null }).videoAudioUrl ?? null;
+  const safeVideoUrl = sanitizeTeacherMediaUrl(s.videoUrl, s.id);
+  const safeGenerated = sanitizeTeacherMediaUrl(rawGenerated, s.id);
+
+  // Only treat as published when a real (non-sample) local/public URL exists
+  if (videoStatus === 'none' && s.hasVideoExplainer && safeVideoUrl) {
     videoStatus = 'published';
   }
 
-  const rawGenerated = (s as { generatedVideoUrl?: string | null }).generatedVideoUrl ?? null;
-  const rawAudio = (s as { videoAudioUrl?: string | null }).videoAudioUrl ?? null;
+  let resolvedStatus = videoStatus;
+  if (resolvedStatus === 'published' && !safeVideoUrl && !safeGenerated) {
+    resolvedStatus = 'none';
+  }
 
   return {
     id: s.id,
@@ -73,18 +98,18 @@ export function toSubtopic(s: DbSubtopic): TeacherSubtopic {
     code: s.code,
     title: s.title,
     sequenceOrder: s.sequenceOrder,
-    hasVideoExplainer: s.hasVideoExplainer || videoStatus === 'published',
+    hasVideoExplainer: Boolean(safeVideoUrl || safeGenerated) && resolvedStatus === 'published',
     hasGamifiedActivity: s.hasGamifiedActivity,
     videoTitle: s.videoTitle,
     activityTitle: s.activityTitle,
-    videoUrl: s.videoUrl ? toAbsolutePublicMediaUrl(s.videoUrl, s.id) : s.videoUrl,
-    videoStatus,
+    videoUrl: safeVideoUrl,
+    videoStatus: resolvedStatus,
     videoProgress: (s as { videoProgress?: number }).videoProgress ?? 0,
     videoJobStage: ((s as { videoJobStage?: TeacherSubtopic['videoJobStage'] }).videoJobStage ??
       null) as TeacherSubtopic['videoJobStage'],
     videoError: (s as { videoError?: string | null }).videoError ?? null,
-    generatedVideoUrl: toAbsolutePublicMediaUrl(rawGenerated, s.id) ?? rawGenerated,
-    videoAudioUrl: toAbsolutePublicMediaUrl(rawAudio) ?? rawAudio,
+    generatedVideoUrl: safeGenerated,
+    videoAudioUrl: sanitizeTeacherMediaUrl(rawAudio),
     videoScript: (s as { videoScript?: string | null }).videoScript ?? null,
     animationCues,
     videoManifest,

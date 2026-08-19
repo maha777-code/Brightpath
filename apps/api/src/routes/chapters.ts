@@ -122,8 +122,15 @@ router.get('/:id/video-stream', async (req: AuthRequest, res) => {
     }
 
     const sample = SAMPLE_VIDEOS[2] ?? SAMPLE_VIDEOS[0];
-    const resolvedVideoUrl = videoUrl ?? sample.url;
-    lessonDurationSec = Math.max(lessonDurationSec, sample.durationInSeconds, 20);
+    // Do not fall back to Google sample MP4s — only return a real curriculum/teacher URL
+    const resolvedVideoUrl = videoUrl && !/commondatastorage\.googleapis\.com|ForBigger/i.test(videoUrl)
+      ? videoUrl
+      : null;
+    lessonDurationSec = Math.max(
+      lessonDurationSec,
+      resolvedVideoUrl ? sample.durationInSeconds : 20,
+      20,
+    );
 
     const durationSec = 23 * 60; // display budget 23:00 as in design
 

@@ -20,47 +20,56 @@ interface VideoReviewModalProps {
   onUpdated: (subtopic: TeacherSubtopic) => void;
 }
 
-/** Make stored video paths playable — always prefer absolute Express (:3001) URLs. */
-function resolveMediaUrl(raw: string | null | undefined, topicId?: string): string {
-  const apiOrigin = (
-    import.meta.env.VITE_API_PUBLIC_URL ||
-    import.meta.env.VITE_API_BASE_URL ||
-    'http://localhost:3001'
-  ).replace(/\/$/, '');
+const API_MEDIA_ORIGIN = (
+  import.meta.env.VITE_API_PUBLIC_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:3001'
+).replace(/\/$/, '');
 
-  if (!raw) {
-    return topicId ? `${apiOrigin}/public/videos/topic_${topicId}.mp4` : '';
-  }
+/** Reject demo / Google sample clips — review modal must only play pipeline output. */
+function isExternalSampleVideo(url: string): boolean {
+  return /commondatastorage\.googleapis\.com|gtv-videos-bucket|ForBigger(?:Fun|Joyrides|Blazes|Escapes)|interactive-examples\.mdn\.mozilla\.net/i.test(
+    url,
+  );
+}
+
+/** Only local pipeline MP4s under /public/videos/ on the Express API. */
+function toLocalGeneratedMp4Url(
+  raw: string | null | undefined,
+  topicId: string,
+): string | null {
+  if (!raw || !String(raw).trim()) return null;
   const value = String(raw).trim();
+  if (isExternalSampleVideo(value)) return null;
 
-  try {
-    if (/^https?:\/\//i.test(value)) {
+  if (/^https?:\/\//i.test(value)) {
+    try {
       const u = new URL(value);
-      // Rewrite accidental Vite-origin media URLs to the API
-      if (
-        (u.hostname === 'localhost' || u.hostname === '127.0.0.1') &&
-        (u.port === '5173' || u.port === '5174') &&
-        (u.pathname.startsWith('/public/') || u.pathname.startsWith('/uploads/'))
-      ) {
-        return `${apiOrigin}${u.pathname}${u.search}`;
-      }
-      return value;
+      if (!u.pathname.startsWith('/public/videos/')) return null;
+      return `${API_MEDIA_ORIGIN}${u.pathname}${u.search}`;
+    } catch {
+      return null;
     }
-  } catch {
-    /* fall through */
   }
 
-  if (value.startsWith('/public/') || value.startsWith('/uploads/')) {
-    return `${apiOrigin}${value}`;
+  if (value.startsWith('/public/videos/')) {
+    return `${API_MEDIA_ORIGIN}${value}`;
   }
-  if (value.startsWith('public/') || value.startsWith('uploads/')) {
-    return `${apiOrigin}/${value}`;
+  if (value.startsWith('public/videos/')) {
+    return `${API_MEDIA_ORIGIN}/${value}`;
   }
-  if (topicId) {
-    return `${apiOrigin}/public/videos/topic_${topicId}.mp4`;
+  if (/^topic_[a-z0-9-]+\.mp4$/i.test(value)) {
+    return `${API_MEDIA_ORIGIN}/public/videos/${value}`;
   }
-  if (value.startsWith('/')) return `${apiOrigin}${value}`;
-  return `${apiOrigin}/public/videos/${value.replace(/^.*\//, '')}`;
+  // Relative path without leading slash
+  if (value.includes(`topic_${topicId}.mp4`)) {
+    const path = value.startsWith('/') ? value : `/public/videos/${value.replace(/^.*\//, '')}`;
+    return path.startsWith('/public/')
+      ? `${API_MEDIA_ORIGIN}${path}`
+      : `${API_MEDIA_ORIGIN}/public/videos/topic_${topicId}.mp4`;
+  }
+
+  return null;
 }
 
 export default function VideoReviewModal({
@@ -80,15 +89,22 @@ export default function VideoReviewModal({
     setScript(subtopic.videoScript ?? '');
   }, [subtopic.id, subtopic.videoScript]);
 
-  const videoUrl = useMemo(
-    () => resolveMediaUrl(subtopic.generatedVideoUrl || subtopic.videoUrl, subtopic.id),
-    [subtopic.generatedVideoUrl, subtopic.videoUrl, subtopic.id],
-  );
+  /**
+   * Strict binding: generatedVideoUrl first (pipeline), then published videoUrl
+   * only if it is a local /public/videos asset — never Google sample fallbacks.
+   */
+  const targetVideoUrl = useMemo(() => {
+    const fromGenerated = toLocalGeneratedMp4Url(subtopic.generatedVideoUrl, subtopic.id);
+    if (fromGenerated) return fromGenerated;
+
+    // Published local MP4 only (after approve) — still reject sample seeds
+    return toLocalGeneratedMp4Url(subtopic.videoUrl, subtopic.id);
+  }, [subtopic.generatedVideoUrl, subtopic.videoUrl, subtopic.id]);
 
   useEffect(() => {
     setVideoLoadError(null);
-    console.log('Modal video URL:', videoUrl);
-  }, [videoUrl]);
+    console.log('Modal video URL:', targetVideoUrl);
+  }, [targetVideoUrl]);
 
   const saveScript = async () => {
     setBusy('save');
@@ -197,17 +213,18 @@ export default function VideoReviewModal({
                 Video preview
               </p>
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-inner">
-                {videoUrl ? (
+                {targetVideoUrl ? (
                   <video
-                    key={videoUrl}
+                    key={targetVideoUrl}
                     controls
+                    autoPlay
                     playsInline
                     preload="auto"
                     crossOrigin="anonymous"
                     className="aspect-video h-full w-full rounded-lg bg-black"
                     onError={() => {
-                      console.error('Video failed to load from source:', videoUrl);
-                      setVideoLoadError(`Failed to load video from ${videoUrl}`);
+                      console.error('Video failed to load from source:', targetVideoUrl);
+                      setVideoLoadError(`Failed to load video from ${targetVideoUrl}`);
                     }}
                     onLoadedMetadata={(e) => {
                       const d = e.currentTarget.duration;
@@ -220,21 +237,21 @@ export default function VideoReviewModal({
                       }
                     }}
                   >
-                    <source src={videoUrl} type="video/mp4" />
+                    <source src={targetVideoUrl} type="video/mp4" />
                     Your browser cannot play this video.
                   </video>
                 ) : (
-                  <div className="flex aspect-video items-center justify-center text-sm text-slate-400">
-                    No preview available
+                  <div className="flex aspect-video w-full items-center justify-center rounded-lg bg-slate-900 px-4 text-center text-sm text-slate-400">
+                    No video file generated yet. Click Re-generate.
                   </div>
                 )}
               </div>
               {videoLoadError && (
                 <p className="mt-2 text-xs font-semibold text-rose-600">{videoLoadError}</p>
               )}
-              {videoUrl && (
-                <p className="mt-1 truncate text-[11px] text-slate-400" title={videoUrl}>
-                  Source: {videoUrl}
+              {targetVideoUrl && (
+                <p className="mt-1 truncate text-[11px] text-slate-400" title={targetVideoUrl}>
+                  Source: {targetVideoUrl}
                 </p>
               )}
             </div>
@@ -332,7 +349,11 @@ export default function VideoReviewModal({
                   onClick={() => void regenerate()}
                   className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white"
                 >
-                  {busy === 'regen' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                  {busy === 'regen' ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
                   Re-generate with Prompt
                 </button>
               </div>
@@ -371,7 +392,7 @@ export default function VideoReviewModal({
             <button
               type="button"
               onClick={() => void approve()}
-              disabled={Boolean(busy)}
+              disabled={Boolean(busy) || !targetVideoUrl}
               className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-emerald-600 disabled:opacity-50 sm:text-sm"
             >
               {busy === 'approve' ? (

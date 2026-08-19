@@ -1,4 +1,6 @@
-/** Default NCERT-style science chapters created after PDF verification / indexing */
+/** Default NCERT-style science chapters created after PDF verification / indexing.
+ *  Do not seed external sample MP4s — teachers generate real videos via the pipeline.
+ */
 
 export const DEFAULT_SCIENCE_CHAPTERS = [
   {
@@ -11,20 +13,20 @@ export const DEFAULT_SCIENCE_CHAPTERS = [
       {
         code: '1.1',
         title: 'Physical Nature of Matter',
-        hasVideoExplainer: true,
+        hasVideoExplainer: false,
         hasGamifiedActivity: true,
         videoTitle: 'What is Matter?',
         activityTitle: 'Particle Hunt Mini-Game',
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+        videoUrl: null,
       },
       {
         code: '1.2',
         title: 'Characteristics of Particles of Matter',
-        hasVideoExplainer: true,
+        hasVideoExplainer: false,
         hasGamifiedActivity: false,
         videoTitle: 'Particles Everywhere',
         activityTitle: null,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+        videoUrl: null,
       },
       {
         code: '1.3',
@@ -47,11 +49,11 @@ export const DEFAULT_SCIENCE_CHAPTERS = [
       {
         code: '2.1',
         title: 'What is a Mixture?',
-        hasVideoExplainer: true,
+        hasVideoExplainer: false,
         hasGamifiedActivity: true,
         videoTitle: 'Mixtures Explained',
         activityTitle: 'Mix & Match Lab',
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        videoUrl: null,
       },
       {
         code: '2.2',
@@ -74,20 +76,20 @@ export const DEFAULT_SCIENCE_CHAPTERS = [
       {
         code: '3.1',
         title: 'Laws of Chemical Combination',
-        hasVideoExplainer: true,
+        hasVideoExplainer: false,
         hasGamifiedActivity: false,
         videoTitle: 'Chemical Combination Laws',
         activityTitle: null,
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+        videoUrl: null,
       },
       {
         code: '3.2',
         title: 'What is an Atom?',
-        hasVideoExplainer: true,
+        hasVideoExplainer: false,
         hasGamifiedActivity: true,
         videoTitle: 'Meet the Atom',
         activityTitle: 'Build an Atom',
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+        videoUrl: null,
       },
     ],
   },
