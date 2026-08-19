@@ -1,136 +1,183 @@
-import fs from 'fs/promises';
+import fs from 'fs';
+import fsPromises from 'fs/promises';
 import path from 'path';
-import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
+import { pathToFileURL } from 'url';
 import type { VideoScriptManifest } from '@brightpath/shared';
-import { SAMPLE_VIDEOS } from '../../data/chapterSeeds.js';
 import type { RenderResult, VoiceSynthesisResult } from './types.js';
+import {
+  API_ROOT,
+  MIN_AUDIO_BYTES,
+  MIN_VIDEO_BYTES,
+  PUBLIC_PROPS_DIR,
+  assertFileMinSize,
+  ensurePublicVideoDirs,
+  publicVideoUrl,
+  topicVideoPath,
+} from './mediaPaths.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const API_ROOT = path.resolve(__dirname, '../../..');
-const OUT_DIR = path.resolve(API_ROOT, 'uploads/videos');
-const PROPS_DIR = path.resolve(API_ROOT, 'uploads/videos/props');
 const REMOTION_ROOT = path.resolve(API_ROOT, '../remotion');
+const remotionRequire = createRequire(path.join(REMOTION_ROOT, 'package.json'));
 
-function run(cmd: string, args: string[], cwd: string, timeoutMs = 180_000): Promise<{ code: number; stdout: string; stderr: string }> {
-  return new Promise((resolve) => {
-    const child = spawn(cmd, args, {
-      cwd,
-      shell: process.platform === 'win32',
-      env: process.env,
-    });
-    let stdout = '';
-    let stderr = '';
-    const timer = setTimeout(() => {
-      child.kill('SIGKILL');
-      resolve({ code: 1, stdout, stderr: stderr + '\n[timeout]' });
-    }, timeoutMs);
-    child.stdout?.on('data', (d) => {
-      stdout += String(d);
-    });
-    child.stderr?.on('data', (d) => {
-      stderr += String(d);
-    });
-    child.on('close', (code) => {
-      clearTimeout(timer);
-      resolve({ code: code ?? 1, stdout, stderr });
-    });
-    child.on('error', (err) => {
-      clearTimeout(timer);
-      resolve({ code: 1, stdout, stderr: String(err) });
-    });
-  });
-}
+/**
+ * Remotion's openBrowser already launches with:
+ *   --no-sandbox, --disable-setuid-sandbox, --disable-dev-shm-usage
+ * We still request the supported Linux mitigations (multiprocess + software GL)
+ * and forward sandbox args when the renderer honors extra `args`.
+ */
+const SANDBOX_CHROMIUM_ARGS = [
+  '--no-sandbox',
+  '--disable-setuid-sandbox',
+  '--disable-dev-shm-usage',
+] as const;
+
+const CHROMIUM_OPTIONS = {
+  enableMultiProcessOnLinux: true,
+  gl: 'swiftshader' as const,
+  disableWebSecurity: true,
+  args: [...SANDBOX_CHROMIUM_ARGS],
+};
 
 async function remotionPackageReady(): Promise<boolean> {
   try {
-    await fs.access(path.join(REMOTION_ROOT, 'package.json'));
-    await fs.access(path.join(REMOTION_ROOT, 'src', 'index.ts'));
+    await fsPromises.access(path.join(REMOTION_ROOT, 'package.json'));
+    await fsPromises.access(path.join(REMOTION_ROOT, 'src', 'index.ts'));
     return true;
   } catch {
     return false;
   }
 }
 
+async function importRemotion<T extends Record<string, unknown>>(pkg: string): Promise<T> {
+  const resolved = remotionRequire.resolve(pkg);
+  return (await import(pathToFileURL(resolved).href)) as T;
+}
+
+/** Require a real MP4 (≥100KB). Throws so the job becomes `failed`, not empty pending_review. */
+function assertRemotionOutputOrThrow(outFile: string): number {
+  const exists = fs.existsSync(outFile);
+  const size = exists ? fs.statSync(outFile).size : 0;
+  if (!exists || size < 100_000) {
+    throw new Error(
+      `Video rendering produced an empty or corrupted file (${size} bytes).`,
+    );
+  }
+  return size;
+}
+
 /**
- * Step 4 — Remotion headless render.
- * Falls back to a sample MP4 when Chromium/Remotion is unavailable so the
- * review modal still works with real script/audio artifacts.
+ * Step 4 — Remotion headless render via bundle + selectComposition + renderMedia.
+ * Validates TTS audio first; requires Remotion MP4 ≥100KB or throws (failed status).
  */
 export async function renderWithRemotion(opts: {
   topicId: string;
   manifest: VideoScriptManifest;
   voice: VoiceSynthesisResult;
 }): Promise<RenderResult> {
-  await fs.mkdir(OUT_DIR, { recursive: true });
-  await fs.mkdir(PROPS_DIR, { recursive: true });
+  await ensurePublicVideoDirs();
 
-  const outFile = path.join(OUT_DIR, `topic_${opts.topicId}.mp4`);
-  const propsPath = path.join(PROPS_DIR, `topic_${opts.topicId}.json`);
-  const props = {
+  await assertFileMinSize(opts.voice.audioPath, MIN_AUDIO_BYTES, 'TTS audio');
+  if (!opts.voice.durationSec || opts.voice.durationSec <= 0) {
+    throw new Error('TTS audio duration is 0 — cannot stitch video without voiceover length');
+  }
+
+  const outFile = topicVideoPath(opts.topicId);
+  try {
+    await fsPromises.unlink(outFile);
+  } catch {
+    /* none */
+  }
+
+  const propsPath = path.join(PUBLIC_PROPS_DIR, `topic_${opts.topicId}.json`);
+  const inputProps = {
     topicId: opts.topicId,
     topicTitle: opts.manifest.topicTitle,
     scenes: opts.manifest.scenes,
     wordTimings: opts.voice.wordTimings,
+    // Absolute path — Remotion <Audio> resolves local files during headless render
     audioUrl: opts.voice.audioPath,
-    totalDurationSeconds: opts.voice.durationSec || opts.manifest.totalDurationSeconds,
+    totalDurationSeconds: Math.max(
+      opts.voice.durationSec,
+      opts.manifest.totalDurationSeconds,
+      8,
+    ),
   };
-  await fs.writeFile(propsPath, JSON.stringify(props, null, 2), 'utf8');
+  await fsPromises.writeFile(propsPath, JSON.stringify(inputProps, null, 2), 'utf8');
 
   const ready = await remotionPackageReady();
-  if (ready) {
-    const result = await run(
-      'npx',
-      [
-        'remotion',
-        'render',
-        'src/index.ts',
-        'GamifiedLesson',
-        outFile,
-        `--props=${propsPath}`,
-      ],
-      REMOTION_ROOT,
-      240_000,
+  if (!ready) {
+    throw new Error(
+      `Remotion package not ready at ${REMOTION_ROOT}. Run: cd apps/remotion && npm install && npx remotion browser ensure`,
     );
-    if (result.code === 0) {
-      try {
-        await fs.access(outFile);
-        return {
-          videoPath: outFile,
-          videoPublicUrl: `/uploads/videos/topic_${opts.topicId}.mp4`,
-          usedFallback: false,
-        };
-      } catch {
-        /* fall through */
-      }
-    } else {
-      console.warn('[remotion] render failed:', result.stderr.slice(0, 500) || result.stdout.slice(0, 500));
-    }
-  } else {
-    console.warn('[remotion] package missing at', REMOTION_ROOT, '— using hybrid fallback video');
   }
 
-  // Hybrid fallback: copy a CDN sample into uploads so local /uploads URL works,
-  // or point at the remote sample directly.
-  const sample = SAMPLE_VIDEOS[3]?.url ?? SAMPLE_VIDEOS[0].url;
   try {
-    const res = await fetch(sample);
-    if (res.ok) {
-      const buf = Buffer.from(await res.arrayBuffer());
-      await fs.writeFile(outFile, buf);
-      return {
-        videoPath: outFile,
-        videoPublicUrl: `/uploads/videos/topic_${opts.topicId}.mp4`,
-        usedFallback: true,
-      };
-    }
+    const { bundle } = await importRemotion<{
+      bundle: (opts: { entryPoint: string; rootDir?: string }) => Promise<string>;
+    }>('@remotion/bundler');
+
+    const { selectComposition, renderMedia } = await importRemotion<{
+      selectComposition: (opts: {
+        serveUrl: string;
+        id: string;
+        inputProps?: Record<string, unknown>;
+        chromiumOptions?: typeof CHROMIUM_OPTIONS;
+      }) => Promise<{
+        id: string;
+        width: number;
+        height: number;
+        fps: number;
+        durationInFrames: number;
+      }>;
+      renderMedia: (opts: {
+        composition: unknown;
+        serveUrl: string;
+        outputLocation: string;
+        codec: 'h264';
+        inputProps?: Record<string, unknown>;
+        chromiumOptions?: typeof CHROMIUM_OPTIONS;
+        timeoutInMilliseconds?: number;
+      }) => Promise<unknown>;
+    }>('@remotion/renderer');
+
+    console.log(
+      `[remotion] bundling GamifiedLesson (chromium: multiprocess + swiftshader; args=${SANDBOX_CHROMIUM_ARGS.join(' ')})`,
+    );
+
+    const serveUrl = await bundle({
+      entryPoint: path.join(REMOTION_ROOT, 'src', 'index.ts'),
+      rootDir: REMOTION_ROOT,
+    });
+
+    const composition = await selectComposition({
+      serveUrl,
+      id: 'GamifiedLesson',
+      inputProps,
+      chromiumOptions: CHROMIUM_OPTIONS,
+    });
+
+    await renderMedia({
+      composition,
+      serveUrl,
+      outputLocation: outFile,
+      codec: 'h264',
+      inputProps,
+      chromiumOptions: CHROMIUM_OPTIONS,
+      timeoutInMilliseconds: 120_000,
+    });
   } catch (err) {
-    console.warn('[remotion] fallback download failed', err);
+    throw new Error(
+      `Failed during Remotion/FFmpeg render: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
+
+  const size = assertRemotionOutputOrThrow(outFile);
+  await assertFileMinSize(outFile, MIN_VIDEO_BYTES, 'Remotion output MP4');
+  console.log(`[remotion] OK ${outFile} (${size} bytes)`);
 
   return {
     videoPath: outFile,
-    videoPublicUrl: sample,
-    usedFallback: true,
+    videoPublicUrl: publicVideoUrl(opts.topicId),
+    usedFallback: false,
   };
 }

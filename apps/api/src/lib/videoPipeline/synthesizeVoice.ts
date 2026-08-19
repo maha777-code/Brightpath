@@ -1,6 +1,4 @@
 import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import type { VideoScriptManifest } from '@brightpath/shared';
 import {
   getElevenLabsApiKey,
@@ -11,66 +9,65 @@ import {
   estimateWordTimings,
 } from '../speech/elevenlabs.js';
 import type { VoiceSynthesisResult } from './types.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const AUDIO_DIR = path.resolve(__dirname, '../../../uploads/videos/audio');
+import {
+  MIN_AUDIO_BYTES,
+  assertFileMinSize,
+  ensurePublicVideoDirs,
+  publicAudioUrl,
+  topicAudioPath,
+} from './mediaPaths.js';
 
 /**
- * Step 3 — voiceover TTS.
- * Prefer ElevenLabs (free premade Sarah/Rachel); on 401/402 fall back to Google TTS
- * so the Remotion pipeline never hard-fails on billing.
+ * Step 3 — voiceover TTS saved under public/videos/audio.
+ * Prefer ElevenLabs; on 401/402 fall back to Google TTS.
  */
 export async function synthesizeVoiceover(
   topicId: string,
   manifest: VideoScriptManifest,
 ): Promise<VoiceSynthesisResult> {
-  await fs.mkdir(AUDIO_DIR, { recursive: true });
+  await ensurePublicVideoDirs();
   const fullText = manifest.scenes.map((s) => s.voiceoverText).join(' ');
-
-  const mp3Path = path.join(AUDIO_DIR, `topic_${topicId}.mp3`);
+  const mp3Path = topicAudioPath(topicId);
   const apiKey = getElevenLabsApiKey();
+
+  const writeAndValidate = async (
+    audio: Buffer,
+    durationSec: number,
+    wordTimings: { word: string; start: number; end: number }[],
+  ): Promise<VoiceSynthesisResult> => {
+    if (!audio.length) {
+      throw new Error('TTS produced empty audio buffer');
+    }
+    await fs.writeFile(mp3Path, audio);
+    await assertFileMinSize(mp3Path, MIN_AUDIO_BYTES, 'TTS audio');
+    const dur = durationSec > 0 ? durationSec : Math.max(8, (fullText.split(/\s+/).length / 150) * 60);
+    return {
+      audioPath: mp3Path,
+      audioPublicUrl: publicAudioUrl(topicId),
+      wordTimings: wordTimings.length ? wordTimings : estimateWordTimings(fullText, dur),
+      durationSec: dur,
+    };
+  };
 
   try {
     if (!apiKey) {
       console.warn('[TTS] No ELEVENLABS_API_KEY — using free Google TTS fallback');
       const g = await synthesizeWithGoogleTts(fullText);
-      await fs.writeFile(mp3Path, g.audio);
-      return {
-        audioPath: mp3Path,
-        audioPublicUrl: `/uploads/videos/audio/topic_${topicId}.mp3`,
-        wordTimings: g.wordTimings.length ? g.wordTimings : estimateWordTimings(fullText, g.durationSec),
-        durationSec: g.durationSec,
-      };
+      return writeAndValidate(g.audio, g.durationSec, g.wordTimings);
     }
 
     const voiceId = getElevenLabsVoiceId();
     const result = await synthesizeWithElevenLabs(fullText, apiKey, voiceId);
-    await fs.writeFile(mp3Path, result.audio);
     console.log(`[TTS] provider=${result.provider} voice=${voiceId}`);
-
-    return {
-      audioPath: mp3Path,
-      audioPublicUrl: `/uploads/videos/audio/topic_${topicId}.mp3`,
-      wordTimings:
-        result.wordTimings.length > 0
-          ? result.wordTimings
-          : estimateWordTimings(fullText, result.durationSec),
-      durationSec: result.durationSec,
-    };
+    return writeAndValidate(result.audio, result.durationSec, result.wordTimings);
   } catch (err) {
     if (isBillingOrAuthError(err) || !apiKey) {
       console.warn(
-        '[TTS] ElevenLabs payment required / auth failed. Falling back to free Google TTS…',
+        '[TTS] ElevenLabs payment/auth issue — Google TTS fallback',
         err instanceof Error ? err.message : err,
       );
       const g = await synthesizeWithGoogleTts(fullText);
-      await fs.writeFile(mp3Path, g.audio);
-      return {
-        audioPath: mp3Path,
-        audioPublicUrl: `/uploads/videos/audio/topic_${topicId}.mp3`,
-        wordTimings: g.wordTimings.length ? g.wordTimings : estimateWordTimings(fullText, g.durationSec),
-        durationSec: g.durationSec,
-      };
+      return writeAndValidate(g.audio, g.durationSec, g.wordTimings);
     }
     throw err;
   }

@@ -129,6 +129,46 @@ export function SubtopicManager({
     }
   };
 
+  /** Refresh status before opening modal — demotes empty/missing MP4 to failed. */
+  const openReview = async (sub: TeacherSubtopic) => {
+    setBusyId(sub.id);
+    try {
+      const res = await api.getTopicVideoStatus(sub.id);
+      const reconciledStatus =
+        res.subtopic?.videoStatus ??
+        (res.status === 'failed'
+          ? 'failed'
+          : res.status === 'pending_review'
+            ? 'pending_review'
+            : sub.videoStatus);
+
+      const next: TeacherSubtopic = {
+        ...sub,
+        ...(res.subtopic ?? {}),
+        videoProgress: res.progress ?? res.subtopic?.videoProgress ?? sub.videoProgress,
+        videoError: res.error ?? res.subtopic?.videoError ?? null,
+        generatedVideoUrl: res.videoUrl ?? res.subtopic?.generatedVideoUrl ?? sub.generatedVideoUrl,
+        videoStatus: reconciledStatus,
+      };
+      patchSub(next);
+
+      if (next.videoStatus === 'failed') {
+        if (chapter?.id) onUpdated(chapter.id);
+        return;
+      }
+
+      setReviewSub(next);
+      if (resolveStatus(next) === 'published') onPreviewVideo(next);
+    } catch (e) {
+      patchSub({
+        ...sub,
+        videoError: e instanceof Error ? e.message : 'Could not load video status',
+      });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const attachDefaults = async (sub: TeacherSubtopic) => {
     setBusyId(sub.id);
     try {
@@ -180,10 +220,7 @@ export function SubtopicManager({
                     status={status}
                     busy={busyId === sub.id}
                     onGenerate={() => void startGenerate(sub)}
-                    onReview={() => {
-                      setReviewSub(sub);
-                      if (status === 'published') onPreviewVideo(sub);
-                    }}
+                    onReview={() => void openReview(sub)}
                   />
 
                   <button

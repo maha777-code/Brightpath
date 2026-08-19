@@ -97,7 +97,7 @@ export async function generateStructuredVideoScript(
     const raw = await Promise.race([
       provider.completeJson<VideoScriptManifest>({ system: SYSTEM, user }),
       new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('LLM script timed out')), 25_000);
+        setTimeout(() => reject(new Error('LLM script timed out')), 45_000);
       }),
     ]);
     if (!raw?.scenes?.length) return heuristicManifest(ctx);

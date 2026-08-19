@@ -7,11 +7,18 @@ import {
 } from './generateScript.js';
 import { synthesizeVoiceover } from './synthesizeVoice.js';
 import { renderWithRemotion } from './remotionRender.js';
+import {
+  MIN_VIDEO_BYTES,
+  isValidRenderedVideo,
+  publicVideoUrl,
+  topicVideoPath,
+  toAbsolutePublicMediaUrl,
+} from './mediaPaths.js';
 import { STAGE_PROGRESS, type PipelineStage } from './types.js';
 
 const running = new Set<string>();
 const jobEpoch = new Map<string, number>();
-const JOB_TIMEOUT_MS = Number(process.env.VIDEO_JOB_TIMEOUT_MS ?? 240_000); // 4 min
+const JOB_TIMEOUT_MS = Number(process.env.VIDEO_JOB_TIMEOUT_MS ?? 360_000); // 6 min (bundle + render)
 const STALE_MS = Number(process.env.VIDEO_JOB_STALE_MS ?? 90_000); // 90s without progress → fail on poll
 
 type QueueItem = { topicId: string; teacherPrompt?: string; epoch: number };
@@ -96,7 +103,7 @@ export async function runHybridVideoPipeline(
         await setStage(topicId, 'scripting');
         const manifest = await withTimeout(
           generateStructuredVideoScript(ctx),
-          45_000,
+          90_000,
           'Script generation (LLM)',
         );
         if (!isCurrent()) return;
@@ -139,7 +146,7 @@ export async function runHybridVideoPipeline(
         try {
           rendered = await withTimeout(
             renderWithRemotion({ topicId, manifest, voice }),
-            120_000,
+            180_000,
             'Remotion / FFmpeg render',
           );
         } catch (renderErr) {
@@ -151,13 +158,28 @@ export async function runHybridVideoPipeline(
         }
         if (!isCurrent()) return;
 
+        // Hard block: never set pending_review on missing/empty MP4
+        const absoluteMp4Path = rendered.videoPath || topicVideoPath(topicId);
+        const check = isValidRenderedVideo(absoluteMp4Path);
+        if (!check.ok) {
+          console.error(
+            `[videoPipeline] Rendered file missing or under 100KB! path=${absoluteMp4Path} size=${check.size}`,
+          );
+          throw new Error(
+            `Video rendering produced an empty or corrupted file (${check.size} bytes).`,
+          );
+        }
+
+        const absoluteVideoUrl =
+          toAbsolutePublicMediaUrl(rendered.videoPublicUrl, topicId) || publicVideoUrl(topicId);
+
         await prisma.teacherSubtopic.update({
           where: { id: topicId },
           data: {
             videoStatus: 'pending_review',
             videoJobStage: 'done',
             videoProgress: 100,
-            generatedVideoUrl: rendered.videoPublicUrl,
+            generatedVideoUrl: absoluteVideoUrl,
             videoAudioUrl: voice.audioPublicUrl,
             videoScript: flatScript,
             animationCuesJson: cues,
@@ -218,11 +240,36 @@ export function isPipelineRunning(topicId: string): boolean {
 }
 
 /**
- * On status poll: if job is generating but stuck past STALE_MS and not running, mark failed.
+ * On status poll:
+ * - generating stuck past STALE_MS → failed
+ * - pending_review / published draft with missing/empty MP4 → failed (no 0:00 review modal)
  */
 export async function reconcileVideoJobStatus(topicId: string) {
   const sub = await prisma.teacherSubtopic.findUnique({ where: { id: topicId } });
   if (!sub) return null;
+
+  if (sub.videoStatus === 'pending_review') {
+    const mp4 = topicVideoPath(topicId);
+    const check = isValidRenderedVideo(mp4);
+    if (!check.ok) {
+      console.error(
+        `[videoPipeline] pending_review but MP4 invalid (${check.size} bytes < ${MIN_VIDEO_BYTES})`,
+      );
+      return markVideoJobFailed(
+        topicId,
+        `Rendered video file is empty or missing (${check.size} bytes).`,
+      );
+    }
+    // Keep absolute URL fresh for the review modal
+    const absolute = publicVideoUrl(topicId);
+    if (sub.generatedVideoUrl !== absolute) {
+      return prisma.teacherSubtopic.update({
+        where: { id: topicId },
+        data: { generatedVideoUrl: absolute },
+      });
+    }
+    return sub;
+  }
 
   if (sub.videoStatus !== 'generating') return sub;
 

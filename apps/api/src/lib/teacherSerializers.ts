@@ -13,6 +13,7 @@ import type {
   TeacherSubtopic as DbSubtopic,
   Textbook as DbTextbook,
 } from '@prisma/client';
+import { toAbsolutePublicMediaUrl } from './videoPipeline/mediaPaths.js';
 
 export function toTeacherUser(t: DbTeacher): TeacherUser {
   return {
@@ -63,6 +64,9 @@ export function toSubtopic(s: DbSubtopic): TeacherSubtopic {
     videoStatus = 'published';
   }
 
+  const rawGenerated = (s as { generatedVideoUrl?: string | null }).generatedVideoUrl ?? null;
+  const rawAudio = (s as { videoAudioUrl?: string | null }).videoAudioUrl ?? null;
+
   return {
     id: s.id,
     chapterId: s.chapterId,
@@ -73,14 +77,14 @@ export function toSubtopic(s: DbSubtopic): TeacherSubtopic {
     hasGamifiedActivity: s.hasGamifiedActivity,
     videoTitle: s.videoTitle,
     activityTitle: s.activityTitle,
-    videoUrl: s.videoUrl,
+    videoUrl: s.videoUrl ? toAbsolutePublicMediaUrl(s.videoUrl, s.id) : s.videoUrl,
     videoStatus,
     videoProgress: (s as { videoProgress?: number }).videoProgress ?? 0,
     videoJobStage: ((s as { videoJobStage?: TeacherSubtopic['videoJobStage'] }).videoJobStage ??
       null) as TeacherSubtopic['videoJobStage'],
     videoError: (s as { videoError?: string | null }).videoError ?? null,
-    generatedVideoUrl: (s as { generatedVideoUrl?: string | null }).generatedVideoUrl ?? null,
-    videoAudioUrl: (s as { videoAudioUrl?: string | null }).videoAudioUrl ?? null,
+    generatedVideoUrl: toAbsolutePublicMediaUrl(rawGenerated, s.id) ?? rawGenerated,
+    videoAudioUrl: toAbsolutePublicMediaUrl(rawAudio) ?? rawAudio,
     videoScript: (s as { videoScript?: string | null }).videoScript ?? null,
     animationCues,
     videoManifest,

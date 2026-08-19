@@ -56,6 +56,36 @@ app.use(
   '/uploads',
   express.static(path.resolve(__dirname, '../uploads'), { maxAge: '7d' }),
 );
+app.use(
+  '/public',
+  (req, res, next) => {
+    // Allow Vite (:5173) <video crossOrigin="anonymous"> to load MP4s from :3001
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header(
+      'Access-Control-Allow-Headers',
+      'Origin, X-Requested-With, Content-Type, Accept, Range',
+    );
+    res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  },
+  express.static(path.resolve(__dirname, '../public'), {
+    maxAge: '1h',
+    setHeaders(res, filePath) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      if (filePath.endsWith('.mp4')) {
+        res.setHeader('Content-Type', 'video/mp4');
+        res.setHeader('Accept-Ranges', 'bytes');
+      }
+      if (filePath.endsWith('.mp3')) {
+        res.setHeader('Content-Type', 'audio/mpeg');
+      }
+    },
+  }),
+);
 
 app.get('/health', (_req, res) => {
   const llm = Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);

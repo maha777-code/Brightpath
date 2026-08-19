@@ -415,6 +415,9 @@ router.get('/topics/:topicId/video-status', async (req: AuthRequest, res) => {
     }
 
     const { reconcileVideoJobStatus } = await import('../lib/videoPipeline/runPipeline.js');
+    const { toAbsolutePublicMediaUrl, publicVideoUrl } = await import(
+      '../lib/videoPipeline/mediaPaths.js'
+    );
     const row = (await reconcileVideoJobStatus(existing.id)) ?? existing;
     const subtopic = toSubtopic(row);
 
@@ -429,12 +432,23 @@ router.get('/topics/:topicId/video-status', async (req: AuthRequest, res) => {
       status = 'failed';
     }
 
+    const absoluteVideoUrl =
+      toAbsolutePublicMediaUrl(subtopic.generatedVideoUrl || subtopic.videoUrl, subtopic.id) ||
+      (subtopic.videoStatus === 'pending_review' || subtopic.videoStatus === 'published'
+        ? publicVideoUrl(subtopic.id)
+        : null);
+
+    // Ensure nested subtopic also carries absolute URL for the review modal
+    if (absoluteVideoUrl) {
+      subtopic.generatedVideoUrl = absoluteVideoUrl;
+    }
+
     res.json({
       topicId: subtopic.id,
       status,
       progress: Math.max(0, Math.min(100, subtopic.videoProgress ?? 0)),
       error: subtopic.videoError,
-      videoUrl: subtopic.generatedVideoUrl || subtopic.videoUrl,
+      videoUrl: absoluteVideoUrl,
       stage: subtopic.videoJobStage,
       subtopic,
     });

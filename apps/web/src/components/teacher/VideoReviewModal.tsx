@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Check,
@@ -20,6 +20,49 @@ interface VideoReviewModalProps {
   onUpdated: (subtopic: TeacherSubtopic) => void;
 }
 
+/** Make stored video paths playable — always prefer absolute Express (:3001) URLs. */
+function resolveMediaUrl(raw: string | null | undefined, topicId?: string): string {
+  const apiOrigin = (
+    import.meta.env.VITE_API_PUBLIC_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    'http://localhost:3001'
+  ).replace(/\/$/, '');
+
+  if (!raw) {
+    return topicId ? `${apiOrigin}/public/videos/topic_${topicId}.mp4` : '';
+  }
+  const value = String(raw).trim();
+
+  try {
+    if (/^https?:\/\//i.test(value)) {
+      const u = new URL(value);
+      // Rewrite accidental Vite-origin media URLs to the API
+      if (
+        (u.hostname === 'localhost' || u.hostname === '127.0.0.1') &&
+        (u.port === '5173' || u.port === '5174') &&
+        (u.pathname.startsWith('/public/') || u.pathname.startsWith('/uploads/'))
+      ) {
+        return `${apiOrigin}${u.pathname}${u.search}`;
+      }
+      return value;
+    }
+  } catch {
+    /* fall through */
+  }
+
+  if (value.startsWith('/public/') || value.startsWith('/uploads/')) {
+    return `${apiOrigin}${value}`;
+  }
+  if (value.startsWith('public/') || value.startsWith('uploads/')) {
+    return `${apiOrigin}/${value}`;
+  }
+  if (topicId) {
+    return `${apiOrigin}/public/videos/topic_${topicId}.mp4`;
+  }
+  if (value.startsWith('/')) return `${apiOrigin}${value}`;
+  return `${apiOrigin}/public/videos/${value.replace(/^.*\//, '')}`;
+}
+
 export default function VideoReviewModal({
   subtopic,
   onClose,
@@ -31,12 +74,21 @@ export default function VideoReviewModal({
   const [error, setError] = useState<string | null>(null);
   const [showRegenPrompt, setShowRegenPrompt] = useState(false);
   const [regenPrompt, setRegenPrompt] = useState('');
+  const [videoLoadError, setVideoLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     setScript(subtopic.videoScript ?? '');
   }, [subtopic.id, subtopic.videoScript]);
 
-  const previewUrl = subtopic.generatedVideoUrl || subtopic.videoUrl || '';
+  const videoUrl = useMemo(
+    () => resolveMediaUrl(subtopic.generatedVideoUrl || subtopic.videoUrl, subtopic.id),
+    [subtopic.generatedVideoUrl, subtopic.videoUrl, subtopic.id],
+  );
+
+  useEffect(() => {
+    setVideoLoadError(null);
+    console.log('Modal video URL:', videoUrl);
+  }, [videoUrl]);
 
   const saveScript = async () => {
     setBusy('save');
@@ -145,20 +197,46 @@ export default function VideoReviewModal({
                 Video preview
               </p>
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-inner">
-                {previewUrl ? (
+                {videoUrl ? (
                   <video
-                    key={previewUrl}
-                    src={previewUrl}
+                    key={videoUrl}
                     controls
                     playsInline
-                    className="aspect-video w-full bg-black"
-                  />
+                    preload="auto"
+                    crossOrigin="anonymous"
+                    className="aspect-video h-full w-full rounded-lg bg-black"
+                    onError={() => {
+                      console.error('Video failed to load from source:', videoUrl);
+                      setVideoLoadError(`Failed to load video from ${videoUrl}`);
+                    }}
+                    onLoadedMetadata={(e) => {
+                      const d = e.currentTarget.duration;
+                      if (!Number.isFinite(d) || d <= 0) {
+                        setVideoLoadError(
+                          'Video metadata reports 0:00 duration — file may be empty or missing on the API server.',
+                        );
+                      } else {
+                        setVideoLoadError(null);
+                      }
+                    }}
+                  >
+                    <source src={videoUrl} type="video/mp4" />
+                    Your browser cannot play this video.
+                  </video>
                 ) : (
                   <div className="flex aspect-video items-center justify-center text-sm text-slate-400">
                     No preview available
                   </div>
                 )}
               </div>
+              {videoLoadError && (
+                <p className="mt-2 text-xs font-semibold text-rose-600">{videoLoadError}</p>
+              )}
+              {videoUrl && (
+                <p className="mt-1 truncate text-[11px] text-slate-400" title={videoUrl}>
+                  Source: {videoUrl}
+                </p>
+              )}
             </div>
 
             <div className="flex min-h-0 flex-col">

@@ -18,7 +18,13 @@
     "db:push": "npm run db:push -w @brightpath/api",
     "migrate:monorepo": "node scripts/migrate-monorepo.mjs"
   },
+  "dependencies": {
+    "zod": "4.4.3"
+  },
   "devDependencies": {
     "concurrently": "^9.1.0"
+  },
+  "overrides": {
+    "zod": "4.4.3"
   }
 }
