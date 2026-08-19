@@ -20,22 +20,23 @@ const REMOTION_ROOT = path.resolve(API_ROOT, '../remotion');
 const remotionRequire = createRequire(path.join(REMOTION_ROOT, 'package.json'));
 
 /**
- * Remotion's openBrowser already launches with:
- *   --no-sandbox, --disable-setuid-sandbox, --disable-dev-shm-usage
- * We still request the supported Linux mitigations (multiprocess + software GL)
- * and forward sandbox args when the renderer honors extra `args`.
+ * Linux / restricted environments: strict sandbox off + no GPU.
+ * Remotion's openBrowser already injects --no-sandbox / --disable-setuid-sandbox /
+ * --disable-dev-shm-usage; we also pass --disable-gpu and restate the sandbox flags
+ * for forks / future renderer versions that honor chromiumOptions.args.
  */
-const SANDBOX_CHROMIUM_ARGS = [
+const CHROMIUM_ARGS = [
   '--no-sandbox',
   '--disable-setuid-sandbox',
   '--disable-dev-shm-usage',
+  '--disable-gpu',
 ] as const;
 
 const CHROMIUM_OPTIONS = {
   enableMultiProcessOnLinux: true,
   gl: 'swiftshader' as const,
   disableWebSecurity: true,
-  args: [...SANDBOX_CHROMIUM_ARGS],
+  args: [...CHROMIUM_ARGS],
 };
 
 async function remotionPackageReady(): Promise<boolean> {
@@ -141,7 +142,7 @@ export async function renderWithRemotion(opts: {
     }>('@remotion/renderer');
 
     console.log(
-      `[remotion] bundling GamifiedLesson (chromium: multiprocess + swiftshader; args=${SANDBOX_CHROMIUM_ARGS.join(' ')})`,
+      `[remotion] bundling GamifiedLesson (chromium: multiprocess + swiftshader; args=${CHROMIUM_ARGS.join(' ')})`,
     );
 
     const serveUrl = await bundle({
@@ -162,7 +163,17 @@ export async function renderWithRemotion(opts: {
       outputLocation: outFile,
       codec: 'h264',
       inputProps,
-      chromiumOptions: CHROMIUM_OPTIONS,
+      chromiumOptions: {
+        enableMultiProcessOnLinux: true,
+        gl: 'swiftshader',
+        disableWebSecurity: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+        ],
+      },
       timeoutInMilliseconds: 120_000,
     });
   } catch (err) {

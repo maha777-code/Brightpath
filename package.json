@@ -12,6 +12,7 @@
     "dev:api": "npm run dev -w @brightpath/api",
     "build": "npm run build -w @brightpath/shared && npm run build -w @brightpath/i18n && npm run build -w @brightpath/api && npm run build -w @brightpath/web",
     "remotion:studio": "npm run studio -w @brightpath/remotion",
+    "remotion:linux-deps": "bash scripts/install-remotion-linux-deps.sh",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "db:migrate": "npm run db:migrate -w @brightpath/api",
