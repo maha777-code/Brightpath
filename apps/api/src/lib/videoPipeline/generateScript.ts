@@ -6,7 +6,7 @@ const SYSTEM = `You are an expert education video director for Class 9 Science (
 Return ONLY valid JSON matching this schema:
 {
   "topicTitle": string,
-  "totalDurationSeconds": number (25-45),
+  "totalDurationSeconds": number (15-25),
   "scenes": [
     {
       "sceneId": number,
@@ -22,7 +22,8 @@ Return ONLY valid JSON matching this schema:
     }
   ]
 }
-Rules: 2-4 scenes, voiceover clear for spoken narration, total durations sum ≈ totalDurationSeconds.`;
+Rules: Prefer 2 scenes (max 3). Keep voiceover concise for fast Remotion renders.
+totalDurationSeconds MUST be between 15 and 25. Scene durations must sum ≈ totalDurationSeconds.`;
 
 function heuristicManifest(ctx: TopicContextPacket): VideoScriptManifest {
   const tip = ctx.teacherPrompt?.trim()
@@ -32,10 +33,10 @@ function heuristicManifest(ctx: TopicContextPacket): VideoScriptManifest {
     {
       sceneId: 1,
       duration: 10,
-      voiceoverText: `${ctx.title}. Matter is made of tiny particles. Let's explore how they behave.${tip}`,
+      voiceoverText: `${ctx.title}. Matter is made of tiny particles in constant motion.${tip}`,
       animationType: 'ParticleMotion3D',
       parameters: {
-        particleDensity: 'high',
+        particleDensity: 'medium',
         temperature: 25,
         speedMultiplier: 1.2,
         showLabels: ['Molecules', 'Kinetic Energy'],
@@ -43,27 +44,14 @@ function heuristicManifest(ctx: TopicContextPacket): VideoScriptManifest {
     },
     {
       sceneId: 2,
-      duration: 12,
-      voiceoverText:
-        'In solids, particles vibrate in place. In liquids, they slide past each other. Heat increases speed and spacing.',
+      duration: 10,
+      voiceoverText: `Heat speeds particles up. Remember ${ctx.code}: temperature controls kinetic energy.`,
       animationType: 'TemperatureEffect',
       parameters: {
         particleDensity: 'medium',
         temperature: 60,
-        speedMultiplier: 1.8,
-        showLabels: ['Solid', 'Liquid', 'Heat'],
-      },
-    },
-    {
-      sceneId: 3,
-      duration: 10,
-      voiceoverText: `Remember ${ctx.code}: particles are continuously moving, and temperature controls their kinetic energy.`,
-      animationType: 'ConceptCallout',
-      parameters: {
-        particleDensity: 'medium',
-        temperature: 40,
-        speedMultiplier: 1.4,
-        showLabels: [ctx.code, 'Key Takeaway'],
+        speedMultiplier: 1.6,
+        showLabels: ['Heat', 'Key Takeaway'],
       },
     },
   ];
@@ -72,6 +60,10 @@ function heuristicManifest(ctx: TopicContextPacket): VideoScriptManifest {
     totalDurationSeconds: scenes.reduce((a, s) => a + s.duration, 0),
     scenes,
   };
+}
+
+function clampDuration(sec: number): number {
+  return Math.min(25, Math.max(15, Math.round(sec)));
 }
 
 /** Step 2 — structured Remotion script via LLM (heuristic fallback). */
@@ -87,6 +79,7 @@ export async function generateStructuredVideoScript(
     `Summary: ${ctx.chapterSummary}`,
     ctx.teacherPrompt ? `Teacher refinement: ${ctx.teacherPrompt}` : '',
     `Textbook excerpts:\n${excerpts}`,
+    'Target length: 15–25 seconds total (keep narration short for faster video render).',
   ]
     .filter(Boolean)
     .join('\n');
@@ -101,10 +94,12 @@ export async function generateStructuredVideoScript(
       }),
     ]);
     if (!raw?.scenes?.length) return heuristicManifest(ctx);
-    const scenes = raw.scenes.map((s, i) => ({
+    const scenes = raw.scenes.slice(0, 3).map((s, i) => ({
       sceneId: s.sceneId ?? i + 1,
-      duration: Math.max(4, Number(s.duration) || 10),
-      voiceoverText: String(s.voiceoverText || '').trim() || heuristicManifest(ctx).scenes[0].voiceoverText,
+      duration: Math.max(5, Math.min(15, Number(s.duration) || 8)),
+      voiceoverText:
+        String(s.voiceoverText || '').trim() ||
+        heuristicManifest(ctx).scenes[0].voiceoverText,
       animationType: s.animationType || 'ParticleMotion3D',
       parameters: {
         particleDensity: String(s.parameters?.particleDensity ?? 'medium'),
@@ -115,11 +110,20 @@ export async function generateStructuredVideoScript(
           : ['Molecules'],
       },
     }));
-    const totalDurationSeconds =
+    let totalDurationSeconds =
       Number(raw.totalDurationSeconds) || scenes.reduce((a, s) => a + s.duration, 0);
+    totalDurationSeconds = clampDuration(totalDurationSeconds);
+    // Scale scene durations to match clamped total if needed
+    const sceneSum = scenes.reduce((a, s) => a + s.duration, 0);
+    if (sceneSum > 0 && Math.abs(sceneSum - totalDurationSeconds) > 2) {
+      const scale = totalDurationSeconds / sceneSum;
+      for (const s of scenes) {
+        s.duration = Math.max(5, Math.round(s.duration * scale));
+      }
+    }
     return {
       topicTitle: raw.topicTitle || ctx.title,
-      totalDurationSeconds,
+      totalDurationSeconds: scenes.reduce((a, s) => a + s.duration, 0),
       scenes,
     };
   } catch (err) {

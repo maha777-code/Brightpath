@@ -1,5 +1,6 @@
 import fs from 'fs';
 import fsPromises from 'fs/promises';
+import os from 'os';
 import path from 'path';
 import { createRequire } from 'module';
 import { pathToFileURL } from 'url';
@@ -14,6 +15,7 @@ import {
   PUBLIC_PROPS_DIR,
   assertFileMinSize,
   ensurePublicVideoDirs,
+  publicAudioUrl,
   publicVideoUrl,
   topicVideoPath,
 } from './mediaPaths.js';
@@ -21,6 +23,40 @@ import {
 const execFileAsync = promisify(execFile);
 const REMOTION_ROOT = path.resolve(API_ROOT, '../remotion');
 const remotionRequire = createRequire(path.join(REMOTION_ROOT, 'package.json'));
+
+/** Per renderMedia call — 10 minutes (slow VMs / first Chromium launch). */
+const REMOTION_TIMEOUT_MS = Number(process.env.REMOTION_TIMEOUT_MS ?? 600_000);
+/** Cap workers so virtualized hosts don't thrash. */
+const REMOTION_CONCURRENCY = Math.max(1, Math.floor(os.cpus().length / 2));
+
+/**
+ * Chromium inside Remotion cannot fetch raw OS paths like /home/.../topic_x.mp3
+ * (treated as http://localhost:serveUrl/home/... → 404 / Target closed).
+ * Prefer file:// URI; optional HTTP static URL when REMOTION_AUDIO_VIA_HTTP=1.
+ */
+function resolveRemotionAudioSrc(absoluteAudioPath: string, topicId: string): string {
+  const resolved = path.resolve(absoluteAudioPath);
+  if (!fs.existsSync(resolved)) {
+    throw new Error(
+      `[remotionRender] Cannot start render: Audio file missing at ${resolved}`,
+    );
+  }
+
+  const viaHttp =
+    process.env.REMOTION_AUDIO_VIA_HTTP === '1' ||
+    process.env.REMOTION_AUDIO_VIA_HTTP === 'true';
+
+  if (viaHttp) {
+    const httpUrl = publicAudioUrl(topicId);
+    console.log(`[remotion] audioUrl via HTTP static: ${httpUrl}`);
+    return httpUrl;
+  }
+
+  // pathToFileURL → file:///home/... on Linux, file:///C:/... on Windows
+  const fileUrl = pathToFileURL(resolved).href;
+  console.log(`[remotion] audioUrl via file:// : ${fileUrl}`);
+  return fileUrl;
+}
 
 type GlRenderer = 'swangle' | 'swiftshader' | 'angle' | 'vulkan' | 'egl';
 
@@ -36,7 +72,8 @@ const STRICT_CHROMIUM_ARGS = [
   '--disable-setuid-sandbox',
   '--disable-dev-shm-usage',
   '--disable-gpu',
-  '--single-process',
+  '--disable-software-rasterizer',
+  '--mute-audio',
 ] as const;
 
 async function remotionPackageReady(): Promise<boolean> {
@@ -156,7 +193,14 @@ export async function renderWithRemotion(opts: {
 }): Promise<RenderResult> {
   await ensurePublicVideoDirs();
 
-  await assertFileMinSize(opts.voice.audioPath, MIN_AUDIO_BYTES, 'TTS audio');
+  const absoluteAudioPath = path.resolve(opts.voice.audioPath);
+  if (!fs.existsSync(absoluteAudioPath)) {
+    throw new Error(
+      `[remotionRender] Cannot start render: Audio file missing at ${absoluteAudioPath}`,
+    );
+  }
+
+  await assertFileMinSize(absoluteAudioPath, MIN_AUDIO_BYTES, 'TTS audio');
   if (!opts.voice.durationSec || opts.voice.durationSec <= 0) {
     throw new Error('TTS audio duration is 0 — cannot stitch video without voiceover length');
   }
@@ -168,13 +212,16 @@ export async function renderWithRemotion(opts: {
     /* none */
   }
 
+  const audioUrlForRemotion = resolveRemotionAudioSrc(absoluteAudioPath, opts.topicId);
+
   const propsPath = path.join(PUBLIC_PROPS_DIR, `topic_${opts.topicId}.json`);
   const inputProps = {
     topicId: opts.topicId,
     topicTitle: opts.manifest.topicTitle,
     scenes: opts.manifest.scenes,
     wordTimings: opts.voice.wordTimings,
-    audioUrl: opts.voice.audioPath,
+    // Never pass a bare filesystem path — Chromium 404s / closes the target
+    audioUrl: audioUrlForRemotion,
     totalDurationSeconds: Math.max(
       opts.voice.durationSec,
       opts.manifest.totalDurationSeconds,
@@ -206,34 +253,29 @@ export async function renderWithRemotion(opts: {
       label: 'system-chrome + swiftshader',
       gl: 'swiftshader',
       enableMultiProcessOnLinux: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-      ],
+      args: [...STRICT_CHROMIUM_ARGS],
       browserExecutable: systemChrome,
     });
     attempts.push({
-      label: 'system-chrome + swangle + single-process',
+      label: 'system-chrome + swangle',
       gl: 'swangle',
-      enableMultiProcessOnLinux: false,
+      enableMultiProcessOnLinux: true,
       args: [...STRICT_CHROMIUM_ARGS],
       browserExecutable: systemChrome,
     });
   }
 
   attempts.push({
-    label: 'remotion-shell + swangle + single-process',
+    label: 'remotion-shell + swangle',
     gl: 'swangle',
-    enableMultiProcessOnLinux: false,
+    enableMultiProcessOnLinux: true,
     args: [...STRICT_CHROMIUM_ARGS],
     browserExecutable: null,
   });
   attempts.push({
-    label: 'remotion-shell + swiftshader + single-process',
+    label: 'remotion-shell + swiftshader',
     gl: 'swiftshader',
-    enableMultiProcessOnLinux: false,
+    enableMultiProcessOnLinux: true,
     args: [...STRICT_CHROMIUM_ARGS],
     browserExecutable: null,
   });
@@ -268,14 +310,20 @@ export async function renderWithRemotion(opts: {
         chromiumOptions?: ChromiumLaunchOptions;
         browserExecutable?: string | null;
         timeoutInMilliseconds?: number;
+        concurrency?: number | string | null;
       }) => Promise<unknown>;
     }>('@remotion/renderer');
 
-    console.log('[remotion] bundling GamifiedLesson…');
+    console.log(
+      `[remotion] bundling GamifiedLesson… (timeout=${Math.round(REMOTION_TIMEOUT_MS / 1000)}s, concurrency=${REMOTION_CONCURRENCY})`,
+    );
     const serveUrl = await bundle({
       entryPoint: path.join(REMOTION_ROOT, 'src', 'index.ts'),
       rootDir: REMOTION_ROOT,
     });
+
+    // Full 10-minute budget per attempt (outer STAGE_TIMEOUTS.rendering also 10 min)
+    const perAttemptMs = REMOTION_TIMEOUT_MS;
 
     for (const attempt of attempts) {
       try {
@@ -294,7 +342,7 @@ export async function renderWithRemotion(opts: {
         };
 
         console.log(
-          `[remotion] render attempt: ${attempt.label} (gl=${attempt.gl}, browser=${attempt.browserExecutable ?? 'remotion-default'})`,
+          `[remotion] render attempt: ${attempt.label} (gl=${attempt.gl}, browser=${attempt.browserExecutable ?? 'remotion-default'}, timeout=${Math.round(perAttemptMs / 1000)}s)`,
         );
 
         const composition = await selectComposition({
@@ -313,7 +361,8 @@ export async function renderWithRemotion(opts: {
           inputProps,
           chromiumOptions,
           browserExecutable: attempt.browserExecutable,
-          timeoutInMilliseconds: 120_000,
+          concurrency: REMOTION_CONCURRENCY,
+          timeoutInMilliseconds: perAttemptMs,
         });
 
         const size = assertRemotionOutputOrThrow(outFile);

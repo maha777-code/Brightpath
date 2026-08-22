@@ -14,12 +14,13 @@ import {
   topicVideoPath,
   toAbsolutePublicMediaUrl,
 } from './mediaPaths.js';
-import { STAGE_PROGRESS, type PipelineStage } from './types.js';
+import { STAGE_PROGRESS, STAGE_TIMEOUTS, type PipelineStage } from './types.js';
 
 const running = new Set<string>();
 const jobEpoch = new Map<string, number>();
-const JOB_TIMEOUT_MS = Number(process.env.VIDEO_JOB_TIMEOUT_MS ?? 360_000); // 6 min (bundle + render)
-const STALE_MS = Number(process.env.VIDEO_JOB_STALE_MS ?? 90_000); // 90s without progress → fail on poll
+/** Full job budget: stages + Remotion headroom (default 15 min). */
+const JOB_TIMEOUT_MS = Number(process.env.VIDEO_JOB_TIMEOUT_MS ?? 900_000);
+const STALE_MS = Number(process.env.VIDEO_JOB_STALE_MS ?? 120_000); // 2 min without progress → fail on poll
 
 type QueueItem = { topicId: string; teacherPrompt?: string; epoch: number };
 
@@ -98,7 +99,7 @@ export async function runHybridVideoPipeline(
         await setStage(topicId, 'retrieving');
         const ctx = await withTimeout(
           retrieveTextbookContext(topicId, teacherPrompt),
-          20_000,
+          STAGE_TIMEOUTS.retrieving,
           'Context retrieval',
         );
         if (!isCurrent()) return;
@@ -106,7 +107,7 @@ export async function runHybridVideoPipeline(
         await setStage(topicId, 'scripting');
         const manifest = await withTimeout(
           generateStructuredVideoScript(ctx),
-          90_000,
+          STAGE_TIMEOUTS.scripting,
           'Script generation (LLM)',
         );
         if (!isCurrent()) return;
@@ -128,7 +129,7 @@ export async function runHybridVideoPipeline(
         await setStage(topicId, 'tts');
         const voice = await withTimeout(
           synthesizeVoiceover(topicId, { ...manifest, wordTimings: undefined }),
-          60_000,
+          STAGE_TIMEOUTS.tts,
           'ElevenLabs TTS',
         );
         if (!isCurrent()) return;
@@ -149,7 +150,7 @@ export async function runHybridVideoPipeline(
         try {
           rendered = await withTimeout(
             renderWithRemotion({ topicId, manifest, voice }),
-            180_000,
+            STAGE_TIMEOUTS.rendering,
             'Remotion / FFmpeg render',
           );
         } catch (renderErr) {

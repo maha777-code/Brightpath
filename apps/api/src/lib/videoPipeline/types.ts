@@ -19,6 +19,14 @@ export const STAGE_PROGRESS: Record<PipelineStage, number> = {
   error: 0,
 };
 
+/** Per-stage budgets (ms). Rendering needs headroom for bundle + Chromium on slow VMs. */
+export const STAGE_TIMEOUTS = {
+  retrieving: 30_000,
+  scripting: 60_000,
+  tts: 90_000,
+  rendering: 600_000, // 10 minutes
+} as const;
+
 export interface TopicContextPacket {
   topicId: string;
   code: string;
