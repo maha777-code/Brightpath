@@ -30,9 +30,8 @@ const REMOTION_TIMEOUT_MS = Number(process.env.REMOTION_TIMEOUT_MS ?? 600_000);
 const REMOTION_CONCURRENCY = Math.max(1, Math.floor(os.cpus().length / 2));
 
 /**
- * Chromium inside Remotion cannot fetch raw OS paths like /home/.../topic_x.mp3
- * (treated as http://localhost:serveUrl/home/... → 404 / Target closed).
- * Prefer file:// URI; optional HTTP static URL when REMOTION_AUDIO_VIA_HTTP=1.
+ * Chromium cannot fetch raw OS paths or file:// URIs reliably in Remotion headless.
+ * Always pass the Express static HTTP URL: http://localhost:3001/public/videos/audio/...
  */
 function resolveRemotionAudioSrc(absoluteAudioPath: string, topicId: string): string {
   const resolved = path.resolve(absoluteAudioPath);
@@ -42,20 +41,12 @@ function resolveRemotionAudioSrc(absoluteAudioPath: string, topicId: string): st
     );
   }
 
-  const viaHttp =
-    process.env.REMOTION_AUDIO_VIA_HTTP === '1' ||
-    process.env.REMOTION_AUDIO_VIA_HTTP === 'true';
-
-  if (viaHttp) {
-    const httpUrl = publicAudioUrl(topicId);
-    console.log(`[remotion] audioUrl via HTTP static: ${httpUrl}`);
-    return httpUrl;
+  const httpUrl = publicAudioUrl(topicId);
+  if (httpUrl.startsWith('file:')) {
+    throw new Error(`[remotionRender] Refusing file:// audioUrl: ${httpUrl}`);
   }
-
-  // pathToFileURL → file:///home/... on Linux, file:///C:/... on Windows
-  const fileUrl = pathToFileURL(resolved).href;
-  console.log(`[remotion] audioUrl via file:// : ${fileUrl}`);
-  return fileUrl;
+  console.log(`[remotion] audioUrl via HTTP static: ${httpUrl}`);
+  return httpUrl;
 }
 
 type GlRenderer = 'swangle' | 'swiftshader' | 'angle' | 'vulkan' | 'egl';
@@ -67,14 +58,32 @@ type ChromiumLaunchOptions = {
   args?: string[];
 };
 
-const STRICT_CHROMIUM_ARGS = [
+/**
+ * Three.js / R3F needs a real WebGL context in headless Chrome.
+ * Do NOT pass --disable-gpu / --disable-software-rasterizer (they break gl.getContext).
+ */
+const WEBGL_CHROMIUM_ARGS = [
   '--no-sandbox',
   '--disable-setuid-sandbox',
   '--disable-dev-shm-usage',
-  '--disable-gpu',
-  '--disable-software-rasterizer',
+  '--ignore-gpu-blocklist',
+  '--enable-webgl',
+  '--enable-webgl2',
+  '--enable-unsafe-webgpu',
   '--mute-audio',
 ] as const;
+
+function chromiumArgsForGl(gl: GlRenderer): string[] {
+  const useGl =
+    gl === 'angle'
+      ? ['--use-gl=angle', '--use-angle=gl-egl']
+      : gl === 'swiftshader'
+        ? ['--use-gl=swiftshader', '--use-angle=swiftshader']
+        : gl === 'swangle'
+          ? ['--use-gl=angle', '--use-angle=swiftshader']
+          : [`--use-gl=${gl}`];
+  return [...WEBGL_CHROMIUM_ARGS, ...useGl];
+}
 
 async function remotionPackageReady(): Promise<boolean> {
   try {
@@ -248,35 +257,50 @@ export async function renderWithRemotion(opts: {
 
   const attempts: RenderAttempt[] = [];
 
+  // Prefer ANGLE / software GL paths that support Three.js WebGL in headless Chrome
   if (systemChrome) {
     attempts.push({
-      label: 'system-chrome + swiftshader',
-      gl: 'swiftshader',
+      label: 'system-chrome + angle (WebGL)',
+      gl: 'angle',
       enableMultiProcessOnLinux: true,
-      args: [...STRICT_CHROMIUM_ARGS],
+      args: chromiumArgsForGl('angle'),
       browserExecutable: systemChrome,
     });
     attempts.push({
-      label: 'system-chrome + swangle',
+      label: 'system-chrome + swangle (WebGL)',
       gl: 'swangle',
       enableMultiProcessOnLinux: true,
-      args: [...STRICT_CHROMIUM_ARGS],
+      args: chromiumArgsForGl('swangle'),
+      browserExecutable: systemChrome,
+    });
+    attempts.push({
+      label: 'system-chrome + swiftshader (WebGL)',
+      gl: 'swiftshader',
+      enableMultiProcessOnLinux: true,
+      args: chromiumArgsForGl('swiftshader'),
       browserExecutable: systemChrome,
     });
   }
 
   attempts.push({
-    label: 'remotion-shell + swangle',
-    gl: 'swangle',
+    label: 'remotion-shell + angle (WebGL)',
+    gl: 'angle',
     enableMultiProcessOnLinux: true,
-    args: [...STRICT_CHROMIUM_ARGS],
+    args: chromiumArgsForGl('angle'),
     browserExecutable: null,
   });
   attempts.push({
-    label: 'remotion-shell + swiftshader',
+    label: 'remotion-shell + swangle (WebGL)',
+    gl: 'swangle',
+    enableMultiProcessOnLinux: true,
+    args: chromiumArgsForGl('swangle'),
+    browserExecutable: null,
+  });
+  attempts.push({
+    label: 'remotion-shell + swiftshader (WebGL)',
     gl: 'swiftshader',
     enableMultiProcessOnLinux: true,
-    args: [...STRICT_CHROMIUM_ARGS],
+    args: chromiumArgsForGl('swiftshader'),
     browserExecutable: null,
   });
 

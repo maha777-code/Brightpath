@@ -88,6 +88,25 @@ export const ThreeCanvasStage: React.FC<{
       width={1280}
       height={720}
       camera={{ position: [0, 0.6, 6.2], fov: 42 }}
+      gl={{
+        powerPreference: 'high-performance',
+        failIfMajorPerformanceCaveat: false,
+        preserveDrawingBuffer: true,
+        antialias: true,
+        alpha: false,
+      }}
+      onCreated={({ gl }) => {
+        // Soften WebGL context loss on software ANGLE / SwiftShader
+        gl.setPixelRatio(1);
+        gl.domElement.addEventListener(
+          'webglcontextlost',
+          (e) => {
+            e.preventDefault();
+            console.warn('[ThreeCanvas] webglcontextlost — prevented default');
+          },
+          false,
+        );
+      }}
     >
       <color attach="background" args={['#0b1220']} />
       <ambientLight intensity={0.55} />

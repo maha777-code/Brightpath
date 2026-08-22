@@ -3,8 +3,7 @@ import { Config } from '@remotion/cli/config';
 Config.setVideoImageFormat('jpeg');
 Config.setOverwriteOutput(true);
 
-// Linux headless Chromium: software GL; Remotion injects sandbox flags in openBrowser.
-// Prefer swangle; API renderer also retries swiftshader + system Chrome.
-Config.setChromiumOpenGlRenderer('swangle');
-Config.setChromiumMultiProcessOnLinux(false);
+// Three.js / R3F needs WebGL in headless Chrome — prefer ANGLE (not --disable-gpu).
+Config.setChromiumOpenGlRenderer('angle');
+Config.setChromiumMultiProcessOnLinux(true);
 Config.setChromiumDisableWebSecurity(true);
