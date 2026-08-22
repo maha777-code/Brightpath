@@ -1,5 +1,6 @@
 import React from 'react';
 import { Composition } from 'remotion';
+import { getAudioDurationInSeconds } from '@remotion/media-utils';
 import { GamifiedLessonComposition, type GamifiedLessonProps } from './GamifiedLessonComposition';
 
 const defaultProps: GamifiedLessonProps = {
@@ -9,6 +10,7 @@ const defaultProps: GamifiedLessonProps = {
   archetype: 'experiment',
   audioUrl: '',
   wordTimings: [],
+  scriptData: undefined,
   scenes: [
     {
       sceneId: 1,
@@ -74,6 +76,11 @@ const defaultProps: GamifiedLessonProps = {
   ],
 };
 
+function sceneDurationSum(props: GamifiedLessonProps): number {
+  const scenes = props.scriptData?.scenes?.length ? props.scriptData.scenes : props.scenes;
+  return (scenes ?? []).reduce((acc, s) => acc + Math.max(0, Number(s.duration) || 0), 0);
+}
+
 export const RemotionRoot: React.FC = () => {
   return (
     <>
@@ -85,11 +92,32 @@ export const RemotionRoot: React.FC = () => {
         width={1280}
         height={720}
         defaultProps={defaultProps}
-        calculateMetadata={({ props }) => {
-          const seconds = Math.max(8, Number(props.totalDurationSeconds) || 21);
+        calculateMetadata={async ({ props }) => {
+          let seconds =
+            Number(props.scriptData?.totalDurationSeconds) ||
+            Number(props.totalDurationSeconds) ||
+            sceneDurationSum(props) ||
+            21;
+
+          const audioUrl = String(props.audioUrl || '').trim();
+          if (/^https?:\/\//i.test(audioUrl)) {
+            try {
+              const audioSec = await getAudioDurationInSeconds(audioUrl);
+              if (Number.isFinite(audioSec) && audioSec > 0) {
+                seconds = audioSec;
+              }
+            } catch (err) {
+              console.warn('[GamifiedLesson] audio duration probe failed, using script length', err);
+            }
+          }
+
+          seconds = Math.max(8, seconds);
           return {
             durationInFrames: Math.ceil(seconds * 30),
-            props,
+            props: {
+              ...props,
+              totalDurationSeconds: seconds,
+            },
           };
         }}
       />

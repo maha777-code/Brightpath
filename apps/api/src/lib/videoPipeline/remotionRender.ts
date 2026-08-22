@@ -172,6 +172,33 @@ async function resolveSystemChromeExecutable(): Promise<string | null> {
   return null;
 }
 
+/** Align scene clocks with TTS duration so captions/visuals don't drift off the voiceover. */
+function scaleManifestToAudioDuration(
+  manifest: VideoScriptManifest,
+  audioSec: number,
+): VideoScriptManifest {
+  const target = Math.max(8, Number(audioSec) || Number(manifest.totalDurationSeconds) || 8);
+  const scenes = Array.isArray(manifest.scenes) ? manifest.scenes : [];
+  const sum = scenes.reduce((acc, s) => acc + Math.max(0, Number(s.duration) || 0), 0);
+  if (!scenes.length || sum <= 0) {
+    return { ...manifest, totalDurationSeconds: target, scenes };
+  }
+  const scale = target / sum;
+  const scaled = scenes.map((s) => ({
+    ...s,
+    duration: Math.max(3, Number(((Number(s.duration) || 7) * scale).toFixed(2))),
+    voiceoverText: String(s.voiceoverText || '').trim(),
+    visualProps: { ...(s.parameters ?? {}), ...(s.visualProps ?? {}) },
+  }));
+  return {
+    ...manifest,
+    scenes: scaled,
+    totalDurationSeconds: Number(
+      scaled.reduce((acc, s) => acc + s.duration, 0).toFixed(2),
+    ),
+  };
+}
+
 function assertRemotionOutputOrThrow(outFile: string): number {
   const exists = fs.existsSync(outFile);
   const size = exists ? fs.statSync(outFile).size : 0;
@@ -223,21 +250,27 @@ export async function renderWithRemotion(opts: {
 
   const audioUrlForRemotion = resolveRemotionAudioSrc(absoluteAudioPath, opts.topicId);
 
+  // Stretch pedagogical scenes so visuals + captions track the actual TTS length
+  const scriptData = scaleManifestToAudioDuration(opts.manifest, opts.voice.durationSec);
+  scriptData.wordTimings = opts.voice.wordTimings;
+
   const propsPath = path.join(PUBLIC_PROPS_DIR, `topic_${opts.topicId}.json`);
   const inputProps = {
     topicId: opts.topicId,
-    topicTitle: opts.manifest.topicTitle,
-    archetype: opts.manifest.archetype ?? 'concept',
-    scenes: opts.manifest.scenes,
+    topicTitle: scriptData.topicTitle,
+    archetype: scriptData.archetype ?? 'concept',
+    scenes: scriptData.scenes,
     wordTimings: opts.voice.wordTimings,
-    // Never pass a bare filesystem path — Chromium 404s / closes the target
     audioUrl: audioUrlForRemotion,
-    totalDurationSeconds: Math.max(
-      opts.voice.durationSec,
-      opts.manifest.totalDurationSeconds,
-      8,
-    ),
+    totalDurationSeconds: scriptData.totalDurationSeconds,
+    // Exact generated payload — Remotion must not fall back to Root defaultProps
+    scriptData,
   };
+  console.log(
+    `[remotion] inputProps: title="${scriptData.topicTitle}" scenes=${scriptData.scenes.length} ` +
+      `audio=${audioUrlForRemotion} duration=${scriptData.totalDurationSeconds.toFixed(1)}s ` +
+      `visuals=${scriptData.scenes.map((s) => s.visualType || s.animationType).join(',')}`,
+  );
   await fsPromises.writeFile(propsPath, JSON.stringify(inputProps, null, 2), 'utf8');
 
   const ready = await remotionPackageReady();
@@ -336,6 +369,7 @@ export async function renderWithRemotion(opts: {
         browserExecutable?: string | null;
         timeoutInMilliseconds?: number;
         concurrency?: number | string | null;
+        overwrite?: boolean;
       }) => Promise<unknown>;
     }>('@remotion/renderer');
 
@@ -384,6 +418,7 @@ export async function renderWithRemotion(opts: {
           outputLocation: outFile,
           codec: 'h264',
           inputProps,
+          overwrite: true,
           chromiumOptions,
           browserExecutable: attempt.browserExecutable,
           concurrency: REMOTION_CONCURRENCY,
