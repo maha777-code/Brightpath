@@ -3,6 +3,8 @@ import fsPromises from 'fs/promises';
 import path from 'path';
 import { createRequire } from 'module';
 import { pathToFileURL } from 'url';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import type { VideoScriptManifest } from '@brightpath/shared';
 import type { RenderResult, VoiceSynthesisResult } from './types.js';
 import {
@@ -16,28 +18,26 @@ import {
   topicVideoPath,
 } from './mediaPaths.js';
 
+const execFileAsync = promisify(execFile);
 const REMOTION_ROOT = path.resolve(API_ROOT, '../remotion');
 const remotionRequire = createRequire(path.join(REMOTION_ROOT, 'package.json'));
 
-/**
- * Linux / restricted environments: strict sandbox off + no GPU.
- * Remotion's openBrowser already injects --no-sandbox / --disable-setuid-sandbox /
- * --disable-dev-shm-usage; we also pass --disable-gpu and restate the sandbox flags
- * for forks / future renderer versions that honor chromiumOptions.args.
- */
-const CHROMIUM_ARGS = [
+type GlRenderer = 'swangle' | 'swiftshader' | 'angle' | 'vulkan' | 'egl';
+
+type ChromiumLaunchOptions = {
+  enableMultiProcessOnLinux?: boolean;
+  gl?: GlRenderer;
+  disableWebSecurity?: boolean;
+  args?: string[];
+};
+
+const STRICT_CHROMIUM_ARGS = [
   '--no-sandbox',
   '--disable-setuid-sandbox',
   '--disable-dev-shm-usage',
   '--disable-gpu',
+  '--single-process',
 ] as const;
-
-const CHROMIUM_OPTIONS = {
-  enableMultiProcessOnLinux: true,
-  gl: 'swiftshader' as const,
-  disableWebSecurity: true,
-  args: [...CHROMIUM_ARGS],
-};
 
 async function remotionPackageReady(): Promise<boolean> {
   try {
@@ -54,7 +54,78 @@ async function importRemotion<T extends Record<string, unknown>>(pkg: string): P
   return (await import(pathToFileURL(resolved).href)) as T;
 }
 
-/** Require a real MP4 (≥100KB). Throws so the job becomes `failed`, not empty pending_review. */
+/** Prefer env override, then common system Chrome/Chromium paths (avoids broken headless-shell .so deps). */
+async function resolveSystemChromeExecutable(): Promise<string | null> {
+  const fromEnv = (
+    process.env.REMOTION_BROWSER_EXECUTABLE ||
+    process.env.CHROME_PATH ||
+    process.env.PUPPETEER_EXECUTABLE_PATH ||
+    ''
+  ).trim();
+  if (fromEnv) {
+    try {
+      await fsPromises.access(fromEnv);
+      return fromEnv;
+    } catch {
+      console.warn(`[remotion] CHROME path from env not found: ${fromEnv}`);
+    }
+  }
+
+  const candidates =
+    process.platform === 'win32'
+      ? [
+          'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+          'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+          path.join(
+            process.env.LOCALAPPDATA ?? '',
+            'Google',
+            'Chrome',
+            'Application',
+            'chrome.exe',
+          ),
+        ]
+      : process.platform === 'darwin'
+        ? [
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            '/Applications/Chromium.app/Contents/MacOS/Chromium',
+          ]
+        : [
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/google-chrome',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/chromium',
+            '/snap/bin/chromium',
+          ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      await fsPromises.access(candidate);
+      return candidate;
+    } catch {
+      /* try next */
+    }
+  }
+
+  // Last resort: `which` on Linux/macOS
+  if (process.platform !== 'win32') {
+    for (const bin of ['google-chrome-stable', 'google-chrome', 'chromium-browser', 'chromium']) {
+      try {
+        const { stdout } = await execFileAsync('which', [bin]);
+        const found = stdout.trim().split('\n')[0];
+        if (found) {
+          await fsPromises.access(found);
+          return found;
+        }
+      } catch {
+        /* continue */
+      }
+    }
+  }
+
+  return null;
+}
+
 function assertRemotionOutputOrThrow(outFile: string): number {
   const exists = fs.existsSync(outFile);
   const size = exists ? fs.statSync(outFile).size : 0;
@@ -66,9 +137,17 @@ function assertRemotionOutputOrThrow(outFile: string): number {
   return size;
 }
 
+type RenderAttempt = {
+  label: string;
+  gl: GlRenderer;
+  enableMultiProcessOnLinux: boolean;
+  args: string[];
+  browserExecutable: string | null;
+};
+
 /**
  * Step 4 — Remotion headless render via bundle + selectComposition + renderMedia.
- * Validates TTS audio first; requires Remotion MP4 ≥100KB or throws (failed status).
+ * Tries system Chrome first (when present), then Remotion shell with swangle/swiftshader.
  */
 export async function renderWithRemotion(opts: {
   topicId: string;
@@ -95,7 +174,6 @@ export async function renderWithRemotion(opts: {
     topicTitle: opts.manifest.topicTitle,
     scenes: opts.manifest.scenes,
     wordTimings: opts.voice.wordTimings,
-    // Absolute path — Remotion <Audio> resolves local files during headless render
     audioUrl: opts.voice.audioPath,
     totalDurationSeconds: Math.max(
       opts.voice.durationSec,
@@ -112,6 +190,56 @@ export async function renderWithRemotion(opts: {
     );
   }
 
+  const systemChrome = await resolveSystemChromeExecutable();
+  if (systemChrome) {
+    console.log(`[remotion] System Chrome found: ${systemChrome}`);
+  } else {
+    console.warn(
+      '[remotion] No system Chrome found — using Remotion chrome-headless-shell (needs libnspr4/libnss3 on Linux)',
+    );
+  }
+
+  const attempts: RenderAttempt[] = [];
+
+  if (systemChrome) {
+    attempts.push({
+      label: 'system-chrome + swiftshader',
+      gl: 'swiftshader',
+      enableMultiProcessOnLinux: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+      ],
+      browserExecutable: systemChrome,
+    });
+    attempts.push({
+      label: 'system-chrome + swangle + single-process',
+      gl: 'swangle',
+      enableMultiProcessOnLinux: false,
+      args: [...STRICT_CHROMIUM_ARGS],
+      browserExecutable: systemChrome,
+    });
+  }
+
+  attempts.push({
+    label: 'remotion-shell + swangle + single-process',
+    gl: 'swangle',
+    enableMultiProcessOnLinux: false,
+    args: [...STRICT_CHROMIUM_ARGS],
+    browserExecutable: null,
+  });
+  attempts.push({
+    label: 'remotion-shell + swiftshader + single-process',
+    gl: 'swiftshader',
+    enableMultiProcessOnLinux: false,
+    args: [...STRICT_CHROMIUM_ARGS],
+    browserExecutable: null,
+  });
+
+  const errors: string[] = [];
+
   try {
     const { bundle } = await importRemotion<{
       bundle: (opts: { entryPoint: string; rootDir?: string }) => Promise<string>;
@@ -122,7 +250,8 @@ export async function renderWithRemotion(opts: {
         serveUrl: string;
         id: string;
         inputProps?: Record<string, unknown>;
-        chromiumOptions?: typeof CHROMIUM_OPTIONS;
+        chromiumOptions?: ChromiumLaunchOptions;
+        browserExecutable?: string | null;
       }) => Promise<{
         id: string;
         width: number;
@@ -136,59 +265,81 @@ export async function renderWithRemotion(opts: {
         outputLocation: string;
         codec: 'h264';
         inputProps?: Record<string, unknown>;
-        chromiumOptions?: typeof CHROMIUM_OPTIONS;
+        chromiumOptions?: ChromiumLaunchOptions;
+        browserExecutable?: string | null;
         timeoutInMilliseconds?: number;
       }) => Promise<unknown>;
     }>('@remotion/renderer');
 
-    console.log(
-      `[remotion] bundling GamifiedLesson (chromium: multiprocess + swiftshader; args=${CHROMIUM_ARGS.join(' ')})`,
-    );
-
+    console.log('[remotion] bundling GamifiedLesson…');
     const serveUrl = await bundle({
       entryPoint: path.join(REMOTION_ROOT, 'src', 'index.ts'),
       rootDir: REMOTION_ROOT,
     });
 
-    const composition = await selectComposition({
-      serveUrl,
-      id: 'GamifiedLesson',
-      inputProps,
-      chromiumOptions: CHROMIUM_OPTIONS,
-    });
+    for (const attempt of attempts) {
+      try {
+        // Clear any partial output from a previous failed attempt
+        try {
+          await fsPromises.unlink(outFile);
+        } catch {
+          /* none */
+        }
 
-    await renderMedia({
-      composition,
-      serveUrl,
-      outputLocation: outFile,
-      codec: 'h264',
-      inputProps,
-      chromiumOptions: {
-        enableMultiProcessOnLinux: true,
-        gl: 'swiftshader',
-        disableWebSecurity: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-        ],
-      },
-      timeoutInMilliseconds: 120_000,
-    });
+        const chromiumOptions: ChromiumLaunchOptions = {
+          enableMultiProcessOnLinux: attempt.enableMultiProcessOnLinux,
+          gl: attempt.gl,
+          disableWebSecurity: true,
+          args: attempt.args,
+        };
+
+        console.log(
+          `[remotion] render attempt: ${attempt.label} (gl=${attempt.gl}, browser=${attempt.browserExecutable ?? 'remotion-default'})`,
+        );
+
+        const composition = await selectComposition({
+          serveUrl,
+          id: 'GamifiedLesson',
+          inputProps,
+          chromiumOptions,
+          browserExecutable: attempt.browserExecutable,
+        });
+
+        await renderMedia({
+          composition,
+          serveUrl,
+          outputLocation: outFile,
+          codec: 'h264',
+          inputProps,
+          chromiumOptions,
+          browserExecutable: attempt.browserExecutable,
+          timeoutInMilliseconds: 120_000,
+        });
+
+        const size = assertRemotionOutputOrThrow(outFile);
+        await assertFileMinSize(outFile, MIN_VIDEO_BYTES, 'Remotion output MP4');
+        console.log(`[remotion] OK via ${attempt.label} → ${outFile} (${size} bytes)`);
+
+        return {
+          videoPath: outFile,
+          videoPublicUrl: publicVideoUrl(opts.topicId),
+          usedFallback: Boolean(attempt.browserExecutable),
+        };
+      } catch (attemptErr) {
+        const msg = attemptErr instanceof Error ? attemptErr.message : String(attemptErr);
+        errors.push(`${attempt.label}: ${msg.slice(0, 400)}`);
+        console.warn(`[remotion] attempt failed (${attempt.label}):`, msg);
+      }
+    }
   } catch (err) {
     throw new Error(
       `Failed during Remotion/FFmpeg render: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
 
-  const size = assertRemotionOutputOrThrow(outFile);
-  await assertFileMinSize(outFile, MIN_VIDEO_BYTES, 'Remotion output MP4');
-  console.log(`[remotion] OK ${outFile} (${size} bytes)`);
-
-  return {
-    videoPath: outFile,
-    videoPublicUrl: publicVideoUrl(opts.topicId),
-    usedFallback: false,
-  };
+  throw new Error(
+    `Failed during Remotion/FFmpeg render after ${attempts.length} attempts. ` +
+      `Install Linux deps (bash scripts/install-remotion-linux-deps.sh) or set CHROME_PATH to system Chrome. ` +
+      `Last errors: ${errors.slice(-2).join(' | ')}`,
+  );
 }

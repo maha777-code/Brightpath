@@ -45,14 +45,17 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 export async function markVideoJobFailed(topicId: string, error: string) {
-  console.error('[videoPipeline] FAILED', topicId, error);
+  const trimmed = error.slice(0, 2000);
+  console.error('[videoPipeline] FAILED → videoStatus=failed (Retry unlocked)', topicId, trimmed);
   return prisma.teacherSubtopic.update({
     where: { id: topicId },
     data: {
       videoStatus: 'failed',
       videoJobStage: 'error',
       videoProgress: 0,
-      videoError: error.slice(0, 2000),
+      videoError: trimmed,
+      // Clear broken draft URLs so the review modal cannot open a 0:00 sample/empty file
+      generatedVideoUrl: null,
     },
   });
 }
@@ -154,7 +157,10 @@ export async function runHybridVideoPipeline(
             renderErr instanceof Error
               ? `Failed during Remotion/FFmpeg render: ${renderErr.message}`
               : 'Failed during Remotion/FFmpeg render';
-          throw new Error(msg);
+          console.error('[videoPipeline] Remotion stage error — failing topic for Retry UI', topicId, msg);
+          // Persist failed immediately so the dashboard unlocks Retry without waiting for outer catch
+          await markVideoJobFailed(topicId, msg);
+          return;
         }
         if (!isCurrent()) return;
 

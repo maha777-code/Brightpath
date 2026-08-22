@@ -10,8 +10,19 @@ export interface LlmProvider {
   completeJson<T>(req: LlmJsonRequest): Promise<T>;
 }
 
-/** Active Gemini models — new API keys need 3.x (2.5 blocked for new users, Jul 2026). */
+/**
+ * Preferred Gemini cycle for capacity / 503 ("high demand") recovery.
+ * Env GEMINI_MODEL is tried first when set.
+ */
+const GEMINI_FALLBACK_SEQUENCE = [
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+  'gemini-1.5-flash',
+] as const;
+
+/** Broader defaults — 3.x often works for newer API keys. */
 const GEMINI_MODEL_DEFAULTS = [
+  ...GEMINI_FALLBACK_SEQUENCE,
   'gemini-3.6-flash',
   'gemini-3.1-flash-lite',
   'gemini-3.5-flash',
@@ -19,7 +30,8 @@ const GEMINI_MODEL_DEFAULTS = [
   'gemini-flash-latest',
   'gemini-flash-lite-latest',
   'gemini-2.5-flash-lite',
-  'gemini-2.5-pro',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-pro',
 ] as const;
 
 let cachedDiscoveredModels: string[] | null = null;
@@ -71,7 +83,11 @@ export async function discoverGeminiModels(apiKey: string): Promise<string[]> {
         .filter((n) => !n.includes('image') && !n.includes('live') && !n.includes('tts')) ?? [];
 
     cachedDiscoveredModels = names;
-    console.log('[LLM] Discovered Gemini models:', names.slice(0, 8).join(', '), names.length > 8 ? '...' : '');
+    console.log(
+      '[LLM] Discovered Gemini models:',
+      names.slice(0, 8).join(', '),
+      names.length > 8 ? '...' : '',
+    );
     return names;
   } catch {
     return [];
@@ -80,10 +96,34 @@ export async function discoverGeminiModels(apiKey: string): Promise<string[]> {
 
 function geminiModels(): string[] {
   const preferred = process.env.GEMINI_MODEL?.trim();
-  const base = preferred
-    ? [preferred, ...GEMINI_MODEL_DEFAULTS.filter((m) => m !== preferred)]
-    : [...GEMINI_MODEL_DEFAULTS];
-  return base;
+  const ordered: string[] = [];
+  const pushUnique = (m: string) => {
+    if (m && !ordered.includes(m)) ordered.push(m);
+  };
+
+  if (preferred) pushUnique(preferred);
+  for (const m of GEMINI_FALLBACK_SEQUENCE) pushUnique(m);
+  for (const m of GEMINI_MODEL_DEFAULTS) pushUnique(m);
+  return ordered;
+}
+
+function isRetryableGeminiError(msg: string): boolean {
+  return (
+    /\b503\b/.test(msg) ||
+    /high demand/i.test(msg) ||
+    /unavailable/i.test(msg) ||
+    /resource.?exhausted/i.test(msg) ||
+    /overloaded/i.test(msg) ||
+    /\b429\b/.test(msg) ||
+    /quota/i.test(msg) ||
+    /\b404\b/.test(msg) ||
+    /not found/i.test(msg) ||
+    /not supported/i.test(msg)
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function createGeminiProvider(apiKey: string): LlmProvider {
@@ -99,6 +139,10 @@ function createGeminiProvider(apiKey: string): LlmProvider {
         if (!candidates.includes(m)) candidates.push(m);
       }
 
+      console.log(
+        `[LLM] Gemini model cycle (503-aware): ${candidates.slice(0, 6).join(' → ')}${candidates.length > 6 ? ' → …' : ''}`,
+      );
+
       for (const model of candidates) {
         tried.push(model);
         try {
@@ -107,14 +151,21 @@ function createGeminiProvider(apiKey: string): LlmProvider {
           return result;
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          errors.push(`${model}: ${msg.slice(0, 100)}`);
-          console.warn(`[LLM] Gemini model ${model} failed:`, msg);
+          errors.push(`${model}: ${msg.slice(0, 120)}`);
+          const retryable = isRetryableGeminiError(msg);
+          console.warn(
+            `[LLM] Gemini model ${model} failed${retryable ? ' (retryable → next model)' : ''}:`,
+            msg,
+          );
+          if (/\b503\b|high demand/i.test(msg)) {
+            await sleep(400);
+          }
         }
       }
 
       throw new Error(
-        `All Gemini models failed. Set GEMINI_MODEL=gemini-3.1-flash-lite in apps/api/.env ` +
-          `(new API keys cannot use gemini-2.5-flash). Tried: ${tried.slice(0, 6).join(', ')}${tried.length > 6 ? '...' : ''}. ` +
+        `All Gemini models failed (incl. 503 high-demand fallbacks: ${GEMINI_FALLBACK_SEQUENCE.join(', ')}). ` +
+          `Tried: ${tried.slice(0, 8).join(', ')}${tried.length > 8 ? '...' : ''}. ` +
           `Last: ${errors.at(-1) ?? 'unknown'}`,
       );
     },
@@ -162,7 +213,7 @@ async function callGeminiOnce<T>(
     const err = await res.text();
     let detail = err.slice(0, 200);
     try {
-      const parsed = JSON.parse(err) as { error?: { message?: string } };
+      const parsed = JSON.parse(err) as { error?: { message?: string; status?: string } };
       if (parsed.error?.message) detail = parsed.error.message;
     } catch {
       /* use raw */
@@ -172,11 +223,12 @@ async function callGeminiOnce<T>(
 
   const data = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
-    error?: { message?: string };
+    error?: { message?: string; code?: number; status?: string };
   };
 
   if (data.error?.message) {
-    throw new Error(data.error.message);
+    const code = data.error.code ? `HTTP ${data.error.code}: ` : '';
+    throw new Error(`${code}${data.error.message}`);
   }
 
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
