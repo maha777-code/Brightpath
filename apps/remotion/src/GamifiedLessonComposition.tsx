@@ -1,19 +1,34 @@
 import React, { useMemo } from 'react';
-import { AbsoluteFill, Audio, Sequence, useCurrentFrame, useVideoConfig } from 'remotion';
-import { ThreeCanvasStage } from './components/ThreeCanvas';
+import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig } from 'remotion';
+import { DynamicSceneRouter } from './components/DynamicSceneRouter';
 import { KaraokeSubtitles } from './components/KaraokeSubtitles';
-import { VectorOverlay } from './components/VectorOverlay';
+import { InteractiveUIOverlay } from './components/InteractiveUIOverlay';
 
 export type SceneProp = {
   sceneId: number;
   duration: number;
   voiceoverText: string;
   animationType: string;
+  phase?: string;
+  visualType?: string;
+  visualProps?: Record<string, unknown>;
   parameters: {
     particleDensity?: string;
     temperature?: number;
     speedMultiplier?: number;
     showLabels?: string[];
+    leftLabel?: string;
+    rightLabel?: string;
+    primaryObject?: string;
+    container?: string;
+    action?: string;
+    primarySubstance?: string;
+    secondarySubstance?: string;
+    particleTypeA?: string;
+    particleTypeB?: string;
+    keyTakeaway?: string;
+    stepLabels?: string[];
+    [key: string]: unknown;
   };
 };
 
@@ -21,6 +36,7 @@ export type GamifiedLessonProps = {
   topicId: string;
   topicTitle: string;
   totalDurationSeconds: number;
+  archetype?: string;
   scenes: SceneProp[];
   wordTimings: { word: string; start: number; end: number }[];
   audioUrl?: string;
@@ -32,6 +48,7 @@ export const GamifiedLessonComposition: React.FC<GamifiedLessonProps> = ({
   wordTimings,
   audioUrl,
   totalDurationSeconds,
+  archetype,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -47,13 +64,19 @@ export const GamifiedLessonComposition: React.FC<GamifiedLessonProps> = ({
   }, [scenes]);
 
   const active = sceneOffsets.find((s) => t >= s.start && t < s.end) ?? sceneOffsets[0];
+  const scene = active?.scene;
+  const visualProps = {
+    ...(scene?.parameters ?? {}),
+    ...(scene?.visualProps ?? {}),
+  };
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#0b1220' }}>
       <AbsoluteFill>
-        <ThreeCanvasStage
-          animationType={active?.scene.animationType ?? 'ParticleMotion3D'}
-          parameters={active?.scene.parameters ?? {}}
+        <DynamicSceneRouter
+          visualType={scene?.visualType}
+          animationType={scene?.animationType ?? 'ParticleMotion3D'}
+          parameters={visualProps}
           timeSec={t}
         />
       </AbsoluteFill>
@@ -61,42 +84,19 @@ export const GamifiedLessonComposition: React.FC<GamifiedLessonProps> = ({
       <AbsoluteFill
         style={{
           background:
-            'linear-gradient(180deg, rgba(2,6,23,0.55) 0%, transparent 28%, transparent 70%, rgba(2,6,23,0.75) 100%)',
+            'linear-gradient(180deg, rgba(2,6,23,0.55) 0%, transparent 28%, transparent 70%, rgba(2,6,23,0.72) 100%)',
         }}
       />
 
-      <div
-        style={{
-          position: 'absolute',
-          top: 28,
-          left: 36,
-          color: 'white',
-          fontFamily: 'Inter, system-ui, sans-serif',
-        }}
-      >
-        <div style={{ fontSize: 14, opacity: 0.75, fontWeight: 600, letterSpacing: 1 }}>
-          EDUQUEST · AI VIDEO EXPLAINER
-        </div>
-        <div style={{ fontSize: 32, fontWeight: 800, marginTop: 4 }}>{topicTitle}</div>
-      </div>
-
-      <VectorOverlay
-        labels={active?.scene.parameters.showLabels ?? []}
-        temperature={Number(active?.scene.parameters.temperature ?? 25)}
-        animationType={active?.scene.animationType ?? 'ParticleMotion3D'}
+      <InteractiveUIOverlay
+        topicTitle={topicTitle}
+        archetype={archetype}
+        phase={scene?.phase}
+        leftLabel={visualProps.leftLabel as string | undefined}
+        rightLabel={visualProps.rightLabel as string | undefined}
+        keyTakeaway={visualProps.keyTakeaway as string | undefined}
+        stepLabels={visualProps.stepLabels as string[] | undefined}
       />
-
-      {scenes.map((scene, i) => {
-        const startFrame = Math.round(
-          sceneOffsets.slice(0, i).reduce((a, s) => a + s.scene.duration, 0) * fps,
-        );
-        const durationInFrames = Math.round(scene.duration * fps);
-        return (
-          <Sequence key={scene.sceneId} from={startFrame} durationInFrames={durationInFrames}>
-            <AbsoluteFill />
-          </Sequence>
-        );
-      })}
 
       <KaraokeSubtitles words={wordTimings} currentTime={t} />
 
@@ -105,14 +105,15 @@ export const GamifiedLessonComposition: React.FC<GamifiedLessonProps> = ({
       <div
         style={{
           position: 'absolute',
-          bottom: 18,
-          right: 28,
-          color: 'rgba(255,255,255,0.55)',
-          fontSize: 12,
+          bottom: 10,
+          right: 20,
+          color: 'rgba(255,255,255,0.45)',
+          fontSize: 11,
           fontFamily: 'monospace',
         }}
       >
         {t.toFixed(1)}s / {totalDurationSeconds}s
+        {scene?.visualType ? ` · ${scene.visualType}` : ''}
       </div>
     </AbsoluteFill>
   );

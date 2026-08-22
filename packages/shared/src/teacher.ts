@@ -34,21 +34,55 @@ export interface VideoSceneParameters {
   temperature?: number;
   speedMultiplier?: number;
   showLabels?: string[];
+  // Dynamic pedagogical visual props (lab / comparison / process / concept)
+  leftLabel?: string;
+  rightLabel?: string;
+  primaryObject?: string;
+  container?: string;
+  action?: string;
+  primarySubstance?: string;
+  secondarySubstance?: string;
+  particleTypeA?: string;
+  particleTypeB?: string;
+  keyTakeaway?: string;
+  stepLabels?: string[];
   [key: string]: unknown;
 }
+
+export type PedagogicalArchetype = 'experiment' | 'comparison' | 'process' | 'concept';
+
+export type SceneVisualType =
+  | 'comparison_split'
+  | 'question_card'
+  | 'concept_hero'
+  | 'lab_simulation'
+  | 'flow_step'
+  | 'dynamic_diagram'
+  | 'particle_zoom'
+  | 'macro_reveal'
+  | 'callout_summary'
+  | string;
 
 export interface VideoSceneSpec {
   sceneId: number;
   duration: number;
   voiceoverText: string;
+  /** Legacy Remotion animation key (kept for older compositions). */
   animationType: string;
   parameters: VideoSceneParameters;
+  /** SweetRush pedagogical phase label */
+  phase?: string;
+  /** Dynamic scene router key */
+  visualType?: SceneVisualType;
+  visualProps?: VideoSceneParameters;
 }
 
 export interface VideoScriptManifest {
   topicTitle: string;
   totalDurationSeconds: number;
   scenes: VideoSceneSpec[];
+  /** Pedagogical archetype classifier result */
+  archetype?: PedagogicalArchetype;
   wordTimings?: { word: string; start: number; end: number }[];
 }
 

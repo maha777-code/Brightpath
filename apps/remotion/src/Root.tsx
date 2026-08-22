@@ -5,44 +5,70 @@ import { GamifiedLessonComposition, type GamifiedLessonProps } from './GamifiedL
 const defaultProps: GamifiedLessonProps = {
   topicId: 'demo',
   topicTitle: 'Physical Nature of Matter',
-  totalDurationSeconds: 30,
+  totalDurationSeconds: 21,
+  archetype: 'experiment',
   audioUrl: '',
   wordTimings: [],
   scenes: [
     {
       sceneId: 1,
-      duration: 10,
-      voiceoverText: 'Matter is made up of tiny particles.',
-      animationType: 'ParticleMotion3D',
+      duration: 7,
+      phase: 'Hook / Dilemma',
+      voiceoverText: 'Is matter continuous like a block of wood, or made of tiny particles?',
+      visualType: 'comparison_split',
+      animationType: 'StateComparison',
       parameters: {
-        particleDensity: 'high',
-        temperature: 25,
-        speedMultiplier: 1.5,
-        showLabels: ['Molecules', 'Kinetic Energy'],
+        leftLabel: 'Continuous',
+        rightLabel: 'Particulate',
+        primaryObject: 'Matter',
+        showLabels: ['Continuous', 'Particulate'],
+      },
+      visualProps: {
+        leftLabel: 'Continuous',
+        rightLabel: 'Particulate',
       },
     },
     {
       sceneId: 2,
-      duration: 10,
-      voiceoverText: 'Heat increases particle motion.',
+      duration: 7,
+      phase: 'Core Activity / Demonstration',
+      voiceoverText: 'Dissolve salt in water — particles occupy spaces between water particles.',
+      visualType: 'lab_simulation',
       animationType: 'TemperatureEffect',
       parameters: {
-        particleDensity: 'medium',
-        temperature: 60,
-        speedMultiplier: 1.8,
-        showLabels: ['Heat', 'Energy'],
+        container: 'beaker',
+        action: 'dissolve',
+        primarySubstance: 'water',
+        secondarySubstance: 'salt',
+        temperature: 35,
+        speedMultiplier: 1.4,
+        showLabels: ['Dissolve'],
+      },
+      visualProps: {
+        container: 'beaker',
+        action: 'dissolve',
+        primarySubstance: 'water',
+        secondarySubstance: 'salt',
       },
     },
     {
       sceneId: 3,
-      duration: 10,
-      voiceoverText: 'Remember: particles are always moving.',
-      animationType: 'ConceptCallout',
+      duration: 7,
+      phase: 'Microscopic / Conceptual Discovery',
+      voiceoverText: 'At the micro scale, salt spheres fill gaps between water spheres.',
+      visualType: 'particle_zoom',
+      animationType: 'ParticleMotion3D',
       parameters: {
-        particleDensity: 'low',
-        temperature: 30,
-        speedMultiplier: 1.1,
+        particleTypeA: 'blue_water_spheres',
+        particleTypeB: 'yellow_salt_spheres',
+        keyTakeaway: 'Matter is particulate — tiny particles with spaces between them.',
+        particleDensity: 'high',
         showLabels: ['Key Takeaway'],
+      },
+      visualProps: {
+        particleTypeA: 'blue_water_spheres',
+        particleTypeB: 'yellow_salt_spheres',
+        keyTakeaway: 'Matter is particulate — tiny particles with spaces between them.',
       },
     },
   ],
@@ -54,13 +80,13 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="GamifiedLesson"
         component={GamifiedLessonComposition}
-        durationInFrames={30 * 30}
+        durationInFrames={21 * 30}
         fps={30}
         width={1280}
         height={720}
         defaultProps={defaultProps}
         calculateMetadata={({ props }) => {
-          const seconds = Math.max(8, Number(props.totalDurationSeconds) || 30);
+          const seconds = Math.max(8, Number(props.totalDurationSeconds) || 21);
           return {
             durationInFrames: Math.ceil(seconds * 30),
             props,

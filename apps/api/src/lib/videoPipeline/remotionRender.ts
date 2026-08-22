@@ -227,6 +227,7 @@ export async function renderWithRemotion(opts: {
   const inputProps = {
     topicId: opts.topicId,
     topicTitle: opts.manifest.topicTitle,
+    archetype: opts.manifest.archetype ?? 'concept',
     scenes: opts.manifest.scenes,
     wordTimings: opts.voice.wordTimings,
     // Never pass a bare filesystem path — Chromium 404s / closes the target
