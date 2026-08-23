@@ -26,7 +26,7 @@ export async function retrieveTextbookContext(
       ],
     },
     orderBy: { sequence: 'asc' },
-    take: 12,
+    take: 16,
   });
 
   let ragExcerpts = chunks.map((c) => c.content);

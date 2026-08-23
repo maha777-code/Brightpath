@@ -37,13 +37,23 @@ export interface VideoSceneParameters {
   // Dynamic pedagogical visual props (lab / comparison / process / concept)
   leftLabel?: string;
   rightLabel?: string;
+  leftConcept?: string;
+  rightConcept?: string;
+  accentColor?: string;
   primaryObject?: string;
   container?: string;
   action?: string;
   primarySubstance?: string;
   secondarySubstance?: string;
+  liquidLevel?: number;
+  solute?: string;
+  waterLevelChanged?: boolean;
   particleTypeA?: string;
   particleTypeB?: string;
+  primaryParticles?: string;
+  secondaryParticles?: string;
+  interstitialFitting?: boolean;
+  takeawayBadge?: string;
   keyTakeaway?: string;
   stepLabels?: string[];
   [key: string]: unknown;
@@ -56,9 +66,11 @@ export type SceneVisualType =
   | 'question_card'
   | 'concept_hero'
   | 'lab_simulation'
+  | '3d_beaker_experiment'
   | 'flow_step'
   | 'dynamic_diagram'
   | 'particle_zoom'
+  | '3d_particle_zoom'
   | 'macro_reveal'
   | 'callout_summary'
   | string;
@@ -83,6 +95,8 @@ export interface VideoScriptManifest {
   scenes: VideoSceneSpec[];
   /** Pedagogical archetype classifier result */
   archetype?: PedagogicalArchetype;
+  /** SweetRush pattern: lab_experiment | conceptual_comparison | process_flow */
+  pedagogicalPattern?: string;
   wordTimings?: { word: string; start: number; end: number }[];
 }
 

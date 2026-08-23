@@ -4,52 +4,64 @@ import { AbsoluteFill } from 'remotion';
 export const KaraokeSubtitles: React.FC<{
   words: { word: string; start: number; end: number }[];
   currentTime: number;
-}> = ({ words, currentTime }) => {
-  if (!words?.length) return null;
-
-  const activeIdx = words.findIndex((w) => currentTime >= w.start && currentTime < w.end);
-  const windowStart = Math.max(0, (activeIdx >= 0 ? activeIdx : 0) - 4);
-  const slice = words.slice(windowStart, windowStart + 12);
+  fallbackText?: string;
+}> = ({ words, currentTime, fallbackText }) => {
+  const hasWords = Boolean(words?.length);
 
   return (
     <AbsoluteFill
       style={{
         justifyContent: 'flex-end',
         alignItems: 'center',
-        paddingBottom: 56,
+        paddingBottom: 28,
+        pointerEvents: 'none',
       }}
     >
       <div
         style={{
-          maxWidth: '86%',
+          width: '88%',
           textAlign: 'center',
-          background: 'rgba(2,6,23,0.62)',
-          border: '1px solid rgba(148,163,184,0.25)',
-          borderRadius: 16,
-          padding: '14px 22px',
-          backdropFilter: 'blur(8px)',
+          background: 'rgba(8, 15, 30, 0.62)',
+          border: '1px solid rgba(34, 211, 238, 0.32)',
+          borderRadius: 18,
+          padding: '16px 24px',
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.35)',
         }}
       >
-        {slice.map((w, i) => {
-          const globalIdx = windowStart + i;
-          const isActive = globalIdx === activeIdx;
-          const isPast = activeIdx >= 0 && globalIdx < activeIdx;
-          return (
-            <span
-              key={`${w.start}-${i}`}
-              style={{
-                marginRight: 8,
-                fontSize: 28,
-                fontWeight: isActive ? 800 : 600,
-                color: isActive ? '#ffffff' : isPast ? '#94a3b8' : '#64748b',
-                textShadow: isActive ? '0 0 18px rgba(56,189,248,0.55)' : 'none',
-                fontFamily: 'Inter, system-ui, sans-serif',
-              }}
-            >
-              {w.word}
-            </span>
-          );
-        })}
+        {hasWords ? (
+          words.map((w, i) => {
+            const isActive = currentTime >= w.start && currentTime < w.end;
+            const isPast = currentTime >= w.end;
+            return (
+              <span
+                key={`${w.start}-${i}`}
+                style={{
+                  marginRight: 7,
+                  fontSize: 24,
+                  fontWeight: isActive ? 850 : 600,
+                  color: isActive ? '#ffffff' : isPast ? '#94a3b8' : '#64748b',
+                  textShadow: isActive ? '0 0 18px rgba(34,211,238,0.65)' : 'none',
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                }}
+              >
+                {w.word}
+              </span>
+            );
+          })
+        ) : (
+          <span
+            style={{
+              fontSize: 22,
+              fontWeight: 650,
+              color: 'white',
+              fontFamily: 'Inter, system-ui, sans-serif',
+              lineHeight: 1.35,
+            }}
+          >
+            {fallbackText}
+          </span>
+        )}
       </div>
     </AbsoluteFill>
   );

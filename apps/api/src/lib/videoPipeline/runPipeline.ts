@@ -105,6 +105,9 @@ export async function runHybridVideoPipeline(
         if (!isCurrent()) return;
 
         await setStage(topicId, 'scripting');
+        console.log(
+          `[videoPipeline] Passing ${ctx.ragExcerpts.length} RAG excerpts into SweetRush Gemini designer`,
+        );
         const manifest = await withTimeout(
           generateStructuredVideoScript(ctx),
           STAGE_TIMEOUTS.scripting,

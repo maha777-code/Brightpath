@@ -259,11 +259,12 @@ export async function renderWithRemotion(opts: {
     topicId: opts.topicId,
     topicTitle: scriptData.topicTitle,
     archetype: scriptData.archetype ?? 'concept',
+    pedagogicalPattern: scriptData.pedagogicalPattern ?? 'lab_experiment',
     scenes: scriptData.scenes,
     wordTimings: opts.voice.wordTimings,
     audioUrl: audioUrlForRemotion,
     totalDurationSeconds: scriptData.totalDurationSeconds,
-    // Exact generated payload — Remotion must not fall back to Root defaultProps
+    // Exact SweetRush JSON + HTTP audio — Remotion must not use Root demo defaults
     scriptData,
   };
   console.log(

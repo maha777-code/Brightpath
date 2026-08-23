@@ -4,6 +4,8 @@ import { GenericLabScene } from './GenericLabScene';
 import { ParticleZoomScene } from './ParticleZoomScene';
 import { SplitComparisonScene } from './SplitComparisonScene';
 import { ProcessFlowScene } from './ProcessFlowScene';
+import { BeakerSimulation } from './3D/BeakerSimulation';
+import { ParticleZoomLattice } from './3D/ParticleZoomLattice';
 import { ThreeCanvasStage } from './ThreeCanvas';
 
 export type DynamicSceneProps = {
@@ -22,8 +24,7 @@ const glOpts = {
 };
 
 /**
- * Routes pedagogical visualType → modular Three.js scene.
- * Falls back to legacy ThreeCanvasStage for unknown / legacy animationType.
+ * Routes SweetRush visualType → modular Three.js apparatus / concept scenes.
  */
 export const DynamicSceneRouter: React.FC<DynamicSceneProps> = ({
   visualType,
@@ -33,14 +34,17 @@ export const DynamicSceneRouter: React.FC<DynamicSceneProps> = ({
   const type = String(visualType || '').toLowerCase();
 
   const content = useMemo(() => {
-    if (type === 'lab_simulation' || type === 'dynamic_diagram') {
+    if (type === '3d_beaker_experiment' || type === 'lab_simulation') {
+      return <BeakerSimulation props={parameters} />;
+    }
+    if (type === 'dynamic_diagram') {
       return <GenericLabScene props={parameters} />;
     }
     if (type === 'comparison_split' || type === 'question_card') {
       return <SplitComparisonScene props={parameters} />;
     }
-    if (type === 'particle_zoom' || type === 'macro_reveal') {
-      return <ParticleZoomScene props={parameters} />;
+    if (type === '3d_particle_zoom' || type === 'particle_zoom' || type === 'macro_reveal') {
+      return <ParticleZoomLattice props={parameters} />;
     }
     if (type === 'flow_step') {
       return <ProcessFlowScene props={parameters} />;
@@ -65,16 +69,17 @@ export const DynamicSceneRouter: React.FC<DynamicSceneProps> = ({
     <ThreeCanvas
       width={1280}
       height={720}
-      camera={{ position: [0, 0.4, 6.4], fov: 42 }}
+      camera={{ position: [0, 0.45, 6.5], fov: 40 }}
       gl={glOpts}
       onCreated={({ gl }) => {
         gl.setPixelRatio(1);
       }}
     >
-      <color attach="background" args={['#0b1220']} />
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[4, 6, 2]} intensity={1.15} />
-      <pointLight position={[-3, 2, 2]} intensity={0.55} color="#67e8f9" />
+      <color attach="background" args={['#070d18']} />
+      <ambientLight intensity={0.62} />
+      <directionalLight position={[4, 7, 3]} intensity={1.25} />
+      <pointLight position={[-3, 2, 2]} intensity={0.7} color="#67e8f9" />
+      <pointLight position={[2, -1, 3]} intensity={0.35} color="#fbbf24" />
       {content}
     </ThreeCanvas>
   );

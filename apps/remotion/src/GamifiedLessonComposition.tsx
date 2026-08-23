@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig } from 'remotion';
 import { DynamicSceneRouter } from './components/DynamicSceneRouter';
 import { KaraokeSubtitles } from './components/KaraokeSubtitles';
-import { InteractiveUIOverlay } from './components/InteractiveUIOverlay';
+import { SweetRushHud } from './components/SweetRushHud';
 
 export type SceneProp = {
   sceneId: number;
@@ -13,29 +13,13 @@ export type SceneProp = {
   phase?: string;
   visualType?: string;
   visualProps?: Record<string, unknown>;
-  parameters?: {
-    particleDensity?: string;
-    temperature?: number;
-    speedMultiplier?: number;
-    showLabels?: string[];
-    leftLabel?: string;
-    rightLabel?: string;
-    primaryObject?: string;
-    container?: string;
-    action?: string;
-    primarySubstance?: string;
-    secondarySubstance?: string;
-    particleTypeA?: string;
-    particleTypeB?: string;
-    keyTakeaway?: string;
-    stepLabels?: string[];
-    [key: string]: unknown;
-  };
+  parameters?: Record<string, unknown>;
 };
 
 export type ScriptData = {
   topicTitle?: string;
   archetype?: string;
+  pedagogicalPattern?: string;
   totalDurationSeconds?: number;
   scenes?: SceneProp[];
   wordTimings?: { word: string; start: number; end: number }[];
@@ -46,16 +30,31 @@ export type GamifiedLessonProps = {
   topicTitle: string;
   totalDurationSeconds: number;
   archetype?: string;
+  pedagogicalPattern?: string;
   scenes: SceneProp[];
   wordTimings: { word: string; start: number; end: number }[];
   audioUrl?: string;
-  /** Exact generated pipeline payload (preferred over flattened defaults). */
   scriptData?: ScriptData;
 };
 
 function sceneVoiceover(scene?: SceneProp): string {
   if (!scene) return '';
   return String(scene.voiceoverText || scene.voiceover || '').trim();
+}
+
+function collectBadges(visualProps: Record<string, unknown>): string[] {
+  const badges: string[] = [];
+  const container = visualProps.container ? String(visualProps.container) : '';
+  const level = visualProps.liquidLevel;
+  const solute = visualProps.solute || visualProps.secondarySubstance;
+  if (container) badges.push(container);
+  if (level != null && Number.isFinite(Number(level))) {
+    badges.push(`${Number(level)}% water level`);
+  }
+  if (solute) badges.push(String(solute));
+  if (visualProps.waterLevelChanged === false) badges.push('Water level unchanged');
+  if (visualProps.action) badges.push(String(visualProps.action).replace(/_/g, ' '));
+  return badges;
 }
 
 export const GamifiedLessonComposition: React.FC<GamifiedLessonProps> = (props) => {
@@ -66,14 +65,14 @@ export const GamifiedLessonComposition: React.FC<GamifiedLessonProps> = (props) 
   const script = props.scriptData;
   const scenes = (script?.scenes?.length ? script.scenes : props.scenes) ?? [];
   const topicTitle = script?.topicTitle || props.topicTitle;
-  const archetype = script?.archetype || props.archetype;
+  const pattern = script?.pedagogicalPattern || props.pedagogicalPattern || props.archetype;
   const wordTimings = script?.wordTimings?.length ? script.wordTimings : props.wordTimings;
   const audioUrl = props.audioUrl;
   const totalDurationSeconds =
     Number(script?.totalDurationSeconds) ||
     Number(props.totalDurationSeconds) ||
     scenes.reduce((acc, s) => acc + Number(s.duration || 0), 0) ||
-    8;
+    25;
 
   const sceneOffsets = useMemo(() => {
     let acc = 0;
@@ -92,9 +91,19 @@ export const GamifiedLessonComposition: React.FC<GamifiedLessonProps> = (props) 
     ...(scene?.visualProps ?? {}),
   };
   const caption = sceneVoiceover(scene);
+  const sceneProgress =
+    active && active.end > active.start ? (t - active.start) / (active.end - active.start) : 0;
+  const sceneWords = (wordTimings ?? []).filter((w) => {
+    if (!active) return true;
+    return w.start >= active.start - 0.12 && w.start < active.end + 0.05;
+  });
+  const takeaway =
+    scene?.phase?.toUpperCase() === 'DISCOVERY'
+      ? String(visualProps.takeawayBadge || visualProps.keyTakeaway || '')
+      : '';
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#0b1220' }}>
+    <AbsoluteFill style={{ backgroundColor: '#070d18' }}>
       <AbsoluteFill>
         <DynamicSceneRouter
           visualType={scene?.visualType}
@@ -107,70 +116,33 @@ export const GamifiedLessonComposition: React.FC<GamifiedLessonProps> = (props) 
       <AbsoluteFill
         style={{
           background:
-            'linear-gradient(180deg, rgba(2,6,23,0.55) 0%, transparent 28%, transparent 70%, rgba(2,6,23,0.72) 100%)',
+            'linear-gradient(180deg, rgba(2,6,23,0.62) 0%, transparent 26%, transparent 62%, rgba(2,6,23,0.78) 100%)',
         }}
       />
 
-      <InteractiveUIOverlay
+      <SweetRushHud
         topicTitle={topicTitle}
-        archetype={archetype}
         phase={scene?.phase}
-        leftLabel={visualProps.leftLabel as string | undefined}
-        rightLabel={visualProps.rightLabel as string | undefined}
-        keyTakeaway={visualProps.keyTakeaway as string | undefined}
+        pattern={pattern}
+        progress01={sceneProgress}
+        leftConcept={
+          (visualProps.leftConcept || visualProps.leftLabel) as string | undefined
+        }
+        rightConcept={
+          (visualProps.rightConcept || visualProps.rightLabel) as string | undefined
+        }
+        badges={collectBadges(visualProps)}
+        takeawayBadge={takeaway || undefined}
         stepLabels={visualProps.stepLabels as string[] | undefined}
       />
 
-      {!caption && wordTimings?.length ? (
-        <KaraokeSubtitles words={wordTimings} currentTime={t} />
-      ) : null}
-
-      {caption ? (
-        <div
-          style={{
-            position: 'absolute',
-            left: 40,
-            right: 40,
-            bottom: 28,
-            padding: '16px 22px',
-            borderRadius: 16,
-            background: 'rgba(2, 6, 23, 0.78)',
-            border: '1px solid rgba(34, 211, 238, 0.35)',
-            color: 'white',
-            fontFamily: 'Inter, system-ui, sans-serif',
-          }}
-        >
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 800,
-              letterSpacing: 0.6,
-              color: '#67e8f9',
-              marginBottom: 6,
-            }}
-          >
-            {topicTitle}
-            {scene?.phase ? ` · ${scene.phase}` : ''}
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 650, lineHeight: 1.35 }}>{caption}</div>
-        </div>
-      ) : null}
+      <KaraokeSubtitles
+        words={sceneWords}
+        currentTime={t}
+        fallbackText={caption}
+      />
 
       {audioUrl ? <Audio src={audioUrl} /> : null}
-
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 8,
-          right: 16,
-          color: 'rgba(255,255,255,0.4)',
-          fontSize: 11,
-          fontFamily: 'monospace',
-        }}
-      >
-        {t.toFixed(1)}s / {totalDurationSeconds.toFixed(1)}s
-        {scene?.visualType ? ` · ${scene.visualType}` : ''}
-      </div>
     </AbsoluteFill>
   );
 };
