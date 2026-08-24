@@ -1,84 +1,90 @@
 import type {
   PedagogicalArchetype,
-  SceneVisualType,
+  SceneVisualConfig,
   VideoSceneParameters,
   VideoScriptManifest,
+  VisualArchetype,
+  VisualStageElement,
 } from '@brightpath/shared';
 import { getActiveProvider } from '../llm/provider.js';
 import type { TopicContextPacket } from './types.js';
 
-const SWEETRUSH_INSTRUCTIONAL_PROMPT = `
-You are a Lead Instructional Designer at SweetRush specializing in gamified STEM micro-learning.
-Transform the provided textbook context into a high-octane, visually rich 25-second educational video script.
+const UNIVERSAL_SWEETRUSH_PROMPT = `
+You are a Lead Instructional Designer at SweetRush. You translate textbook excerpts into dynamic 3-scene gamified 3D micro-learning videos.
 
-A playful expert narrator (Sarah) sets an intriguing hook, then runs a gamified simulation, then reveals why it works.
+Analyze the uploaded PDF context and choose the best matching Visual Archetype for each scene from this universal list:
+1. 'split_comparison': Compares 2 contrasting concepts, states, or theories.
+2. 'interactive_stage': Displays a sequence, lab step, apparatus, or diagram with step callouts.
+3. 'micro_zoom': Zooms into a microscopic, structural, or sub-component particle level.
+4. 'concept_card': Highlights a formula, key definition, or core law with animated UI badges.
 
-STRICT PEDAGOGICAL STRUCTURE:
-Scene 1 (0-6s): THE HOOK & DILEMMA
-- Poses an engaging, relatable real-world question using the textbook's core problem.
-- Visual: High-impact 3D split view or high-contrast teaser graphic.
+Do NOT assume chemistry, a beaker, salt, wood, sand, or any other fixed apparatus.
+Derive labels, colors, shapes, and element names ONLY from the provided PDF excerpts, topic title, and chapter context.
+Works for any subject: biology, physics, history, math, civics, literature, geography, etc.
 
-Scene 2 (6-18s): THE GAMIFIED EXPERIMENT / SIMULATION
-- Directly simulates the textbook activity step-by-step (e.g., adding salt to a 100mL beaker, stirring with a glass rod, watching particles interact).
-- Visual: Interactive 3D lab apparatus or process stage with UI progress indicators, floating vector arrows, and highlighted labels.
-
-Scene 3 (18-25s): THE MICROSCOPIC / CONCEPT REVEAL
-- Answers "Why this happens" by zooming into the molecular or core conceptual scale.
-- Visual: Particle lattice reveal showing secondary particles fitting into inter-particle spaces, accompanied by a dynamic Key Takeaway badge.
-
-JSON OUTPUT SCHEMA:
+Generate a JSON payload matching this strict schema:
 {
-  "topicTitle": "Exact Chapter/Subtopic Title",
-  "pedagogicalPattern": "lab_experiment | conceptual_comparison | process_flow",
-  "totalDurationSeconds": 25,
+  "topicTitle": "Extracted Chapter / Section Title",
+  "pedagogicalPattern": "lab_experiment | conceptual_comparison | process_flow | concept_card",
+  "totalDurationSeconds": 28,
   "scenes": [
     {
       "sceneId": 1,
-      "durationSec": 6,
+      "durationSec": 8,
       "phaseTitle": "CHALLENGE",
-      "voiceover": "Curriculum-grounded hook text",
-      "visualType": "comparison_split | question_card",
-      "props": {
-        "leftConcept": "Wood (Continuous)",
-        "rightConcept": "Sand (Particulate)",
-        "accentColor": "#FF5722"
+      "voiceover": "Engaging hook grounded directly in the PDF text",
+      "visualArchetype": "split_comparison | interactive_stage | micro_zoom | concept_card",
+      "visualConfig": {
+        "title": "Stage Title",
+        "leftLabel": "Concept A Name from the text",
+        "rightLabel": "Concept B Name from the text",
+        "primaryShape": "sphere | cube | cylinder | grid",
+        "primaryColor": "#00A8FF",
+        "secondaryColor": "#FF5722",
+        "calloutBadges": ["Step 1", "Observation"]
       }
     },
     {
       "sceneId": 2,
       "durationSec": 12,
       "phaseTitle": "SIMULATION",
-      "voiceover": "Step-by-step activity text featuring the beaker, salt, water level, and stirring.",
-      "visualType": "3d_beaker_experiment | flow_step | dynamic_diagram",
-      "props": {
-        "container": "100mL Beaker",
-        "liquidLevel": 50,
-        "solute": "Salt Crystals",
-        "action": "dissolve_and_stir",
-        "waterLevelChanged": false
+      "voiceover": "Step-by-step breakdown of the activity, experiment, or core process from the PDF text",
+      "visualArchetype": "interactive_stage | split_comparison | micro_zoom",
+      "visualConfig": {
+        "stageLabel": "Main Process from the text",
+        "elements": [
+          {"name": "Item 1 from the text", "type": "container", "color": "#ffffff"},
+          {"name": "Item 2 from the text", "type": "particles", "color": "#00a8ff"}
+        ],
+        "actionText": "The change described in the PDF",
+        "calloutBadges": ["Action in progress", "Key Observation"],
+        "primaryColor": "#00A8FF",
+        "secondaryColor": "#FF5722"
       }
     },
     {
       "sceneId": 3,
-      "durationSec": 7,
+      "durationSec": 8,
       "phaseTitle": "DISCOVERY",
-      "voiceover": "Microscopic explanation of particles fitting into empty spaces.",
-      "visualType": "3d_particle_zoom | callout_summary",
-      "props": {
-        "primaryParticles": "Water (Blue Spheres)",
-        "secondaryParticles": "Salt (Yellow Spheres)",
-        "interstitialFitting": true,
-        "takeawayBadge": "Matter is made of tiny particles with spaces between them!"
+      "voiceover": "Explanation of 'Why this happens' based on the text conclusion",
+      "visualArchetype": "micro_zoom | concept_card",
+      "visualConfig": {
+        "headline": "Core Insight from the text",
+        "particleMatrix": { "typeA": "blue_spheres", "typeB": "yellow_spheres" },
+        "takeawayBadge": "Summary rule extracted from PDF",
+        "primaryColor": "#00A8FF",
+        "secondaryColor": "#FACC15",
+        "calloutBadges": ["Why"]
       }
     }
   ]
 }
 
 STRICT RULES:
-- Ground EVERY voiceover line in the provided RAG textbook excerpts. Do not invent generic filler.
-- Use the textbook's real activity, apparatus, measurements, and examples when present.
+- Ground EVERY voiceover line in the provided RAG textbook excerpts. Quote measurements, names, and examples from the PDF.
+- visualConfig labels and element names must come from the PDF / topic — never reuse a previous chapter's apparatus.
 - Return ONLY valid JSON (no markdown).
-- Scene durations must be durationSec 6, 12, 7 (sum 25).
+- Scene durations must be durationSec 8, 12, 8 (sum 28).
 `;
 
 type LlmSceneRaw = {
@@ -90,6 +96,8 @@ type LlmSceneRaw = {
   voiceover?: string;
   voiceoverText?: string;
   visualType?: string;
+  visualArchetype?: string;
+  visualConfig?: Record<string, unknown>;
   visualProps?: Record<string, unknown>;
   props?: Record<string, unknown>;
   animationType?: string;
@@ -105,52 +113,55 @@ type LlmManifestRaw = {
 };
 
 const PHASE_BY_INDEX = ['CHALLENGE', 'SIMULATION', 'DISCOVERY'] as const;
-const DURATION_BY_INDEX = [6, 12, 7] as const;
+const DURATION_BY_INDEX = [8, 12, 8] as const;
+const ARCHETYPE_BY_INDEX: VisualArchetype[] = [
+  'split_comparison',
+  'interactive_stage',
+  'micro_zoom',
+];
 
-function patternToArchetype(pattern: string | undefined): PedagogicalArchetype {
+const STOP_WORDS = new Set([
+  'the',
+  'a',
+  'an',
+  'of',
+  'and',
+  'or',
+  'in',
+  'on',
+  'to',
+  'for',
+  'is',
+  'are',
+  'as',
+  'by',
+  'with',
+  'from',
+  'into',
+  'that',
+  'this',
+  'its',
+  'their',
+  'chapter',
+  'unit',
+  'lesson',
+  'introduction',
+]);
+
+function patternToPedagogy(pattern: string | undefined): PedagogicalArchetype {
   const p = String(pattern ?? '').toLowerCase();
   if (p.includes('lab') || p.includes('experiment')) return 'experiment';
-  if (p.includes('comparison')) return 'comparison';
-  if (p.includes('process') || p.includes('flow')) return 'process';
+  if (p.includes('comparison') || p.includes('split')) return 'comparison';
+  if (p.includes('process') || p.includes('flow') || p.includes('stage')) return 'process';
   return 'concept';
-}
-
-function normalizeVisualType(raw: string | undefined, index: number, archetype: PedagogicalArchetype): SceneVisualType {
-  const v = String(raw ?? '').toLowerCase().trim();
-  if (v === '3d_beaker_experiment' || v === 'lab_simulation') return '3d_beaker_experiment';
-  if (v === '3d_particle_zoom' || v === 'particle_zoom' || v === 'macro_reveal') return '3d_particle_zoom';
-  if (
-    v === 'comparison_split' ||
-    v === 'question_card' ||
-    v === 'flow_step' ||
-    v === 'dynamic_diagram' ||
-    v === 'callout_summary' ||
-    v === 'concept_hero'
-  ) {
-    return v;
-  }
-  if (index === 0) return archetype === 'comparison' ? 'comparison_split' : 'question_card';
-  if (index === 1) {
-    if (archetype === 'process') return 'flow_step';
-    if (archetype === 'experiment') return '3d_beaker_experiment';
-    return 'dynamic_diagram';
-  }
-  return '3d_particle_zoom';
-}
-
-function visualTypeToAnimation(visualType: string): string {
-  if (visualType === '3d_beaker_experiment' || visualType === 'lab_simulation') return 'TemperatureEffect';
-  if (visualType === 'comparison_split' || visualType === 'question_card') return 'StateComparison';
-  if (visualType === '3d_particle_zoom' || visualType === 'particle_zoom') return 'ParticleMotion3D';
-  return 'ConceptCallout';
 }
 
 function classifyPatternFromText(text: string): PedagogicalArchetype {
   const t = text.toLowerCase();
-  if (/\b(activity|experiment|apparatus|observe|beaker|flask|lab|procedure|materials|dissolve|salt)\b/.test(t)) {
+  if (/\b(activity|experiment|apparatus|observe|procedure|materials|lab)\b/.test(t)) {
     return 'experiment';
   }
-  if (/\b(vs\.?|versus|compare|difference|contrast|continuous|particulate|classification)\b/.test(t)) {
+  if (/\b(vs\.?|versus|compare|difference|contrast|classification|two types)\b/.test(t)) {
     return 'comparison';
   }
   if (/\b(cycle|process|steps?|sequence|then|next|stage|timeline|flow|phase)\b/.test(t)) {
@@ -159,156 +170,302 @@ function classifyPatternFromText(text: string): PedagogicalArchetype {
   return 'concept';
 }
 
-function mergeSweetRushProps(
-  ...bags: Array<Record<string, unknown> | undefined>
-): VideoSceneParameters {
-  const merged = Object.assign({}, ...bags.filter(Boolean)) as VideoSceneParameters;
-  if (merged.leftConcept && !merged.leftLabel) merged.leftLabel = String(merged.leftConcept);
-  if (merged.rightConcept && !merged.rightLabel) merged.rightLabel = String(merged.rightConcept);
-  if (merged.leftLabel && !merged.leftConcept) merged.leftConcept = String(merged.leftLabel);
-  if (merged.rightLabel && !merged.rightConcept) merged.rightConcept = String(merged.rightLabel);
-  if (merged.takeawayBadge && !merged.keyTakeaway) merged.keyTakeaway = String(merged.takeawayBadge);
-  if (merged.keyTakeaway && !merged.takeawayBadge) merged.takeawayBadge = String(merged.keyTakeaway);
-  if (merged.primaryParticles && !merged.particleTypeA) merged.particleTypeA = String(merged.primaryParticles);
-  if (merged.secondaryParticles && !merged.particleTypeB) merged.particleTypeB = String(merged.secondaryParticles);
-  if (merged.solute && !merged.secondarySubstance) merged.secondarySubstance = String(merged.solute);
-  if (!merged.particleDensity) merged.particleDensity = 'medium';
-  if (merged.temperature == null) merged.temperature = 32;
-  if (merged.speedMultiplier == null) merged.speedMultiplier = 1.35;
-  if (merged.liquidLevel == null) merged.liquidLevel = 50;
-  if (!Array.isArray(merged.showLabels)) {
-    const labels = [
-      merged.leftConcept,
-      merged.rightConcept,
-      merged.solute,
-      merged.container,
-      merged.takeawayBadge,
-    ]
-      .map((x) => (typeof x === 'string' ? x : null))
-      .filter((x): x is string => Boolean(x));
-    merged.showLabels = labels.length ? labels.slice(0, 3) : ['SweetRush'];
+/** Map any legacy visualType or new visualArchetype onto the 4 universal families. */
+export function normalizeVisualArchetype(
+  raw: string | undefined,
+  index: number,
+): VisualArchetype {
+  const v = String(raw ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/-/g, '_');
+  if (v === 'split_comparison' || v === 'comparison_split' || v === 'question_card') {
+    return 'split_comparison';
   }
+  if (
+    v === 'interactive_stage' ||
+    v === '3d_beaker_experiment' ||
+    v === 'lab_simulation' ||
+    v === 'flow_step' ||
+    v === 'dynamic_diagram'
+  ) {
+    return 'interactive_stage';
+  }
+  if (
+    v === 'micro_zoom' ||
+    v === '3d_particle_zoom' ||
+    v === 'particle_zoom' ||
+    v === 'macro_reveal'
+  ) {
+    return 'micro_zoom';
+  }
+  if (v === 'concept_card' || v === 'callout_summary' || v === 'concept_hero') {
+    return 'concept_card';
+  }
+  return ARCHETYPE_BY_INDEX[index] ?? 'concept_card';
+}
+
+function archetypeToLegacyVisualType(arch: VisualArchetype): string {
+  if (arch === 'split_comparison') return 'comparison_split';
+  if (arch === 'interactive_stage') return 'interactive_stage';
+  if (arch === 'micro_zoom') return '3d_particle_zoom';
+  return 'callout_summary';
+}
+
+function archetypeToAnimation(arch: VisualArchetype): string {
+  if (arch === 'interactive_stage') return 'TemperatureEffect';
+  if (arch === 'split_comparison') return 'StateComparison';
+  if (arch === 'micro_zoom') return 'ParticleMotion3D';
+  return 'ConceptCallout';
+}
+
+function clipText(raw: string, max: number): string {
+  const t = raw.replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max - 1).trim()}…`;
+}
+
+function significantTokens(text: string): string[] {
+  return text
+    .split(/[^A-Za-z0-9%°µ]+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length > 2 && !STOP_WORDS.has(w.toLowerCase()))
+    .slice(0, 12);
+}
+
+function contrastLabels(ctx: TopicContextPacket): [string, string] {
+  const vs = ctx.title.split(/\bvs\.?\b|versus|compared to|against/i);
+  if (vs.length >= 2) {
+    return [clipText(vs[0], 28), clipText(vs[1], 28)];
+  }
+  const parts = ctx.title.split(/[:–—\-|/]/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 2) return [clipText(parts[0], 28), clipText(parts[1], 28)];
+  const tokens = significantTokens(`${ctx.title} ${ctx.chapterTitle}`);
+  if (tokens.length >= 2) return [tokens[0], tokens[1]];
+  if (tokens.length === 1) return [tokens[0], ctx.chapterTitle || 'Hidden structure'];
+  return [clipText(ctx.title, 28) || 'Idea A', clipText(ctx.chapterTitle || 'Idea B', 28)];
+}
+
+function excerptAt(ctx: TopicContextPacket, index: number, fallback: string): string {
+  const raw = ctx.ragExcerpts[index] || ctx.ragExcerpts[0] || ctx.chapterSummary || fallback;
+  return clipText(raw, 180);
+}
+
+function asElements(raw: unknown): VisualStageElement[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((el) => {
+      if (!el || typeof el !== 'object') return null;
+      const o = el as Record<string, unknown>;
+      return {
+        name: o.name != null ? String(o.name) : undefined,
+        type: o.type != null ? String(o.type) : undefined,
+        color: o.color != null ? String(o.color) : undefined,
+      };
+    })
+    .filter((x): x is VisualStageElement => Boolean(x));
+}
+
+function flattenVisualConfig(config: SceneVisualConfig): VideoSceneParameters {
+  const badges = Array.isArray(config.calloutBadges)
+    ? config.calloutBadges.map((b) => String(b)).filter(Boolean)
+    : [];
+  const left = String(config.leftLabel || config.title || '').trim();
+  const right = String(config.rightLabel || '').trim();
+  const takeaway = String(config.takeawayBadge || config.headline || '').trim();
+  const typeA = config.particleMatrix?.typeA;
+  const typeB = config.particleMatrix?.typeB;
+  return {
+    ...config,
+    leftLabel: left || undefined,
+    rightLabel: right || undefined,
+    leftConcept: left || undefined,
+    rightConcept: right || undefined,
+    accentColor: config.primaryColor,
+    primaryColor: config.primaryColor,
+    secondaryColor: config.secondaryColor,
+    takeawayBadge: takeaway || undefined,
+    keyTakeaway: takeaway || undefined,
+    headline: config.headline,
+    title: config.title,
+    stageLabel: config.stageLabel || config.title,
+    container: config.stageLabel || config.title,
+    action: config.actionText,
+    actionText: config.actionText,
+    stepLabels: badges.length ? badges : undefined,
+    calloutBadges: badges.length ? badges : undefined,
+    primaryParticles: typeA,
+    secondaryParticles: typeB,
+    particleTypeA: typeA,
+    particleTypeB: typeB,
+    particleMatrix: config.particleMatrix,
+    elements: config.elements,
+    showLabels: [left, right, takeaway, config.stageLabel].filter(Boolean).slice(0, 3) as string[],
+    particleDensity: 'medium',
+    temperature: 32,
+    speedMultiplier: 1.35,
+  };
+}
+
+function mergeVisualConfig(
+  ...bags: Array<Record<string, unknown> | SceneVisualConfig | undefined>
+): SceneVisualConfig {
+  const merged = Object.assign({}, ...bags.filter(Boolean)) as SceneVisualConfig;
+  if (Array.isArray(merged.elements)) merged.elements = asElements(merged.elements);
+  if (merged.particleMatrix && typeof merged.particleMatrix === 'object') {
+    const pm = merged.particleMatrix as { typeA?: unknown; typeB?: unknown };
+    merged.particleMatrix = {
+      typeA: pm.typeA != null ? String(pm.typeA) : undefined,
+      typeB: pm.typeB != null ? String(pm.typeB) : undefined,
+    };
+  }
+  if (merged.leftLabel && !merged.leftConcept) merged.leftConcept = merged.leftLabel;
+  if (merged.rightLabel && !merged.rightConcept) merged.rightConcept = merged.rightLabel;
   return merged;
+}
+
+function heuristicVisualConfig(
+  ctx: TopicContextPacket,
+  index: number,
+  arch: VisualArchetype,
+): SceneVisualConfig {
+  const [left, right] = contrastLabels(ctx);
+  const tokens = significantTokens(`${ctx.title} ${excerptAt(ctx, 0, ctx.title)}`);
+  const primary = tokens[0] || left;
+  const secondary = tokens[1] || right;
+  if (arch === 'split_comparison') {
+    return {
+      title: clipText(ctx.title, 40),
+      leftLabel: left,
+      rightLabel: right,
+      primaryShape: index === 0 ? 'cube' : 'sphere',
+      primaryColor: '#00A8FF',
+      secondaryColor: '#FF5722',
+      calloutBadges: [left, right].filter(Boolean),
+    };
+  }
+  if (arch === 'interactive_stage') {
+    return {
+      title: clipText(ctx.title, 40),
+      stageLabel: clipText(ctx.title, 36),
+      primaryColor: '#00A8FF',
+      secondaryColor: '#FACC15',
+      actionText: clipText(excerptAt(ctx, 1, 'Follow the process in the text'), 48),
+      elements: [
+        { name: primary, type: 'container', color: '#e2e8f0' },
+        { name: secondary, type: 'particles', color: '#00a8ff' },
+      ],
+      calloutBadges: tokens.slice(0, 3).length ? tokens.slice(0, 3) : ['Observe', 'Change'],
+    };
+  }
+  if (arch === 'micro_zoom') {
+    return {
+      headline: clipText(ctx.title, 42),
+      particleMatrix: { typeA: primary || 'type_a', typeB: secondary || 'type_b' },
+      takeawayBadge: clipText(excerptAt(ctx, 2, ctx.chapterSummary || ctx.title), 90),
+      primaryColor: '#38bdf8',
+      secondaryColor: '#facc15',
+      calloutBadges: ['Zoom in'],
+    };
+  }
+  return {
+    headline: clipText(ctx.title, 42),
+    takeawayBadge: clipText(ctx.chapterSummary || excerptAt(ctx, 0, ctx.title), 90),
+    primaryColor: '#818cf8',
+    secondaryColor: '#34d399',
+    calloutBadges: tokens.slice(0, 2),
+    primaryShape: 'grid',
+  };
 }
 
 function heuristicManifest(ctx: TopicContextPacket): VideoScriptManifest {
   const text = [ctx.title, ctx.chapterSummary, ...ctx.ragExcerpts.slice(0, 4)].join(' ');
-  const archetype = classifyPatternFromText(text);
-  const excerpt = ctx.ragExcerpts[0]?.replace(/\s+/g, ' ').trim().slice(0, 160);
+  const pedagogy = classifyPatternFromText(text);
   const tip = ctx.teacherPrompt?.trim() ? ` ${ctx.teacherPrompt.trim()}` : '';
 
-  const hook =
-    excerpt && excerpt.length > 40
-      ? `Quick challenge: ${excerpt}${excerpt.endsWith('?') ? '' : '?'}${tip}`
-      : `Is ${ctx.title} something we can see in everyday life — or is there a hidden particle story?${tip}`;
+  const hook = `Quick challenge from the text: ${excerptAt(ctx, 0, ctx.title)}${tip}`;
+  const sim = `Let's follow what the textbook describes: ${excerptAt(ctx, 1, ctx.chapterSummary || ctx.title)}`;
+  const reveal = `Here's why, according to the text: ${excerptAt(ctx, 2, ctx.chapterSummary || ctx.title)} ${ctx.code}: ${ctx.title}.`;
 
-  const sim =
-    archetype === 'experiment'
-      ? `Let's run the textbook activity: take a 100 millilitre beaker of water, add a spoonful of salt, and stir. Watch the crystals disappear — but the water level barely changes.`
-      : archetype === 'process'
-        ? `Follow the sequence in the text, one stage at a time, and notice what changes at each step.`
-        : `Compare the two views side by side, then test the idea with a simple simulation.`;
-
-  const reveal = `Here's why: tiny particles have spaces between them. Secondary particles slide into those gaps. ${ctx.code}: ${ctx.title}.`;
-
-  const scenes = [
-    {
-      sceneId: 1,
-      duration: 6,
-      phase: 'CHALLENGE',
-      voiceoverText: hook,
-      visualType: 'comparison_split' as SceneVisualType,
-      animationType: 'StateComparison',
-      parameters: mergeSweetRushProps({
-        leftConcept: 'Continuous (like wood)',
-        rightConcept: 'Particulate (like sand)',
-        accentColor: '#FF5722',
-      }),
-      visualProps: mergeSweetRushProps({
-        leftConcept: 'Continuous (like wood)',
-        rightConcept: 'Particulate (like sand)',
-        accentColor: '#FF5722',
-      }),
-    },
-    {
-      sceneId: 2,
-      duration: 12,
-      phase: 'SIMULATION',
-      voiceoverText: sim,
-      visualType: (archetype === 'process' ? 'flow_step' : '3d_beaker_experiment') as SceneVisualType,
-      animationType: visualTypeToAnimation(archetype === 'process' ? 'flow_step' : '3d_beaker_experiment'),
-      parameters: mergeSweetRushProps({
-        container: '100mL Beaker',
-        liquidLevel: 50,
-        solute: 'Salt Crystals',
-        action: 'dissolve_and_stir',
-        waterLevelChanged: false,
-        stepLabels: ['Add water', 'Add solute', 'Stir'],
-      }),
-      visualProps: mergeSweetRushProps({
-        container: '100mL Beaker',
-        liquidLevel: 50,
-        solute: 'Salt Crystals',
-        action: 'dissolve_and_stir',
-        waterLevelChanged: false,
-        stepLabels: ['Add water', 'Add solute', 'Stir'],
-      }),
-    },
-    {
-      sceneId: 3,
-      duration: 7,
-      phase: 'DISCOVERY',
-      voiceoverText: reveal,
-      visualType: '3d_particle_zoom' as SceneVisualType,
-      animationType: 'ParticleMotion3D',
-      parameters: mergeSweetRushProps({
-        primaryParticles: 'Water (Blue Spheres)',
-        secondaryParticles: 'Salt (Yellow Spheres)',
-        interstitialFitting: true,
-        takeawayBadge: 'Matter is made of tiny particles with spaces between them!',
-      }),
-      visualProps: mergeSweetRushProps({
-        primaryParticles: 'Water (Blue Spheres)',
-        secondaryParticles: 'Salt (Yellow Spheres)',
-        interstitialFitting: true,
-        takeawayBadge: 'Matter is made of tiny particles with spaces between them!',
-      }),
-    },
-  ];
+  const scenes = PHASE_BY_INDEX.map((phase, i) => {
+    let arch: VisualArchetype = ARCHETYPE_BY_INDEX[i];
+    if (i === 1 && pedagogy === 'comparison') arch = 'split_comparison';
+    if (i === 1 && pedagogy === 'concept') arch = 'interactive_stage';
+    if (i === 2 && pedagogy === 'concept') arch = 'concept_card';
+    const visualConfig = heuristicVisualConfig(ctx, i, arch);
+    const parameters = flattenVisualConfig(visualConfig);
+    const duration = DURATION_BY_INDEX[i];
+    const voiceover = i === 0 ? hook : i === 1 ? sim : reveal;
+    return {
+      sceneId: i + 1,
+      duration,
+      durationSec: duration,
+      phase,
+      phaseTitle: phase,
+      voiceoverText: voiceover,
+      voiceover,
+      visualArchetype: arch,
+      visualType: archetypeToLegacyVisualType(arch),
+      animationType: archetypeToAnimation(arch),
+      visualConfig,
+      visualProps: parameters,
+      props: parameters,
+      parameters,
+    };
+  });
 
   return {
     topicTitle: ctx.title,
-    archetype,
+    archetype: pedagogy,
     pedagogicalPattern:
-      archetype === 'experiment'
+      pedagogy === 'experiment'
         ? 'lab_experiment'
-        : archetype === 'comparison'
+        : pedagogy === 'comparison'
           ? 'conceptual_comparison'
-          : 'process_flow',
-    totalDurationSeconds: 25,
+          : pedagogy === 'process'
+            ? 'process_flow'
+            : 'concept_card',
+    totalDurationSeconds: scenes.reduce((a, s) => a + s.duration, 0),
     scenes,
   };
 }
 
 function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoScriptManifest {
   const fallback = heuristicManifest(ctx);
-  const archetype = patternToArchetype(raw.pedagogicalPattern || raw.archetype) || fallback.archetype || 'concept';
+  const pedagogy =
+    patternToPedagogy(raw.pedagogicalPattern || raw.archetype) || fallback.archetype || 'concept';
   const rawScenes = Array.isArray(raw.scenes) ? raw.scenes.slice(0, 3) : [];
   if (!rawScenes.length) return fallback;
 
   const scenes = rawScenes.map((s, i) => {
-    const visualType = normalizeVisualType(s.visualType, i, archetype);
-    const parameters = mergeSweetRushProps(s.parameters, s.visualProps, s.props);
+    const visualArchetype = normalizeVisualArchetype(s.visualArchetype || s.visualType, i);
+    const visualConfig = mergeVisualConfig(
+      heuristicVisualConfig(ctx, i, visualArchetype),
+      s.parameters,
+      s.visualProps,
+      s.props,
+      s.visualConfig,
+    );
+    const parameters = flattenVisualConfig(visualConfig);
+    const duration = DURATION_BY_INDEX[i] ?? Math.max(5, Number(s.durationSec ?? s.duration) || 8);
+    const phase = String(s.phaseTitle || s.phase || PHASE_BY_INDEX[i] || `Scene ${i + 1}`).toUpperCase();
+    const voiceover =
+      String(s.voiceover || s.voiceoverText || '').trim() ||
+      fallback.scenes[Math.min(i, fallback.scenes.length - 1)].voiceoverText;
     return {
       sceneId: s.sceneId ?? i + 1,
-      duration: DURATION_BY_INDEX[i] ?? Math.max(5, Number(s.durationSec ?? s.duration) || 7),
-      phase: String(s.phaseTitle || s.phase || PHASE_BY_INDEX[i] || `Scene ${i + 1}`).toUpperCase(),
-      voiceoverText:
-        String(s.voiceover || s.voiceoverText || '').trim() ||
-        fallback.scenes[Math.min(i, fallback.scenes.length - 1)].voiceoverText,
-      visualType,
+      duration,
+      durationSec: duration,
+      phase,
+      phaseTitle: phase,
+      voiceoverText: voiceover,
+      voiceover,
+      visualArchetype,
+      visualType: archetypeToLegacyVisualType(visualArchetype),
+      visualConfig,
       visualProps: parameters,
-      animationType: String(s.animationType || visualTypeToAnimation(visualType)),
+      props: parameters,
+      animationType: String(s.animationType || archetypeToAnimation(visualArchetype)),
       parameters,
     };
   });
@@ -319,7 +476,7 @@ function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoS
 
   return {
     topicTitle: raw.topicTitle || ctx.title,
-    archetype,
+    archetype: pedagogy,
     pedagogicalPattern: raw.pedagogicalPattern || fallback.pedagogicalPattern,
     totalDurationSeconds: scenes.reduce((a, s) => a + s.duration, 0),
     scenes,
@@ -333,7 +490,7 @@ export async function generateStructuredVideoScript(
   const provider = getActiveProvider();
   const excerpts = ctx.ragExcerpts.slice(0, 10).join('\n---\n');
   console.log(
-    `[videoPipeline/script] SweetRush design — RAG excerpts=${ctx.ragExcerpts.length} topic="${ctx.code} ${ctx.title}"`,
+    `[videoPipeline/script] Universal SweetRush architect — RAG excerpts=${ctx.ragExcerpts.length} topic="${ctx.code} ${ctx.title}"`,
   );
 
   const user = [
@@ -343,8 +500,10 @@ export async function generateStructuredVideoScript(
     `Textbook: ${ctx.textbookTitle} (${ctx.subject}, ${ctx.gradeLabel})`,
     `Chapter summary: ${ctx.chapterSummary}`,
     ctx.teacherPrompt ? `Teacher refinement: ${ctx.teacherPrompt}` : '',
-    `RAW PDF RAG EXCERPTS (GROUND TRUTH — quote activities, apparatus, measurements, and questions):\n${excerpts || '(no excerpts — use topic title and chapter summary only)'}`,
-    'Output exactly 3 scenes: CHALLENGE (6s), SIMULATION (12s), DISCOVERY (7s). Total 25 seconds.',
+    `RAW PDF RAG EXCERPTS (GROUND TRUTH — quote activities, names, measurements, and questions):\n${excerpts || '(no excerpts — use topic title and chapter summary only)'}`,
+    'Output exactly 3 scenes: CHALLENGE (8s), SIMULATION (12s), DISCOVERY (8s). Total 28 seconds.',
+    'Choose visualArchetype per scene from: split_comparison, interactive_stage, micro_zoom, concept_card.',
+    'All visualConfig labels must be taken from this PDF context — do not invent a default lab kit.',
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -354,16 +513,22 @@ export async function generateStructuredVideoScript(
   try {
     const raw = await Promise.race([
       provider.completeJson<LlmManifestRaw>({
-        system: SWEETRUSH_INSTRUCTIONAL_PROMPT,
+        system: UNIVERSAL_SWEETRUSH_PROMPT,
         user,
       }),
       new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('LLM script timed out')), 45_000);
       }),
     ]);
-    return normalizeManifest(raw ?? {}, ctx);
+    const manifest = normalizeManifest(raw ?? {}, ctx);
+    console.log(
+      `[videoPipeline/script] archetypes=${manifest.scenes
+        .map((s) => s.visualArchetype || s.visualType)
+        .join(',')}`,
+    );
+    return manifest;
   } catch (err) {
-    console.warn('[videoPipeline/script] LLM failed/timed out, using SweetRush heuristic:', err);
+    console.warn('[videoPipeline/script] LLM failed/timed out, using context heuristic:', err);
     return heuristicManifest(ctx);
   }
 }
@@ -377,7 +542,7 @@ export function cuesFromManifest(manifest: VideoScriptManifest) {
   return manifest.scenes.map((s) => {
     const cue = {
       timeSec: t + Math.min(2, s.duration / 3),
-      label: String(s.phase || s.visualType || s.voiceoverText.slice(0, 40)),
+      label: String(s.phase || s.visualArchetype || s.visualType || s.voiceoverText.slice(0, 40)),
     };
     t += s.duration;
     return cue;

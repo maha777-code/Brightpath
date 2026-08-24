@@ -1,15 +1,15 @@
 import React, { useMemo } from 'react';
+import { useCurrentFrame } from 'remotion';
 import { ThreeCanvas } from '@remotion/three';
-import { GenericLabScene } from './GenericLabScene';
-import { ParticleZoomScene } from './ParticleZoomScene';
-import { SplitComparisonScene } from './SplitComparisonScene';
-import { ProcessFlowScene } from './ProcessFlowScene';
-import { BeakerSimulation } from './3D/BeakerSimulation';
-import { ParticleZoomLattice } from './3D/ParticleZoomLattice';
-import { ThreeCanvasStage } from './ThreeCanvas';
+import { DynamicSplitComparison } from './3D/DynamicSplitComparison';
+import { DynamicInteractiveStage } from './3D/DynamicInteractiveStage';
+import { DynamicMicroZoom } from './3D/DynamicMicroZoom';
+import { DynamicConceptCard } from './3D/DynamicConceptCard';
+import { canonicalVisualArchetype } from '../scriptScene';
 
 export type DynamicSceneProps = {
   visualType?: string;
+  visualArchetype?: string;
   animationType?: string;
   parameters?: Record<string, unknown>;
   timeSec?: number;
@@ -23,50 +23,31 @@ const glOpts = {
   alpha: false,
 };
 
-/**
- * Routes SweetRush visualType → modular Three.js apparatus / concept scenes.
- */
+/** Routes visualArchetype (or legacy visualType) → generic 3D primitives. */
 export const DynamicSceneRouter: React.FC<DynamicSceneProps> = ({
   visualType,
-  animationType,
+  visualArchetype,
   parameters = {},
 }) => {
-  const type = String(visualType || '').toLowerCase();
+  const frame = useCurrentFrame();
+  const arch = canonicalVisualArchetype(visualArchetype || visualType, 1);
 
   const content = useMemo(() => {
-    if (type === '3d_beaker_experiment' || type === 'lab_simulation') {
-      return <BeakerSimulation props={parameters} />;
+    if (arch === 'split_comparison') {
+      return <DynamicSplitComparison config={parameters as never} frame={frame} />;
     }
-    if (type === 'dynamic_diagram') {
-      return <GenericLabScene props={parameters} />;
+    if (arch === 'micro_zoom') {
+      return <DynamicMicroZoom config={parameters as never} frame={frame} />;
     }
-    if (type === 'comparison_split' || type === 'question_card') {
-      return <SplitComparisonScene props={parameters} />;
+    if (arch === 'concept_card') {
+      return <DynamicConceptCard config={parameters as never} frame={frame} />;
     }
-    if (type === '3d_particle_zoom' || type === 'particle_zoom' || type === 'macro_reveal') {
-      return <ParticleZoomLattice props={parameters} />;
-    }
-    if (type === 'flow_step') {
-      return <ProcessFlowScene props={parameters} />;
-    }
-    if (type === 'callout_summary' || type === 'concept_hero') {
-      return <ParticleZoomScene props={parameters} />;
-    }
-    return null;
-  }, [type, parameters]);
-
-  if (!content) {
-    return (
-      <ThreeCanvasStage
-        animationType={animationType ?? 'ParticleMotion3D'}
-        parameters={parameters}
-        timeSec={0}
-      />
-    );
-  }
+    return <DynamicInteractiveStage config={parameters as never} frame={frame} />;
+  }, [arch, parameters, frame]);
 
   return (
     <ThreeCanvas
+      key={arch}
       width={1280}
       height={720}
       camera={{ position: [0, 0.45, 6.5], fov: 40 }}

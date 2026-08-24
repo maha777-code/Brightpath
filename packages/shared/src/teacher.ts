@@ -29,20 +29,52 @@ export interface VideoAnimationCue {
   label: string;
 }
 
+export type VisualArchetype =
+  | 'split_comparison'
+  | 'interactive_stage'
+  | 'micro_zoom'
+  | 'concept_card';
+
+export interface VisualStageElement {
+  name?: string;
+  type?: string;
+  color?: string;
+}
+
+export interface SceneVisualConfig {
+  title?: string;
+  leftLabel?: string;
+  rightLabel?: string;
+  primaryShape?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  calloutBadges?: string[];
+  stageLabel?: string;
+  elements?: VisualStageElement[];
+  actionText?: string;
+  headline?: string;
+  particleMatrix?: { typeA?: string; typeB?: string };
+  takeawayBadge?: string;
+  [key: string]: unknown;
+}
+
 export interface VideoSceneParameters {
   particleDensity?: string;
   temperature?: number;
   speedMultiplier?: number;
   showLabels?: string[];
-  // Dynamic pedagogical visual props (lab / comparison / process / concept)
   leftLabel?: string;
   rightLabel?: string;
   leftConcept?: string;
   rightConcept?: string;
   accentColor?: string;
   primaryObject?: string;
+  primaryShape?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
   container?: string;
   action?: string;
+  actionText?: string;
   primarySubstance?: string;
   secondarySubstance?: string;
   liquidLevel?: number;
@@ -55,13 +87,20 @@ export interface VideoSceneParameters {
   interstitialFitting?: boolean;
   takeawayBadge?: string;
   keyTakeaway?: string;
+  headline?: string;
+  title?: string;
+  stageLabel?: string;
+  calloutBadges?: string[];
   stepLabels?: string[];
+  elements?: VisualStageElement[];
+  particleMatrix?: { typeA?: string; typeB?: string };
   [key: string]: unknown;
 }
 
 export type PedagogicalArchetype = 'experiment' | 'comparison' | 'process' | 'concept';
 
 export type SceneVisualType =
+  | VisualArchetype
   | 'comparison_split'
   | 'question_card'
   | 'concept_hero'
@@ -78,15 +117,27 @@ export type SceneVisualType =
 export interface VideoSceneSpec {
   sceneId: number;
   duration: number;
+  /** LLM alias for duration — Remotion reads durationSec or duration. */
+  durationSec?: number;
   voiceoverText: string;
+  /** LLM alias for voiceoverText */
+  voiceover?: string;
   /** Legacy Remotion animation key (kept for older compositions). */
   animationType: string;
   parameters: VideoSceneParameters;
   /** SweetRush pedagogical phase label */
   phase?: string;
-  /** Dynamic scene router key */
+  /** LLM alias for phase */
+  phaseTitle?: string;
+  /** Dynamic scene router key (legacy + mapped from visualArchetype) */
   visualType?: SceneVisualType;
   visualProps?: VideoSceneParameters;
+  /** LLM alias for visualProps */
+  props?: VideoSceneParameters;
+  /** Universal SweetRush visual family */
+  visualArchetype?: VisualArchetype | string;
+  /** Parameter bag that drives generic 3D primitives */
+  visualConfig?: SceneVisualConfig;
 }
 
 export interface VideoScriptManifest {

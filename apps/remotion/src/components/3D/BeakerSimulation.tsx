@@ -10,14 +10,30 @@ export type BeakerSimulationProps = {
   waterLevelChanged?: boolean;
   primarySubstance?: string;
   secondarySubstance?: string;
+  liquidColor?: string;
   temperature?: number;
   speedMultiplier?: number;
 };
 
+function colorFromToken(token: string | undefined, fallback: string) {
+  const t = String(token ?? '').toLowerCase();
+  if (t.includes('oil') || t.includes('amber')) return '#f59e0b';
+  if (t.includes('acid') || t.includes('red') || t.includes('heat')) return '#fb7185';
+  if (t.includes('sugar') || t.includes('pink')) return '#f9a8d4';
+  if (t.includes('green')) return '#4ade80';
+  if (t.includes('salt') || t.includes('yellow')) return '#facc15';
+  if (t.includes('blue') || t.includes('water')) return '#00a8ff';
+  return fallback;
+}
+
 /** Translucent 100mL beaker: water volume, falling solute, stirring glass rod. */
-export const BeakerSimulation: React.FC<{ props: BeakerSimulationProps }> = ({ props }) => {
-  const frame = useCurrentFrame();
+export const BeakerSimulation: React.FC<{
+  props: BeakerSimulationProps;
+  frame?: number;
+}> = ({ props, frame: frameProp }) => {
+  const hookFrame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const frame = frameProp ?? hookFrame;
   const t = frame / fps;
   const speed = Number(props.speedMultiplier ?? 1.4);
   const fill = Math.min(0.85, Math.max(0.28, Number(props.liquidLevel ?? 50) / 100));
@@ -25,6 +41,8 @@ export const BeakerSimulation: React.FC<{ props: BeakerSimulationProps }> = ({ p
   const heat = String(props.action ?? '').includes('heat');
   const waterY = -0.85 + fill * 0.95;
   const waterH = fill * 1.15;
+  const liquid = String(props.liquidColor || '') || colorFromToken(props.primarySubstance, heat ? '#fb923c' : '#00a8ff');
+  const soluteColor = colorFromToken(props.solute || props.secondarySubstance, '#facc15');
 
   const crystals = useMemo(() => {
     const pts: THREE.Vector3[] = [];
@@ -80,7 +98,7 @@ export const BeakerSimulation: React.FC<{ props: BeakerSimulationProps }> = ({ p
       <mesh position={[0, waterY, 0]}>
         <cylinderGeometry args={[0.88, 0.96, waterH, 48]} />
         <meshStandardMaterial
-          color={heat ? '#fb923c' : '#22d3ee'}
+          color={liquid}
           transparent
           opacity={0.46}
           roughness={0.18}
@@ -112,8 +130,8 @@ export const BeakerSimulation: React.FC<{ props: BeakerSimulationProps }> = ({ p
           >
             <octahedronGeometry args={[0.07, 0]} />
             <meshStandardMaterial
-              color="#facc15"
-              emissive="#ca8a04"
+              color={soluteColor}
+              emissive={soluteColor}
               emissiveIntensity={dissolved ? 0.55 : 0.2}
             />
           </mesh>

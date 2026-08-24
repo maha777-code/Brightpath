@@ -1,39 +1,52 @@
 import React, { useMemo } from 'react';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
 import * as THREE from 'three';
+import { colorFromToken, parseHexColor } from './primitives';
 
-export type ParticleZoomLatticeProps = {
+export type MicroZoomConfig = {
+  headline?: string;
+  particleMatrix?: { typeA?: string; typeB?: string };
   primaryParticles?: string;
   secondaryParticles?: string;
   particleTypeA?: string;
   particleTypeB?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
   interstitialFitting?: boolean;
+  takeawayBadge?: string;
   speedMultiplier?: number;
   temperature?: number;
 };
 
-function colorFromToken(token: string | undefined, fallback: string) {
-  const t = String(token ?? '').toLowerCase();
-  if (t.includes('yellow') || t.includes('salt') || t.includes('gold')) return '#facc15';
-  if (t.includes('red') || t.includes('heat')) return '#fb7185';
-  if (t.includes('green')) return '#4ade80';
-  if (t.includes('blue') || t.includes('water')) return '#38bdf8';
-  return fallback;
-}
-
-/** Solvent lattice vibrates in place; solute slides into interstitial gaps. */
-export const ParticleZoomLattice: React.FC<{
-  props: ParticleZoomLatticeProps;
+/** Procedural lattice whose colors/roles come from visualConfig.particleMatrix. */
+export const DynamicMicroZoom: React.FC<{
+  config: MicroZoomConfig;
   frame?: number;
-}> = ({ props, frame: frameProp }) => {
+}> = ({ config, frame: frameProp }) => {
   const hookFrame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const frame = frameProp ?? hookFrame;
   const t = frame / fps;
-  const speed = Number(props.speedMultiplier ?? 1.25);
-  const fit = props.interstitialFitting !== false;
-  const colorA = colorFromToken(props.primaryParticles || props.particleTypeA, '#38bdf8');
-  const colorB = colorFromToken(props.secondaryParticles || props.particleTypeB, '#facc15');
+  const speed = Number(config.speedMultiplier ?? 1.25);
+  const typeA =
+    config.particleMatrix?.typeA ||
+    config.primaryParticles ||
+    config.particleTypeA ||
+    'type_a';
+  const typeB =
+    config.particleMatrix?.typeB ||
+    config.secondaryParticles ||
+    config.particleTypeB ||
+    'type_b';
+  const colorA = parseHexColor(
+    config.primaryColor,
+    colorFromToken(typeA, '#38bdf8'),
+  );
+  const colorB = parseHexColor(
+    config.secondaryColor,
+    colorFromToken(typeB, '#facc15'),
+  );
+  const fit = config.interstitialFitting !== false;
 
   const lattice = useMemo(() => {
     const solvent: THREE.Vector3[] = [];
@@ -57,10 +70,10 @@ export const ParticleZoomLattice: React.FC<{
   return (
     <group scale={zoom} rotation={[0.18, t * 0.22 * speed, 0]}>
       {lattice.solvent.map((p, i) => {
-        const vib = 0.035 + (Number(props.temperature ?? 30) / 800);
+        const vib = 0.035 + (Number(config.temperature ?? 30) / 800);
         return (
           <mesh
-            key={`s-${i}`}
+            key={`a-${i}`}
             position={[
               p.x + Math.sin(t * speed * 3.1 + i) * vib,
               p.y + Math.cos(t * speed * 2.4 + i) * vib,
@@ -78,7 +91,7 @@ export const ParticleZoomLattice: React.FC<{
         const y = THREE.MathUtils.lerp(start.y, p.y, insert);
         const z = THREE.MathUtils.lerp(start.z, p.z, insert);
         return (
-          <mesh key={`g-${i}`} position={[x, y, z]} scale={0.55 + insert * 0.45}>
+          <mesh key={`b-${i}`} position={[x, y, z]} scale={0.55 + insert * 0.45}>
             <sphereGeometry args={[0.11, 12, 12]} />
             <meshStandardMaterial color={colorB} emissive={colorB} emissiveIntensity={0.45} />
           </mesh>

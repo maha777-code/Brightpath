@@ -172,24 +172,66 @@ async function resolveSystemChromeExecutable(): Promise<string | null> {
   return null;
 }
 
+type SceneWithAliases = VideoScriptManifest['scenes'][number] & {
+  durationSec?: number;
+  phaseTitle?: string;
+  voiceover?: string;
+  props?: Record<string, unknown>;
+  visualArchetype?: string;
+  visualConfig?: Record<string, unknown>;
+};
+
+function sceneRawDuration(s: SceneWithAliases): number {
+  const n = Number(s.durationSec ?? s.duration);
+  return Number.isFinite(n) && n > 0 ? n : 7;
+}
+
+function mergeSceneProps(s: SceneWithAliases): Record<string, unknown> {
+  return {
+    ...(s.parameters ?? {}),
+    ...(s.visualProps ?? {}),
+    ...(s.props ?? {}),
+    ...(s.visualConfig ?? {}),
+  };
+}
+
 /** Align scene clocks with TTS duration so captions/visuals don't drift off the voiceover. */
 function scaleManifestToAudioDuration(
   manifest: VideoScriptManifest,
   audioSec: number,
 ): VideoScriptManifest {
   const target = Math.max(8, Number(audioSec) || Number(manifest.totalDurationSeconds) || 8);
-  const scenes = Array.isArray(manifest.scenes) ? manifest.scenes : [];
-  const sum = scenes.reduce((acc, s) => acc + Math.max(0, Number(s.duration) || 0), 0);
+  const scenes = (Array.isArray(manifest.scenes) ? manifest.scenes : []) as SceneWithAliases[];
+  const sum = scenes.reduce((acc, s) => acc + sceneRawDuration(s), 0);
   if (!scenes.length || sum <= 0) {
     return { ...manifest, totalDurationSeconds: target, scenes };
   }
   const scale = target / sum;
-  const scaled = scenes.map((s) => ({
-    ...s,
-    duration: Math.max(3, Number(((Number(s.duration) || 7) * scale).toFixed(2))),
-    voiceoverText: String(s.voiceoverText || '').trim(),
-    visualProps: { ...(s.parameters ?? {}), ...(s.visualProps ?? {}) },
-  }));
+  const scaled = scenes.map((s) => {
+    const duration = Math.max(3, Number((sceneRawDuration(s) * scale).toFixed(2)));
+    const visualProps = mergeSceneProps(s);
+    const voiceover = String(s.voiceoverText || s.voiceover || '').trim();
+    const phase = String(s.phaseTitle || s.phase || '').trim();
+    const visualConfig = {
+      ...(s.visualConfig ?? {}),
+      ...visualProps,
+    };
+    return {
+      ...s,
+      duration,
+      durationSec: duration,
+      phase,
+      phaseTitle: phase,
+      voiceoverText: voiceover,
+      voiceover,
+      visualType: s.visualType,
+      visualArchetype: s.visualArchetype || s.visualType,
+      visualConfig,
+      visualProps,
+      parameters: visualProps,
+      props: visualProps,
+    };
+  });
   return {
     ...manifest,
     scenes: scaled,
@@ -270,7 +312,12 @@ export async function renderWithRemotion(opts: {
   console.log(
     `[remotion] inputProps: title="${scriptData.topicTitle}" scenes=${scriptData.scenes.length} ` +
       `audio=${audioUrlForRemotion} duration=${scriptData.totalDurationSeconds.toFixed(1)}s ` +
-      `visuals=${scriptData.scenes.map((s) => s.visualType || s.animationType).join(',')}`,
+      `visuals=${scriptData.scenes
+        .map(
+          (s) =>
+            `${s.visualArchetype || s.visualType || s.animationType}@${s.durationSec ?? s.duration}s`,
+        )
+        .join(',')}`,
   );
   await fsPromises.writeFile(propsPath, JSON.stringify(inputProps, null, 2), 'utf8');
 
@@ -343,7 +390,11 @@ export async function renderWithRemotion(opts: {
 
   try {
     const { bundle } = await importRemotion<{
-      bundle: (opts: { entryPoint: string; rootDir?: string }) => Promise<string>;
+      bundle: (opts: {
+        entryPoint: string;
+        rootDir?: string;
+        enableCaching?: boolean;
+      }) => Promise<string>;
     }>('@remotion/bundler');
 
     const { selectComposition, renderMedia } = await importRemotion<{
@@ -380,6 +431,8 @@ export async function renderWithRemotion(opts: {
     const serveUrl = await bundle({
       entryPoint: path.join(REMOTION_ROOT, 'src', 'index.ts'),
       rootDir: REMOTION_ROOT,
+      // Always pick up composition/script-router changes (stale webpack cache kept old visuals)
+      enableCaching: false,
     });
 
     // Full 10-minute budget per attempt (outer STAGE_TIMEOUTS.rendering also 10 min)
