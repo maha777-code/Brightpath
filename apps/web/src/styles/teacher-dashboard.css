@@ -3,6 +3,8 @@ body:has(.td-dash),
 .app:has(.td-dash) {
   background: #0f172a;
   color: #ffffff;
+  width: 100%;
+  max-width: none;
 }
 
 .td-header {
@@ -31,6 +33,7 @@ body:has(.td-dash),
     var(--td-bg);
   color: var(--td-text);
   min-height: 100dvh;
+  width: 100%;
 }
 
 .td-card {

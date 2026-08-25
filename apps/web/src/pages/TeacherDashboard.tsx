@@ -61,42 +61,42 @@ export default function TeacherDashboard() {
   };
 
   return (
-    <div className="td-dash min-h-dvh text-white">
-      <header className="td-header sticky top-0 z-40">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 lg:px-6">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/40 bg-white/5 text-white shadow-[0_0_16px_rgba(34,211,238,0.25)]">
-              <GraduationCap className="h-5 w-5 text-white" />
+    <div className="td-dash min-h-dvh w-full max-w-full text-white">
+      <header className="td-header sticky top-0 z-40 w-full">
+        <div className="flex h-20 w-full max-w-full items-center gap-4 px-8 lg:px-12">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/40 bg-white/5 text-white shadow-[0_0_16px_rgba(34,211,238,0.25)]">
+              <GraduationCap className="h-6 w-6 text-white" />
             </span>
             <div>
-              <p className="text-sm font-extrabold text-white">Brightpath Teacher</p>
-              <p className="text-[11px] font-semibold text-cyan-200/80">Curriculum & live doubt control</p>
+              <p className="text-base font-extrabold text-white">Brightpath Teacher</p>
+              <p className="text-sm font-semibold text-cyan-200/80">Curriculum & live doubt control</p>
             </div>
           </div>
-          <nav className="mx-auto hidden items-center gap-5 text-sm font-semibold text-[#A5F3FC] md:flex">
+          <nav className="mx-auto hidden items-center gap-5 text-base font-semibold text-[#A5F3FC] md:flex">
             <span className="font-bold text-white">Teacher Dashboard</span>
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <button
               type="button"
               onClick={() => void load()}
-              className="rounded-xl border border-cyan-400/30 p-2 text-[#A5F3FC] hover:bg-cyan-400/10"
+              className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC] hover:bg-cyan-400/10"
               aria-label="Sync"
               title="Sync"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-5 w-5" />
             </button>
             <a
               href="#td-chapters"
-              className="rounded-xl border border-cyan-400/30 p-2 text-[#A5F3FC] hover:bg-cyan-400/10"
+              className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC] hover:bg-cyan-400/10"
               aria-label="Explore"
               title="Explore"
             >
-              <Compass className="h-4 w-4" />
+              <Compass className="h-5 w-5" />
             </a>
             <div className="hidden text-right sm:block">
-              <p className="text-sm font-bold text-white">{teacher?.name ?? 'Teacher'}</p>
-              <p className="text-[11px] text-[#A5F3FC]">
+              <p className="text-base font-bold text-white">{teacher?.name ?? 'Teacher'}</p>
+              <p className="text-sm text-[#A5F3FC]">
                 {teacher?.schoolName ?? 'School'} · {teacher?.subjectFocus ?? 'Science'}
               </p>
             </div>
@@ -106,29 +106,29 @@ export default function TeacherDashboard() {
                 logout();
                 navigate('/login');
               }}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#6D28D9]/80 px-3 py-2 text-xs font-bold text-white shadow-[0_0_16px_rgba(109,40,217,0.45)] hover:bg-[#7C3AED]"
+              className="inline-flex items-center gap-2 rounded-full bg-[#6D28D9]/80 px-6 py-3 text-base font-medium text-white shadow-[0_0_16px_rgba(109,40,217,0.45)] hover:bg-[#7C3AED]"
             >
-              <LogOut className="h-3.5 w-3.5" /> Log out
+              <LogOut className="h-4 w-4" /> Log out
             </button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl space-y-5 px-4 py-6 lg:px-6">
-        <div className="td-card rounded-3xl px-5 py-4">
-          <h1 className="text-2xl font-black text-white">Teacher Dashboard</h1>
-          <p className="mt-1 text-sm text-[#A5F3FC]">
+      <main className="w-full max-w-full space-y-8 px-8 py-6 lg:px-12 lg:py-8">
+        <div className="td-card rounded-3xl p-8">
+          <h1 className="text-4xl font-extrabold tracking-tight text-white">Teacher Dashboard</h1>
+          <p className="mt-2 text-base text-cyan-200/80">
             Upload textbooks, enrich lessons with video & games, and approve AI answers before class.
           </p>
         </div>
 
         {loading && (
-          <p className="td-card rounded-2xl px-4 py-6 text-center text-sm text-[#A5F3FC]">
+          <p className="td-card rounded-2xl p-8 text-center text-base text-cyan-200/80">
             Loading curriculum…
           </p>
         )}
         {error && (
-          <p className="rounded-2xl border border-rose-400/40 bg-rose-950/50 px-4 py-3 text-sm font-semibold text-rose-200">
+          <p className="rounded-2xl border border-rose-400/40 bg-rose-950/50 p-8 text-base font-semibold text-rose-200">
             {error}
           </p>
         )}
@@ -148,7 +148,7 @@ export default function TeacherDashboard() {
               }}
             />
 
-            <div className="grid gap-5 xl:grid-cols-2">
+            <div className="grid w-full grid-cols-1 gap-8 lg:grid-cols-2">
               <ChapterList
                 chapters={chapters}
                 selectedId={selectedChapter?.id ?? null}

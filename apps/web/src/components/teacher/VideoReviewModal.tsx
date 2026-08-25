@@ -190,10 +190,10 @@ export default function VideoReviewModal({
         >
           <header className="flex items-start justify-between gap-3 border-b border-cyan-300/20 px-5 py-4 sm:px-6">
             <div className="min-w-0">
-              <h2 id="video-review-title" className="text-lg font-extrabold text-white sm:text-xl">
+              <h2 id="video-review-title" className="text-2xl font-bold text-white">
                 Review Video Explainer: {subtopic.code} {subtopic.title}
               </h2>
-              <p className="mt-1 text-sm text-[#A5F3FC]">
+              <p className="mt-1 text-base text-cyan-200/80">
                 Review the AI-generated video and script before publishing to students.
               </p>
             </div>
@@ -364,14 +364,14 @@ export default function VideoReviewModal({
             <p className="px-5 text-sm font-semibold text-rose-300 sm:px-6">{error}</p>
           )}
 
-          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-cyan-300/20 bg-[#1E1B4B]/80 px-5 py-4 sm:px-6">
+          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-cyan-300/20 bg-[#1E1B4B]/80 px-8 py-5">
             <button
               type="button"
               onClick={() => setShowRegenPrompt(true)}
               disabled={Boolean(busy)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/30 bg-white/5 px-3 py-2 text-xs font-bold text-white hover:bg-white/10 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-white/5 px-6 py-3 text-base font-medium text-white hover:bg-white/10 disabled:opacity-50"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className="h-5 w-5" />
               Re-generate
             </button>
 
@@ -379,12 +379,12 @@ export default function VideoReviewModal({
               type="button"
               onClick={() => void reject()}
               disabled={Boolean(busy)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-rose-400/40 bg-rose-500/80 px-3 py-2 text-xs font-bold text-white hover:bg-rose-500 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/80 px-6 py-3 text-base font-medium text-white hover:bg-rose-500 disabled:opacity-50"
             >
               {busy === 'reject' ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-5 w-5" />
               )}
               Reject / Delete
             </button>
@@ -393,7 +393,7 @@ export default function VideoReviewModal({
               type="button"
               onClick={() => void approve()}
               disabled={Boolean(busy) || !targetVideoUrl}
-              className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-[#10B981]/90 px-4 py-2.5 text-xs font-extrabold text-white shadow-[0_0_18px_rgba(16,185,129,0.35)] hover:bg-[#10B981] disabled:opacity-50 sm:text-sm"
+              className="ml-auto inline-flex items-center gap-2 rounded-xl bg-[#10B981]/90 px-6 py-3 text-base font-medium text-white shadow-[0_0_18px_rgba(16,185,129,0.35)] hover:bg-[#10B981] disabled:opacity-50"
             >
               {busy === 'approve' ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
