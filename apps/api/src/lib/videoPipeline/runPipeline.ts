@@ -1,4 +1,6 @@
 import { prisma } from '../prisma.js';
+import { Prisma } from '@prisma/client';
+import fsPromises from 'fs/promises';
 import { retrieveTextbookContext } from './retrieveContext.js';
 import {
   cuesFromManifest,
@@ -11,6 +13,7 @@ import {
   MIN_VIDEO_BYTES,
   isValidRenderedVideo,
   publicVideoUrl,
+  topicAudioPath,
   topicVideoPath,
   toAbsolutePublicMediaUrl,
 } from './mediaPaths.js';
@@ -95,6 +98,23 @@ export async function runHybridVideoPipeline(
       (async () => {
         if (!isCurrent()) return;
         await setStage(topicId, 'queued');
+
+        // Retry must not reuse a previous Gemini script / MP4 / TTS take
+        await prisma.teacherSubtopic.update({
+          where: { id: topicId },
+          data: {
+            videoScript: null,
+            animationCuesJson: Prisma.JsonNull,
+            videoManifestJson: Prisma.JsonNull,
+            generatedVideoUrl: null,
+            videoAudioUrl: null,
+          },
+        });
+        await Promise.all([
+          fsPromises.unlink(topicVideoPath(topicId)).catch(() => undefined),
+          fsPromises.unlink(topicAudioPath(topicId)).catch(() => undefined),
+        ]);
+        console.log(`[videoPipeline] Retry reset: cleared script JSON + media for ${topicId}`);
 
         await setStage(topicId, 'retrieving');
         const ctx = await withTimeout(

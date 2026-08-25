@@ -387,6 +387,8 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => 
       videoAudioUrl: null,
       videoError: null,
       videoManifestJson: Prisma.JsonNull,
+      videoScript: null,
+      animationCuesJson: Prisma.JsonNull,
       hasVideoExplainer: false,
     },
   });

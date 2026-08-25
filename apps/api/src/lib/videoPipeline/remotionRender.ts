@@ -95,6 +95,28 @@ async function remotionPackageReady(): Promise<boolean> {
   }
 }
 
+async function rmrf(dir: string): Promise<void> {
+  try {
+    await fsPromises.rm(dir, { recursive: true, force: true });
+    console.log(`[remotion] cleared cache: ${dir}`);
+  } catch {
+    /* missing dirs are fine */
+  }
+}
+
+/** Drop webpack/vite/Remotion disk caches so composition source changes always land in the MP4. */
+async function clearRemotionDiskCaches(): Promise<void> {
+  const monorepoRoot = path.resolve(API_ROOT, '../..');
+  await Promise.all([
+    rmrf(path.join(REMOTION_ROOT, '.cache')),
+    rmrf(path.join(REMOTION_ROOT, 'node_modules', '.cache')),
+    rmrf(path.join(API_ROOT, '.remotion')),
+    rmrf(path.join(API_ROOT, 'node_modules', '.cache')),
+    rmrf(path.join(monorepoRoot, 'node_modules', '.cache', 'webpack')),
+    rmrf(path.join(os.tmpdir(), 'remotion-webpack-cache')),
+  ]);
+}
+
 async function importRemotion<T extends Record<string, unknown>>(pkg: string): Promise<T> {
   const resolved = remotionRequire.resolve(pkg);
   return (await import(pathToFileURL(resolved).href)) as T;
@@ -389,13 +411,21 @@ export async function renderWithRemotion(opts: {
   });
 
   const errors: string[] = [];
+  let bundleOutDir: string | null = null;
 
   try {
+    await clearRemotionDiskCaches();
+    bundleOutDir = await fsPromises.mkdtemp(
+      path.join(os.tmpdir(), `bp-remotion-${opts.topicId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 12)}-`),
+    );
+
     const { bundle } = await importRemotion<{
       bundle: (opts: {
         entryPoint: string;
         rootDir?: string;
         enableCaching?: boolean;
+        outDir?: string;
+        webpackOverride?: (config: Record<string, unknown>) => Record<string, unknown>;
       }) => Promise<string>;
     }>('@remotion/bundler');
 
@@ -428,13 +458,18 @@ export async function renderWithRemotion(opts: {
     }>('@remotion/renderer');
 
     console.log(
-      `[remotion] bundling GamifiedLesson… (timeout=${Math.round(REMOTION_TIMEOUT_MS / 1000)}s, concurrency=${REMOTION_CONCURRENCY})`,
+      `[remotion] bundling GamifiedLesson from a FRESH outDir (no webpack cache)… ` +
+        `(timeout=${Math.round(REMOTION_TIMEOUT_MS / 1000)}s, concurrency=${REMOTION_CONCURRENCY}, outDir=${bundleOutDir})`,
     );
     const serveUrl = await bundle({
       entryPoint: path.join(REMOTION_ROOT, 'src', 'index.ts'),
       rootDir: REMOTION_ROOT,
-      // Always pick up composition/script-router changes (stale webpack cache kept old visuals)
+      outDir: bundleOutDir,
       enableCaching: false,
+      webpackOverride: (config) => ({
+        ...config,
+        cache: false,
+      }),
     });
 
     // Full 10-minute budget per attempt (outer STAGE_TIMEOUTS.rendering also 10 min)
@@ -500,6 +535,10 @@ export async function renderWithRemotion(opts: {
     throw new Error(
       `Failed during Remotion/FFmpeg render: ${err instanceof Error ? err.message : String(err)}`,
     );
+  } finally {
+    if (bundleOutDir) {
+      await rmrf(bundleOutDir);
+    }
   }
 
   throw new Error(

@@ -208,6 +208,23 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
   const wordTimings = props.wordTimings;
   const audioUrl = props.audioUrl;
 
+  if (frame === 0) {
+    const live = rawProps.scriptData;
+    if (!live?.scenes?.length) {
+      console.error(
+        '[Remotion Render] WARNING: scriptData is missing or invalid! Using fallback.',
+      );
+    } else {
+      console.log(
+        `[Remotion Render] Rendering dynamic scenes for: ${live.topicTitle || topicTitle} ` +
+          `teacher=${live.teacherName || teacherName} scenes=${live.scenes.length} ` +
+          `audio=${audioUrl ? 'yes' : 'NO'} ` +
+          `cameras=${live.scenes.map((s) => s.cameraMotion || s.visualArchetype).join(',')} ` +
+          `gestures=${live.scenes.map((s) => s.teacherGesture || '?').join(',')}`,
+      );
+    }
+  }
+
   const active = resolveActiveScene(scenes, currentTime);
   const activeScene = active.scene;
   const visualConfig = activeScene.visualConfig;
