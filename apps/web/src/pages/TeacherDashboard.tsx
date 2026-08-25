@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, LogOut, RefreshCw } from 'lucide-react';
+import { Compass, GraduationCap, LogOut, RefreshCw } from 'lucide-react';
 import type {
   StudentDoubt,
   TeacherChapter,
@@ -13,8 +13,7 @@ import { DocumentUploader } from '@/components/teacher/DocumentUploader';
 import { ChapterList } from '@/components/teacher/ChapterList';
 import { SubtopicManager } from '@/components/teacher/SubtopicManager';
 import { TeacherDoubtAssistant } from '@/components/teacher/TeacherDoubtAssistant';
-
-const ACCENT = '#5B46BA';
+import '@/styles/teacher-dashboard.css';
 
 export default function TeacherDashboard() {
   const { teacher, role, logout } = useAuth();
@@ -62,36 +61,42 @@ export default function TeacherDashboard() {
   };
 
   return (
-    <div className="min-h-dvh bg-gradient-to-br from-indigo-50 via-white to-violet-50 text-slate-800">
-      <header className="sticky top-0 z-40 border-b border-indigo-100/80 bg-white/90 backdrop-blur-md">
+    <div className="td-dash min-h-dvh text-white">
+      <header className="td-header sticky top-0 z-40">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 lg:px-6">
           <div className="flex items-center gap-2.5">
-            <span
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md"
-              style={{ background: ACCENT }}
-            >
-              <GraduationCap className="h-5 w-5" />
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/40 bg-white/5 text-white shadow-[0_0_16px_rgba(34,211,238,0.25)]">
+              <GraduationCap className="h-5 w-5 text-white" />
             </span>
             <div>
-              <p className="text-sm font-extrabold text-slate-800">Brightpath Teacher</p>
-              <p className="text-[11px] font-semibold text-slate-500">Curriculum & live doubt control</p>
+              <p className="text-sm font-extrabold text-white">Brightpath Teacher</p>
+              <p className="text-[11px] font-semibold text-cyan-200/80">Curriculum & live doubt control</p>
             </div>
           </div>
-          <nav className="mx-auto hidden items-center gap-5 text-sm font-semibold text-slate-500 md:flex">
-            <span className="font-bold text-[#5B46BA]">Teacher Dashboard</span>
+          <nav className="mx-auto hidden items-center gap-5 text-sm font-semibold text-[#A5F3FC] md:flex">
+            <span className="font-bold text-white">Teacher Dashboard</span>
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <button
               type="button"
               onClick={() => void load()}
-              className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
-              aria-label="Refresh"
+              className="rounded-xl border border-cyan-400/30 p-2 text-[#A5F3FC] hover:bg-cyan-400/10"
+              aria-label="Sync"
+              title="Sync"
             >
               <RefreshCw className="h-4 w-4" />
             </button>
+            <a
+              href="#td-chapters"
+              className="rounded-xl border border-cyan-400/30 p-2 text-[#A5F3FC] hover:bg-cyan-400/10"
+              aria-label="Explore"
+              title="Explore"
+            >
+              <Compass className="h-4 w-4" />
+            </a>
             <div className="hidden text-right sm:block">
-              <p className="text-sm font-bold text-slate-800">{teacher?.name ?? 'Teacher'}</p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-sm font-bold text-white">{teacher?.name ?? 'Teacher'}</p>
+              <p className="text-[11px] text-[#A5F3FC]">
                 {teacher?.schoolName ?? 'School'} · {teacher?.subjectFocus ?? 'Science'}
               </p>
             </div>
@@ -101,7 +106,7 @@ export default function TeacherDashboard() {
                 logout();
                 navigate('/login');
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#6D28D9]/80 px-3 py-2 text-xs font-bold text-white shadow-[0_0_16px_rgba(109,40,217,0.45)] hover:bg-[#7C3AED]"
             >
               <LogOut className="h-3.5 w-3.5" /> Log out
             </button>
@@ -110,20 +115,20 @@ export default function TeacherDashboard() {
       </header>
 
       <main className="mx-auto max-w-7xl space-y-5 px-4 py-6 lg:px-6">
-        <div className="rounded-3xl border border-indigo-100 bg-white/80 px-5 py-4 shadow-soft backdrop-blur-md">
-          <h1 className="text-2xl font-black text-slate-900">Teacher Dashboard</h1>
-          <p className="mt-1 text-sm text-slate-500">
+        <div className="td-card rounded-3xl px-5 py-4">
+          <h1 className="text-2xl font-black text-white">Teacher Dashboard</h1>
+          <p className="mt-1 text-sm text-[#A5F3FC]">
             Upload textbooks, enrich lessons with video & games, and approve AI answers before class.
           </p>
         </div>
 
         {loading && (
-          <p className="rounded-2xl bg-white px-4 py-6 text-center text-sm text-slate-500 shadow-soft">
+          <p className="td-card rounded-2xl px-4 py-6 text-center text-sm text-[#A5F3FC]">
             Loading curriculum…
           </p>
         )}
         {error && (
-          <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+          <p className="rounded-2xl border border-rose-400/40 bg-rose-950/50 px-4 py-3 text-sm font-semibold text-rose-200">
             {error}
           </p>
         )}

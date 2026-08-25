@@ -1,0 +1,77 @@
+/* Teacher Dashboard — dark, high-contrast SweetRush theme (scoped) */
+body:has(.td-dash),
+.app:has(.td-dash) {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.td-header {
+  background: rgba(15, 23, 42, 0.92);
+  border-bottom: 1px solid rgba(103, 232, 249, 0.4);
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.td-dash {
+  --td-bg: #0f172a;
+  --td-card: rgba(30, 41, 59, 0.85);
+  --td-card-solid: #1e293b;
+  --td-modal: #312e81;
+  --td-accent: #22d3ee;
+  --td-accent-strong: #06b6d4;
+  --td-text: #ffffff;
+  --td-muted: #a5f3fc;
+  --td-purple: #6d28d9;
+  --td-track: rgba(8, 145, 178, 0.35);
+  --td-glow: 0 0 24px rgba(34, 211, 238, 0.28);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(34, 211, 238, 0.12), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(109, 40, 217, 0.18), transparent 50%),
+    var(--td-bg);
+  color: var(--td-text);
+  min-height: 100dvh;
+}
+
+.td-card {
+  background: var(--td-card);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(165, 243, 252, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 12px 40px rgba(2, 6, 23, 0.45);
+}
+
+.td-input {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(165, 243, 252, 0.28);
+  color: var(--td-text);
+}
+
+.td-input:focus {
+  border-color: var(--td-accent);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2);
+  outline: none;
+}
+
+.td-btn-cta {
+  background: linear-gradient(135deg, #06b6d4 0%, #6366f1 100%);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(6, 182, 212, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+}
+
+.td-btn-cta:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 0 10px 28px rgba(34, 211, 238, 0.45);
+}
+
+.td-progress-track {
+  background: var(--td-track);
+  box-shadow: inset 0 1px 3px rgba(2, 6, 23, 0.55);
+}
+
+.td-progress-fill {
+  background: linear-gradient(90deg, #06b6d4, #22d3ee, #67e8f9);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.65);
+}

@@ -43,15 +43,15 @@ export function TeacherDoubtAssistant({
   };
 
   return (
-    <section className="rounded-3xl border border-indigo-100 bg-white p-5 shadow-soft sm:p-6">
-      <h2 className="mb-1 text-lg font-extrabold text-slate-800">AI & Student Doubt Monitor</h2>
-      <p className="mb-4 text-sm text-slate-500">
+    <section className="td-card rounded-3xl p-5 sm:p-6">
+      <h2 className="mb-1 text-lg font-extrabold text-white">AI & Student Doubt Monitor</h2>
+      <p className="mb-4 text-sm text-[#A5F3FC]">
         Review AI answers grounded in textbook sources before they reach students.
       </p>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Lesson media preview */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-900">
+        <div className="overflow-hidden rounded-2xl border border-cyan-400/20 bg-slate-950">
           {previewSubtopic?.videoUrl && !/commondatastorage|ForBigger/i.test(previewSubtopic.videoUrl) ? (
             <video
               title={previewSubtopic.videoTitle ?? 'Lesson preview'}
@@ -61,16 +61,16 @@ export function TeacherDoubtAssistant({
               className="aspect-video w-full bg-black"
             />
           ) : (
-            <div className="flex aspect-video flex-col items-center justify-center px-4 text-center text-slate-300">
-              <Sparkles className="mb-2 h-8 w-8 text-indigo-300" />
-              <p className="text-sm font-bold">Lesson media preview</p>
-              <p className="mt-1 text-xs text-slate-400">
+            <div className="flex aspect-video flex-col items-center justify-center px-4 text-center text-[#A5F3FC]">
+              <Sparkles className="mb-2 h-8 w-8 text-[#22D3EE]" />
+              <p className="text-sm font-bold text-white">Lesson media preview</p>
+              <p className="mt-1 text-xs text-[#A5F3FC]">
                 Attach a Video Explainer on a subtopic to preview it here.
               </p>
             </div>
           )}
-          <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-800 px-3 py-2">
-            <p className="text-xs font-semibold text-slate-200">
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-[#1E293B] px-3 py-2">
+            <p className="text-xs font-semibold text-white">
               {previewSubtopic
                 ? `${previewSubtopic.code} · ${previewSubtopic.title}`
                 : 'No subtopic selected'}
@@ -79,34 +79,34 @@ export function TeacherDoubtAssistant({
               <button
                 type="button"
                 onClick={onContinue}
-                className="rounded-lg bg-emerald-500 px-3 py-1.5 text-[11px] font-bold text-white"
+                className="rounded-lg bg-[#10B981]/80 px-3 py-1.5 text-[11px] font-bold text-white"
               >
                 Continue
               </button>
               <button
                 type="button"
                 onClick={onAssignActivity}
-                className="rounded-lg bg-amber-400 px-3 py-1.5 text-[11px] font-bold text-amber-950"
+                className="rounded-lg bg-[#FBBF24]/80 px-3 py-1.5 text-[11px] font-bold text-white"
               >
                 Assign Activity
               </button>
             </div>
           </div>
           {engagementNote && (
-            <p className="bg-indigo-950 px-3 py-2 text-xs font-semibold text-indigo-100">{engagementNote}</p>
+            <p className="bg-[#312E81] px-3 py-2 text-xs font-semibold text-[#A5F3FC]">{engagementNote}</p>
           )}
         </div>
 
         {/* Doubts sidebar */}
-        <div className="flex min-h-[280px] flex-col rounded-2xl border border-slate-200 bg-slate-50">
-          <div className="border-b border-slate-200 px-3 py-2">
-            <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">
+        <div className="flex min-h-[280px] flex-col rounded-2xl border border-cyan-400/20 bg-slate-950/50">
+          <div className="border-b border-cyan-400/20 px-3 py-2">
+            <p className="text-xs font-extrabold uppercase tracking-wide text-[#A5F3FC]">
               Teacher&apos;s Doubt Queue ({doubts.length})
             </p>
           </div>
-          <div className="max-h-40 space-y-1 overflow-y-auto border-b border-slate-200 p-2">
+          <div className="max-h-40 space-y-1 overflow-y-auto border-b border-cyan-400/20 p-2">
             {doubts.length === 0 && (
-              <p className="px-2 py-4 text-center text-xs text-slate-500">No student doubts yet.</p>
+              <p className="px-2 py-4 text-center text-xs text-[#A5F3FC]">No student doubts yet.</p>
             )}
             {doubts.map((d) => (
               <button
@@ -118,7 +118,9 @@ export function TeacherDoubtAssistant({
                 }}
                 className={[
                   'w-full rounded-xl px-2.5 py-2 text-left text-xs transition',
-                  selected?.id === d.id ? 'bg-[#5B46BA] text-white' : 'bg-white text-slate-700 hover:bg-indigo-50',
+                  selected?.id === d.id
+                    ? 'bg-gradient-to-r from-cyan-500 to-indigo-500 text-white'
+                    : 'bg-slate-900/70 text-[#A5F3FC] hover:bg-cyan-400/10',
                 ].join(' ')}
               >
                 <span className="font-bold">{d.studentName}</span>
@@ -132,27 +134,27 @@ export function TeacherDoubtAssistant({
 
           {selected ? (
             <div className="flex flex-1 flex-col gap-2 p-3">
-              <p className="text-xs font-bold text-slate-800">Q: {selected.question}</p>
-              <div className="rounded-xl border border-violet-100 bg-violet-50 p-2.5 text-xs text-violet-900">
-                <p className="mb-1 font-extrabold">AI draft (textbook-grounded)</p>
+              <p className="text-xs font-bold text-white">Q: {selected.question}</p>
+              <div className="rounded-xl border border-cyan-400/20 bg-[#312E81]/70 p-2.5 text-xs text-[#A5F3FC]">
+                <p className="mb-1 font-extrabold text-white">AI draft (textbook-grounded)</p>
                 <p>{selected.aiResponse?.answerText ?? 'No AI answer yet.'}</p>
                 {selected.aiResponse && (
-                  <p className="mt-2 text-[10px] font-semibold text-violet-600">
+                  <p className="mt-2 text-[10px] font-semibold text-cyan-200">
                     Sources: {selected.aiResponse.groundedSources.join(' · ')} · confidence{' '}
                     {Math.round(selected.aiResponse.confidence * 100)}%
                   </p>
                 )}
               </div>
-              <label className="text-[11px] font-bold text-slate-500">
+              <label className="text-[11px] font-bold text-[#A5F3FC]">
                 Teacher override / notes
                 <textarea
                   value={overrideText}
                   onChange={(e) => setOverrideText(e.target.value)}
                   rows={3}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-700 outline-none focus:border-indigo-400"
+                  className="td-input mt-1 w-full rounded-xl px-2.5 py-2 text-xs outline-none"
                 />
               </label>
-              <label className="flex items-center justify-between text-[11px] font-bold text-slate-500">
+              <label className="flex items-center justify-between text-[11px] font-bold text-[#A5F3FC]">
                 Gamification points
                 <input
                   type="number"
@@ -160,7 +162,7 @@ export function TeacherDoubtAssistant({
                   max={100}
                   value={points}
                   onChange={(e) => setPoints(Number(e.target.value))}
-                  className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-right text-xs"
+                  className="td-input w-20 rounded-lg px-2 py-1 text-right text-xs"
                 />
               </label>
               <div className="mt-auto flex flex-wrap gap-2">
@@ -168,7 +170,7 @@ export function TeacherDoubtAssistant({
                   type="button"
                   disabled={busy}
                   onClick={() => void review('approve')}
-                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl bg-emerald-500 px-3 py-2 text-xs font-bold text-white"
+                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl bg-[#10B981]/80 px-3 py-2 text-xs font-bold text-white"
                 >
                   <Check className="h-3.5 w-3.5" /> Approve AI
                 </button>
@@ -176,7 +178,7 @@ export function TeacherDoubtAssistant({
                   type="button"
                   disabled={busy}
                   onClick={() => void review('override')}
-                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl bg-[#5B46BA] px-3 py-2 text-xs font-bold text-white"
+                  className="td-btn-cta inline-flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2 text-xs font-bold"
                 >
                   <PencilLine className="h-3.5 w-3.5" /> Override
                 </button>
@@ -184,14 +186,14 @@ export function TeacherDoubtAssistant({
                   type="button"
                   disabled={busy}
                   onClick={() => void review('reject')}
-                  className="inline-flex items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700"
+                  className="inline-flex items-center justify-center gap-1 rounded-xl border border-rose-400/40 bg-rose-500/80 px-3 py-2 text-xs font-bold text-white"
                 >
                   <X className="h-3.5 w-3.5" /> Reject
                 </button>
               </div>
             </div>
           ) : (
-            <p className="p-4 text-center text-xs text-slate-500">Select a doubt to review.</p>
+            <p className="p-4 text-center text-xs text-[#A5F3FC]">Select a doubt to review.</p>
           )}
         </div>
       </div>

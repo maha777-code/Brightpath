@@ -100,9 +100,9 @@ export function SubtopicManager({
 
   if (!chapter) {
     return (
-      <section className="rounded-3xl border border-indigo-100 bg-white p-5 shadow-soft sm:p-6">
-        <h2 className="text-lg font-extrabold text-slate-800">Lesson & Content Enrichment</h2>
-        <p className="mt-2 text-sm text-slate-500">Select a chapter to manage subtopics, videos, and games.</p>
+      <section className="td-card rounded-3xl p-5 sm:p-6">
+        <h2 className="text-lg font-extrabold text-white">Lesson & Content Enrichment</h2>
+        <p className="mt-2 text-sm text-[#A5F3FC]">Select a chapter to manage subtopics, videos, and games.</p>
       </section>
     );
   }
@@ -183,19 +183,19 @@ export function SubtopicManager({
   };
 
   return (
-    <section className="rounded-3xl border border-indigo-100 bg-white p-5 shadow-soft sm:p-6">
-      <h2 className="text-lg font-extrabold text-slate-800">Lesson & Content Enrichment</h2>
-      <p className="mb-4 text-sm text-slate-500">{chapter.title}</p>
+    <section className="td-card rounded-3xl p-5 sm:p-6">
+      <h2 className="text-lg font-extrabold text-white">Lesson & Content Enrichment</h2>
+      <p className="mb-4 text-sm text-[#A5F3FC]">{chapter.title}</p>
 
       <ul className="space-y-3">
         {localSubs.map((sub) => {
           const status = resolveStatus(sub);
           return (
-            <li key={sub.id} className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+            <li key={sub.id} className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-extrabold text-slate-800">
-                    <span className="mr-2 rounded-md bg-indigo-100 px-1.5 py-0.5 text-xs text-indigo-700">
+                  <p className="text-sm font-extrabold text-white">
+                    <span className="mr-2 rounded-md bg-cyan-500/20 px-1.5 py-0.5 text-xs text-[#A5F3FC] ring-1 ring-cyan-400/30">
                       {sub.code}
                     </span>
                     {sub.title}
@@ -203,11 +203,11 @@ export function SubtopicManager({
                   <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold">
                     <VideoStatusBadge status={status} error={sub.videoError} progress={sub.videoProgress} />
                     {sub.hasGamifiedActivity ? (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800">
+                      <span className="rounded-full bg-[#FBBF24]/80 px-2 py-0.5 text-[#FEF3C7]">
                         Activity ready
                       </span>
                     ) : (
-                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-slate-600">
+                      <span className="rounded-full bg-slate-700/80 px-2 py-0.5 text-[#A5F3FC]">
                         No activity
                       </span>
                     )}
@@ -227,7 +227,7 @@ export function SubtopicManager({
                     type="button"
                     onClick={() => onAssignActivity(sub)}
                     disabled={!sub.hasGamifiedActivity}
-                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-amber-200 bg-white px-2.5 py-2 text-[11px] font-bold text-amber-800 sm:px-3 sm:text-xs disabled:opacity-40"
+                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-amber-400/40 bg-[#FBBF24]/80 px-2.5 py-2 text-[11px] font-bold text-white sm:px-3 sm:text-xs disabled:opacity-40"
                   >
                     <Gamepad2 className="h-3.5 w-3.5 shrink-0" />
                     Generate Gamified Activity
@@ -236,7 +236,7 @@ export function SubtopicManager({
                     type="button"
                     onClick={() => void attachDefaults(sub)}
                     disabled={busyId === sub.id}
-                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#5B46BA] px-2.5 py-2 text-[11px] font-bold text-white sm:px-3 sm:text-xs disabled:opacity-60"
+                    className="td-btn-cta inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-2 text-[11px] font-bold sm:px-3 sm:text-xs disabled:opacity-60"
                   >
                     <Plus className="h-3.5 w-3.5 shrink-0" />
                     {busyId === sub.id ? 'Attaching…' : 'Attach media'}
@@ -275,34 +275,34 @@ function VideoStatusBadge({
 }) {
   if (status === 'generating') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-indigo-700">
+      <span className="inline-flex items-center gap-1 rounded-full bg-[#06B6D4]/80 px-2 py-0.5 text-[#A5F3FC]">
         <Loader2 className="h-3 w-3 animate-spin" /> Generating… {progress ?? 0}%
       </span>
     );
   }
   if (status === 'failed') {
     return (
-      <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-700" title={error ?? undefined}>
+      <span className="rounded-full bg-rose-500/80 px-2 py-0.5 text-rose-50" title={error ?? undefined}>
         Generation Failed
       </span>
     );
   }
   if (status === 'pending_review') {
     return (
-      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800 ring-2 ring-amber-300/60">
-        Video Pending Review
+      <span className="rounded-full bg-[#06B6D4]/80 px-2 py-0.5 text-[#A5F3FC] ring-2 ring-cyan-200/40">
+        Video ready
       </span>
     );
   }
   if (status === 'published') {
     return (
-      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">
-        Video Published to Students
+      <span className="rounded-full bg-[#10B981]/80 px-2 py-0.5 text-[#A7F3D0]">
+        Video Published
       </span>
     );
   }
   return (
-    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-slate-600">No video</span>
+    <span className="rounded-full bg-slate-700/80 px-2 py-0.5 text-[#A5F3FC]">No video</span>
   );
 }
 
@@ -336,11 +336,19 @@ function GenerateVideoButton({
       <button
         type="button"
         disabled
-        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-indigo-200 bg-indigo-50 px-2.5 py-2 text-[11px] font-bold text-indigo-700 sm:px-3 sm:text-xs disabled:opacity-80"
+        className="inline-flex min-w-[148px] flex-col items-stretch gap-1 whitespace-nowrap rounded-xl border border-cyan-400/40 bg-[#06B6D4]/20 px-2.5 py-2 text-[11px] font-bold text-[#A5F3FC] sm:px-3 sm:text-xs disabled:opacity-80"
         title={stageLabel}
       >
-        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
-        Generating Video… {Math.max(0, Math.min(100, sub.videoProgress ?? 0))}%
+        <span className="inline-flex items-center gap-1.5">
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+          Generating Video… {Math.max(0, Math.min(100, sub.videoProgress ?? 0))}%
+        </span>
+        <span className="td-progress-track h-1.5 overflow-hidden rounded-full">
+          <span
+            className="td-progress-fill block h-full rounded-full"
+            style={{ width: `${Math.max(0, Math.min(100, sub.videoProgress ?? 0))}%` }}
+          />
+        </span>
       </button>
     );
   }
@@ -352,7 +360,7 @@ function GenerateVideoButton({
         onClick={onGenerate}
         disabled={busy}
         title={sub.videoError ?? 'Generation failed'}
-        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-rose-300 bg-rose-50 px-2.5 py-2 text-[11px] font-bold text-rose-800 hover:bg-rose-100 sm:px-3 sm:text-xs disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-rose-400/50 bg-rose-500/80 px-2.5 py-2 text-[11px] font-bold text-white hover:bg-rose-500 sm:px-3 sm:text-xs disabled:opacity-50"
       >
         {busy ? (
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
@@ -369,7 +377,7 @@ function GenerateVideoButton({
       <button
         type="button"
         onClick={onReview}
-        className="inline-flex animate-pulse items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-amber-400 bg-amber-50 px-2.5 py-2 text-[11px] font-bold text-amber-900 shadow-[0_0_0_3px_rgba(251,191,36,0.25)] sm:px-3 sm:text-xs"
+        className="td-btn-cta inline-flex animate-pulse items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-2 text-[11px] font-bold sm:px-3 sm:text-xs"
       >
         <Eye className="h-3.5 w-3.5 shrink-0" />
         Review Video
@@ -382,7 +390,7 @@ function GenerateVideoButton({
       <button
         type="button"
         onClick={onReview}
-        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100 sm:px-3 sm:text-xs"
+        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#10B981]/80 px-2.5 py-2 text-[11px] font-bold text-white hover:bg-[#10B981] sm:px-3 sm:text-xs"
       >
         <PlayCircle className="h-3.5 w-3.5 shrink-0" />
         Video Ready / Re-generate
@@ -395,7 +403,7 @@ function GenerateVideoButton({
       type="button"
       onClick={onGenerate}
       disabled={busy}
-      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-indigo-300 bg-white px-2.5 py-2 text-[11px] font-bold text-indigo-700 hover:bg-indigo-50 sm:px-3 sm:text-xs disabled:opacity-50"
+      className="td-btn-cta inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-2 text-[11px] font-bold sm:px-3 sm:text-xs disabled:opacity-50"
     >
       {busy ? (
         <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />

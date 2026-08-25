@@ -172,7 +172,7 @@ export default function VideoReviewModal({
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-3 backdrop-blur-md sm:items-center sm:p-6"
+        className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 p-3 backdrop-blur-md sm:items-center sm:p-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -182,25 +182,25 @@ export default function VideoReviewModal({
           role="dialog"
           aria-modal="true"
           aria-labelledby="video-review-title"
-          className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/20 bg-white/90 shadow-2xl backdrop-blur-xl"
+          className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-cyan-300/30 bg-[#312E81] text-white shadow-[0_0_40px_rgba(34,211,238,0.2)] backdrop-blur-xl"
           initial={{ y: 40, opacity: 0, scale: 0.98 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 24, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
         >
-          <header className="flex items-start justify-between gap-3 border-b border-slate-200/80 px-5 py-4 sm:px-6">
+          <header className="flex items-start justify-between gap-3 border-b border-cyan-300/20 px-5 py-4 sm:px-6">
             <div className="min-w-0">
-              <h2 id="video-review-title" className="text-lg font-extrabold text-slate-900 sm:text-xl">
+              <h2 id="video-review-title" className="text-lg font-extrabold text-white sm:text-xl">
                 Review Video Explainer: {subtopic.code} {subtopic.title}
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-[#A5F3FC]">
                 Review the AI-generated video and script before publishing to students.
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              className="rounded-full p-2 text-[#A5F3FC] hover:bg-white/10 hover:text-white"
               aria-label="Close"
             >
               <X className="h-5 w-5" />
@@ -209,10 +209,10 @@ export default function VideoReviewModal({
 
           <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 sm:p-6 lg:grid-cols-2">
             <div className="flex flex-col">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#A5F3FC]">
                 Video preview
               </p>
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-inner">
+              <div className="overflow-hidden rounded-2xl border border-cyan-400/25 bg-slate-950 shadow-inner">
                 {targetVideoUrl ? (
                   <video
                     key={targetVideoUrl}
@@ -247,10 +247,10 @@ export default function VideoReviewModal({
                 )}
               </div>
               {videoLoadError && (
-                <p className="mt-2 text-xs font-semibold text-rose-600">{videoLoadError}</p>
+                <p className="mt-2 text-xs font-semibold text-rose-300">{videoLoadError}</p>
               )}
               {targetVideoUrl && (
-                <p className="mt-1 truncate text-[11px] text-slate-400" title={targetVideoUrl}>
+                <p className="mt-1 truncate text-[11px] text-[#A5F3FC]" title={targetVideoUrl}>
                   Source: {targetVideoUrl}
                 </p>
               )}
@@ -264,8 +264,8 @@ export default function VideoReviewModal({
                   className={[
                     'rounded-xl px-3 py-1.5 text-xs font-bold',
                     tab === 'script'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                      ? 'td-btn-cta'
+                      : 'bg-slate-950/40 text-[#A5F3FC] hover:bg-white/10',
                   ].join(' ')}
                 >
                   AI Voiceover Script
@@ -276,8 +276,8 @@ export default function VideoReviewModal({
                   className={[
                     'inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold',
                     tab === 'cues'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                      ? 'td-btn-cta'
+                      : 'bg-slate-950/40 text-[#A5F3FC] hover:bg-white/10',
                   ].join(' ')}
                 >
                   <Clapperboard className="h-3.5 w-3.5" />
@@ -290,32 +290,32 @@ export default function VideoReviewModal({
                   <textarea
                     value={script}
                     onChange={(e) => setScript(e.target.value)}
-                    className="min-h-[220px] flex-1 resize-y rounded-2xl border border-slate-200 bg-white/80 p-3 text-sm leading-relaxed text-slate-800 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                    className="td-input min-h-[220px] flex-1 resize-y rounded-2xl p-3 text-sm leading-relaxed outline-none"
                     placeholder="AI voiceover script…"
                   />
                   <button
                     type="button"
                     disabled={busy === 'save'}
                     onClick={() => void saveScript()}
-                    className="mt-2 self-end rounded-xl border border-indigo-200 bg-white px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
+                    className="td-btn-cta mt-2 self-end rounded-xl px-3 py-1.5 text-xs font-bold disabled:opacity-50"
                   >
                     {busy === 'save' ? 'Saving…' : 'Save script edits'}
                   </button>
                 </div>
               ) : (
-                <ul className="min-h-[220px] space-y-2 overflow-y-auto rounded-2xl border border-slate-200 bg-white/80 p-3">
+                <ul className="min-h-[220px] space-y-2 overflow-y-auto rounded-2xl border border-cyan-400/20 bg-slate-950/40 p-3">
                   {cues.length === 0 ? (
-                    <li className="text-sm text-slate-500">No animation cues yet.</li>
+                    <li className="text-sm text-[#A5F3FC]">No animation cues yet.</li>
                   ) : (
                     cues.map((cue, i) => (
                       <li
                         key={`${cue.timeSec}-${i}`}
-                        className="flex items-start gap-3 rounded-xl bg-slate-50 px-3 py-2 text-sm"
+                        className="flex items-start gap-3 rounded-xl bg-white/5 px-3 py-2 text-sm"
                       >
-                        <span className="shrink-0 rounded-md bg-indigo-100 px-2 py-0.5 font-mono text-xs font-bold text-indigo-700">
+                        <span className="shrink-0 rounded-md bg-[#06B6D4]/80 px-2 py-0.5 font-mono text-xs font-bold text-white">
                           {formatCueTime(cue.timeSec)}
                         </span>
-                        <span className="font-semibold text-slate-700">{cue.label}</span>
+                        <span className="font-semibold text-white">{cue.label}</span>
                       </li>
                     ))
                   )}
@@ -325,21 +325,21 @@ export default function VideoReviewModal({
           </div>
 
           {showRegenPrompt && (
-            <div className="border-t border-amber-100 bg-amber-50/80 px-5 py-3 sm:px-6">
-              <label className="text-xs font-bold text-amber-900">
+            <div className="border-t border-amber-300/20 bg-[#FBBF24]/15 px-5 py-3 sm:px-6">
+              <label className="text-xs font-bold text-[#FDE68A]">
                 Re-generate with prompt
               </label>
               <input
                 value={regenPrompt}
                 onChange={(e) => setRegenPrompt(e.target.value)}
                 placeholder="e.g., Make it simpler for Class 9 students"
-                className="mt-1 w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400"
+                className="td-input mt-1 w-full rounded-xl px-3 py-2 text-sm outline-none"
               />
               <div className="mt-2 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowRegenPrompt(false)}
-                  className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-600"
+                  className="rounded-lg px-3 py-1.5 text-xs font-bold text-[#A5F3FC]"
                 >
                   Cancel
                 </button>
@@ -347,7 +347,7 @@ export default function VideoReviewModal({
                   type="button"
                   disabled={busy === 'regen'}
                   onClick={() => void regenerate()}
-                  className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white"
+                  className="inline-flex items-center gap-1 rounded-lg bg-[#FBBF24]/80 px-3 py-1.5 text-xs font-bold text-white"
                 >
                   {busy === 'regen' ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -361,15 +361,15 @@ export default function VideoReviewModal({
           )}
 
           {error && (
-            <p className="px-5 text-sm font-semibold text-rose-600 sm:px-6">{error}</p>
+            <p className="px-5 text-sm font-semibold text-rose-300 sm:px-6">{error}</p>
           )}
 
-          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/80 bg-white/70 px-5 py-4 sm:px-6">
+          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-cyan-300/20 bg-[#1E1B4B]/80 px-5 py-4 sm:px-6">
             <button
               type="button"
               onClick={() => setShowRegenPrompt(true)}
               disabled={Boolean(busy)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/30 bg-white/5 px-3 py-2 text-xs font-bold text-white hover:bg-white/10 disabled:opacity-50"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Re-generate
@@ -379,7 +379,7 @@ export default function VideoReviewModal({
               type="button"
               onClick={() => void reject()}
               disabled={Boolean(busy)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-rose-400/40 bg-rose-500/80 px-3 py-2 text-xs font-bold text-white hover:bg-rose-500 disabled:opacity-50"
             >
               {busy === 'reject' ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -393,7 +393,7 @@ export default function VideoReviewModal({
               type="button"
               onClick={() => void approve()}
               disabled={Boolean(busy) || !targetVideoUrl}
-              className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-emerald-600 disabled:opacity-50 sm:text-sm"
+              className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-[#10B981]/90 px-4 py-2.5 text-xs font-extrabold text-white shadow-[0_0_18px_rgba(16,185,129,0.35)] hover:bg-[#10B981] disabled:opacity-50 sm:text-sm"
             >
               {busy === 'approve' ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
