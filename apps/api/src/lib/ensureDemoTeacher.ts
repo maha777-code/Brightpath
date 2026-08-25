@@ -58,7 +58,7 @@ export async function ensureDemoTeacher() {
     const message = err instanceof Error ? err.message : String(err);
     if (/Teacher|does not exist|P2021|Unknown arg|planType/i.test(message)) {
       console.warn(
-        'Teacher schema outdated/missing — run: cd apps/api && npx prisma db push && npx tsx src/scripts/seedTeacher.ts',
+        'Teacher schema outdated/missing — run: cd apps/api && npm run db:setup',
       );
       console.error(err);
       return;

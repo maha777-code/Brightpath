@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "db:push": "prisma db push",
+    "db:setup": "prisma generate && prisma db push && tsx src/scripts/seedTeacher.ts && tsx src/scripts/migrateLegacyUsers.ts",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "postinstall": "prisma generate"

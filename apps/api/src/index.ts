@@ -21,6 +21,7 @@ import orgBrandingRoutes from './routes/orgBranding.js';
 import aiRoutes from './routes/ai.js';
 import chaptersRoutes from './routes/chapters.js';
 import topicsRoutes from './routes/topics.js';
+import { ensureDatabaseSchema } from './lib/ensureDatabaseSchema.js';
 import { ensureDemoTeacher } from './lib/ensureDemoTeacher.js';
 import { migrateLegacyUsers } from './scripts/migrateLegacyUsers.js';
 import type { AuthRequest } from './middleware/auth.js';
@@ -140,6 +141,8 @@ async function start() {
       console.warn('Redis unavailable (optional):', err);
     }
   }
+
+  await ensureDatabaseSchema();
 
   try {
     const migrated = await migrateLegacyUsers();

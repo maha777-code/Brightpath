@@ -393,10 +393,10 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     console.error('POST /auth/login failed:', err);
     const message = err instanceof Error ? err.message : String(err);
-    if (/does not exist|P2021|Unknown column|planType|PlatformUser/i.test(message)) {
+    if (/does not exist|P2021|P2022|Unknown column|Unknown (?:arg|argument)|planType|PlatformUser/i.test(message)) {
       res.status(503).json({
         error:
-          'Database schema is out of date. From apps/api run: npx prisma db push && npx tsx src/scripts/seedTeacher.ts && npx tsx src/scripts/migrateLegacyUsers.ts — then restart the API.',
+          'Database schema is out of date. From apps/api run: npm run db:setup — then restart the API.',
       });
       return;
     }
@@ -452,7 +452,7 @@ router.post('/teacher/login', async (req, res) => {
     if (/does not exist|P2021|Teacher|PlatformUser/i.test(message)) {
       res.status(503).json({
         error:
-          'Teacher database tables are missing. From apps/api run: npx prisma db push && npx tsx src/scripts/seedTeacher.ts && npx tsx src/scripts/migrateLegacyUsers.ts — then restart the API.',
+          'Teacher database tables are missing. From apps/api run: npm run db:setup — then restart the API.',
       });
       return;
     }
