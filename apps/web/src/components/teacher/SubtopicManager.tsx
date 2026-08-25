@@ -100,7 +100,7 @@ export function SubtopicManager({
 
   if (!chapter) {
     return (
-      <section className="td-card w-full rounded-3xl p-8">
+      <section id="td-enrichment" className="td-card w-full rounded-3xl p-8">
         <h2 className="text-2xl font-bold text-white">Lesson & Content Enrichment</h2>
         <p className="mt-2 text-base text-cyan-200/80">Select a chapter to manage subtopics, videos, and games.</p>
       </section>
@@ -183,7 +183,7 @@ export function SubtopicManager({
   };
 
   return (
-    <section className="td-card w-full rounded-3xl p-8">
+    <section id="td-enrichment" className="td-card w-full rounded-3xl p-8">
       <h2 className="text-2xl font-bold text-white">Lesson & Content Enrichment</h2>
       <p className="mb-6 text-base text-cyan-200/80">{chapter.title}</p>
 

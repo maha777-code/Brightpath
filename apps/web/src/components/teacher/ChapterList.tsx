@@ -27,7 +27,7 @@ export function ChapterList({ chapters, selectedId, onExplore }: ChapterListProp
                 className={[
                   'rounded-2xl border p-8 transition',
                   active
-                    ? 'border-[#22D3EE] bg-cyan-400/10 ring-2 ring-cyan-400/25'
+                    ? 'border-cyan-400 bg-cyan-950/20 ring-2 ring-cyan-400'
                     : 'border-white/10 bg-slate-950/35 hover:border-cyan-400/40',
                 ].join(' ')}
               >

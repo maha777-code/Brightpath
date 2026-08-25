@@ -20,12 +20,17 @@ export default function TeacherDashboard() {
   const navigate = useNavigate();
   const [textbook, setTextbook] = useState<Textbook | null>(null);
   const [chapters, setChapters] = useState<TeacherChapter[]>([]);
-  const [selectedChapter, setSelectedChapter] = useState<TeacherChapter | null>(null);
+  const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [doubts, setDoubts] = useState<StudentDoubt[]>([]);
   const [previewSubtopic, setPreviewSubtopic] = useState<TeacherSubtopic | null>(null);
   const [engagementNote, setEngagementNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedChapter =
+    chapters.find((c) => c.id === selectedChapterId) ??
+    [...chapters].sort((a, b) => a.sequenceOrder - b.sequenceOrder)[0] ??
+    null;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -38,9 +43,10 @@ export default function TeacherDashboard() {
       setTextbook(structure.textbook);
       setChapters(structure.chapters);
       setDoubts(doubtRes.doubts);
-      setSelectedChapter((prev) => {
-        if (!prev) return structure.chapters[0] ?? null;
-        return structure.chapters.find((c) => c.id === prev.id) ?? structure.chapters[0] ?? null;
+      const chapterOne = [...structure.chapters].sort((a, b) => a.sequenceOrder - b.sequenceOrder)[0];
+      setSelectedChapterId((prev) => {
+        if (prev && structure.chapters.some((c) => c.id === prev)) return prev;
+        return chapterOne?.id ?? null;
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load teacher dashboard');
@@ -56,8 +62,16 @@ export default function TeacherDashboard() {
 
   const refreshChapter = async (chapterId: string) => {
     const res = await api.teacherChapter(chapterId);
-    setSelectedChapter(res.chapter);
     setChapters((prev) => prev.map((c) => (c.id === chapterId ? res.chapter : c)));
+  };
+
+  const exploreChapter = (ch: TeacherChapter) => {
+    setSelectedChapterId(ch.id);
+    const withVideo = ch.subtopics.find((s) => s.hasVideoExplainer || s.generatedVideoUrl);
+    setPreviewSubtopic(withVideo ?? ch.subtopics[0] ?? null);
+    window.requestAnimationFrame(() => {
+      document.getElementById('td-enrichment')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   };
 
   return (
@@ -140,7 +154,7 @@ export default function TeacherDashboard() {
               onUploaded={(t) => {
                 setTextbook(t);
                 setChapters([]);
-                setSelectedChapter(null);
+                setSelectedChapterId(null);
               }}
               onVerified={async (t) => {
                 setTextbook(t);
@@ -151,15 +165,11 @@ export default function TeacherDashboard() {
             <div className="grid w-full grid-cols-1 gap-8 lg:grid-cols-2">
               <ChapterList
                 chapters={chapters}
-                selectedId={selectedChapter?.id ?? null}
-                onExplore={(ch) => {
-                  setSelectedChapter(ch);
-                  const withVideo = ch.subtopics.find((s) => s.hasVideoExplainer);
-                  if (withVideo) setPreviewSubtopic(withVideo);
-                  navigate(`/chapter/${ch.id}/explore`);
-                }}
+                selectedId={selectedChapter?.id ?? selectedChapterId}
+                onExplore={exploreChapter}
               />
               <SubtopicManager
+                key={selectedChapter?.id ?? 'none'}
                 chapter={selectedChapter}
                 onUpdated={(id) => void refreshChapter(id)}
                 onPreviewVideo={(sub) => {
