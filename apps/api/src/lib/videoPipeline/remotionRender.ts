@@ -230,6 +230,8 @@ function scaleManifestToAudioDuration(
       visualProps,
       parameters: visualProps,
       props: visualProps,
+      teacherGesture: s.teacherGesture,
+      cameraMotion: s.cameraMotion,
     };
   });
   return {
@@ -300,22 +302,22 @@ export async function renderWithRemotion(opts: {
   const inputProps = {
     topicId: opts.topicId,
     topicTitle: scriptData.topicTitle,
+    teacherName: scriptData.teacherName || 'Professor Maya',
     archetype: scriptData.archetype ?? 'concept',
     pedagogicalPattern: scriptData.pedagogicalPattern ?? 'lab_experiment',
     scenes: scriptData.scenes,
     wordTimings: opts.voice.wordTimings,
     audioUrl: audioUrlForRemotion,
     totalDurationSeconds: scriptData.totalDurationSeconds,
-    // Exact SweetRush JSON + HTTP audio — Remotion must not use Root demo defaults
     scriptData,
   };
   console.log(
-    `[remotion] inputProps: title="${scriptData.topicTitle}" scenes=${scriptData.scenes.length} ` +
+    `[remotion] inputProps: title="${scriptData.topicTitle}" teacher="${scriptData.teacherName || 'Professor Maya'}" scenes=${scriptData.scenes.length} ` +
       `audio=${audioUrlForRemotion} duration=${scriptData.totalDurationSeconds.toFixed(1)}s ` +
       `visuals=${scriptData.scenes
         .map(
           (s) =>
-            `${s.visualArchetype || s.visualType || s.animationType}@${s.durationSec ?? s.duration}s`,
+            `${s.visualArchetype || s.visualType}@${s.cameraMotion || 'cam'}/${s.teacherGesture || 'gesture'}`,
         )
         .join(',')}`,
   );

@@ -5,6 +5,9 @@ import { DynamicSplitComparison } from '../components/3D/DynamicSplitComparison'
 import { DynamicInteractiveStage } from '../components/3D/DynamicInteractiveStage';
 import { DynamicMicroZoom } from '../components/3D/DynamicMicroZoom';
 import { DynamicConceptCard } from '../components/3D/DynamicConceptCard';
+import { CinematicCameraRig, CinematicLights } from '../components/3D/CinematicCameraRig';
+import { TeacherAvatar } from '../components/Avatar/TeacherAvatar';
+import { CinematicGrade } from '../components/CinematicGrade';
 import { KaraokeSubtitles } from '../components/KaraokeSubtitles';
 import { SweetRushHUD } from '../components/UI/SweetRushHUD';
 import {
@@ -29,6 +32,8 @@ const DEMO_SCENES: NormalizedScene[] = [
     visualType: 'split_comparison',
     visualArchetype: 'split_comparison',
     animationType: 'StateComparison',
+    teacherGesture: 'questioning',
+    cameraMotion: 'cinematic_pan_right',
     visualConfig: {
       leftLabel: 'Idea A',
       rightLabel: 'Idea B',
@@ -57,6 +62,8 @@ const DEMO_SCENES: NormalizedScene[] = [
     visualType: 'interactive_stage',
     visualArchetype: 'interactive_stage',
     animationType: 'TemperatureEffect',
+    teacherGesture: 'demonstrating',
+    cameraMotion: 'orbit_around_object',
     visualConfig: {},
     visualProps: {},
     parameters: {},
@@ -83,6 +90,8 @@ const DEMO_SCENES: NormalizedScene[] = [
     visualType: 'micro_zoom',
     visualArchetype: 'micro_zoom',
     animationType: 'ParticleMotion3D',
+    teacherGesture: 'eureka',
+    cameraMotion: 'hyper_zoom_into_particles',
     visualConfig: {},
     visualProps: {},
     parameters: {},
@@ -99,6 +108,7 @@ const DEMO_SCENES: NormalizedScene[] = [
 export const defaultGamifiedProps: GamifiedLessonProps = {
   topicId: 'demo',
   topicTitle: 'SweetRush Micro-Lesson',
+  teacherName: 'Professor Maya',
   totalDurationSeconds: 28,
   archetype: 'concept',
   pedagogicalPattern: 'concept_card',
@@ -107,6 +117,7 @@ export const defaultGamifiedProps: GamifiedLessonProps = {
   scenes: DEMO_SCENES,
   scriptData: {
     topicTitle: 'SweetRush Micro-Lesson',
+    teacherName: 'Professor Maya',
     archetype: 'concept',
     pedagogicalPattern: 'concept_card',
     totalDurationSeconds: 28,
@@ -139,26 +150,33 @@ function collectBadges(cfg: Record<string, unknown>): string[] {
   return [...fromCallouts, ...fromSteps, ...extras].filter(Boolean).slice(0, 4);
 }
 
-function SceneVisual({ scene, frame }: { scene: NormalizedScene; frame: number }) {
+function SceneVisual({
+  scene,
+  frame,
+  progress01,
+}: {
+  scene: NormalizedScene;
+  frame: number;
+  progress01: number;
+}) {
   const arch = scene.visualArchetype;
   const config = scene.visualConfig;
+  const lighting = String(config.lighting || '');
 
   return (
     <ThreeCanvas
       key={`${scene.sceneId}-${arch}`}
       width={1280}
       height={720}
-      camera={{ position: [0, 0.45, 6.5], fov: 50 }}
+      camera={{ position: [0, 1.2, 8], fov: 48 }}
       gl={glOpts}
       onCreated={({ gl }) => {
         gl.setPixelRatio(1);
       }}
     >
       <color attach="background" args={['#020617']} />
-      <ambientLight intensity={0.9} />
-      <directionalLight position={[5, 10, 5]} intensity={1.2} />
-      <pointLight position={[-3, 2, 2]} intensity={0.7} color="#67e8f9" />
-      <pointLight position={[2, -1, 3]} intensity={0.35} color="#fbbf24" />
+      <CinematicLights lighting={lighting} />
+      <CinematicCameraRig motion={scene.cameraMotion} progress01={progress01} />
 
       {arch === 'split_comparison' ? (
         <DynamicSplitComparison config={config as never} frame={frame} />
@@ -185,6 +203,7 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
   const props = useMemo(() => resolveLessonProps(rawProps), [rawProps]);
   const scenes = (props.scriptData?.scenes ?? props.scenes) as NormalizedScene[];
   const topicTitle = props.topicTitle;
+  const teacherName = props.teacherName || props.scriptData?.teacherName || 'Professor Maya';
   const pattern = props.pedagogicalPattern || props.archetype;
   const wordTimings = props.wordTimings;
   const audioUrl = props.audioUrl;
@@ -212,7 +231,8 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
     loggedScene.current = sceneKey;
     console.log(
       `[GamifiedLesson] t=${currentTime.toFixed(2)}s scene=${activeScene.sceneId} ` +
-        `visualArchetype=${activeScene.visualArchetype} durationSec=${activeScene.durationSec} ` +
+        `visualArchetype=${activeScene.visualArchetype} camera=${activeScene.cameraMotion} ` +
+        `gesture=${activeScene.teacherGesture} durationSec=${activeScene.durationSec} ` +
         `config=${Object.keys(visualConfig).join(',') || '(none)'}`,
     );
   }
@@ -220,15 +240,17 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
   return (
     <AbsoluteFill className="bg-slate-950" style={{ backgroundColor: '#020617' }}>
       <AbsoluteFill>
-        <SceneVisual scene={activeScene} frame={frame} />
+        <SceneVisual scene={activeScene} frame={frame} progress01={sceneProgress} />
       </AbsoluteFill>
 
       <AbsoluteFill
         style={{
           background:
-            'linear-gradient(180deg, rgba(2,6,23,0.62) 0%, transparent 26%, transparent 62%, rgba(2,6,23,0.78) 100%)',
+            'linear-gradient(180deg, rgba(2,6,23,0.45) 0%, transparent 26%, transparent 62%, rgba(2,6,23,0.55) 100%)',
         }}
       />
+
+      <CinematicGrade lighting={String(visualConfig.lighting || '')} />
 
       <SweetRushHUD
         topicTitle={topicTitle}
@@ -246,6 +268,13 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
         badges={collectBadges(visualConfig)}
         takeawayBadge={takeaway || undefined}
         stepLabels={stepLabels}
+      />
+
+      <TeacherAvatar
+        gesture={activeScene.teacherGesture}
+        teacherName={teacherName}
+        currentTime={currentTime}
+        wordTimings={wordTimings}
       />
 
       <KaraokeSubtitles

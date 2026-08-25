@@ -55,6 +55,7 @@ export interface SceneVisualConfig {
   headline?: string;
   particleMatrix?: { typeA?: string; typeB?: string };
   takeawayBadge?: string;
+  lighting?: string;
   [key: string]: unknown;
 }
 
@@ -138,6 +139,10 @@ export interface VideoSceneSpec {
   visualArchetype?: VisualArchetype | string;
   /** Parameter bag that drives generic 3D primitives */
   visualConfig?: SceneVisualConfig;
+  /** Cartoon teacher performance cue */
+  teacherGesture?: string;
+  /** Movie camera move for this scene */
+  cameraMotion?: string;
 }
 
 export interface VideoScriptManifest {
@@ -149,6 +154,8 @@ export interface VideoScriptManifest {
   /** SweetRush pattern: lab_experiment | conceptual_comparison | process_flow */
   pedagogicalPattern?: string;
   wordTimings?: { word: string; start: number; end: number }[];
+  /** On-screen cartoon host name */
+  teacherName?: string;
 }
 
 export interface TeacherUser {

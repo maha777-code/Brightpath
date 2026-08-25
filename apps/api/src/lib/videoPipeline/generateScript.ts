@@ -9,71 +9,76 @@ import type {
 import { getActiveProvider } from '../llm/provider.js';
 import type { TopicContextPacket } from './types.js';
 
-const UNIVERSAL_SWEETRUSH_PROMPT = `
-You are a Lead Instructional Designer at SweetRush. You translate textbook excerpts into dynamic 3-scene gamified 3D micro-learning videos.
+const CINEMATIC_SWEETRUSH_PROMPT = `
+You are a Lead Animation Director for high-end educational movies (SweetRush style).
+Transform the provided textbook context into a 3-scene cinematic movie script with a cartoon teacher narrator.
 
-Analyze the uploaded PDF context and choose the best matching Visual Archetype for each scene from this universal list:
-1. 'split_comparison': Compares 2 contrasting concepts, states, or theories.
-2. 'interactive_stage': Displays a sequence, lab step, apparatus, or diagram with step callouts.
-3. 'micro_zoom': Zooms into a microscopic, structural, or sub-component particle level.
-4. 'concept_card': Highlights a formula, key definition, or core law with animated UI badges.
+Analyze the PDF and choose a Visual Archetype per scene:
+1. 'split_comparison' — two contrasting concepts, states, or theories
+2. 'interactive_stage' — sequence, lab step, apparatus, or diagram
+3. 'micro_zoom' — microscopic, structural, or sub-component view
+4. 'concept_card' — formula, definition, or core law
 
 Do NOT assume chemistry, a beaker, salt, wood, sand, or any other fixed apparatus.
-Derive labels, colors, shapes, and element names ONLY from the provided PDF excerpts, topic title, and chapter context.
-Works for any subject: biology, physics, history, math, civics, literature, geography, etc.
+Derive labels, colors, shapes, and element names ONLY from the PDF excerpts, topic title, and chapter context.
 
-Generate a JSON payload matching this strict schema:
+Output a JSON payload matching this strict schema:
 {
-  "topicTitle": "Extracted Chapter / Section Title",
+  "topicTitle": "Textbook Chapter Title",
+  "teacherName": "Professor Maya",
   "pedagogicalPattern": "lab_experiment | conceptual_comparison | process_flow | concept_card",
   "totalDurationSeconds": 28,
   "scenes": [
     {
       "sceneId": 1,
+      "phaseTitle": "THE DILEMMA",
       "durationSec": 8,
-      "phaseTitle": "CHALLENGE",
-      "voiceover": "Engaging hook grounded directly in the PDF text",
+      "voiceover": "Curriculum grounded hook delivered by cartoon narrator",
+      "teacherGesture": "explaining | questioning | excited | pointing",
+      "cameraMotion": "cinematic_pan_right | push_in_close | wide_angle_reveal",
       "visualArchetype": "split_comparison | interactive_stage | micro_zoom | concept_card",
       "visualConfig": {
-        "title": "Stage Title",
-        "leftLabel": "Concept A Name from the text",
-        "rightLabel": "Concept B Name from the text",
+        "leftLabel": "Concept A from the text",
+        "rightLabel": "Concept B from the text",
         "primaryShape": "sphere | cube | cylinder | grid",
         "primaryColor": "#00A8FF",
         "secondaryColor": "#FF5722",
-        "calloutBadges": ["Step 1", "Observation"]
+        "lighting": "warm_cinematic | dramatic_spotlight | cool_discovery",
+        "calloutBadges": ["Hook", "Contrast"]
       }
     },
     {
       "sceneId": 2,
+      "phaseTitle": "THE SIMULATION",
       "durationSec": 12,
-      "phaseTitle": "SIMULATION",
-      "voiceover": "Step-by-step breakdown of the activity, experiment, or core process from the PDF text",
+      "voiceover": "Step-by-step activity text explaining the process from the PDF",
+      "teacherGesture": "demonstrating | pointing_to_apparatus | explaining",
+      "cameraMotion": "orbit_around_object | top_down_macro | push_in_close",
       "visualArchetype": "interactive_stage | split_comparison | micro_zoom",
       "visualConfig": {
-        "stageLabel": "Main Process from the text",
+        "stageLabel": "Main process from the text",
         "elements": [
           {"name": "Item 1 from the text", "type": "container", "color": "#ffffff"},
           {"name": "Item 2 from the text", "type": "particles", "color": "#00a8ff"}
         ],
         "actionText": "The change described in the PDF",
-        "calloutBadges": ["Action in progress", "Key Observation"],
-        "primaryColor": "#00A8FF",
-        "secondaryColor": "#FF5722"
+        "lighting": "dramatic_spotlight",
+        "calloutBadges": ["Action", "Observe"]
       }
     },
     {
       "sceneId": 3,
+      "phaseTitle": "THE REVEAL",
       "durationSec": 8,
-      "phaseTitle": "DISCOVERY",
-      "voiceover": "Explanation of 'Why this happens' based on the text conclusion",
+      "voiceover": "Why this happens, grounded in the text conclusion",
+      "teacherGesture": "eureka | celebrating | explaining",
+      "cameraMotion": "hyper_zoom_into_particles | push_in_close",
       "visualArchetype": "micro_zoom | concept_card",
       "visualConfig": {
-        "headline": "Core Insight from the text",
-        "particleMatrix": { "typeA": "blue_spheres", "typeB": "yellow_spheres" },
+        "headline": "Core insight from the text",
+        "particleMatrix": { "typeA": "type_from_text", "typeB": "type_from_text" },
         "takeawayBadge": "Summary rule extracted from PDF",
-        "primaryColor": "#00A8FF",
-        "secondaryColor": "#FACC15",
+        "lighting": "cool_discovery",
         "calloutBadges": ["Why"]
       }
     }
@@ -81,8 +86,8 @@ Generate a JSON payload matching this strict schema:
 }
 
 STRICT RULES:
-- Ground EVERY voiceover line in the provided RAG textbook excerpts. Quote measurements, names, and examples from the PDF.
-- visualConfig labels and element names must come from the PDF / topic — never reuse a previous chapter's apparatus.
+- Ground EVERY voiceover line in the provided RAG textbook excerpts.
+- visualConfig labels must come from this PDF / topic.
 - Return ONLY valid JSON (no markdown).
 - Scene durations must be durationSec 8, 12, 8 (sum 28).
 `;
@@ -102,10 +107,13 @@ type LlmSceneRaw = {
   props?: Record<string, unknown>;
   animationType?: string;
   parameters?: Record<string, unknown>;
+  teacherGesture?: string;
+  cameraMotion?: string;
 };
 
 type LlmManifestRaw = {
   topicTitle?: string;
+  teacherName?: string;
   archetype?: string;
   pedagogicalPattern?: string;
   totalDurationSeconds?: number;
@@ -119,6 +127,55 @@ const ARCHETYPE_BY_INDEX: VisualArchetype[] = [
   'interactive_stage',
   'micro_zoom',
 ];
+const GESTURE_BY_INDEX = ['questioning', 'demonstrating', 'eureka'] as const;
+const CAMERA_BY_INDEX = [
+  'cinematic_pan_right',
+  'orbit_around_object',
+  'hyper_zoom_into_particles',
+] as const;
+const LIGHTING_BY_INDEX = ['warm_cinematic', 'dramatic_spotlight', 'cool_discovery'] as const;
+
+function normalizeTeacherGesture(raw: string | undefined, index: number): string {
+  const g = String(raw ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[\s-]+/g, '_');
+  if (
+    [
+      'explaining',
+      'questioning',
+      'excited',
+      'pointing',
+      'demonstrating',
+      'pointing_to_apparatus',
+      'eureka',
+      'celebrating',
+    ].includes(g)
+  ) {
+    return g;
+  }
+  return GESTURE_BY_INDEX[index] ?? 'explaining';
+}
+
+function normalizeCameraMotion(raw: string | undefined, index: number): string {
+  const m = String(raw ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[\s-]+/g, '_');
+  if (
+    [
+      'cinematic_pan_right',
+      'push_in_close',
+      'wide_angle_reveal',
+      'orbit_around_object',
+      'top_down_macro',
+      'hyper_zoom_into_particles',
+    ].includes(m)
+  ) {
+    return m;
+  }
+  return CAMERA_BY_INDEX[index] ?? 'push_in_close';
+}
 
 const STOP_WORDS = new Set([
   'the',
@@ -341,6 +398,7 @@ function heuristicVisualConfig(
       primaryShape: index === 0 ? 'cube' : 'sphere',
       primaryColor: '#00A8FF',
       secondaryColor: '#FF5722',
+      lighting: LIGHTING_BY_INDEX[index],
       calloutBadges: [left, right].filter(Boolean),
     };
   }
@@ -350,6 +408,7 @@ function heuristicVisualConfig(
       stageLabel: clipText(ctx.title, 36),
       primaryColor: '#00A8FF',
       secondaryColor: '#FACC15',
+      lighting: LIGHTING_BY_INDEX[index],
       actionText: clipText(excerptAt(ctx, 1, 'Follow the process in the text'), 48),
       elements: [
         { name: primary, type: 'container', color: '#e2e8f0' },
@@ -365,6 +424,7 @@ function heuristicVisualConfig(
       takeawayBadge: clipText(excerptAt(ctx, 2, ctx.chapterSummary || ctx.title), 90),
       primaryColor: '#38bdf8',
       secondaryColor: '#facc15',
+      lighting: LIGHTING_BY_INDEX[index],
       calloutBadges: ['Zoom in'],
     };
   }
@@ -373,6 +433,7 @@ function heuristicVisualConfig(
     takeawayBadge: clipText(ctx.chapterSummary || excerptAt(ctx, 0, ctx.title), 90),
     primaryColor: '#818cf8',
     secondaryColor: '#34d399',
+    lighting: LIGHTING_BY_INDEX[index],
     calloutBadges: tokens.slice(0, 2),
     primaryShape: 'grid',
   };
@@ -411,11 +472,14 @@ function heuristicManifest(ctx: TopicContextPacket): VideoScriptManifest {
       visualProps: parameters,
       props: parameters,
       parameters,
+      teacherGesture: GESTURE_BY_INDEX[i],
+      cameraMotion: CAMERA_BY_INDEX[i],
     };
   });
 
   return {
     topicTitle: ctx.title,
+    teacherName: 'Professor Maya',
     archetype: pedagogy,
     pedagogicalPattern:
       pedagogy === 'experiment'
@@ -446,12 +510,15 @@ function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoS
       s.props,
       s.visualConfig,
     );
+    if (!visualConfig.lighting) visualConfig.lighting = LIGHTING_BY_INDEX[i];
     const parameters = flattenVisualConfig(visualConfig);
     const duration = DURATION_BY_INDEX[i] ?? Math.max(5, Number(s.durationSec ?? s.duration) || 8);
     const phase = String(s.phaseTitle || s.phase || PHASE_BY_INDEX[i] || `Scene ${i + 1}`).toUpperCase();
     const voiceover =
       String(s.voiceover || s.voiceoverText || '').trim() ||
       fallback.scenes[Math.min(i, fallback.scenes.length - 1)].voiceoverText;
+    const teacherGesture = normalizeTeacherGesture(s.teacherGesture, i);
+    const cameraMotion = normalizeCameraMotion(s.cameraMotion, i);
     return {
       sceneId: s.sceneId ?? i + 1,
       duration,
@@ -467,6 +534,8 @@ function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoS
       props: parameters,
       animationType: String(s.animationType || archetypeToAnimation(visualArchetype)),
       parameters,
+      teacherGesture,
+      cameraMotion,
     };
   });
 
@@ -476,6 +545,7 @@ function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoS
 
   return {
     topicTitle: raw.topicTitle || ctx.title,
+    teacherName: String(raw.teacherName || 'Professor Maya').trim() || 'Professor Maya',
     archetype: pedagogy,
     pedagogicalPattern: raw.pedagogicalPattern || fallback.pedagogicalPattern,
     totalDurationSeconds: scenes.reduce((a, s) => a + s.duration, 0),
@@ -490,7 +560,7 @@ export async function generateStructuredVideoScript(
   const provider = getActiveProvider();
   const excerpts = ctx.ragExcerpts.slice(0, 10).join('\n---\n');
   console.log(
-    `[videoPipeline/script] Universal SweetRush architect — RAG excerpts=${ctx.ragExcerpts.length} topic="${ctx.code} ${ctx.title}"`,
+    `[videoPipeline/script] Cinematic SweetRush director — RAG excerpts=${ctx.ragExcerpts.length} topic="${ctx.code} ${ctx.title}"`,
   );
 
   const user = [
@@ -502,7 +572,7 @@ export async function generateStructuredVideoScript(
     ctx.teacherPrompt ? `Teacher refinement: ${ctx.teacherPrompt}` : '',
     `RAW PDF RAG EXCERPTS (GROUND TRUTH — quote activities, names, measurements, and questions):\n${excerpts || '(no excerpts — use topic title and chapter summary only)'}`,
     'Output exactly 3 scenes: CHALLENGE (8s), SIMULATION (12s), DISCOVERY (8s). Total 28 seconds.',
-    'Choose visualArchetype per scene from: split_comparison, interactive_stage, micro_zoom, concept_card.',
+    'Choose visualArchetype, teacherGesture, and cameraMotion for each scene.',
     'All visualConfig labels must be taken from this PDF context — do not invent a default lab kit.',
   ]
     .filter(Boolean)
@@ -513,7 +583,7 @@ export async function generateStructuredVideoScript(
   try {
     const raw = await Promise.race([
       provider.completeJson<LlmManifestRaw>({
-        system: UNIVERSAL_SWEETRUSH_PROMPT,
+        system: CINEMATIC_SWEETRUSH_PROMPT,
         user,
       }),
       new Promise<never>((_, reject) => {
@@ -524,7 +594,7 @@ export async function generateStructuredVideoScript(
     console.log(
       `[videoPipeline/script] archetypes=${manifest.scenes
         .map((s) => s.visualArchetype || s.visualType)
-        .join(',')}`,
+        .join(',')} cameras=${manifest.scenes.map((s) => s.cameraMotion).join(',')}`,
     );
     return manifest;
   } catch (err) {

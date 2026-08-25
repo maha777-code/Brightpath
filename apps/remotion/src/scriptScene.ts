@@ -22,6 +22,8 @@ export type SceneProp = {
   visualProps?: Record<string, unknown>;
   parameters?: Record<string, unknown>;
   props?: Record<string, unknown>;
+  teacherGesture?: string;
+  cameraMotion?: string;
 };
 
 export type ScriptData = {
@@ -31,6 +33,7 @@ export type ScriptData = {
   totalDurationSeconds?: number;
   scenes?: SceneProp[];
   wordTimings?: { word: string; start: number; end: number }[];
+  teacherName?: string;
 };
 
 export type GamifiedLessonProps = {
@@ -43,6 +46,7 @@ export type GamifiedLessonProps = {
   wordTimings: { word: string; start: number; end: number }[];
   audioUrl?: string;
   scriptData?: ScriptData;
+  teacherName?: string;
 };
 
 export type NormalizedScene = {
@@ -60,6 +64,8 @@ export type NormalizedScene = {
   visualProps: Record<string, unknown>;
   parameters: Record<string, unknown>;
   props: Record<string, unknown>;
+  teacherGesture: string;
+  cameraMotion: string;
 };
 
 const LEGACY_TO_ARCHETYPE: Record<string, VisualArchetypeName> = {
@@ -130,6 +136,12 @@ export function normalizeScene(raw: SceneProp | undefined, index = 0): Normalize
   const props = sceneProps(raw);
   const phase = String(raw?.phaseTitle || raw?.phase || '').trim() || `Scene ${index + 1}`;
   const voiceover = String(raw?.voiceoverText || raw?.voiceover || '').trim();
+  const teacherGesture = String(raw?.teacherGesture || '').trim() || (
+    index === 0 ? 'questioning' : index === 1 ? 'demonstrating' : 'eureka'
+  );
+  const cameraMotion = String(raw?.cameraMotion || '').trim() || (
+    index === 0 ? 'cinematic_pan_right' : index === 1 ? 'orbit_around_object' : 'hyper_zoom_into_particles'
+  );
   return {
     sceneId: Number(raw?.sceneId) || index + 1,
     duration,
@@ -145,6 +157,8 @@ export function normalizeScene(raw: SceneProp | undefined, index = 0): Normalize
     visualProps: props,
     parameters: props,
     props,
+    teacherGesture,
+    cameraMotion,
   };
 }
 
@@ -162,12 +176,14 @@ export function resolveLessonProps(props: GamifiedLessonProps): GamifiedLessonPr
     scenes.reduce((acc, s) => acc + s.duration, 0) ||
     28;
   const topicTitle = props.scriptData?.topicTitle || props.topicTitle;
+  const teacherName = props.scriptData?.teacherName || props.teacherName || 'Professor Maya';
   const wordTimings = props.scriptData?.wordTimings?.length
     ? props.scriptData.wordTimings
     : props.wordTimings;
   const scriptData: ScriptData = {
     ...(props.scriptData ?? {}),
     topicTitle,
+    teacherName,
     archetype: props.scriptData?.archetype || props.archetype,
     pedagogicalPattern: props.scriptData?.pedagogicalPattern || props.pedagogicalPattern,
     totalDurationSeconds,
@@ -177,6 +193,7 @@ export function resolveLessonProps(props: GamifiedLessonProps): GamifiedLessonPr
   return {
     ...props,
     topicTitle,
+    teacherName,
     totalDurationSeconds,
     archetype: scriptData.archetype,
     pedagogicalPattern: scriptData.pedagogicalPattern,
