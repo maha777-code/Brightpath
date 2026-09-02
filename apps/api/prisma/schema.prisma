@@ -436,9 +436,26 @@ model TeacherSubtopic {
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
   doubts              StudentDoubt[]
+  activities          Activity[]
 
   @@index([chapterId])
   @@unique([chapterId, sequenceOrder])
+}
+
+model Activity {
+  id            String          @id @default(cuid())
+  subtopicId    String
+  subtopic      TeacherSubtopic @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
+  chapterId     String
+  type          String          @default("gamified_quiz")
+  title         String
+  questionsJson Json
+  totalXp       Int             @default(250)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([subtopicId])
+  @@index([chapterId])
 }
 
 model StudentDoubt {

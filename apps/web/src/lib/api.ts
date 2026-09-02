@@ -94,6 +94,8 @@ import type {
   AttachSubtopicMediaRequest,
   TeacherSubtopic,
   TeacherChapter,
+  GenerateActivityRequest,
+  GenerateActivityResponse,
   UserRole,
   PlanType,
   PlatformUserPublic,
@@ -412,6 +414,13 @@ export const api = {
     request<{ subtopic: TeacherSubtopic }>(`/teacher/subtopics/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
+    }),
+
+  generateActivity: (body: GenerateActivityRequest, init?: RequestInit) =>
+    request<GenerateActivityResponse>('/teacher/generate-activity', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      ...init,
     }),
 
   generateTopicVideo: (topicId: string, body?: { prompt?: string }) =>

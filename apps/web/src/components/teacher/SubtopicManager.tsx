@@ -3,6 +3,7 @@ import { AlertTriangle, Eye, Gamepad2, Loader2, PlayCircle, Plus } from 'lucide-
 import type { TeacherChapter, TeacherSubtopic, TopicVideoStatus } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import VideoReviewModal from './VideoReviewModal';
+import ActivityReviewModal from './ActivityReviewModal';
 
 interface SubtopicManagerProps {
   chapter: TeacherChapter | null;
@@ -27,6 +28,9 @@ export function SubtopicManager({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [localSubs, setLocalSubs] = useState<TeacherSubtopic[]>([]);
   const [reviewSub, setReviewSub] = useState<TeacherSubtopic | null>(null);
+  const [isGenerating, setIsGenerating] = useState<Record<string, boolean>>({});
+  const [toast, setToast] = useState<{ kind: 'ok' | 'err'; message: string } | null>(null);
+  const [reviewActivitySub, setReviewActivitySub] = useState<TeacherSubtopic | null>(null);
   const pollRef = useRef<number | null>(null);
   const onUpdatedRef = useRef(onUpdated);
   onUpdatedRef.current = onUpdated;
@@ -69,7 +73,11 @@ export function SubtopicManager({
 
           if (!next) continue;
 
-          setLocalSubs((prev) => prev.map((p) => (p.id === next.id ? { ...p, ...next } : p)));
+          setLocalSubs((prev) =>
+            prev.map((p) =>
+              p.id === next.id ? { ...p, ...next, activity: next.activity ?? p.activity } : p,
+            ),
+          );
 
           if (res.status === 'pending_review' || res.status === 'failed') {
             if (chapter?.id) onUpdatedRef.current(chapter.id);
@@ -111,7 +119,42 @@ export function SubtopicManager({
   }
 
   const patchSub = (sub: TeacherSubtopic) => {
-    setLocalSubs((prev) => prev.map((p) => (p.id === sub.id ? sub : p)));
+    setLocalSubs((prev) =>
+      prev.map((p) => (p.id === sub.id ? { ...p, ...sub, activity: sub.activity ?? p.activity } : p)),
+    );
+  };
+
+  const showToast = (kind: 'ok' | 'err', message: string) => {
+    setToast({ kind, message });
+    window.setTimeout(() => setToast(null), 4500);
+  };
+
+  const generateActivity = async (sub: TeacherSubtopic, openReview = false) => {
+    if (!chapter) return;
+    setIsGenerating((prev) => ({ ...prev, [sub.id]: true }));
+    const ctrl = new AbortController();
+    const timer = window.setTimeout(() => ctrl.abort(), 60_000);
+    try {
+      const res = await api.generateActivity(
+        { subtopicId: sub.id, chapterId: chapter.id, type: 'gamified_quiz' },
+        { signal: ctrl.signal },
+      );
+      const next: TeacherSubtopic = { ...res.subtopic, activity: res.activity };
+      patchSub(next);
+      onUpdated(chapter.id);
+      onAssignActivity(next);
+      showToast('ok', 'Gamified activity generated successfully!');
+      if (openReview) setReviewActivitySub(next);
+    } catch {
+      showToast('err', 'Failed to generate activity. Please try again.');
+    } finally {
+      window.clearTimeout(timer);
+      setIsGenerating((prev) => {
+        const next = { ...prev };
+        delete next[sub.id];
+        return next;
+      });
+    }
   };
 
   const startGenerate = async (sub: TeacherSubtopic) => {
@@ -193,9 +236,25 @@ export function SubtopicManager({
       <h2 className="text-2xl font-bold text-white">Lesson & Content Enrichment</h2>
       <p className="mb-6 text-base text-cyan-200/80">{chapter.title}</p>
 
+      {toast && (
+        <div
+          className={[
+            'mb-4 rounded-xl px-4 py-3 text-sm font-semibold',
+            toast.kind === 'ok'
+              ? 'border border-emerald-400/40 bg-emerald-950/70 text-emerald-100'
+              : 'border border-rose-400/40 bg-rose-950/70 text-rose-100',
+          ].join(' ')}
+          role="status"
+        >
+          {toast.message}
+        </div>
+      )}
+
       <ul className="space-y-4">
         {localSubs.map((sub) => {
           const status = resolveStatus(sub);
+          const generating = Boolean(isGenerating[sub.id]);
+          const activityReady = Boolean(sub.activity?.questions?.length);
           return (
             <li key={sub.id} className="rounded-2xl border border-white/10 bg-slate-950/40 p-8">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -208,7 +267,7 @@ export function SubtopicManager({
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2 text-base font-medium">
                     <VideoStatusBadge status={status} error={sub.videoError} progress={sub.videoProgress} />
-                    {sub.hasGamifiedActivity ? (
+                    {activityReady ? (
                       <span className="rounded-full bg-[#FBBF24]/80 px-4 py-1.5 text-[#FEF3C7]">
                         Activity ready
                       </span>
@@ -229,14 +288,35 @@ export function SubtopicManager({
                     onReview={() => void openReview(sub)}
                   />
 
+                  {activityReady && !generating && (
+                    <button
+                      type="button"
+                      onClick={() => setReviewActivitySub(sub)}
+                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-amber-400/40 bg-amber-500/20 px-6 py-3 text-base font-medium text-[#FEF3C7]"
+                    >
+                      <Eye className="h-5 w-5 shrink-0" />
+                      Review Activity
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => onAssignActivity(sub)}
-                    disabled={!sub.hasGamifiedActivity}
-                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-amber-400/40 bg-[#FBBF24]/80 px-6 py-3 text-base font-medium text-white disabled:opacity-40"
+                    onClick={() => void generateActivity(sub, activityReady)}
+                    disabled={generating}
+                    className={[
+                      'inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-amber-400/40 px-6 py-3 text-base font-medium text-white disabled:cursor-wait',
+                      generating ? 'bg-amber-900/50' : 'bg-[#FBBF24]/80',
+                    ].join(' ')}
                   >
-                    <Gamepad2 className="h-5 w-5 shrink-0" />
-                    Generate Gamified Activity
+                    {generating ? (
+                      <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
+                    ) : (
+                      <Gamepad2 className="h-5 w-5 shrink-0" />
+                    )}
+                    {generating
+                      ? 'Generating Activity...'
+                      : activityReady
+                        ? 'Regenerate Activity'
+                        : 'Generate Gamified Activity'}
                   </button>
                   <button
                     type="button"
@@ -264,6 +344,15 @@ export function SubtopicManager({
             if (resolveStatus(s) === 'pending_review') setReviewSub(s);
             else setReviewSub(null);
           }}
+        />
+      )}
+      {reviewActivitySub?.activity && (
+        <ActivityReviewModal
+          subtopic={reviewActivitySub}
+          activity={reviewActivitySub.activity}
+          regenerating={Boolean(isGenerating[reviewActivitySub.id])}
+          onClose={() => setReviewActivitySub(null)}
+          onRegenerate={() => void generateActivity(reviewActivitySub, true)}
         />
       )}
     </section>

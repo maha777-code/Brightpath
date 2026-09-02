@@ -14,11 +14,13 @@ import {
   toSubtopic,
   toTextbook,
 } from '../lib/teacherSerializers.js';
+import activityRoutes from './activity.js';
 import { DEFAULT_SAMPLE_DOUBTS } from '../lib/teacherCurriculumSeed.js';
 import {
   ensureCompleteChapterOneSubtopics,
   parseTextbookIntoChapters,
 } from '../services/textbook.js';
+import { latestActivitiesBySubtopic } from '../services/gamifiedActivity.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/textbooks');
@@ -27,6 +29,7 @@ const MAX_PDF_ERROR = 'File size exceeds the 80 MB limit. Please select a smalle
 
 const router = Router();
 router.use(requireTeacher);
+router.use(activityRoutes);
 
 function ensureUploadDir() {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -104,9 +107,13 @@ router.get('/chapters', async (req: AuthRequest, res) => {
     return;
   }
 
+  const activityMap = await latestActivitiesBySubtopic(
+    textbook.chapters.flatMap((ch) => ch.subtopics.map((s) => s.id)),
+  );
+
   res.json({
     textbook: toTextbook(textbook),
-    chapters: textbook.chapters.map(toChapter),
+    chapters: textbook.chapters.map((ch) => toChapter(ch, activityMap)),
   });
 });
 
@@ -332,7 +339,8 @@ router.get('/chapters/:id', async (req: AuthRequest, res) => {
     res.status(404).json({ error: 'Chapter not found' });
     return;
   }
-  res.json({ chapter: toChapter(chapter) });
+  const activityMap = await latestActivitiesBySubtopic(chapter.subtopics.map((s) => s.id));
+  res.json({ chapter: toChapter(chapter, activityMap) });
 });
 
 /** PATCH /teacher/subtopics/:id — attach video / activity */

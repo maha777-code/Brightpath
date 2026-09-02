@@ -199,6 +199,25 @@ export interface TeacherChapter {
   subtopics: TeacherSubtopic[];
 }
 
+export interface GamifiedQuizQuestion {
+  questionText: string;
+  options: string[];
+  correctAnswerIndex: number;
+  explanation: string;
+  xpReward: number;
+}
+
+export interface TeacherActivity {
+  id: string;
+  subtopicId: string;
+  chapterId: string;
+  type: 'gamified_quiz' | string;
+  title: string;
+  questions: GamifiedQuizQuestion[];
+  totalXp: number;
+  createdAt: string;
+}
+
 export interface TeacherSubtopic {
   id: string;
   chapterId: string;
@@ -219,6 +238,18 @@ export interface TeacherSubtopic {
   videoScript: string | null;
   animationCues: VideoAnimationCue[];
   videoManifest: VideoScriptManifest | null;
+  activity?: TeacherActivity | null;
+}
+
+export interface GenerateActivityRequest {
+  subtopicId: string;
+  chapterId: string;
+  type: 'gamified_quiz';
+}
+
+export interface GenerateActivityResponse {
+  activity: TeacherActivity;
+  subtopic: TeacherSubtopic;
 }
 
 export interface AIResponse {

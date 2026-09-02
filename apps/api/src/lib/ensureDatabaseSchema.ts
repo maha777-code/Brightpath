@@ -29,13 +29,19 @@ async function hasPublicColumn(table: string, column: string): Promise<boolean> 
 /** True when login + teacher video pipeline columns are present. */
 export async function isDatabaseSchemaCurrent(): Promise<boolean> {
   try {
-    const [platformPlan, teacherPlan, videoStatus, cuesJson] = await Promise.all([
+    const [platformPlan, teacherPlan, videoStatus, cuesJson, activityTable] = await Promise.all([
       hasPublicColumn('PlatformUser', 'planType'),
       hasPublicColumn('Teacher', 'planType'),
       hasPublicColumn('TeacherSubtopic', 'videoStatus'),
       hasPublicColumn('TeacherSubtopic', 'animationCuesJson'),
+      prisma.$queryRaw<Array<{ exists: boolean }>>`
+        SELECT EXISTS (
+          SELECT 1 FROM information_schema.tables
+          WHERE table_schema = 'public' AND table_name = 'Activity'
+        ) AS exists
+      `.then((rows) => Boolean(rows[0]?.exists)),
     ]);
-    return platformPlan && teacherPlan && videoStatus && cuesJson;
+    return platformPlan && teacherPlan && videoStatus && cuesJson && activityTable;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (/P1001|ECONNREFUSED|Can't reach database/i.test(message)) {

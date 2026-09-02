@@ -1,6 +1,7 @@
 import type {
   AIResponse,
   StudentDoubt,
+  TeacherActivity,
   TeacherChapter,
   TeacherSubtopic,
   TeacherUser,
@@ -63,7 +64,7 @@ export function toTextbook(t: DbTextbook): Textbook {
   };
 }
 
-export function toSubtopic(s: DbSubtopic): TeacherSubtopic {
+export function toSubtopic(s: DbSubtopic, activity: TeacherActivity | null = null): TeacherSubtopic {
   const cuesRaw = (s as { animationCuesJson?: unknown }).animationCuesJson;
   const animationCues = Array.isArray(cuesRaw)
     ? (cuesRaw as TeacherSubtopic['animationCues'])
@@ -113,11 +114,13 @@ export function toSubtopic(s: DbSubtopic): TeacherSubtopic {
     videoScript: (s as { videoScript?: string | null }).videoScript ?? null,
     animationCues,
     videoManifest,
+    activity,
   };
 }
 
 export function toChapter(
   c: DbChapter & { subtopics: DbSubtopic[] },
+  activities?: Map<string, TeacherActivity>,
 ): TeacherChapter {
   return {
     id: c.id,
@@ -139,7 +142,7 @@ export function toChapter(
     subtopics: c.subtopics
       .slice()
       .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
-      .map(toSubtopic),
+      .map((s) => toSubtopic(s, activities?.get(s.id) ?? null)),
   };
 }
 
