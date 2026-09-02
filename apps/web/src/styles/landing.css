@@ -13,7 +13,7 @@
   --bp-outline: rgba(167, 139, 250, 0.45);
   --bp-divider: rgba(167, 139, 250, 0.35);
   --bp-radius: 24px;
-  --bp-font: 'Inter', 'Nunito', system-ui, sans-serif;
+  --bp-font: Georgia, Cambria, "Times New Roman", Times, serif;
   position: relative;
   min-height: 100dvh;
   font-family: var(--bp-font);
@@ -234,7 +234,7 @@
 }
 
 .bp-holo-eq {
-  font-family: ui-monospace, 'Inter', monospace;
+  font-family: ui-monospace, "Courier New", monospace;
   font-size: 0.9rem;
   font-weight: 700;
   color: #4f46e5;

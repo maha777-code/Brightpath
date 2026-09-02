@@ -6,11 +6,22 @@
   --primary-color: #5b46ba;
   --primary-hover: #4a3799;
   --accent-color: #0d9488;
+  --font: Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+html,
+body,
+#root,
+button,
+input,
+textarea,
+select {
+  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 /* Dashboard layout helpers (Tailwind-first app shell) */
 .bp-dash {
-  font-family: Inter, system-ui, sans-serif;
+  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 .btn-primary,

@@ -16,6 +16,7 @@ body:has(.td-dash),
 }
 
 .td-dash {
+  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
   --td-bg: #0f172a;
   --td-card: rgba(30, 41, 59, 0.85);
   --td-card-solid: #1e293b;

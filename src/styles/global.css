@@ -24,8 +24,8 @@
   --radius-sm: 10px;
   --shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 12px 40px rgba(79, 70, 229, 0.15);
-  --font: 'Nunito', system-ui, sans-serif;
-  --font-display: 'Fredoka', 'Nunito', sans-serif;
+  --font: Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-display: Georgia, Cambria, "Times New Roman", Times, serif;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -846,7 +846,7 @@ body {
   --landing-glass: rgba(255, 255, 255, 0.72);
   --landing-glass-border: rgba(255, 255, 255, 0.9);
   --landing-radius: 28px;
-  --landing-font: 'Inter', 'Nunito', system-ui, sans-serif;
+  --landing-font: Georgia, Cambria, "Times New Roman", Times, serif;
   position: relative;
   min-height: 100dvh;
   font-family: var(--landing-font);
@@ -1076,7 +1076,7 @@ body {
 }
 
 .landing-float-eq {
-  font-family: 'Inter', monospace;
+  font-family: ui-monospace, "Courier New", monospace;
   font-size: 0.85rem;
   font-weight: 600;
   color: #6366f1;
