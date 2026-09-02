@@ -23,6 +23,7 @@ import chaptersRoutes from './routes/chapters.js';
 import topicsRoutes from './routes/topics.js';
 import { ensureDatabaseSchema } from './lib/ensureDatabaseSchema.js';
 import { ensureDemoTeacher } from './lib/ensureDemoTeacher.js';
+import { prisma } from './lib/prisma.js';
 import { migrateLegacyUsers } from './scripts/migrateLegacyUsers.js';
 import type { AuthRequest } from './middleware/auth.js';
 
@@ -130,6 +131,15 @@ app.use(
 );
 
 async function start() {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    console.log('Postgres connected');
+  } catch {
+    console.warn(
+      "[Postgres Offline] Could not connect to localhost:5433. Start Docker using 'docker compose up -d'",
+    );
+  }
+
   if (process.env.REDIS_URL) {
     try {
       const redis = createClient({ url: process.env.REDIS_URL });

@@ -2,42 +2,82 @@
  *  Do not seed external sample MP4s — teachers generate real videos via the pipeline.
  */
 
-export const DEFAULT_SCIENCE_CHAPTERS = [
+export type SeedSubtopic = {
+  code: string;
+  title: string;
+  hasVideoExplainer: boolean;
+  hasGamifiedActivity: boolean;
+  videoTitle: string | null;
+  activityTitle: string | null;
+  videoUrl: string | null;
+};
+
+export type SeedChapter = {
+  title: string;
+  summary: string;
+  classProgressPct: number;
+  studentCount: number;
+  completedCount: number;
+  subtopics: SeedSubtopic[];
+};
+
+/** Full NCERT Class 9 Chapter 1 — all five subtopics (1.1–1.5). */
+export const CHAPTER_ONE_SUBTOPICS: SeedSubtopic[] = [
+  {
+    code: '1.1',
+    title: 'Physical Nature of Matter',
+    hasVideoExplainer: false,
+    hasGamifiedActivity: true,
+    videoTitle: 'What is Matter?',
+    activityTitle: 'Particle Hunt Mini-Game',
+    videoUrl: null,
+  },
+  {
+    code: '1.2',
+    title: 'Characteristics of Particles of Matter',
+    hasVideoExplainer: false,
+    hasGamifiedActivity: false,
+    videoTitle: 'Particles Everywhere',
+    activityTitle: null,
+    videoUrl: null,
+  },
+  {
+    code: '1.3',
+    title: 'States of Matter',
+    hasVideoExplainer: false,
+    hasGamifiedActivity: true,
+    videoTitle: null,
+    activityTitle: 'Solid–Liquid–Gas Sort',
+    videoUrl: null,
+  },
+  {
+    code: '1.4',
+    title: 'Can Matter Change Its State?',
+    hasVideoExplainer: false,
+    hasGamifiedActivity: true,
+    videoTitle: 'Can Matter Change Its State?',
+    activityTitle: 'Heat & Freeze Lab',
+    videoUrl: null,
+  },
+  {
+    code: '1.5',
+    title: 'Evaporation',
+    hasVideoExplainer: false,
+    hasGamifiedActivity: true,
+    videoTitle: 'Evaporation',
+    activityTitle: 'Drying Race',
+    videoUrl: null,
+  },
+];
+
+export const DEFAULT_SCIENCE_CHAPTERS: SeedChapter[] = [
   {
     title: 'Chapter 1: Matter in Our Surroundings',
     summary: 'States of matter, particle nature, and everyday examples.',
     classProgressPct: 62,
     studentCount: 28,
     completedCount: 17,
-    subtopics: [
-      {
-        code: '1.1',
-        title: 'Physical Nature of Matter',
-        hasVideoExplainer: false,
-        hasGamifiedActivity: true,
-        videoTitle: 'What is Matter?',
-        activityTitle: 'Particle Hunt Mini-Game',
-        videoUrl: null,
-      },
-      {
-        code: '1.2',
-        title: 'Characteristics of Particles of Matter',
-        hasVideoExplainer: false,
-        hasGamifiedActivity: false,
-        videoTitle: 'Particles Everywhere',
-        activityTitle: null,
-        videoUrl: null,
-      },
-      {
-        code: '1.3',
-        title: 'States of Matter',
-        hasVideoExplainer: false,
-        hasGamifiedActivity: true,
-        videoTitle: null,
-        activityTitle: 'Solid–Liquid–Gas Sort',
-        videoUrl: null,
-      },
-    ],
+    subtopics: CHAPTER_ONE_SUBTOPICS.map((s) => ({ ...s })),
   },
   {
     title: 'Chapter 2: Is Matter Around Us Pure?',
@@ -93,7 +133,7 @@ export const DEFAULT_SCIENCE_CHAPTERS = [
       },
     ],
   },
-] as const;
+];
 
 export const DEFAULT_SAMPLE_DOUBTS = [
   {

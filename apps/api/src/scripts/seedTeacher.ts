@@ -8,6 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma.js';
+import { ensureCompleteChapterOneForTeacher } from '../services/textbook.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
@@ -64,12 +65,15 @@ async function main() {
     );
   }
 
+  await ensureCompleteChapterOneForTeacher(teacher.id);
+
   console.log('Teacher ready:');
   console.log(`  email: ${email}`);
   console.log(`  password: ${password}`);
   console.log(`  id: ${teacher.id}`);
   console.log(`  role: teacher`);
   console.log(`  planType: teacher_pro`);
+  console.log('  Chapter 1 subtopics: 1.1–1.5 (healed if a textbook already exists)');
 }
 
 main()

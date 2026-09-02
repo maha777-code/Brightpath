@@ -10,14 +10,11 @@ function authHeaders(json = true): HeadersInit {
 
 async function parseError(res: Response): Promise<string> {
   const err = await res.json().catch(() => ({ error: res.statusText }));
+  if (typeof err.error === 'string' && err.error.trim()) return err.error;
+  if (typeof err.message === 'string' && err.message.trim()) return err.message;
   if (res.status === 413) {
-    return typeof err.error === 'string'
-      ? err.error
-      : 'File size exceeds the 80 MB limit. Please select a smaller PDF.';
+    return 'File size exceeds the 80 MB limit. Please select a smaller PDF.';
   }
-  if (res.status === 401) return 'Unauthorized — log out and log in again as parent';
-  if (typeof err.error === 'string') return err.error;
-  if (typeof err.message === 'string') return err.message;
   return res.statusText || 'Request failed';
 }
 

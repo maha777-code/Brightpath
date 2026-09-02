@@ -14,10 +14,11 @@ import {
   toSubtopic,
   toTextbook,
 } from '../lib/teacherSerializers.js';
+import { DEFAULT_SAMPLE_DOUBTS } from '../lib/teacherCurriculumSeed.js';
 import {
-  DEFAULT_SAMPLE_DOUBTS,
-  DEFAULT_SCIENCE_CHAPTERS,
-} from '../lib/teacherCurriculumSeed.js';
+  ensureCompleteChapterOneSubtopics,
+  parseTextbookIntoChapters,
+} from '../services/textbook.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/textbooks');
@@ -75,9 +76,21 @@ function handleTextbookUpload(req: AuthRequest, res: Response, next: NextFunctio
 /** GET /teacher/chapters — course structure + textbook */
 router.get('/chapters', async (req: AuthRequest, res) => {
   const teacherId = req.teacherId!;
-  const textbook = await prisma.textbook.findFirst({
+  const latest = await prisma.textbook.findFirst({
     where: { teacherId },
     orderBy: { updatedAt: 'desc' },
+    select: { id: true },
+  });
+
+  if (!latest) {
+    res.json({ textbook: null, chapters: [] });
+    return;
+  }
+
+  await ensureCompleteChapterOneSubtopics(latest.id);
+
+  const textbook = await prisma.textbook.findFirst({
+    where: { id: latest.id },
     include: {
       chapters: {
         orderBy: { sequenceOrder: 'asc' },
@@ -205,11 +218,12 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
   const teacherRow = await prisma.teacher.findUnique({ where: { id: teacherId } });
   const organizationId = textbook.organizationId ?? teacherRow?.organizationId ?? req.organizationId ?? null;
 
-  // Simulated PDF parse → chapter/subtopic extraction + embedding index
+  // PDF parse → chapter/subtopic extraction + embedding index (falls back to NCERT seed)
+  const parsedChapters = parseTextbookIntoChapters(textbook.storagePath);
   let chaptersCreated = 0;
   const ragChunkCreates: { content: string; pageHint: string; sequence: number }[] = [];
-  for (let i = 0; i < DEFAULT_SCIENCE_CHAPTERS.length; i++) {
-    const ch = DEFAULT_SCIENCE_CHAPTERS[i];
+  for (let i = 0; i < parsedChapters.length; i++) {
+    const ch = parsedChapters[i];
     const created = await prisma.teacherChapter.create({
       data: {
         textbookId: textbook.id,
@@ -286,7 +300,7 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
       status: 'INDEXED',
       organizationId,
       indexedChunkCount: ragChunkCreates.length,
-      pageCount: DEFAULT_SCIENCE_CHAPTERS.length * 12,
+      pageCount: parsedChapters.length * 12,
     },
   });
 
@@ -299,6 +313,17 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
 
 /** GET /teacher/chapters/:id — single chapter with subtopics */
 router.get('/chapters/:id', async (req: AuthRequest, res) => {
+  const existing = await prisma.teacherChapter.findFirst({
+    where: { id: req.params.id, textbook: { teacherId: req.teacherId! } },
+    select: { textbookId: true },
+  });
+  if (!existing) {
+    res.status(404).json({ error: 'Chapter not found' });
+    return;
+  }
+
+  await ensureCompleteChapterOneSubtopics(existing.textbookId);
+
   const chapter = await prisma.teacherChapter.findFirst({
     where: { id: req.params.id, textbook: { teacherId: req.teacherId! } },
     include: { subtopics: { orderBy: { sequenceOrder: 'asc' } } },

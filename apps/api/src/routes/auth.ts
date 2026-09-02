@@ -19,6 +19,12 @@ import {
 } from '../lib/ageCurriculum.js';
 import { toTeacherUser } from '../lib/teacherSerializers.js';
 import {
+  DB_UNREACHABLE_MESSAGE,
+  SCHEMA_OUTDATED_MESSAGE,
+  isDatabaseUnreachable,
+  isSchemaOutOfDate,
+} from '../lib/dbErrors.js';
+import {
   randomCode,
   toOrganization,
   toPlatformUser,
@@ -392,12 +398,12 @@ router.post('/login', async (req, res) => {
     });
   } catch (err) {
     console.error('POST /auth/login failed:', err);
-    const message = err instanceof Error ? err.message : String(err);
-    if (/does not exist|P2021|P2022|Unknown column|Unknown (?:arg|argument)|planType|PlatformUser/i.test(message)) {
-      res.status(503).json({
-        error:
-          'Database schema is out of date. From apps/api run: npm run db:setup — then restart the API.',
-      });
+    if (isDatabaseUnreachable(err)) {
+      res.status(503).json({ error: DB_UNREACHABLE_MESSAGE });
+      return;
+    }
+    if (isSchemaOutOfDate(err)) {
+      res.status(503).json({ error: SCHEMA_OUTDATED_MESSAGE });
       return;
     }
     res.status(500).json({ error: 'Login failed. Check API logs for details.' });
@@ -449,7 +455,11 @@ router.post('/teacher/login', async (req, res) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('Teacher login failed:', message, err);
-    if (/does not exist|P2021|Teacher|PlatformUser/i.test(message)) {
+    if (isDatabaseUnreachable(err)) {
+      res.status(503).json({ error: DB_UNREACHABLE_MESSAGE });
+      return;
+    }
+    if (isSchemaOutOfDate(err)) {
       res.status(503).json({
         error:
           'Teacher database tables are missing. From apps/api run: npm run db:setup — then restart the API.',
