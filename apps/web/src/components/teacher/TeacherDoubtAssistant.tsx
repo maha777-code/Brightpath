@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Check, PencilLine, X, Sparkles } from 'lucide-react';
 import type { StudentDoubt, TeacherSubtopic } from '@brightpath/shared';
+import { isActivityPlayable } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { CinematicScriptPreview } from './CinematicScriptPreview';
 
 interface TeacherDoubtAssistantProps {
   doubts: StudentDoubt[];
@@ -52,7 +54,12 @@ export function TeacherDoubtAssistant({
       <div className="grid w-full grid-cols-1 gap-8 lg:grid-cols-2">
         {/* Lesson media preview */}
         <div className="overflow-hidden rounded-2xl border border-cyan-400/20 bg-slate-950">
-          {previewSubtopic?.videoUrl && !/commondatastorage|ForBigger/i.test(previewSubtopic.videoUrl) ? (
+          {previewSubtopic && isActivityPlayable(previewSubtopic.activity) && previewSubtopic.activity ? (
+            <div className="min-h-[240px] bg-slate-950 px-6 py-5">
+              <p className="mb-3 text-sm font-bold text-white">Activity script preview</p>
+              <CinematicScriptPreview activity={previewSubtopic.activity} compact />
+            </div>
+          ) : previewSubtopic?.videoUrl && !/commondatastorage|ForBigger/i.test(previewSubtopic.videoUrl) ? (
             <video
               title={previewSubtopic.videoTitle ?? 'Lesson preview'}
               src={previewSubtopic.videoUrl}
@@ -65,7 +72,7 @@ export function TeacherDoubtAssistant({
               <Sparkles className="mb-3 h-10 w-10 text-[#22D3EE]" />
               <p className="text-xl font-bold text-white">Lesson media preview</p>
               <p className="mt-2 text-base text-cyan-200/80">
-                Attach a Video Explainer on a subtopic to preview it here.
+                Attach a Video Explainer or generate a Cinematic Tom & Jerry activity to preview it here.
               </p>
             </div>
           )}

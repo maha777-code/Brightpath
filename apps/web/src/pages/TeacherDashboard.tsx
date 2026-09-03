@@ -181,7 +181,8 @@ export default function TeacherDashboard() {
                   );
                 }}
                 onAssignActivity={(sub) => {
-                  setEngagementNote(`Assigned gamified activity: ${sub.activityTitle ?? sub.title}`);
+                  setPreviewSubtopic(sub);
+                  setEngagementNote(`Assigned cinematic activity: ${sub.activityTitle ?? sub.title}`);
                 }}
               />
             </div>

@@ -326,7 +326,10 @@ export function SubtopicManager({
                   {activityReady && !generating && (
                     <button
                       type="button"
-                      onClick={() => setReviewActivitySub(sub)}
+                      onClick={() => {
+                        onAssignActivity(sub);
+                        setReviewActivitySub(sub);
+                      }}
                       className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-amber-400/40 bg-amber-500/20 px-6 py-3 text-base font-medium text-[#FEF3C7]"
                     >
                       <Eye className="h-5 w-5 shrink-0" />

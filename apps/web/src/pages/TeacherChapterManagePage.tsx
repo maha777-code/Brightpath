@@ -171,7 +171,7 @@ export default function TeacherChapterManagePage() {
                 );
               }}
               onAssignActivity={(sub: TeacherSubtopic) => {
-                setNote(`Assigned gamified activity: ${sub.activityTitle ?? sub.title}`);
+                setNote(`Assigned cinematic activity: ${sub.activityTitle ?? sub.title}`);
               }}
             />
           </>
