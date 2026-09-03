@@ -406,6 +406,16 @@ export type {
   ClassBatchPublic,
 } from './rbac.js';
 
+export type { GenerationTemplateId, GenerationTemplate, GenerationTemplateKind } from './generationTemplates.js';
+export {
+  GENERATION_TEMPLATE_IDS,
+  GENERATION_TEMPLATES,
+  DEFAULT_GENERATION_TEMPLATE_ID,
+  isGenerationTemplateId,
+  getGenerationTemplate,
+  templatePromptBlock,
+} from './generationTemplates.js';
+
 export {
   parseCinematicScript,
   questionLoopsFromScript,

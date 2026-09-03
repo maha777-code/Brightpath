@@ -39,6 +39,7 @@ export interface TopicContextPacket {
   ragExcerpts: string[];
   attachmentImageUrls?: string[];
   teacherPrompt?: string;
+  templateId?: string;
 }
 
 export interface VoiceSynthesisResult {

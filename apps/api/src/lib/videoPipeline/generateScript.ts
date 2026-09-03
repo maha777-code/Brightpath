@@ -1,10 +1,11 @@
-import type {
-  PedagogicalArchetype,
-  SceneVisualConfig,
-  VideoSceneParameters,
-  VideoScriptManifest,
-  VisualArchetype,
-  VisualStageElement,
+import {
+  templatePromptBlock,
+  type PedagogicalArchetype,
+  type SceneVisualConfig,
+  type VideoSceneParameters,
+  type VideoScriptManifest,
+  type VisualArchetype,
+  type VisualStageElement,
 } from '@brightpath/shared';
 import { getActiveProvider } from '../llm/provider.js';
 import type { TopicContextPacket } from './types.js';
@@ -593,6 +594,7 @@ export async function generateStructuredVideoScript(
     `Chapter: ${ctx.chapterTitle}`,
     `Textbook: ${ctx.textbookTitle} (${ctx.subject}, ${ctx.gradeLabel})`,
     `Chapter summary: ${ctx.chapterSummary}`,
+    ctx.templateId ? `Visual / dialogue template:\n${templatePromptBlock(ctx.templateId)}` : '',
     ctx.teacherPrompt ? `Teacher refinement: ${ctx.teacherPrompt}` : '',
     `RAW RAG EXCERPTS (GROUND TRUTH — teacher attachments are prefixed and must be prioritized over textbook text):\n${excerpts || '(no excerpts — use topic title and chapter summary only)'}`,
     ctx.attachmentImageUrls?.length

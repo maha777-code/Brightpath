@@ -9,6 +9,7 @@ import {
 export async function retrieveTextbookContext(
   topicId: string,
   teacherPrompt?: string,
+  templateId?: string,
 ): Promise<TopicContextPacket> {
   const sub = await prisma.teacherSubtopic.findUnique({
     where: { id: topicId },
@@ -62,5 +63,6 @@ export async function retrieveTextbookContext(
     ragExcerpts,
     attachmentImageUrls,
     teacherPrompt,
+    templateId,
   };
 }

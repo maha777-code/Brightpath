@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { hasFeatureAccess } from '@brightpath/shared';
+import { GENERATION_TEMPLATES, getGenerationTemplate, hasFeatureAccess } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import { toSubtopic } from '../lib/teacherSerializers.js';
@@ -11,7 +11,13 @@ const router = Router();
 const generateSchema = z.object({
   subtopicId: z.string().min(1),
   chapterId: z.string().min(1),
-  type: z.enum(['gamified_quiz', 'tom_jerry_cinematic']),
+  type: z.string().min(1).optional(),
+  templateId: z.string().min(1).optional(),
+});
+
+/** GET /teacher/templates — generation presets for video + activity */
+router.get('/templates', (_req, res) => {
+  res.json({ templates: GENERATION_TEMPLATES });
 });
 
 /** POST /teacher/generate-activity — RAG-grounded Cinematic Tom & Jerry Challenge */
@@ -31,9 +37,13 @@ router.post('/generate-activity', async (req: AuthRequest, res) => {
   }
 
   try {
+    const template = getGenerationTemplate(parsed.data.templateId);
     const result = await generateGamifiedActivity({
       teacherId: req.teacherId!,
-      ...parsed.data,
+      subtopicId: parsed.data.subtopicId,
+      chapterId: parsed.data.chapterId,
+      type: parsed.data.type ?? template.activityType,
+      templateId: template.id,
     });
 
     const subtopic = await prisma.teacherSubtopic.findUnique({ where: { id: result.subtopicId } });

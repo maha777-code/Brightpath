@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Eye, Gamepad2, Loader2, PlayCircle, Plus } from 'lucide-react';
+import { AlertTriangle, Eye, LayoutTemplate, Loader2, PlayCircle, Plus } from 'lucide-react';
 import {
+  getGenerationTemplate,
   isActivityPlayable,
+  type GenerationTemplateId,
   type TeacherChapter,
   type TeacherSubtopic,
   type TopicVideoStatus,
@@ -10,6 +12,7 @@ import { api } from '@/lib/api';
 import VideoReviewModal from './VideoReviewModal';
 import ActivityReviewModal from './ActivityReviewModal';
 import AttachMediaModal from './AttachMediaModal';
+import TemplateSelectorModal from './TemplateSelectorModal';
 
 interface SubtopicManagerProps {
   chapter: TeacherChapter | null;
@@ -38,6 +41,12 @@ export function SubtopicManager({
   const [toast, setToast] = useState<{ kind: 'ok' | 'err'; message: string } | null>(null);
   const [reviewActivitySub, setReviewActivitySub] = useState<TeacherSubtopic | null>(null);
   const [attachSub, setAttachSub] = useState<TeacherSubtopic | null>(null);
+  const [templatePick, setTemplatePick] = useState<{
+    kind: 'video' | 'activity';
+    sub: TeacherSubtopic;
+    openReview?: boolean;
+  } | null>(null);
+  const [templateBySub, setTemplateBySub] = useState<Record<string, GenerationTemplateId>>({});
   const pollRef = useRef<number | null>(null);
   const onUpdatedRef = useRef(onUpdated);
   onUpdatedRef.current = onUpdated;
@@ -170,21 +179,31 @@ export function SubtopicManager({
     window.setTimeout(() => setToast(null), 4500);
   };
 
-  const generateActivity = async (sub: TeacherSubtopic, openReview = false) => {
+  const generateActivity = async (
+    sub: TeacherSubtopic,
+    openReview = false,
+    templateId?: GenerationTemplateId,
+  ) => {
     if (!chapter) return;
+    const chosen = templateId ?? templateBySub[sub.id] ?? 'tom_and_jerry';
     setIsGenerating((prev) => ({ ...prev, [sub.id]: true }));
     const ctrl = new AbortController();
     const timer = window.setTimeout(() => ctrl.abort(), 60_000);
     try {
       const res = await api.generateActivity(
-        { subtopicId: sub.id, chapterId: chapter.id, type: 'tom_jerry_cinematic' },
+        {
+          subtopicId: sub.id,
+          chapterId: chapter.id,
+          type: getGenerationTemplate(chosen).activityType,
+          templateId: chosen,
+        },
         { signal: ctrl.signal },
       );
       const next: TeacherSubtopic = { ...res.subtopic, activity: res.activity };
       patchSub(next);
       onUpdated(chapter.id);
       onAssignActivity(next);
-      showToast('ok', 'Cinematic Tom & Jerry Challenge generated!');
+      showToast('ok', `${getGenerationTemplate(chosen).title} generated!`);
       if (openReview) setReviewActivitySub(next);
     } catch {
       showToast('err', 'Failed to generate activity. Please try again.');
@@ -198,10 +217,11 @@ export function SubtopicManager({
     }
   };
 
-  const startGenerate = async (sub: TeacherSubtopic) => {
+  const startGenerate = async (sub: TeacherSubtopic, templateId?: GenerationTemplateId) => {
+    const chosen = templateId ?? templateBySub[sub.id] ?? 'tom_and_jerry';
     setBusyId(sub.id);
     try {
-      const res = await api.generateTopicVideo(sub.id);
+      const res = await api.generateTopicVideo(sub.id, { templateId: chosen });
       patchSub(res.subtopic);
       onUpdated(chapter.id);
     } catch (e) {
@@ -311,6 +331,12 @@ export function SubtopicManager({
                         No activity
                       </span>
                     )}
+                    {templateBySub[sub.id] ? (
+                      <span className="rounded-full bg-white/10 px-4 py-1.5 text-cyan-100">
+                        {getGenerationTemplate(templateBySub[sub.id]).icon}{' '}
+                        {getGenerationTemplate(templateBySub[sub.id]).title}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
@@ -319,7 +345,7 @@ export function SubtopicManager({
                     sub={sub}
                     status={status}
                     busy={busyId === sub.id}
-                    onGenerate={() => void startGenerate(sub)}
+                    onGenerate={() => setTemplatePick({ kind: 'video', sub })}
                     onReview={() => void openReview(sub)}
                   />
 
@@ -338,7 +364,7 @@ export function SubtopicManager({
                   )}
                   <button
                     type="button"
-                    onClick={() => void generateActivity(sub, activityReady)}
+                    onClick={() => setTemplatePick({ kind: 'activity', sub, openReview: activityReady })}
                     disabled={generating}
                     className={[
                       'inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-amber-400/40 px-6 py-3 text-base font-medium text-white disabled:cursor-wait',
@@ -348,13 +374,13 @@ export function SubtopicManager({
                     {generating ? (
                       <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
                     ) : (
-                      <Gamepad2 className="h-5 w-5 shrink-0" />
+                      <LayoutTemplate className="h-5 w-5 shrink-0" />
                     )}
                     {generating
                       ? 'Generating Activity...'
                       : activityReady
-                        ? 'Regenerate Activity'
-                        : 'Generate Gamified Activity'}
+                        ? 'Select Template / Regenerate'
+                        : 'Select Template'}
                   </button>
                   <button
                     type="button"
@@ -390,6 +416,36 @@ export function SubtopicManager({
           regenerating={Boolean(isGenerating[reviewActivitySub.id])}
           onClose={() => setReviewActivitySub(null)}
           onRegenerate={() => void generateActivity(reviewActivitySub, true)}
+        />
+      )}
+      {templatePick && (
+        <TemplateSelectorModal
+          kind={templatePick.kind}
+          title={
+            templatePick.kind === 'video'
+              ? `Video template · ${templatePick.sub.code}`
+              : `Activity template · ${templatePick.sub.code}`
+          }
+          subtitle={templatePick.sub.title}
+          confirmLabel="Generate with Selected Template"
+          initialTemplateId={templateBySub[templatePick.sub.id]}
+          submitting={
+            templatePick.kind === 'video'
+              ? busyId === templatePick.sub.id
+              : Boolean(isGenerating[templatePick.sub.id])
+          }
+          onClose={() => setTemplatePick(null)}
+          onConfirm={(templateId) => {
+            setTemplateBySub((prev) => ({ ...prev, [templatePick.sub.id]: templateId }));
+            const target = templatePick.sub;
+            const openReview = templatePick.openReview;
+            setTemplatePick(null);
+            if (templatePick.kind === 'video') {
+              void startGenerate(target, templateId);
+            } else {
+              void generateActivity(target, Boolean(openReview), templateId);
+            }
+          }}
         />
       )}
       {attachSub && (
@@ -561,9 +617,9 @@ function GenerateVideoButton({
       {busy ? (
         <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
       ) : (
-        <PlayCircle className="h-5 w-5 shrink-0" />
+        <LayoutTemplate className="h-5 w-5 shrink-0" />
       )}
-      Generate Video Explainer
+      Select Template
     </button>
   );
 }

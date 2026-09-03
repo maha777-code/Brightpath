@@ -313,7 +313,8 @@ export interface TeacherAttachment {
 export interface GenerateActivityRequest {
   subtopicId: string;
   chapterId: string;
-  type: 'gamified_quiz' | 'tom_jerry_cinematic';
+  type: 'gamified_quiz' | 'tom_jerry_cinematic' | string;
+  templateId?: string;
 }
 
 export interface GenerateActivityResponse {

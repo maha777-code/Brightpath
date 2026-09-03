@@ -67,6 +67,16 @@ export async function isDatabaseSchemaCurrent(): Promise<boolean> {
   }
 }
 
+function runPrismaGenerate(): void {
+  console.warn('Refreshing Prisma Client — running `npx prisma generate`…');
+  execSync('npx prisma generate', {
+    cwd: apiRoot,
+    stdio: 'inherit',
+    env: process.env,
+    timeout: 60_000,
+  });
+}
+
 function runPrismaDbPush(): void {
   console.warn('Database schema is behind Prisma — running `npx prisma db push`…');
   execSync('npx prisma db push', {
@@ -75,6 +85,7 @@ function runPrismaDbPush(): void {
     env: process.env,
     timeout: 120_000,
   });
+  runPrismaGenerate();
 }
 
 /**

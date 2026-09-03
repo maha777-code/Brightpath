@@ -395,6 +395,7 @@ router.patch('/subtopics/:id', async (req: AuthRequest, res) => {
 router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => {
   const schema = z.object({
     prompt: z.string().max(500).optional(),
+    templateId: z.string().min(1).optional(),
   });
   const parsed = schema.safeParse(req.body ?? {});
   if (!parsed.success) {
@@ -433,7 +434,7 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => 
   });
 
   // Clear any stuck in-memory lock by enqueueing fresh job
-  enqueueHybridVideoJob(existing.id, parsed.data.prompt);
+  enqueueHybridVideoJob(existing.id, parsed.data.prompt, parsed.data.templateId);
 
   res.status(202).json({
     subtopic: toSubtopic(updated),

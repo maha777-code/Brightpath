@@ -7,9 +7,11 @@ import {
   TOM_BONKED,
   TOM_TRAP_SETUP,
   cinematicScriptFromQuiz,
+  getGenerationTemplate,
   parseCinematicScript,
   questionLoopsFromScript,
   questionsFromCinematicScript,
+  templatePromptBlock,
   type CinematicScriptScene,
   type GamifiedQuizQuestion,
   type TeacherActivity,
@@ -263,10 +265,12 @@ function ensureOutcomeScenes(script: CinematicScriptScene[]): CinematicScriptSce
   return next;
 }
 
-function cinematicSystemPrompt(): string {
-  return `You write a character-driven Cinematic Tom & Jerry Challenge for Class 9 Science — NOT a plain quiz.
-Tom (Character 1) speaks in cartoon-villain setup lines: traps, blocking the hallway, gloating.
-Jerry (Character 2) never narrates the question; Jerry's "lines" are the answer options he runs toward.
+function cinematicSystemPrompt(templateId?: string): string {
+  const template = getGenerationTemplate(templateId);
+  return `You write a character-driven classroom game script for Class 9 Science — NOT a plain quiz.
+Template: ${template.title}.
+${template.dialogueTone}
+Character 1 delivers the setup/question. Character 2's responses are the answer options (paths / holes / clues / firing lanes).
 Return JSON only.`;
 }
 
@@ -275,17 +279,21 @@ function cinematicUserPrompt(input: {
   title: string;
   chapterTitle: string;
   context: string;
+  templateId?: string;
 }): string {
-  return `Create a Cinematic Tom & Jerry Challenge for this subtopic.
+  const template = getGenerationTemplate(input.templateId);
+  return `Create a ${template.title} activity for this subtopic.
 Subtopic: ${input.code} ${input.title}
 Chapter: ${input.chapterTitle}
+
+${templatePromptBlock(template.id)}
 
 Textbook / RAG context:
 ${input.context}
 
 Return JSON with this exact shape:
 {
-  "title": "Cinematic Tom & Jerry Challenge: ${input.title}",
+  "title": "${template.title}: ${input.title}",
   "xpReward": 50,
   "script": [
     {
@@ -329,8 +337,8 @@ Rules:
 - Include exactly 1 setup scene, exactly ${QUESTION_COUNT} question_loop scenes, 1 correct_outcome, 1 incorrect_outcome, and 1 completed scene.
 - Each question_loop has exactly 4 options with ids A, B, C, D. Exactly one option has correct: true.
 - Correct options use jerry_action "${JERRY_ACTION_CORRECT}". Incorrect use "${JERRY_ACTION_WRONG}".
-- game_mechanics is always "${DEFAULT_GAME_MECHANICS}" (Jerry runs into a labeled mousehole).
-- Tom dialogue must sound like Tom setting a trap or blocking Jerry.
+- game_mechanics should match this template (${template.mechanics}).
+- Character-1 dialogue must match the template tone.
 - animation_trigger for setup is "${TOM_TRAP_SETUP}".
 - correct_outcome animation_outcome is "${TOM_BONKED}".
 - incorrect_outcome animation_outcome is "${JERRY_CAUGHT_CINEMATIC}".`;
@@ -341,6 +349,7 @@ async function generateCinematicScriptFromLlm(input: {
   title: string;
   chapterTitle: string;
   excerpts: string[];
+  templateId?: string;
 }): Promise<CinematicScriptScene[]> {
   const provider = getActiveProvider();
   if (!provider) {
@@ -350,7 +359,7 @@ async function generateCinematicScriptFromLlm(input: {
   const context = input.excerpts.slice(0, 8).join('\n\n').slice(0, 6000);
   const raw = await withTimeout(
     provider.completeJson<unknown>({
-      system: cinematicSystemPrompt(),
+      system: cinematicSystemPrompt(input.templateId),
       user: cinematicUserPrompt({ ...input, context }),
     }),
     LLM_TIMEOUT_MS,
@@ -386,7 +395,8 @@ export async function generateGamifiedActivity(input: {
   teacherId: string;
   subtopicId: string;
   chapterId: string;
-  type: 'gamified_quiz' | 'tom_jerry_cinematic';
+  type: 'gamified_quiz' | 'tom_jerry_cinematic' | string;
+  templateId?: string;
 }): Promise<{ activity: TeacherActivity; subtopicId: string; activityTitle: string }> {
   const sub = await prisma.teacherSubtopic.findFirst({
     where: {
@@ -400,23 +410,25 @@ export async function generateGamifiedActivity(input: {
     throw Object.assign(new Error('Subtopic not found'), { status: 404 });
   }
 
+  const template = getGenerationTemplate(input.templateId);
   const packet = await retrieveTextbookContext(sub.id);
   const content = await generateCinematicScriptFromLlm({
     code: sub.code,
     title: sub.title,
     chapterTitle: sub.chapter.title,
     excerpts: packet.ragExcerpts,
+    templateId: template.id,
   });
 
   const questions = questionsFromCinematicScript(content, 50);
-  const title = `${sub.code} Cinematic Tom & Jerry Challenge`;
+  const title = `${sub.code} ${template.title}`;
   const totalXp = questions.reduce((sum, q) => sum + q.xpReward, 0) || 250;
 
   const row = await activityClient().activity.create({
     data: {
       subtopicId: sub.id,
       chapterId: sub.chapterId,
-      type: 'tom_jerry_cinematic',
+      type: template.activityType || input.type || 'tom_jerry_cinematic',
       title,
       content,
       questionsJson: questions,

@@ -97,6 +97,7 @@ import type {
   TeacherChapter,
   GenerateActivityRequest,
   GenerateActivityResponse,
+  GenerationTemplate,
   UserRole,
   PlanType,
   PlatformUserPublic,
@@ -417,6 +418,8 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  listTemplates: () => request<{ templates: GenerationTemplate[] }>('/teacher/templates'),
+
   generateActivity: (body: GenerateActivityRequest, init?: RequestInit) =>
     request<GenerateActivityResponse>('/teacher/generate-activity', {
       method: 'POST',
@@ -433,7 +436,7 @@ export const api = {
     );
   },
 
-  generateTopicVideo: (topicId: string, body?: { prompt?: string }) =>
+  generateTopicVideo: (topicId: string, body?: { prompt?: string; templateId?: string }) =>
     request<{ subtopic: TeacherSubtopic; message: string }>(
       `/teacher/topics/${topicId}/generate-video`,
       { method: 'POST', body: JSON.stringify(body ?? {}) },
