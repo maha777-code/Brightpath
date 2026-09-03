@@ -15,12 +15,14 @@ import {
   toTextbook,
 } from '../lib/teacherSerializers.js';
 import activityRoutes from './activity.js';
+import mediaRoutes from './media.js';
 import { DEFAULT_SAMPLE_DOUBTS } from '../lib/teacherCurriculumSeed.js';
 import {
   ensureCompleteChapterOneSubtopics,
   parseTextbookIntoChapters,
 } from '../services/textbook.js';
 import { latestActivitiesBySubtopic } from '../services/gamifiedActivity.js';
+import { attachmentsBySubtopic } from '../services/attachMedia.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/textbooks');
@@ -30,6 +32,7 @@ const MAX_PDF_ERROR = 'File size exceeds the 80 MB limit. Please select a smalle
 const router = Router();
 router.use(requireTeacher);
 router.use(activityRoutes);
+router.use(mediaRoutes);
 
 function ensureUploadDir() {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -107,13 +110,15 @@ router.get('/chapters', async (req: AuthRequest, res) => {
     return;
   }
 
-  const activityMap = await latestActivitiesBySubtopic(
-    textbook.chapters.flatMap((ch) => ch.subtopics.map((s) => s.id)),
-  );
+  const subtopicIds = textbook.chapters.flatMap((ch) => ch.subtopics.map((s) => s.id));
+  const [activityMap, attachmentMap] = await Promise.all([
+    latestActivitiesBySubtopic(subtopicIds),
+    attachmentsBySubtopic(subtopicIds),
+  ]);
 
   res.json({
     textbook: toTextbook(textbook),
-    chapters: textbook.chapters.map((ch) => toChapter(ch, activityMap)),
+    chapters: textbook.chapters.map((ch) => toChapter(ch, activityMap, attachmentMap)),
   });
 });
 
@@ -340,7 +345,8 @@ router.get('/chapters/:id', async (req: AuthRequest, res) => {
     return;
   }
   const activityMap = await latestActivitiesBySubtopic(chapter.subtopics.map((s) => s.id));
-  res.json({ chapter: toChapter(chapter, activityMap) });
+  const attachmentMap = await attachmentsBySubtopic(chapter.subtopics.map((s) => s.id));
+  res.json({ chapter: toChapter(chapter, activityMap, attachmentMap) });
 });
 
 /** PATCH /teacher/subtopics/:id — attach video / activity */

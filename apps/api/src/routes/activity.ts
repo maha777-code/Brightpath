@@ -11,10 +11,10 @@ const router = Router();
 const generateSchema = z.object({
   subtopicId: z.string().min(1),
   chapterId: z.string().min(1),
-  type: z.literal('gamified_quiz'),
+  type: z.enum(['gamified_quiz', 'tom_jerry_cinematic']),
 });
 
-/** POST /teacher/generate-activity — RAG-grounded 5-question gamified quiz */
+/** POST /teacher/generate-activity — RAG-grounded Cinematic Tom & Jerry Challenge */
 router.post('/generate-activity', async (req: AuthRequest, res) => {
   if (!hasFeatureAccess(req.planType ?? 'teacher_free', 'gamified_activities')) {
     res.status(402).json({
@@ -26,7 +26,7 @@ router.post('/generate-activity', async (req: AuthRequest, res) => {
 
   const parsed = generateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: 'subtopicId, chapterId, and type "gamified_quiz" are required' });
+    res.status(400).json({ error: 'subtopicId, chapterId, and type are required' });
     return;
   }
 

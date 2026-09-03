@@ -56,6 +56,10 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(
   '/uploads',
+  (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    next();
+  },
   express.static(path.resolve(__dirname, '../uploads'), { maxAge: '7d' }),
 );
 app.use(

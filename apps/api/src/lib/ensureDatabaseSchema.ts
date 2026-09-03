@@ -29,19 +29,35 @@ async function hasPublicColumn(table: string, column: string): Promise<boolean> 
 /** True when login + teacher video pipeline columns are present. */
 export async function isDatabaseSchemaCurrent(): Promise<boolean> {
   try {
-    const [platformPlan, teacherPlan, videoStatus, cuesJson, activityTable] = await Promise.all([
-      hasPublicColumn('PlatformUser', 'planType'),
-      hasPublicColumn('Teacher', 'planType'),
-      hasPublicColumn('TeacherSubtopic', 'videoStatus'),
-      hasPublicColumn('TeacherSubtopic', 'animationCuesJson'),
-      prisma.$queryRaw<Array<{ exists: boolean }>>`
-        SELECT EXISTS (
-          SELECT 1 FROM information_schema.tables
-          WHERE table_schema = 'public' AND table_name = 'Activity'
-        ) AS exists
-      `.then((rows) => Boolean(rows[0]?.exists)),
-    ]);
-    return platformPlan && teacherPlan && videoStatus && cuesJson && activityTable;
+    const [platformPlan, teacherPlan, videoStatus, cuesJson, activityTable, activityContent, attachmentTable] =
+      await Promise.all([
+        hasPublicColumn('PlatformUser', 'planType'),
+        hasPublicColumn('Teacher', 'planType'),
+        hasPublicColumn('TeacherSubtopic', 'videoStatus'),
+        hasPublicColumn('TeacherSubtopic', 'animationCuesJson'),
+        prisma.$queryRaw<Array<{ exists: boolean }>>`
+          SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'Activity'
+          ) AS exists
+        `.then((rows) => Boolean(rows[0]?.exists)),
+        hasPublicColumn('Activity', 'content'),
+        prisma.$queryRaw<Array<{ exists: boolean }>>`
+          SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'SubtopicAttachment'
+          ) AS exists
+        `.then((rows) => Boolean(rows[0]?.exists)),
+      ]);
+    return (
+      platformPlan &&
+      teacherPlan &&
+      videoStatus &&
+      cuesJson &&
+      activityTable &&
+      activityContent &&
+      attachmentTable
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (/P1001|ECONNREFUSED|Can't reach database/i.test(message)) {
@@ -79,6 +95,8 @@ export async function ensureDatabaseSchema(): Promise<void> {
   try {
     if (await isDatabaseSchemaCurrent()) {
       console.log('Database schema is current');
+      const { ensurePgVectorColumn } = await import('../services/attachMedia.js');
+      await ensurePgVectorColumn();
       return;
     }
   } catch (err) {
@@ -93,5 +111,12 @@ export async function ensureDatabaseSchema(): Promise<void> {
   } catch (err) {
     console.error('prisma db push failed:', err instanceof Error ? err.message : err);
     console.error('From apps/api run: npm run db:setup — then restart the API.');
+  }
+
+  try {
+    const { ensurePgVectorColumn } = await import('../services/attachMedia.js');
+    await ensurePgVectorColumn();
+  } catch (err) {
+    console.warn('[pgvector] setup skipped:', err instanceof Error ? err.message : err);
   }
 }

@@ -1,10 +1,26 @@
 import { z } from 'zod';
-import type { GamifiedQuizQuestion, TeacherActivity } from '@brightpath/shared';
+import {
+  DEFAULT_GAME_MECHANICS,
+  JERRY_ACTION_CORRECT,
+  JERRY_ACTION_WRONG,
+  JERRY_CAUGHT_CINEMATIC,
+  TOM_BONKED,
+  TOM_TRAP_SETUP,
+  cinematicScriptFromQuiz,
+  parseCinematicScript,
+  questionLoopsFromScript,
+  questionsFromCinematicScript,
+  type CinematicScriptScene,
+  type GamifiedQuizQuestion,
+  type TeacherActivity,
+} from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import { getActiveProvider } from '../lib/llm/provider.js';
 import { retrieveTextbookContext } from '../lib/videoPipeline/retrieveContext.js';
 
 const LLM_TIMEOUT_MS = 45_000;
+const QUESTION_COUNT = 5;
+const OPTION_IDS = ['A', 'B', 'C', 'D'] as const;
 
 const questionSchema = z.object({
   questionText: z.string().min(8).max(400),
@@ -14,10 +30,6 @@ const questionSchema = z.object({
   xpReward: z.number().int().min(10).max(200).optional(),
 });
 
-const quizPayloadSchema = z.object({
-  questions: z.array(questionSchema).min(5).max(5),
-});
-
 type ActivityRow = {
   id: string;
   subtopicId: string;
@@ -25,6 +37,7 @@ type ActivityRow = {
   type: string;
   title: string;
   questionsJson: unknown;
+  content?: unknown;
   totalXp: number;
   createdAt: Date;
 };
@@ -59,6 +72,9 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 
 export function parseQuizQuestions(raw: unknown): GamifiedQuizQuestion[] {
   if (!Array.isArray(raw)) return [];
+  if (raw.some((item) => item && typeof item === 'object' && 'scene_type' in item)) {
+    return questionsFromCinematicScript(parseCinematicScript(raw));
+  }
   return raw
     .map((item) => questionSchema.safeParse(item))
     .filter((r): r is z.ZodSafeParseSuccess<z.infer<typeof questionSchema>> => r.success)
@@ -71,14 +87,28 @@ export function parseQuizQuestions(raw: unknown): GamifiedQuizQuestion[] {
     }));
 }
 
-export function toTeacherActivity(row: ActivityRow): TeacherActivity {
+function resolveScript(row: ActivityRow, title: string): CinematicScriptScene[] {
+  const fromContent = parseCinematicScript(row.content);
+  if (questionLoopsFromScript(fromContent).length > 0) return fromContent;
+  const fromJson = parseCinematicScript(row.questionsJson);
+  if (questionLoopsFromScript(fromJson).length > 0) return fromJson;
   const questions = parseQuizQuestions(row.questionsJson);
+  if (questions.length > 0) return cinematicScriptFromQuiz(questions, title);
+  return fromContent;
+}
+
+export function toTeacherActivity(row: ActivityRow): TeacherActivity {
+  const content = resolveScript(row, row.title);
+  const parsedQuestions = parseQuizQuestions(row.questionsJson);
+  const questions =
+    parsedQuestions.length > 0 ? parsedQuestions : questionsFromCinematicScript(content);
   return {
     id: row.id,
     subtopicId: row.subtopicId,
     chapterId: row.chapterId,
     type: row.type,
     title: row.title,
+    content,
     questions,
     totalXp: row.totalXp || questions.reduce((sum, q) => sum + q.xpReward, 0),
     createdAt: row.createdAt.toISOString(),
@@ -133,7 +163,7 @@ function fallbackQuestions(input: {
         'Unrelated history facts',
       ],
       correctAnswerIndex: 1,
-      explanation: 'Gamified quizzes are generated from indexed textbook context for this subtopic.',
+      explanation: 'This challenge is generated from indexed textbook context for this subtopic.',
       xpReward: 50,
     },
     {
@@ -149,15 +179,15 @@ function fallbackQuestions(input: {
       xpReward: 50,
     },
     {
-      questionText: 'What is a good way to check a quiz answer in this activity?',
+      questionText: 'How can you check an answer during this chase?',
       options: [
-        'Ignore the explanation',
+        'Ignore the textbook entirely',
         'Pick the longest option every time',
-        'Read the explanation and compare it with the textbook excerpt',
+        'Compare Jerry’s escape path with the textbook excerpt',
         'Skip all questions',
       ],
       correctAnswerIndex: 2,
-      explanation: 'Each item includes an explanation so students can connect the answer back to the text.',
+      explanation: 'Each mousehole maps to a claim you can check against the text.',
       xpReward: 50,
     },
     {
@@ -175,73 +205,188 @@ function fallbackQuestions(input: {
   ];
 }
 
-async function generateQuestionsFromLlm(input: {
+function flavorTomSetup(title: string): string {
+  return `Aha! You little mouse, think you can get past this? You must tell me the truth about ${title} first!`;
+}
+
+function fallbackCinematicScript(input: {
   code: string;
   title: string;
   chapterTitle: string;
   excerpts: string[];
-}): Promise<GamifiedQuizQuestion[]> {
-  const provider = getActiveProvider();
-  if (!provider) {
-    return fallbackQuestions(input);
+}): CinematicScriptScene[] {
+  const quiz = fallbackQuestions(input);
+  const script = cinematicScriptFromQuiz(quiz, input.title);
+  const setup = script.find((s) => s.scene_type === 'setup');
+  if (setup && setup.scene_type === 'setup') {
+    setup.tom_dialogue = flavorTomSetup(input.title);
+    setup.animation_trigger = TOM_TRAP_SETUP;
   }
+  return script;
+}
 
-  const context = input.excerpts.slice(0, 8).join('\n\n').slice(0, 6000);
-  const raw = await withTimeout(
-    provider.completeJson<unknown>({
-      system:
-        'You generate curriculum-grounded multiple-choice quizzes for Class 9 Science. Return JSON only.',
-      user: `Create exactly 5 gamified quiz questions for this subtopic.
+function ensureOutcomeScenes(script: CinematicScriptScene[]): CinematicScriptScene[] {
+  const hasSetup = script.some((s) => s.scene_type === 'setup');
+  const hasCorrect = script.some((s) => s.scene_type === 'correct_outcome');
+  const hasIncorrect = script.some((s) => s.scene_type === 'incorrect_outcome');
+  const hasCompleted = script.some((s) => s.scene_type === 'completed');
+  const next = [...script];
+  if (!hasSetup) {
+    next.unshift({
+      scene_type: 'setup',
+      tom_dialogue: flavorTomSetup('this lesson'),
+      animation_trigger: TOM_TRAP_SETUP,
+    });
+  }
+  if (!hasCorrect) {
+    next.push({
+      scene_type: 'correct_outcome',
+      tom_dialogue_on_failure: 'Drat! That mouse is smarter than he looks!',
+      animation_outcome: TOM_BONKED,
+    });
+  }
+  if (!hasIncorrect) {
+    next.push({
+      scene_type: 'incorrect_outcome',
+      tom_dialogue_on_failure: 'Caught you! Time for a lesson!',
+      animation_outcome: JERRY_CAUGHT_CINEMATIC,
+    });
+  }
+  if (!hasCompleted) {
+    next.push({
+      scene_type: 'completed',
+      tom_dialogue: 'Not again! How does that mouse keep winning?',
+      jerry_dialogue: 'Science saves the day!',
+      animation_trigger: 'jerry_victory_dance',
+    });
+  }
+  return next;
+}
+
+function cinematicSystemPrompt(): string {
+  return `You write a character-driven Cinematic Tom & Jerry Challenge for Class 9 Science — NOT a plain quiz.
+Tom (Character 1) speaks in cartoon-villain setup lines: traps, blocking the hallway, gloating.
+Jerry (Character 2) never narrates the question; Jerry's "lines" are the answer options he runs toward.
+Return JSON only.`;
+}
+
+function cinematicUserPrompt(input: {
+  code: string;
+  title: string;
+  chapterTitle: string;
+  context: string;
+}): string {
+  return `Create a Cinematic Tom & Jerry Challenge for this subtopic.
 Subtopic: ${input.code} ${input.title}
 Chapter: ${input.chapterTitle}
 
 Textbook / RAG context:
-${context}
+${input.context}
 
-Return JSON:
+Return JSON with this exact shape:
 {
-  "questions": [
+  "title": "Cinematic Tom & Jerry Challenge: ${input.title}",
+  "xpReward": 50,
+  "script": [
     {
-      "questionText": "string",
-      "options": ["A", "B", "C", "D"],
-      "correctAnswerIndex": 0,
-      "explanation": "why the correct option is right",
-      "xpReward": 50
+      "scene_type": "setup",
+      "tom_dialogue": "Aha! You little mouse, think you can get past this? You must tell me ... first!",
+      "animation_trigger": "${TOM_TRAP_SETUP}"
+    },
+    {
+      "scene_type": "question_loop",
+      "prompt": "Curriculum question grounded in the textbook",
+      "game_mechanics": "${DEFAULT_GAME_MECHANICS}",
+      "tom_dialogue_repeat": "Answer correctly or it's mouse trap time!",
+      "options": [
+        { "id": "A", "text": "Wrong claim", "correct": false, "jerry_action": "${JERRY_ACTION_WRONG}" },
+        { "id": "B", "text": "Correct claim", "correct": true, "jerry_action": "${JERRY_ACTION_CORRECT}" },
+        { "id": "C", "text": "Wrong claim", "correct": false, "jerry_action": "${JERRY_ACTION_WRONG}" },
+        { "id": "D", "text": "Wrong claim", "correct": false, "jerry_action": "${JERRY_ACTION_WRONG}" }
+      ]
+    },
+    {
+      "scene_type": "correct_outcome",
+      "tom_dialogue_on_failure": "Drat! That mouse is smarter than he looks!",
+      "animation_outcome": "${TOM_BONKED}"
+    },
+    {
+      "scene_type": "incorrect_outcome",
+      "tom_dialogue_on_failure": "Caught you! Time for a lesson!",
+      "animation_outcome": "${JERRY_CAUGHT_CINEMATIC}"
+    },
+    {
+      "scene_type": "completed",
+      "tom_dialogue": "Not again!",
+      "jerry_dialogue": "That's science for you, Tom!",
+      "animation_trigger": "jerry_victory_dance"
     }
   ]
 }
 
 Rules:
-- Ground every question in the provided context.
-- options must have exactly 4 distinct strings.
-- correctAnswerIndex is 0-3.
-- xpReward is 50 unless a question is clearly harder (then 75).`,
+- Ground every prompt and option in the textbook context. No trivia unrelated to the subtopic.
+- Include exactly 1 setup scene, exactly ${QUESTION_COUNT} question_loop scenes, 1 correct_outcome, 1 incorrect_outcome, and 1 completed scene.
+- Each question_loop has exactly 4 options with ids A, B, C, D. Exactly one option has correct: true.
+- Correct options use jerry_action "${JERRY_ACTION_CORRECT}". Incorrect use "${JERRY_ACTION_WRONG}".
+- game_mechanics is always "${DEFAULT_GAME_MECHANICS}" (Jerry runs into a labeled mousehole).
+- Tom dialogue must sound like Tom setting a trap or blocking Jerry.
+- animation_trigger for setup is "${TOM_TRAP_SETUP}".
+- correct_outcome animation_outcome is "${TOM_BONKED}".
+- incorrect_outcome animation_outcome is "${JERRY_CAUGHT_CINEMATIC}".`;
+}
+
+async function generateCinematicScriptFromLlm(input: {
+  code: string;
+  title: string;
+  chapterTitle: string;
+  excerpts: string[];
+}): Promise<CinematicScriptScene[]> {
+  const provider = getActiveProvider();
+  if (!provider) {
+    return fallbackCinematicScript(input);
+  }
+
+  const context = input.excerpts.slice(0, 8).join('\n\n').slice(0, 6000);
+  const raw = await withTimeout(
+    provider.completeJson<unknown>({
+      system: cinematicSystemPrompt(),
+      user: cinematicUserPrompt({ ...input, context }),
     }),
     LLM_TIMEOUT_MS,
     'Activity generation timed out',
   );
 
   const asObject =
-    Array.isArray(raw) ? { questions: raw } : raw && typeof raw === 'object' ? raw : {};
-  const parsed = quizPayloadSchema.safeParse(asObject);
-  if (!parsed.success) {
-    throw new Error('The model returned an invalid quiz payload');
+    Array.isArray(raw) ? { script: raw } : raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const quizQuestions = parseQuizQuestions(asObject.questions);
+  let script = ensureOutcomeScenes(parseCinematicScript(raw));
+  if (questionLoopsFromScript(script).length < 3 && quizQuestions.length >= 3) {
+    script = cinematicScriptFromQuiz(quizQuestions, input.title);
+  }
+  if (questionLoopsFromScript(script).length < 3) {
+    return fallbackCinematicScript(input);
   }
 
-  return parsed.data.questions.map((q) => ({
-    questionText: q.questionText,
-    options: q.options,
-    correctAnswerIndex: q.correctAnswerIndex,
-    explanation: q.explanation,
-    xpReward: q.xpReward ?? 50,
-  }));
+  return script.map((scene) => {
+    if (scene.scene_type !== 'question_loop') return scene;
+    return {
+      ...scene,
+      game_mechanics: scene.game_mechanics || DEFAULT_GAME_MECHANICS,
+      options: scene.options.slice(0, 4).map((opt, i) => ({
+        ...opt,
+        id: OPTION_IDS[i] ?? opt.id,
+        jerry_action: opt.correct ? JERRY_ACTION_CORRECT : JERRY_ACTION_WRONG,
+      })),
+    };
+  });
 }
 
 export async function generateGamifiedActivity(input: {
   teacherId: string;
   subtopicId: string;
   chapterId: string;
-  type: 'gamified_quiz';
+  type: 'gamified_quiz' | 'tom_jerry_cinematic';
 }): Promise<{ activity: TeacherActivity; subtopicId: string; activityTitle: string }> {
   const sub = await prisma.teacherSubtopic.findFirst({
     where: {
@@ -256,22 +401,24 @@ export async function generateGamifiedActivity(input: {
   }
 
   const packet = await retrieveTextbookContext(sub.id);
-  const questions = await generateQuestionsFromLlm({
+  const content = await generateCinematicScriptFromLlm({
     code: sub.code,
     title: sub.title,
     chapterTitle: sub.chapter.title,
     excerpts: packet.ragExcerpts,
   });
 
-  const title = `${sub.code} Gamified Quiz`;
-  const totalXp = questions.reduce((sum, q) => sum + q.xpReward, 0);
+  const questions = questionsFromCinematicScript(content, 50);
+  const title = `${sub.code} Cinematic Tom & Jerry Challenge`;
+  const totalXp = questions.reduce((sum, q) => sum + q.xpReward, 0) || 250;
 
   const row = await activityClient().activity.create({
     data: {
       subtopicId: sub.id,
       chapterId: sub.chapterId,
-      type: input.type,
+      type: 'tom_jerry_cinematic',
       title,
+      content,
       questionsJson: questions,
       totalXp,
     },
@@ -286,7 +433,7 @@ export async function generateGamifiedActivity(input: {
   });
 
   return {
-    activity: toTeacherActivity(row),
+    activity: toTeacherActivity({ ...row, content, questionsJson: questions }),
     subtopicId: sub.id,
     activityTitle: title,
   };

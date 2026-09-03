@@ -1,0 +1,24 @@
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+[Postgres Offline] Could not connect to localhost:5433. Start Docker using 'docker compose up -d'
+node:events:486
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+Emitted 'error' event on Commander instance at:
+    at RedisSocket.<anonymous> (C:\Users\gs-en\Projects\brightpath\node_modules\@redis\client\dist\lib\client\index.js:422:14)
+    at RedisSocket.emit (node:events:508:28)
+    at RedisSocket._RedisSocket_onSocketError (C:\Users\gs-en\Projects\brightpath\node_modules\@redis\client\dist\lib\client\socket.js:218:10)
+    at Socket.<anonymous> (C:\Users\gs-en\Projects\brightpath\node_modules\@redis\client\dist\lib\client\socket.js:191:127)
+    at Object.onceWrapper (node:events:623:26)
+    at Socket.emit (node:events:508:28)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  errno: -4077,
+  code: 'ECONNRESET',
+  syscall: 'read'
+}
+
+Node.js v24.14.1

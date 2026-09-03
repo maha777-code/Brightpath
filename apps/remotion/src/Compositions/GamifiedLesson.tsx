@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from 'react';
-import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Audio, Img, useCurrentFrame, useVideoConfig } from 'remotion';
 import { ThreeCanvas } from '@remotion/three';
 import { DynamicSplitComparison } from '../components/3D/DynamicSplitComparison';
 import { DynamicInteractiveStage } from '../components/3D/DynamicInteractiveStage';
@@ -150,6 +150,44 @@ function collectBadges(cfg: Record<string, unknown>): string[] {
   return [...fromCallouts, ...fromSteps, ...extras].filter(Boolean).slice(0, 4);
 }
 
+function overlayUrlsFromConfig(config: Record<string, unknown>): string[] {
+  const many = config.overlayImageUrls;
+  if (Array.isArray(many)) {
+    return many.filter((u): u is string => typeof u === 'string' && /^https?:\/\//i.test(u)).slice(0, 2);
+  }
+  if (typeof config.overlayImageUrl === 'string' && /^https?:\/\//i.test(config.overlayImageUrl)) {
+    return [config.overlayImageUrl];
+  }
+  return [];
+}
+
+function AttachmentOverlay({ config }: { config: Record<string, unknown> }) {
+  const urls = overlayUrlsFromConfig(config);
+  if (!urls.length) return null;
+  return (
+    <AbsoluteFill style={{ pointerEvents: 'none' }}>
+      {urls.map((url, i) => (
+        <Img
+          key={`${url}-${i}`}
+          src={url}
+          style={{
+            position: 'absolute',
+            right: 28,
+            bottom: 118 + i * 12,
+            width: 240,
+            height: 150,
+            objectFit: 'cover',
+            borderRadius: 18,
+            border: '2px solid rgba(165,243,252,0.45)',
+            boxShadow: '0 12px 30px rgba(2,6,23,0.45)',
+            opacity: 0.92,
+          }}
+        />
+      ))}
+    </AbsoluteFill>
+  );
+}
+
 function SceneVisual({
   scene,
   frame,
@@ -259,6 +297,8 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
       <AbsoluteFill>
         <SceneVisual scene={activeScene} frame={frame} progress01={sceneProgress} />
       </AbsoluteFill>
+
+      <AttachmentOverlay config={visualConfig} />
 
       <AbsoluteFill
         style={{

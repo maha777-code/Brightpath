@@ -379,15 +379,23 @@ model Textbook {
 }
 
 model RagChunk {
-  id         String   @id @default(cuid())
-  textbookId String
-  textbook   Textbook @relation(fields: [textbookId], references: [id], onDelete: Cascade)
-  content    String
-  pageHint   String?
-  sequence   Int      @default(0)
-  createdAt  DateTime @default(now())
+  id           String   @id @default(cuid())
+  textbookId   String
+  textbook     Textbook @relation(fields: [textbookId], references: [id], onDelete: Cascade)
+  content      String
+  pageHint     String?
+  sequence     Int      @default(0)
+  sourceType   String   @default("textbook")
+  subtopicId   String?
+  attachmentId String?
+  attachment   SubtopicAttachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+  embedding    Json?
+  createdAt    DateTime @default(now())
 
   @@index([textbookId])
+  @@index([subtopicId])
+  @@index([sourceType])
+  @@index([attachmentId])
 }
 
 model TeacherChapter {
@@ -437,9 +445,29 @@ model TeacherSubtopic {
   updatedAt           DateTime         @updatedAt
   doubts              StudentDoubt[]
   activities          Activity[]
+  attachments         SubtopicAttachment[]
 
   @@index([chapterId])
   @@unique([chapterId, sequenceOrder])
+}
+
+model SubtopicAttachment {
+  id                String          @id @default(cuid())
+  subtopicId        String
+  subtopic          TeacherSubtopic @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
+  teacherId         String
+  fileName          String
+  mimeType          String
+  fileSizeBytes     Int             @default(0)
+  storagePath       String
+  publicUrl         String
+  kind              String
+  extractedText     String          @default("")
+  indexedChunkCount Int             @default(0)
+  createdAt         DateTime        @default(now())
+  ragChunks         RagChunk[]
+
+  @@index([subtopicId])
 }
 
 model Activity {
@@ -447,8 +475,10 @@ model Activity {
   subtopicId    String
   subtopic      TeacherSubtopic @relation(fields: [subtopicId], references: [id], onDelete: Cascade)
   chapterId     String
-  type          String          @default("gamified_quiz")
+  type          String          @default("tom_jerry_cinematic")
   title         String
+  /** Cinematic Tom & Jerry script: setup, question_loop, outcomes. */
+  content       Json?
   questionsJson Json
   totalXp       Int             @default(250)
   createdAt     DateTime        @default(now())

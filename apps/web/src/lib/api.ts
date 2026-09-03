@@ -92,6 +92,7 @@ import type {
   ReviewDoubtRequest,
   ReviewDoubtResponse,
   AttachSubtopicMediaRequest,
+  AttachSubtopicFilesResponse,
   TeacherSubtopic,
   TeacherChapter,
   GenerateActivityRequest,
@@ -422,6 +423,15 @@ export const api = {
       body: JSON.stringify(body),
       ...init,
     }),
+
+  attachSubtopicFiles: (subtopicId: string, files: File[]) => {
+    const form = new FormData();
+    for (const file of files) form.append('files', file);
+    return requestFormData<AttachSubtopicFilesResponse>(
+      `/teacher/subtopic/${subtopicId}/attach-media`,
+      form,
+    );
+  },
 
   generateTopicVideo: (topicId: string, body?: { prompt?: string }) =>
     request<{ subtopic: TeacherSubtopic; message: string }>(

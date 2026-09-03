@@ -207,12 +207,67 @@ export interface GamifiedQuizQuestion {
   xpReward: number;
 }
 
+/** How Jerry physically chooses an answer in the kitchen maze. */
+export type TomJerryGameMechanics = 'jerry_chase_maze' | 'jerry_mousehole_choice' | string;
+
+export type TomJerrySfxCue = 'TrapSet' | 'MouseRunning' | 'Bonk' | 'Caught' | 'Victory';
+
+export interface CinematicQuestionOption {
+  id: string;
+  text: string;
+  correct: boolean;
+  jerry_action: string;
+}
+
+export interface CinematicSetupScene {
+  scene_type: 'setup';
+  tom_dialogue: string;
+  animation_trigger: string;
+}
+
+export interface CinematicQuestionLoopScene {
+  scene_type: 'question_loop';
+  prompt: string;
+  game_mechanics: TomJerryGameMechanics;
+  tom_dialogue_repeat: string;
+  options: CinematicQuestionOption[];
+}
+
+export interface CinematicCorrectOutcomeScene {
+  scene_type: 'correct_outcome';
+  /** Tom's "Drat!" line after Jerry escapes (field name matches the stored JSON). */
+  tom_dialogue_on_failure: string;
+  animation_outcome: string;
+}
+
+export interface CinematicIncorrectOutcomeScene {
+  scene_type: 'incorrect_outcome';
+  tom_dialogue_on_failure: string;
+  animation_outcome: string;
+}
+
+export interface CinematicCompletedScene {
+  scene_type: 'completed';
+  tom_dialogue?: string;
+  jerry_dialogue?: string;
+  animation_trigger?: string;
+}
+
+export type CinematicScriptScene =
+  | CinematicSetupScene
+  | CinematicQuestionLoopScene
+  | CinematicCorrectOutcomeScene
+  | CinematicIncorrectOutcomeScene
+  | CinematicCompletedScene;
+
 export interface TeacherActivity {
   id: string;
   subtopicId: string;
   chapterId: string;
-  type: 'gamified_quiz' | string;
+  type: 'gamified_quiz' | 'tom_jerry_cinematic' | string;
   title: string;
+  /** Cinematic Tom & Jerry script stored in Activity.content. */
+  content?: CinematicScriptScene[];
   questions: GamifiedQuizQuestion[];
   totalXp: number;
   createdAt: string;
@@ -239,12 +294,26 @@ export interface TeacherSubtopic {
   animationCues: VideoAnimationCue[];
   videoManifest: VideoScriptManifest | null;
   activity?: TeacherActivity | null;
+  attachments?: TeacherAttachment[];
+  attachmentCount?: number;
+}
+
+export interface TeacherAttachment {
+  id: string;
+  subtopicId: string;
+  fileName: string;
+  mimeType: string;
+  fileSizeBytes: number;
+  publicUrl: string;
+  kind: 'pdf' | 'image' | 'pptx' | string;
+  indexedChunkCount: number;
+  createdAt: string;
 }
 
 export interface GenerateActivityRequest {
   subtopicId: string;
   chapterId: string;
-  type: 'gamified_quiz';
+  type: 'gamified_quiz' | 'tom_jerry_cinematic';
 }
 
 export interface GenerateActivityResponse {
@@ -319,6 +388,12 @@ export interface AttachSubtopicMediaRequest {
   activityTitle?: string;
   hasVideoExplainer?: boolean;
   hasGamifiedActivity?: boolean;
+}
+
+export interface AttachSubtopicFilesResponse {
+  attachments: TeacherAttachment[];
+  indexedChunkCount: number;
+  message: string;
 }
 
 export interface TeacherAuthResponse {

@@ -553,7 +553,31 @@ function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoS
   };
 }
 
-/** Step 2 — SweetRush micro-lesson script from RAG textbook excerpts. */
+function applyAttachmentOverlays(
+  manifest: VideoScriptManifest,
+  ctx: TopicContextPacket,
+): VideoScriptManifest {
+  const urls = (ctx.attachmentImageUrls ?? []).filter((u) => typeof u === 'string' && u.length > 4);
+  if (!urls.length) return manifest;
+  return {
+    ...manifest,
+    scenes: manifest.scenes.map((s, i) => {
+      const overlayImageUrl = urls[Math.min(i, urls.length - 1)];
+      const overlayImageUrls = urls.slice(0, 3);
+      const visualConfig = { ...(s.visualConfig ?? {}), overlayImageUrls, overlayImageUrl };
+      const parameters = { ...(s.parameters ?? {}), overlayImageUrls, overlayImageUrl };
+      return {
+        ...s,
+        visualConfig,
+        parameters,
+        visualProps: parameters,
+        props: parameters,
+      };
+    }),
+  };
+}
+}
+
 export async function generateStructuredVideoScript(
   ctx: TopicContextPacket,
 ): Promise<VideoScriptManifest> {
@@ -570,7 +594,10 @@ export async function generateStructuredVideoScript(
     `Textbook: ${ctx.textbookTitle} (${ctx.subject}, ${ctx.gradeLabel})`,
     `Chapter summary: ${ctx.chapterSummary}`,
     ctx.teacherPrompt ? `Teacher refinement: ${ctx.teacherPrompt}` : '',
-    `RAW PDF RAG EXCERPTS (GROUND TRUTH — quote activities, names, measurements, and questions):\n${excerpts || '(no excerpts — use topic title and chapter summary only)'}`,
+    `RAW RAG EXCERPTS (GROUND TRUTH — teacher attachments are prefixed and must be prioritized over textbook text):\n${excerpts || '(no excerpts — use topic title and chapter summary only)'}`,
+    ctx.attachmentImageUrls?.length
+      ? `Teacher image URLs for on-screen overlay: ${ctx.attachmentImageUrls.join(', ')}`
+      : '',
     'Output exactly 3 scenes: CHALLENGE (8s), SIMULATION (12s), DISCOVERY (8s). Total 28 seconds.',
     'Choose visualArchetype, teacherGesture, and cameraMotion for each scene.',
     'All visualConfig labels must be taken from this PDF context — do not invent a default lab kit.',
@@ -578,7 +605,7 @@ export async function generateStructuredVideoScript(
     .filter(Boolean)
     .join('\n\n');
 
-  if (!provider) return heuristicManifest(ctx);
+  if (!provider) return applyAttachmentOverlays(heuristicManifest(ctx), ctx);
 
   try {
     const raw = await Promise.race([
@@ -590,16 +617,16 @@ export async function generateStructuredVideoScript(
         setTimeout(() => reject(new Error('LLM script timed out')), 45_000);
       }),
     ]);
-    const manifest = normalizeManifest(raw ?? {}, ctx);
+    const manifest = applyAttachmentOverlays(normalizeManifest(raw ?? {}, ctx), ctx);
     console.log(
       `[videoPipeline/script] archetypes=${manifest.scenes
         .map((s) => s.visualArchetype || s.visualType)
-        .join(',')} cameras=${manifest.scenes.map((s) => s.cameraMotion).join(',')}`,
+        .join(',')} cameras=${manifest.scenes.map((s) => s.cameraMotion).join(',')} overlays=${(ctx.attachmentImageUrls ?? []).length}`,
     );
     return manifest;
   } catch (err) {
     console.warn('[videoPipeline/script] LLM failed/timed out, using context heuristic:', err);
-    return heuristicManifest(ctx);
+    return applyAttachmentOverlays(heuristicManifest(ctx), ctx);
   }
 }
 

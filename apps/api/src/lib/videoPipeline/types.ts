@@ -37,6 +37,7 @@ export interface TopicContextPacket {
   subject: string;
   gradeLabel: string;
   ragExcerpts: string[];
+  attachmentImageUrls?: string[];
   teacherPrompt?: string;
 }
 

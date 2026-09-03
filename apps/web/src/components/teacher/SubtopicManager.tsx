@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Eye, Gamepad2, Loader2, PlayCircle, Plus } from 'lucide-react';
-import type { TeacherChapter, TeacherSubtopic, TopicVideoStatus } from '@brightpath/shared';
+import {
+  isActivityPlayable,
+  type TeacherChapter,
+  type TeacherSubtopic,
+  type TopicVideoStatus,
+} from '@brightpath/shared';
 import { api } from '@/lib/api';
 import VideoReviewModal from './VideoReviewModal';
 import ActivityReviewModal from './ActivityReviewModal';
+import AttachMediaModal from './AttachMediaModal';
 
 interface SubtopicManagerProps {
   chapter: TeacherChapter | null;
@@ -31,6 +37,7 @@ export function SubtopicManager({
   const [isGenerating, setIsGenerating] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState<{ kind: 'ok' | 'err'; message: string } | null>(null);
   const [reviewActivitySub, setReviewActivitySub] = useState<TeacherSubtopic | null>(null);
+  const [attachSub, setAttachSub] = useState<TeacherSubtopic | null>(null);
   const pollRef = useRef<number | null>(null);
   const onUpdatedRef = useRef(onUpdated);
   onUpdatedRef.current = onUpdated;
@@ -75,7 +82,23 @@ export function SubtopicManager({
 
           setLocalSubs((prev) =>
             prev.map((p) =>
-              p.id === next.id ? { ...p, ...next, activity: next.activity ?? p.activity } : p,
+              p.id === next.id
+                ? {
+                    ...p,
+                    ...next,
+                    activity: next.activity ?? p.activity,
+                    attachments:
+                      next.attachments && next.attachments.length > 0
+                        ? next.attachments
+                        : (p.attachments ?? next.attachments),
+                    attachmentCount: Math.max(
+                      next.attachmentCount ?? 0,
+                      p.attachmentCount ?? 0,
+                      next.attachments?.length ?? 0,
+                      p.attachments?.length ?? 0,
+                    ),
+                  }
+                : p,
             ),
           );
 
@@ -120,7 +143,25 @@ export function SubtopicManager({
 
   const patchSub = (sub: TeacherSubtopic) => {
     setLocalSubs((prev) =>
-      prev.map((p) => (p.id === sub.id ? { ...p, ...sub, activity: sub.activity ?? p.activity } : p)),
+      prev.map((p) =>
+        p.id === sub.id
+          ? {
+              ...p,
+              ...sub,
+              activity: sub.activity ?? p.activity,
+              attachments:
+                sub.attachments && sub.attachments.length > 0
+                  ? sub.attachments
+                  : (p.attachments ?? sub.attachments),
+              attachmentCount: Math.max(
+                sub.attachmentCount ?? 0,
+                p.attachmentCount ?? 0,
+                sub.attachments?.length ?? 0,
+                p.attachments?.length ?? 0,
+              ),
+            }
+          : p,
+      ),
     );
   };
 
@@ -136,14 +177,14 @@ export function SubtopicManager({
     const timer = window.setTimeout(() => ctrl.abort(), 60_000);
     try {
       const res = await api.generateActivity(
-        { subtopicId: sub.id, chapterId: chapter.id, type: 'gamified_quiz' },
+        { subtopicId: sub.id, chapterId: chapter.id, type: 'tom_jerry_cinematic' },
         { signal: ctrl.signal },
       );
       const next: TeacherSubtopic = { ...res.subtopic, activity: res.activity };
       patchSub(next);
       onUpdated(chapter.id);
       onAssignActivity(next);
-      showToast('ok', 'Gamified activity generated successfully!');
+      showToast('ok', 'Cinematic Tom & Jerry Challenge generated!');
       if (openReview) setReviewActivitySub(next);
     } catch {
       showToast('err', 'Failed to generate activity. Please try again.');
@@ -215,19 +256,6 @@ export function SubtopicManager({
     }
   };
 
-  const attachDefaults = async (sub: TeacherSubtopic) => {
-    setBusyId(sub.id);
-    try {
-      await api.updateSubtopicMedia(sub.id, {
-        hasGamifiedActivity: true,
-        activityTitle: sub.activityTitle || `${sub.code} Gamified Activity`,
-      });
-      onUpdated(chapter.id);
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   return (
     <section
       id="td-enrichment"
@@ -254,7 +282,7 @@ export function SubtopicManager({
         {localSubs.map((sub) => {
           const status = resolveStatus(sub);
           const generating = Boolean(isGenerating[sub.id]);
-          const activityReady = Boolean(sub.activity?.questions?.length);
+          const activityReady = isActivityPlayable(sub.activity);
           return (
             <li key={sub.id} className="rounded-2xl border border-white/10 bg-slate-950/40 p-8">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -264,6 +292,13 @@ export function SubtopicManager({
                       {sub.code}
                     </span>
                     {sub.title}
+                    {(sub.attachmentCount ?? sub.attachments?.length ?? 0) > 0 ? (
+                      <span className="ml-2 align-middle rounded-full bg-white/10 px-3 py-1 text-sm font-semibold text-cyan-100">
+                        📎 {sub.attachmentCount ?? sub.attachments?.length}{' '}
+                        {(sub.attachmentCount ?? sub.attachments?.length) === 1 ? 'file' : 'files'}{' '}
+                        attached
+                      </span>
+                    ) : null}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2 text-base font-medium">
                     <VideoStatusBadge status={status} error={sub.videoError} progress={sub.videoProgress} />
@@ -320,12 +355,11 @@ export function SubtopicManager({
                   </button>
                   <button
                     type="button"
-                    onClick={() => void attachDefaults(sub)}
-                    disabled={busyId === sub.id}
-                    className="td-btn-cta inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-6 py-3 text-base font-medium disabled:opacity-60"
+                    onClick={() => setAttachSub(sub)}
+                    className="td-btn-cta inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-6 py-3 text-base font-medium"
                   >
                     <Plus className="h-5 w-5 shrink-0" />
-                    {busyId === sub.id ? 'Attaching…' : 'Attach media'}
+                    Attach media
                   </button>
                 </div>
               </div>
@@ -353,6 +387,27 @@ export function SubtopicManager({
           regenerating={Boolean(isGenerating[reviewActivitySub.id])}
           onClose={() => setReviewActivitySub(null)}
           onRegenerate={() => void generateActivity(reviewActivitySub, true)}
+        />
+      )}
+      {attachSub && (
+        <AttachMediaModal
+          subtopicId={attachSub.id}
+          subtopicLabel={`${attachSub.code} ${attachSub.title}`}
+          onClose={() => setAttachSub(null)}
+          onAttached={(incoming) => {
+            const merged = [...(attachSub.attachments ?? []), ...incoming];
+            patchSub({
+              ...attachSub,
+              attachments: merged,
+              attachmentCount: merged.length,
+            });
+            showToast(
+              'ok',
+              `📎 ${incoming.length} file${incoming.length === 1 ? '' : 's'} attached`,
+            );
+            setAttachSub(null);
+            onUpdated(chapter.id);
+          }}
         />
       )}
     </section>

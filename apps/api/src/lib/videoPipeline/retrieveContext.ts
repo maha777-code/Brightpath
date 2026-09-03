@@ -1,5 +1,9 @@
 import { prisma } from '../prisma.js';
 import type { TopicContextPacket } from './types.js';
+import {
+  attachmentImageUrlsForSubtopic,
+  prioritizedRagExcerpts,
+} from '../../services/attachMedia.js';
 
 /** Step 1 — retrieve textbook / RAG context for a teacher topic (subtopic). */
 export async function retrieveTextbookContext(
@@ -15,21 +19,19 @@ export async function retrieveTextbookContext(
   if (!sub) throw new Error('Topic not found');
 
   const textbookId = sub.chapter.textbookId;
-  const chunks = await prisma.ragChunk.findMany({
-    where: {
-      textbookId,
-      OR: [
-        { content: { contains: sub.title, mode: 'insensitive' } },
-        { content: { contains: sub.code, mode: 'insensitive' } },
-        { content: { contains: sub.chapter.title.replace(/^Chapter\s+\d+:\s*/i, ''), mode: 'insensitive' } },
-        { pageHint: { contains: sub.code, mode: 'insensitive' } },
-      ],
-    },
-    orderBy: { sequence: 'asc' },
-    take: 16,
+  const { attachment, textbook } = await prioritizedRagExcerpts({
+    textbookId,
+    subtopicId: sub.id,
+    code: sub.code,
+    title: sub.title,
+    chapterTitle: sub.chapter.title,
   });
 
-  let ragExcerpts = chunks.map((c) => c.content);
+  let ragExcerpts = [
+    ...attachment.map((c) => `[Teacher attachment] ${c}`),
+    ...textbook,
+  ];
+
   if (ragExcerpts.length === 0) {
     const fallback = await prisma.ragChunk.findMany({
       where: { textbookId },
@@ -46,6 +48,8 @@ export async function retrieveTextbookContext(
     ];
   }
 
+  const attachmentImageUrls = await attachmentImageUrlsForSubtopic(sub.id);
+
   return {
     topicId: sub.id,
     code: sub.code,
@@ -56,6 +60,7 @@ export async function retrieveTextbookContext(
     subject: sub.chapter.textbook.subject,
     gradeLabel: sub.chapter.textbook.gradeLabel,
     ragExcerpts,
+    attachmentImageUrls,
     teacherPrompt,
   };
 }

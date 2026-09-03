@@ -366,7 +366,17 @@ export type {
   TeacherChapter,
   TeacherSubtopic,
   TeacherActivity,
+  TeacherAttachment,
   GamifiedQuizQuestion,
+  CinematicScriptScene,
+  CinematicSetupScene,
+  CinematicQuestionLoopScene,
+  CinematicQuestionOption,
+  CinematicCorrectOutcomeScene,
+  CinematicIncorrectOutcomeScene,
+  CinematicCompletedScene,
+  TomJerryGameMechanics,
+  TomJerrySfxCue,
   GenerateActivityRequest,
   GenerateActivityResponse,
   AIResponse,
@@ -379,6 +389,7 @@ export type {
   ReviewDoubtRequest,
   ReviewDoubtResponse,
   AttachSubtopicMediaRequest,
+  AttachSubtopicFilesResponse,
   TeacherAuthResponse,
   TeacherLoginRequest,
   TeacherRegisterRequest,
@@ -394,6 +405,21 @@ export type {
   OrganizationPublic,
   ClassBatchPublic,
 } from './rbac.js';
+
+export {
+  parseCinematicScript,
+  questionLoopsFromScript,
+  questionsFromCinematicScript,
+  cinematicScriptFromQuiz,
+  resolveActivityScript,
+  isActivityPlayable,
+  JERRY_ACTION_CORRECT,
+  JERRY_ACTION_WRONG,
+  DEFAULT_GAME_MECHANICS,
+  TOM_TRAP_SETUP,
+  TOM_BONKED,
+  JERRY_CAUGHT_CINEMATIC,
+} from './cinematicActivity.js';
 
 export {
   DEFAULT_PLAN_FOR_ROLE,

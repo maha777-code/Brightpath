@@ -1,0 +1,4 @@
+
+> @brightpath/api@0.2.0 dev
+> tsx watch src/index.ts
+
