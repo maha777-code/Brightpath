@@ -277,7 +277,6 @@ export async function ingestSubtopicAttachments(input: {
     }
 
     try {
-    try {
       const attachments = attachmentDelegate();
       if (attachments?.update) {
         await attachments.update({
