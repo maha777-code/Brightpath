@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Eye, Loader2, PlayCircle, Plus } from 'lucide-react';
+import { AlertTriangle, Eye, Loader2, Pencil, PlayCircle, Plus, Settings2 } from 'lucide-react';
 import {
   getGenerationTemplate,
   isActivityPlayable,
+  isGenerationTemplateId,
   resolveActivityTemplateId,
   type GenerationTemplateId,
   type TeacherChapter,
@@ -27,6 +28,10 @@ function resolveStatus(sub: TeacherSubtopic): TopicVideoStatus {
   if (sub.videoStatus && sub.videoStatus !== 'none') return sub.videoStatus;
   if (sub.hasVideoExplainer && sub.videoUrl) return 'published';
   return 'none';
+}
+
+function asTemplateId(value?: string | null): GenerationTemplateId | undefined {
+  return isGenerationTemplateId(value) ? value : undefined;
 }
 
 export function SubtopicManager({
@@ -55,7 +60,28 @@ export function SubtopicManager({
   onUpdatedRef.current = onUpdated;
 
   useEffect(() => {
-    setLocalSubs(chapter?.subtopics ?? []);
+    const next = chapter?.subtopics ?? [];
+    setLocalSubs(next);
+
+    // Hydrate persisted template selections (survive refresh).
+    setVideoTemplateBySub((prev) => {
+      const merged = { ...prev };
+      for (const sub of next) {
+        const fromDb = asTemplateId(sub.videoTemplateId);
+        if (fromDb) merged[sub.id] = fromDb;
+      }
+      return merged;
+    });
+    setActivityTemplateBySub((prev) => {
+      const merged = { ...prev };
+      for (const sub of next) {
+        const fromDb =
+          asTemplateId(sub.activityTemplateId) ??
+          (sub.activity ? resolveActivityTemplateId(sub.activity) : undefined);
+        if (fromDb) merged[sub.id] = fromDb;
+      }
+      return merged;
+    });
   }, [chapter]);
 
   // Poll generating topics every 3s until pending_review / failed
@@ -175,6 +201,17 @@ export function SubtopicManager({
           : p,
       ),
     );
+
+    const videoTid = asTemplateId(sub.videoTemplateId);
+    if (videoTid) {
+      setVideoTemplateBySub((prev) => ({ ...prev, [sub.id]: videoTid }));
+    }
+    const activityTid =
+      asTemplateId(sub.activityTemplateId) ??
+      (sub.activity ? resolveActivityTemplateId(sub.activity) : undefined);
+    if (activityTid) {
+      setActivityTemplateBySub((prev) => ({ ...prev, [sub.id]: activityTid }));
+    }
   };
 
   const showToast = (kind: 'ok' | 'err', message: string) => {
@@ -202,7 +239,12 @@ export function SubtopicManager({
         },
         { signal: ctrl.signal },
       );
-      const next: TeacherSubtopic = { ...res.subtopic, activity: res.activity };
+      const next: TeacherSubtopic = {
+        ...res.subtopic,
+        activity: res.activity,
+        activityTemplateId: chosen,
+      };
+      setActivityTemplateBySub((prev) => ({ ...prev, [sub.id]: chosen }));
       patchSub(next);
       onUpdated(chapter.id);
       onAssignActivity(next);
@@ -225,7 +267,9 @@ export function SubtopicManager({
     setBusyId(sub.id);
     try {
       const res = await api.generateTopicVideo(sub.id, { templateId: chosen });
-      patchSub(res.subtopic);
+      const next = { ...res.subtopic, videoTemplateId: chosen };
+      setVideoTemplateBySub((prev) => ({ ...prev, [sub.id]: chosen }));
+      patchSub(next);
       onUpdated(chapter.id);
     } catch (e) {
       patchSub({
@@ -306,6 +350,12 @@ export function SubtopicManager({
           const status = resolveStatus(sub);
           const generating = Boolean(isGenerating[sub.id]);
           const activityReady = isActivityPlayable(sub.activity);
+          const videoTemplateId = videoTemplateBySub[sub.id];
+          const activityTemplateId = activityTemplateBySub[sub.id];
+          const videoTpl = videoTemplateId ? getGenerationTemplate(videoTemplateId) : null;
+          const activityTpl = activityTemplateId ? getGenerationTemplate(activityTemplateId) : null;
+          const videoReady = status === 'pending_review' || status === 'published';
+
           return (
             <li key={sub.id} className="rounded-2xl border border-white/10 bg-slate-950/40 p-8">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -334,15 +384,31 @@ export function SubtopicManager({
                         No activity
                       </span>
                     )}
-                    {activityTemplateBySub[sub.id] ? (
-                      <span className="rounded-full bg-amber-500/20 px-4 py-1.5 text-amber-100">
-                        🎮 {getGenerationTemplate(activityTemplateBySub[sub.id]).title}
-                      </span>
+                    {activityTpl ? (
+                      <button
+                        type="button"
+                        onClick={() => setTemplatePick({ generationType: 'activity', sub })}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 px-4 py-1.5 text-amber-100 hover:bg-amber-500/30"
+                        title="Change activity template"
+                      >
+                        <span>
+                          {activityTpl.icon} {activityTpl.title}
+                        </span>
+                        <Pencil className="h-3.5 w-3.5 opacity-80" />
+                      </button>
                     ) : null}
-                    {videoTemplateBySub[sub.id] ? (
-                      <span className="rounded-full bg-cyan-500/20 px-4 py-1.5 text-cyan-100">
-                        🎬 {getGenerationTemplate(videoTemplateBySub[sub.id]).title}
-                      </span>
+                    {videoTpl ? (
+                      <button
+                        type="button"
+                        onClick={() => setTemplatePick({ generationType: 'video', sub })}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/20 px-4 py-1.5 text-cyan-100 hover:bg-cyan-500/30"
+                        title="Change video template"
+                      >
+                        <span>
+                          {videoTpl.icon} {videoTpl.title}
+                        </span>
+                        <Pencil className="h-3.5 w-3.5 opacity-80" />
+                      </button>
                     ) : null}
                   </div>
                 </div>
@@ -355,19 +421,39 @@ export function SubtopicManager({
                     onSelectTemplate={() => setTemplatePick({ generationType: 'video', sub })}
                     onReview={() => void openReview(sub)}
                   />
-
-                  {activityReady && !generating ? (
+                  {videoReady ? (
                     <button
                       type="button"
-                      onClick={() => {
-                        onAssignActivity(sub);
-                        setReviewActivitySub(sub);
-                      }}
-                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-amber-400/40 bg-amber-500/20 px-6 py-3 text-base font-medium text-[#FEF3C7]"
+                      onClick={() => setTemplatePick({ generationType: 'video', sub })}
+                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-white/15 bg-transparent px-4 py-3 text-sm font-medium text-cyan-100 hover:bg-white/5"
                     >
-                      <Eye className="h-5 w-5 shrink-0" />
-                      Review Activity
+                      <Settings2 className="h-4 w-4 shrink-0" />
+                      Change Template
                     </button>
+                  ) : null}
+
+                  {activityReady && !generating ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onAssignActivity(sub);
+                          setReviewActivitySub(sub);
+                        }}
+                        className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-amber-400/40 bg-amber-500/20 px-6 py-3 text-base font-medium text-[#FEF3C7]"
+                      >
+                        <Eye className="h-5 w-5 shrink-0" />
+                        Review Activity
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTemplatePick({ generationType: 'activity', sub })}
+                        className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-white/15 bg-transparent px-4 py-3 text-sm font-medium text-amber-100 hover:bg-white/5"
+                      >
+                        <Settings2 className="h-4 w-4 shrink-0" />
+                        Change Template
+                      </button>
+                    </>
                   ) : (
                     <button
                       type="button"
@@ -421,9 +507,10 @@ export function SubtopicManager({
             void generateActivity(
               reviewActivitySub,
               true,
-              reviewActivitySub.activity
-                ? resolveActivityTemplateId(reviewActivitySub.activity)
-                : activityTemplateBySub[reviewActivitySub.id],
+              activityTemplateBySub[reviewActivitySub.id] ??
+                (reviewActivitySub.activity
+                  ? resolveActivityTemplateId(reviewActivitySub.activity)
+                  : undefined),
             )
           }
         />

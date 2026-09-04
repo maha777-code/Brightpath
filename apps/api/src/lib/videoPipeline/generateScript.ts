@@ -1,5 +1,6 @@
 import {
   getGenerationTemplate,
+  TEMPLATE_CONFIGS,
   templatePromptBlock,
   type PedagogicalArchetype,
   type SceneVisualConfig,
@@ -590,6 +591,8 @@ export async function generateStructuredVideoScript(
   );
 
   const template = getGenerationTemplate(ctx.templateId);
+  const activeConfig = TEMPLATE_CONFIGS[template.id] || TEMPLATE_CONFIGS.tom_and_jerry;
+  void activeConfig;
   const user = [
     `Topic code: ${ctx.code}`,
     `Topic title: ${ctx.title}`,

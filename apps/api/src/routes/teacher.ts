@@ -5,7 +5,12 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
-import { hasFeatureAccess, maxPdfBytes, maxPdfCount } from '@brightpath/shared';
+import {
+  getGenerationTemplate,
+  hasFeatureAccess,
+  maxPdfBytes,
+  maxPdfCount,
+} from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireTeacher, type AuthRequest } from '../middleware/auth.js';
 import {
@@ -416,25 +421,46 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => 
 
   const { enqueueHybridVideoJob } = await import('../lib/videoPipeline/runPipeline.js');
 
-  const updated = await prisma.teacherSubtopic.update({
-    where: { id: existing.id },
-    data: {
-      videoStatus: 'generating',
-      videoProgress: 2,
-      videoJobStage: 'queued',
-      videoJobStartedAt: new Date(),
-      generatedVideoUrl: null,
-      videoAudioUrl: null,
-      videoError: null,
-      videoManifestJson: Prisma.JsonNull,
-      videoScript: null,
-      animationCuesJson: Prisma.JsonNull,
-      hasVideoExplainer: false,
-    },
-  });
+  const templateId = getGenerationTemplate(parsed.data.templateId).id;
 
-  // Clear any stuck in-memory lock by enqueueing fresh job
-  const templateId = parsed.data.templateId ?? 'tom_and_jerry';
+  let updated;
+  try {
+    updated = await prisma.teacherSubtopic.update({
+      where: { id: existing.id },
+      data: {
+        videoStatus: 'generating',
+        videoProgress: 2,
+        videoJobStage: 'queued',
+        videoJobStartedAt: new Date(),
+        generatedVideoUrl: null,
+        videoAudioUrl: null,
+        videoError: null,
+        videoManifestJson: Prisma.JsonNull,
+        videoScript: null,
+        animationCuesJson: Prisma.JsonNull,
+        hasVideoExplainer: false,
+        videoTemplateId: templateId,
+      },
+    });
+  } catch {
+    updated = await prisma.teacherSubtopic.update({
+      where: { id: existing.id },
+      data: {
+        videoStatus: 'generating',
+        videoProgress: 2,
+        videoJobStage: 'queued',
+        videoJobStartedAt: new Date(),
+        generatedVideoUrl: null,
+        videoAudioUrl: null,
+        videoError: null,
+        videoManifestJson: Prisma.JsonNull,
+        videoScript: null,
+        animationCuesJson: Prisma.JsonNull,
+        hasVideoExplainer: false,
+      },
+    });
+  }
+
   enqueueHybridVideoJob(existing.id, parsed.data.prompt, templateId);
 
   res.status(202).json({

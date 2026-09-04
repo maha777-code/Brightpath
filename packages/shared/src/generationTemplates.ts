@@ -183,7 +183,7 @@ export const GENERATION_TEMPLATES: GenerationTemplate[] = [
       'A pixel-art mothership quizzes the class. Students fire the correct answer-laser to break the boss shield.',
     icon: '🚀',
     accent: '#38BDF8',
-    kind: 'activity',
+    kind: 'both',
     activityType: 'space_shooter',
     dialogueTone: TEMPLATE_CONFIGS.space_shooter.systemPrompt,
     mechanics: TEMPLATE_CONFIGS.space_shooter.gameMechanics,
@@ -200,7 +200,7 @@ export const GENERATION_TEMPLATES: GenerationTemplate[] = [
       'A detective boards clues from the textbook. Students pick the next lead to crack the case.',
     icon: '🔍',
     accent: '#A78BFA',
-    kind: 'activity',
+    kind: 'both',
     activityType: 'detective_mystery',
     dialogueTone: TEMPLATE_CONFIGS.detective_mystery.systemPrompt,
     mechanics: TEMPLATE_CONFIGS.detective_mystery.gameMechanics,
@@ -217,7 +217,7 @@ export const GENERATION_TEMPLATES: GenerationTemplate[] = [
       'Professor Maya guides a three-beat Remotion quest: challenge, simulation, discovery — ideal for Video Explainers.',
     icon: '🗺️',
     accent: '#34D399',
-    kind: 'video',
+    kind: 'both',
     activityType: 'sweetrush_quest',
     dialogueTone: TEMPLATE_CONFIGS.sweetrush_quest.systemPrompt,
     mechanics: TEMPLATE_CONFIGS.sweetrush_quest.gameMechanics,
@@ -254,7 +254,19 @@ export function getGenerationTemplate(id?: string | null): GenerationTemplate {
 
 export function getTemplateConfig(id?: string | null): TemplateConfig {
   const tid = isGenerationTemplateId(id) ? id : DEFAULT_GENERATION_TEMPLATE_ID;
-  return TEMPLATE_CONFIGS[tid];
+  // Guard unknown / future templateIds — never crash on missing registry keys.
+  const activeConfig = TEMPLATE_CONFIGS[tid] || TEMPLATE_CONFIGS.tom_and_jerry;
+  return activeConfig;
+}
+
+/** Resolve templateId + config with the same fallback used by generation services. */
+export function resolveActiveTemplate(
+  templateId?: string | null,
+): { id: GenerationTemplateId; config: TemplateConfig; template: GenerationTemplate } {
+  const template = getGenerationTemplate(templateId);
+  const id = template.id;
+  const activeConfig = TEMPLATE_CONFIGS[id] || TEMPLATE_CONFIGS.tom_and_jerry;
+  return { id, config: activeConfig, template };
 }
 
 export function templateIdFromActivityType(type?: string | null): GenerationTemplateId {

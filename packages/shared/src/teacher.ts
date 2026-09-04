@@ -285,6 +285,10 @@ export interface TeacherSubtopic {
   hasGamifiedActivity: boolean;
   videoTitle: string | null;
   activityTitle: string | null;
+  /** Last selected / used video generation template (persisted). */
+  videoTemplateId?: string | null;
+  /** Last selected / used activity generation template (persisted). */
+  activityTemplateId?: string | null;
   videoUrl: string | null;
   videoStatus: TopicVideoStatus;
   videoProgress: number;

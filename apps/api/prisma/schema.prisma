@@ -428,6 +428,10 @@ model TeacherSubtopic {
   hasGamifiedActivity Boolean          @default(false)
   videoTitle          String?
   activityTitle       String?
+  /** Persisted teacher selection for video generation template */
+  videoTemplateId     String?
+  /** Persisted teacher selection for activity generation template */
+  activityTemplateId  String?
   videoUrl            String?
   /** AI video generation workflow */
   videoStatus         TopicVideoStatus @default(none)

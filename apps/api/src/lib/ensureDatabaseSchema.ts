@@ -29,7 +29,7 @@ async function hasPublicColumn(table: string, column: string): Promise<boolean> 
 /** True when login + teacher video pipeline columns are present. */
 export async function isDatabaseSchemaCurrent(): Promise<boolean> {
   try {
-    const [platformPlan, teacherPlan, videoStatus, cuesJson, activityTable, activityContent, attachmentTable] =
+    const [platformPlan, teacherPlan, videoStatus, cuesJson, activityTable, activityContent, attachmentTable, videoTemplateCol, activityTemplateCol] =
       await Promise.all([
         hasPublicColumn('PlatformUser', 'planType'),
         hasPublicColumn('Teacher', 'planType'),
@@ -48,6 +48,8 @@ export async function isDatabaseSchemaCurrent(): Promise<boolean> {
             WHERE table_schema = 'public' AND table_name = 'SubtopicAttachment'
           ) AS exists
         `.then((rows) => Boolean(rows[0]?.exists)),
+        hasPublicColumn('TeacherSubtopic', 'videoTemplateId'),
+        hasPublicColumn('TeacherSubtopic', 'activityTemplateId'),
       ]);
     return (
       platformPlan &&
@@ -56,7 +58,9 @@ export async function isDatabaseSchemaCurrent(): Promise<boolean> {
       cuesJson &&
       activityTable &&
       activityContent &&
-      attachmentTable
+      attachmentTable &&
+      videoTemplateCol &&
+      activityTemplateCol
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

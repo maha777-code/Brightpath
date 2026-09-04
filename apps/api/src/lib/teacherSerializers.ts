@@ -108,6 +108,8 @@ export function toSubtopic(
     hasGamifiedActivity: s.hasGamifiedActivity,
     videoTitle: s.videoTitle,
     activityTitle: s.activityTitle,
+    videoTemplateId: (s as { videoTemplateId?: string | null }).videoTemplateId ?? null,
+    activityTemplateId: (s as { activityTemplateId?: string | null }).activityTemplateId ?? null,
     videoUrl: safeVideoUrl,
     videoStatus: resolvedStatus,
     videoProgress: (s as { videoProgress?: number }).videoProgress ?? 0,

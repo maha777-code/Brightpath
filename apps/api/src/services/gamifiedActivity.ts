@@ -2,13 +2,14 @@ import { z } from 'zod';
 import {
   cinematicScriptFromQuiz,
   extractTemplateIdFromContent,
-  getGenerationTemplate,
   getTemplateConfig,
   parseCinematicScript,
   questionLoopsFromScript,
   questionsFromCinematicScript,
+  resolveActiveTemplate,
   templateIdFromActivityType,
   templatePromptBlock,
+  TEMPLATE_CONFIGS,
   type CinematicScriptScene,
   type GamifiedQuizQuestion,
   type TeacherActivity,
@@ -143,7 +144,11 @@ function fallbackQuestions(input: {
   title: string;
   chapterTitle: string;
   excerpts: string[];
+  templateId?: string;
 }): GamifiedQuizQuestion[] {
+  const cfg = getTemplateConfig(input.templateId);
+  const host = cfg.characters.host;
+  const runner = cfg.characters.runner;
   const snippet = input.excerpts[0]?.slice(0, 180) || `${input.code} ${input.title}`;
   return [
     {
@@ -183,15 +188,15 @@ function fallbackQuestions(input: {
       xpReward: 50,
     },
     {
-      questionText: 'How can you check an answer during this chase?',
+      questionText: `How can you check an answer during this ${cfg.themeName}?`,
       options: [
         'Ignore the textbook entirely',
         'Pick the longest option every time',
-        'Compare Jerry’s escape path with the textbook excerpt',
+        `Compare ${runner}'s path with the textbook excerpt`,
         'Skip all questions',
       ],
       correctAnswerIndex: 2,
-      explanation: 'Each mousehole maps to a claim you can check against the text.',
+      explanation: `Each ${cfg.choiceLabel} maps to a claim you can check against the text.`,
       xpReward: 50,
     },
     {
@@ -203,7 +208,7 @@ function fallbackQuestions(input: {
         'A list of world capitals',
       ],
       correctAnswerIndex: 0,
-      explanation: 'The first option is taken from the retrieved textbook context for this subtopic.',
+      explanation: `${host} would accept the first option — it comes from the retrieved textbook context.`,
       xpReward: 50,
     },
   ];
@@ -265,14 +270,15 @@ function ensureOutcomeScenes(
 }
 
 function cinematicSystemPrompt(templateId?: string): string {
-  const template = getGenerationTemplate(templateId);
-  const cfg = getTemplateConfig(template.id);
+  const { id, config: cfg, template } = resolveActiveTemplate(templateId);
   return `You write a character-driven classroom game script for Class 9 Science — NOT a plain quiz.
-templateId MUST be "${template.id}".
+templateId MUST be "${id}".
 Theme: ${cfg.themeName}.
 ${cfg.systemPrompt}
 Host (${cfg.characters.host}) delivers setup/questions. Runner (${cfg.characters.runner}) responses are the answer options.
+JSON schema: script[] with scene_type in [setup, question_loop, correct_outcome, incorrect_outcome, completed]; question_loop.options[] use id A–D, text, correct, jerry_action.
 Do NOT invent Tom & Jerry unless templateId is tom_and_jerry.
+Template title: ${template.title}.
 Return JSON only.`;
 }
 
@@ -283,22 +289,21 @@ function cinematicUserPrompt(input: {
   context: string;
   templateId?: string;
 }): string {
-  const template = getGenerationTemplate(input.templateId);
-  const cfg = getTemplateConfig(template.id);
+  const { id, config: cfg, template } = resolveActiveTemplate(input.templateId);
   const host = cfg.characters.host;
   const runner = cfg.characters.runner;
   return `Create a ${cfg.themeName} activity for this subtopic.
 Subtopic: ${input.code} ${input.title}
 Chapter: ${input.chapterTitle}
 
-${templatePromptBlock(template.id)}
+${templatePromptBlock(id)}
 
 Textbook / RAG context:
 ${input.context}
 
 Return JSON with this exact shape:
 {
-  "templateId": "${template.id}",
+  "templateId": "${id}",
   "subtopicId": "${input.code}",
   "title": "${template.title}: ${input.title}",
   "xpReward": 50,
@@ -356,48 +361,78 @@ async function generateCinematicScriptFromLlm(input: {
   excerpts: string[];
   templateId?: string;
 }): Promise<CinematicScriptScene[]> {
-  const templateId = getGenerationTemplate(input.templateId).id;
-  const cfg = getTemplateConfig(templateId);
+  const { id: templateId, config: cfg } = resolveActiveTemplate(input.templateId);
+  // Guard: TEMPLATE_CONFIGS[templateId] || TEMPLATE_CONFIGS['tom_and_jerry']
+  const activeConfig = TEMPLATE_CONFIGS[templateId] || TEMPLATE_CONFIGS.tom_and_jerry;
+  void activeConfig;
+
   const provider = getActiveProvider();
   if (!provider) {
     return fallbackCinematicScript({ ...input, templateId });
   }
 
   const context = input.excerpts.slice(0, 8).join('\n\n').slice(0, 6000);
-  const raw = await withTimeout(
-    provider.completeJson<unknown>({
-      system: cinematicSystemPrompt(templateId),
-      user: cinematicUserPrompt({ ...input, templateId, context }),
-    }),
-    LLM_TIMEOUT_MS,
-    'Activity generation timed out',
-  );
 
-  const asObject =
-    Array.isArray(raw) ? { script: raw } : raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const quizQuestions = parseQuizQuestions(asObject.questions);
-  let script = ensureOutcomeScenes(parseCinematicScript(raw, templateId), templateId);
-  if (questionLoopsFromScript(script).length < 3 && quizQuestions.length >= 3) {
-    script = cinematicScriptFromQuiz(quizQuestions, input.title, templateId);
-  }
-  if (questionLoopsFromScript(script).length < 3) {
+  let raw: unknown;
+  try {
+    raw = await withTimeout(
+      provider.completeJson<unknown>({
+        system: cinematicSystemPrompt(templateId),
+        user: cinematicUserPrompt({ ...input, templateId, context }),
+      }),
+      LLM_TIMEOUT_MS,
+      'Activity generation timed out',
+    );
+  } catch (err) {
+    console.warn(
+      `[gamifiedActivity] LLM call failed for templateId=${templateId}; using fallback script.`,
+      err instanceof Error ? err.message : err,
+    );
     return fallbackCinematicScript({ ...input, templateId });
   }
 
-  return script.map((scene) => {
-    if (scene.scene_type !== 'question_loop') return scene;
-    return {
-      ...scene,
-      game_mechanics: scene.game_mechanics || cfg.gameMechanics,
-      options: scene.options.slice(0, 4).map((opt, i) => ({
-        ...opt,
-        id: OPTION_IDS[i] ?? opt.id,
-        jerry_action: opt.correct
-          ? cfg.animationTriggers.correctAction
-          : cfg.animationTriggers.wrongAction,
-      })),
-    };
-  });
+  try {
+    const asObject =
+      Array.isArray(raw)
+        ? { script: raw }
+        : raw && typeof raw === 'object'
+          ? (raw as Record<string, unknown>)
+          : {};
+    const quizQuestions = parseQuizQuestions(asObject.questions);
+    let script = ensureOutcomeScenes(parseCinematicScript(raw, templateId), templateId);
+    if (questionLoopsFromScript(script).length < 3 && quizQuestions.length >= 3) {
+      script = cinematicScriptFromQuiz(quizQuestions, input.title, templateId);
+    }
+    if (questionLoopsFromScript(script).length < 3) {
+      console.warn(
+        `[gamifiedActivity] Schema parse yielded too few question_loops for templateId=${templateId}. Raw completion:`,
+        typeof raw === 'string' ? raw : JSON.stringify(raw)?.slice(0, 4000),
+      );
+      return fallbackCinematicScript({ ...input, templateId });
+    }
+
+    return script.map((scene) => {
+      if (scene.scene_type !== 'question_loop') return scene;
+      return {
+        ...scene,
+        game_mechanics: scene.game_mechanics || cfg.gameMechanics,
+        options: scene.options.slice(0, 4).map((opt, i) => ({
+          ...opt,
+          id: OPTION_IDS[i] ?? opt.id,
+          jerry_action: opt.correct
+            ? cfg.animationTriggers.correctAction
+            : cfg.animationTriggers.wrongAction,
+        })),
+      };
+    });
+  } catch (err) {
+    console.warn(
+      `[gamifiedActivity] Schema parsing failed for templateId=${templateId}. Raw completion:`,
+      typeof raw === 'string' ? raw : JSON.stringify(raw)?.slice(0, 4000),
+      err instanceof Error ? err.message : err,
+    );
+    return fallbackCinematicScript({ ...input, templateId });
+  }
 }
 
 export async function generateGamifiedActivity(input: {
@@ -419,18 +454,18 @@ export async function generateGamifiedActivity(input: {
     throw Object.assign(new Error('Subtopic not found'), { status: 404 });
   }
 
-  const template = getGenerationTemplate(input.templateId);
+  const { id: templateId, template } = resolveActiveTemplate(input.templateId);
   const packet = await retrieveTextbookContext(sub.id);
   const script = await generateCinematicScriptFromLlm({
     code: sub.code,
     title: sub.title,
     chapterTitle: sub.chapter.title,
     excerpts: packet.ragExcerpts,
-    templateId: template.id,
+    templateId,
   });
 
   const contentPayload = {
-    templateId: template.id,
+    templateId,
     subtopicId: sub.code,
     script,
   };
@@ -443,7 +478,7 @@ export async function generateGamifiedActivity(input: {
     data: {
       subtopicId: sub.id,
       chapterId: sub.chapterId,
-      type: template.activityType || input.type || template.id,
+      type: template.activityType || input.type || templateId,
       title,
       content: contentPayload,
       questionsJson: questions,
@@ -456,7 +491,18 @@ export async function generateGamifiedActivity(input: {
     data: {
       hasGamifiedActivity: true,
       activityTitle: title,
+      activityTemplateId: templateId,
     },
+  }).catch(async (err) => {
+    // Schema may lag until ensureDatabaseSchema / db push adds activityTemplateId.
+    console.warn('[gamifiedActivity] activityTemplateId update failed, retrying without it:', err);
+    await prisma.teacherSubtopic.update({
+      where: { id: sub.id },
+      data: {
+        hasGamifiedActivity: true,
+        activityTitle: title,
+      },
+    });
   });
 
   return {

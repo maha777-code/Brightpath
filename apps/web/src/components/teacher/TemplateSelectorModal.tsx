@@ -154,9 +154,24 @@ export default function TemplateSelectorModal({
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-amber-100/80">
-            Selected: <span className="font-bold text-amber-200">{chosen?.title}</span>
-          </p>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-amber-100/80">
+            <span>Currently selected:</span>
+            {chosen ? (
+              <span
+                className={[
+                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-bold',
+                  generationType === 'video'
+                    ? 'bg-cyan-500/25 text-cyan-50'
+                    : 'bg-amber-500/25 text-amber-50',
+                ].join(' ')}
+              >
+                <span>{chosen.icon}</span>
+                {chosen.title}
+              </span>
+            ) : (
+              <span className="font-bold text-amber-200">None</span>
+            )}
+          </div>
           <div className="flex gap-3">
             <button
               type="button"

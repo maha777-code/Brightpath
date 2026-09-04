@@ -415,6 +415,7 @@ export {
   isGenerationTemplateId,
   getGenerationTemplate,
   getTemplateConfig,
+  resolveActiveTemplate,
   templateIdFromActivityType,
   templatesForGenerationType,
   templatePromptBlock,

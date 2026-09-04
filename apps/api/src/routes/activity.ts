@@ -37,8 +37,7 @@ router.post('/generate-activity', async (req: AuthRequest, res) => {
   }
 
   try {
-    const templateId = parsed.data.templateId ?? 'tom_and_jerry';
-    const template = getGenerationTemplate(templateId);
+    const template = getGenerationTemplate(parsed.data.templateId);
     const result = await generateGamifiedActivity({
       teacherId: req.teacherId!,
       subtopicId: parsed.data.subtopicId,
@@ -58,15 +57,21 @@ router.post('/generate-activity', async (req: AuthRequest, res) => {
       subtopic: toSubtopic(subtopic, result.activity),
     });
   } catch (err) {
-    const status = typeof (err as { status?: number }).status === 'number' ? (err as { status: number }).status : 502;
+    console.error('[generate-activity] failed:', err);
+    const status =
+      typeof (err as { status?: number }).status === 'number'
+        ? (err as { status: number }).status
+        : 502;
     const message =
       err instanceof Error && err.message
         ? err.message
         : 'Failed to generate activity. Please try again.';
     const friendly =
-      status === 404 ? message : /timed out/i.test(message) || status >= 500
-        ? 'Failed to generate activity. Please try again.'
-        : message;
+      status === 404
+        ? message
+        : /timed out/i.test(message) || status >= 500
+          ? 'Failed to generate activity. Please try again.'
+          : message;
     res.status(status === 404 ? 404 : 502).json({ error: friendly });
   }
 });
