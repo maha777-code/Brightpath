@@ -392,23 +392,38 @@ async function generateCinematicScriptFromLlm(input: {
   }
 
   try {
+    let parsedRaw: unknown = raw;
+    if (typeof raw === 'string') {
+      try {
+        parsedRaw = JSON.parse(raw);
+      } catch (parseErr) {
+        console.error(
+          '[Template Generation Error] Failed to parse LLM JSON output for template:',
+          templateId,
+          parseErr,
+        );
+        return getFallbackScriptForTemplate(templateId, input);
+      }
+    }
+
     const asObject =
-      Array.isArray(raw)
-        ? { script: raw }
-        : raw && typeof raw === 'object'
-          ? (raw as Record<string, unknown>)
+      Array.isArray(parsedRaw)
+        ? { script: parsedRaw }
+        : parsedRaw && typeof parsedRaw === 'object'
+          ? (parsedRaw as Record<string, unknown>)
           : {};
     const quizQuestions = parseQuizQuestions(asObject.questions);
-    let script = ensureOutcomeScenes(parseCinematicScript(raw, templateId), templateId);
+    let script = ensureOutcomeScenes(parseCinematicScript(parsedRaw, templateId), templateId);
     if (questionLoopsFromScript(script).length < 3 && quizQuestions.length >= 3) {
       script = cinematicScriptFromQuiz(quizQuestions, input.title, templateId);
     }
     if (questionLoopsFromScript(script).length < 3) {
-      console.warn(
-        `[gamifiedActivity] Schema parse yielded too few question_loops for templateId=${templateId}. Raw completion:`,
-        typeof raw === 'string' ? raw : JSON.stringify(raw)?.slice(0, 4000),
+      console.error(
+        '[Template Generation Error] Failed to parse LLM JSON output for template:',
+        templateId,
+        'too few question_loops',
       );
-      return fallbackCinematicScript({ ...input, templateId });
+      return getFallbackScriptForTemplate(templateId, input);
     }
 
     return script.map((scene) => {
@@ -426,13 +441,27 @@ async function generateCinematicScriptFromLlm(input: {
       };
     });
   } catch (err) {
-    console.warn(
-      `[gamifiedActivity] Schema parsing failed for templateId=${templateId}. Raw completion:`,
-      typeof raw === 'string' ? raw : JSON.stringify(raw)?.slice(0, 4000),
-      err instanceof Error ? err.message : err,
+    console.error(
+      '[Template Generation Error] Failed to parse LLM JSON output for template:',
+      templateId,
+      err,
     );
-    return fallbackCinematicScript({ ...input, templateId });
+    return getFallbackScriptForTemplate(templateId, input);
   }
+}
+
+/** Alias used by fail-safe parse blocks — structured default schema for any templateId. */
+function getFallbackScriptForTemplate(
+  templateId: string,
+  input: {
+    code: string;
+    title: string;
+    chapterTitle: string;
+    excerpts: string[];
+    templateId?: string;
+  },
+): CinematicScriptScene[] {
+  return fallbackCinematicScript({ ...input, templateId });
 }
 
 export async function generateGamifiedActivity(input: {

@@ -579,6 +579,45 @@ function applyAttachmentOverlays(
     }),
   };
 }
+
+/** Structured default video script when LLM JSON is missing or unparsable. */
+function getFallbackScriptForTemplate(
+  templateId: string | undefined,
+  ctx: TopicContextPacket,
+): VideoScriptManifest {
+  const template = getGenerationTemplate(templateId);
+  const activeConfig = TEMPLATE_CONFIGS[template.id] || TEMPLATE_CONFIGS.tom_and_jerry;
+  const base = applyAttachmentOverlays(heuristicManifest(ctx), ctx);
+  const host = activeConfig.characters.host;
+  return {
+    ...base,
+    teacherName: host || base.teacherName,
+    topicTitle: base.topicTitle || ctx.title,
+  };
+}
+
+function parseLlmManifestSafely(
+  llmOutput: unknown,
+  templateId: string,
+  ctx: TopicContextPacket,
+): VideoScriptManifest {
+  try {
+    let parsed: unknown = llmOutput;
+    if (typeof llmOutput === 'string') {
+      parsed = JSON.parse(llmOutput);
+    }
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('LLM output is not a JSON object');
+    }
+    return applyAttachmentOverlays(normalizeManifest(parsed as LlmManifestRaw, ctx), ctx);
+  } catch (err) {
+    console.error(
+      '[Template Generation Error] Failed to parse LLM JSON output for template:',
+      templateId,
+      err,
+    );
+    return getFallbackScriptForTemplate(templateId, ctx);
+  }
 }
 
 export async function generateStructuredVideoScript(
@@ -592,7 +631,6 @@ export async function generateStructuredVideoScript(
 
   const template = getGenerationTemplate(ctx.templateId);
   const activeConfig = TEMPLATE_CONFIGS[template.id] || TEMPLATE_CONFIGS.tom_and_jerry;
-  void activeConfig;
   const user = [
     `Topic code: ${ctx.code}`,
     `Topic title: ${ctx.title}`,
@@ -600,6 +638,8 @@ export async function generateStructuredVideoScript(
     `Textbook: ${ctx.textbookTitle} (${ctx.subject}, ${ctx.gradeLabel})`,
     `Chapter summary: ${ctx.chapterSummary}`,
     `Selected templateId: ${template.id}`,
+    `Theme: ${activeConfig.themeName}`,
+    `Host narrator: ${activeConfig.characters.host}`,
     `Visual / dialogue template:\n${templatePromptBlock(template.id)}`,
     `CRITICAL: Match characters, tone, and visuals to templateId "${template.id}". Do not default to Tom & Jerry unless templateId is tom_and_jerry.`,
     ctx.teacherPrompt ? `Teacher refinement: ${ctx.teacherPrompt}` : '',
@@ -610,16 +650,16 @@ export async function generateStructuredVideoScript(
     'Output exactly 3 scenes: CHALLENGE (8s), SIMULATION (12s), DISCOVERY (8s). Total 28 seconds.',
     'Choose visualArchetype, teacherGesture, and cameraMotion for each scene.',
     'All visualConfig labels must be taken from this PDF context — do not invent a default lab kit.',
-    `Also set pedagogicalPattern / teacherName consistent with ${template.title}.`,
+    `Also set pedagogicalPattern / teacherName consistent with ${template.title} (${activeConfig.characters.host}).`,
   ]
     .filter(Boolean)
     .join('\n\n');
 
-  if (!provider) return applyAttachmentOverlays(heuristicManifest(ctx), ctx);
+  if (!provider) return getFallbackScriptForTemplate(template.id, ctx);
 
   try {
     const raw = await Promise.race([
-      provider.completeJson<LlmManifestRaw>({
+      provider.completeJson<LlmManifestRaw | string>({
         system: CINEMATIC_SWEETRUSH_PROMPT,
         user,
       }),
@@ -627,16 +667,20 @@ export async function generateStructuredVideoScript(
         setTimeout(() => reject(new Error('LLM script timed out')), 45_000);
       }),
     ]);
-    const manifest = applyAttachmentOverlays(normalizeManifest(raw ?? {}, ctx), ctx);
+    const manifest = parseLlmManifestSafely(raw, template.id, ctx);
     console.log(
-      `[videoPipeline/script] archetypes=${manifest.scenes
+      `[videoPipeline/script] templateId=${template.id} archetypes=${manifest.scenes
         .map((s) => s.visualArchetype || s.visualType)
         .join(',')} cameras=${manifest.scenes.map((s) => s.cameraMotion).join(',')} overlays=${(ctx.attachmentImageUrls ?? []).length}`,
     );
     return manifest;
   } catch (err) {
-    console.warn('[videoPipeline/script] LLM failed/timed out, using context heuristic:', err);
-    return applyAttachmentOverlays(heuristicManifest(ctx), ctx);
+    console.error(
+      '[Template Generation Error] LLM failed/timed out for template:',
+      template.id,
+      err,
+    );
+    return getFallbackScriptForTemplate(template.id, ctx);
   }
 }
 
