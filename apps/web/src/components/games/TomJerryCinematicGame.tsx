@@ -7,33 +7,20 @@ import type {
   TomJerrySfxCue,
 } from '@brightpath/shared';
 import {
+  getTemplateConfig,
   questionLoopsFromScript,
   resolveActivityScript,
+  resolveActivityTemplateId,
   type TeacherActivity,
 } from '@brightpath/shared';
 import { pickVoice, stripForSpeech } from '@/lib/speech';
 import './tomJerry.css';
+import './templateStages.css';
 
 export type TomPose = 'Tom_Idle' | 'Tom_SettingTrap' | 'Tom_GotBonked' | 'Tom_CatchingJerry';
 export type JerryPose = 'Jerry_Idle' | 'Jerry_Running' | 'Jerry_Escaping' | 'Jerry_Caught';
 
 type Phase = 'setup' | 'question' | 'input' | 'outcome' | 'completed';
-
-const SPRITE_DIR = '/games/tom-jerry';
-
-const TOM_SPRITES: Record<TomPose, { file: string; emoji: string }> = {
-  Tom_Idle: { file: 'tom-idle.png', emoji: '🐱' },
-  Tom_SettingTrap: { file: 'tom-setting-trap.png', emoji: '🐱' },
-  Tom_GotBonked: { file: 'tom-got-bonked.png', emoji: '😵🐱' },
-  Tom_CatchingJerry: { file: 'tom-catching-jerry.png', emoji: '😼' },
-};
-
-const JERRY_SPRITES: Record<JerryPose, { file: string; emoji: string }> = {
-  Jerry_Idle: { file: 'jerry-idle.png', emoji: '🐭' },
-  Jerry_Running: { file: 'jerry-running.png', emoji: '🐭' },
-  Jerry_Escaping: { file: 'jerry-escaping.png', emoji: '💨🐭' },
-  Jerry_Caught: { file: 'jerry-caught.png', emoji: '🙀' },
-};
 
 function mapTomPose(trigger?: string, fallback: TomPose = 'Tom_Idle'): TomPose {
   const t = (trigger ?? '').toLowerCase();
@@ -153,22 +140,36 @@ function speakCharacter(text: string, who: 'tom' | 'jerry', enabled: boolean): P
   });
 }
 
-/** Drop PNGs in `public/games/tom-jerry/` and set this true to swap emoji placeholders. */
-const USE_IMAGE_SPRITES = false;
-
 function CharacterSprite({
   pose,
   kind,
+  hostEmoji,
+  runnerEmoji,
 }: {
   pose: TomPose | JerryPose;
   kind: 'tom' | 'jerry';
+  hostEmoji: { idle: string; active: string; win: string; lose: string };
+  runnerEmoji: { idle: string; move: string; win: string; lose: string };
 }) {
-  const [broken, setBroken] = useState(!USE_IMAGE_SPRITES);
-  const meta = kind === 'tom' ? TOM_SPRITES[pose as TomPose] : JERRY_SPRITES[pose as JerryPose];
-  const src = `${SPRITE_DIR}/${meta.file}`;
+  const emoji =
+    kind === 'tom'
+      ? pose === 'Tom_GotBonked'
+        ? hostEmoji.win
+        : pose === 'Tom_CatchingJerry'
+          ? hostEmoji.lose
+          : pose === 'Tom_SettingTrap'
+            ? hostEmoji.active
+            : hostEmoji.idle
+      : pose === 'Jerry_Escaping'
+        ? runnerEmoji.win
+        : pose === 'Jerry_Caught'
+          ? runnerEmoji.lose
+          : pose === 'Jerry_Running'
+            ? runnerEmoji.move
+            : runnerEmoji.idle;
   return (
     <div className="tj-sprite" title={pose} aria-hidden>
-      {broken ? meta.emoji : <img src={src} alt="" onError={() => setBroken(true)} />}
+      {emoji}
     </div>
   );
 }
@@ -178,6 +179,7 @@ export interface TomJerryCinematicGameProps {
   activity?: TeacherActivity;
   title?: string;
   totalXp?: number;
+  templateId?: string;
   onExit?: () => void;
   onComplete?: (xpEarned: number) => void;
 }
@@ -187,9 +189,17 @@ export default function TomJerryCinematicGame({
   activity,
   title,
   totalXp,
+  templateId: templateIdProp,
   onExit,
   onComplete,
 }: TomJerryCinematicGameProps) {
+  const templateId = useMemo(() => {
+    if (templateIdProp) return templateIdProp;
+    if (activity) return resolveActivityTemplateId(activity);
+    return 'tom_and_jerry';
+  }, [templateIdProp, activity]);
+  const theme = useMemo(() => getTemplateConfig(templateId), [templateId]);
+
   const script = useMemo(
     () => scriptProp ?? (activity ? resolveActivityScript(activity) : []),
     [scriptProp, activity],
@@ -214,8 +224,11 @@ export default function TomJerryCinematicGame({
   const completedNotified = useRef(false);
 
   const current = loops[questionIndex] as CinematicQuestionLoopScene | undefined;
-  const xpPerQuestion = Math.max(10, Math.round((totalXp ?? activity?.totalXp ?? loops.length * 50) / Math.max(1, loops.length)));
-  const heading = title ?? activity?.title ?? 'Cinematic Tom & Jerry Challenge';
+  const xpPerQuestion = Math.max(
+    10,
+    Math.round((totalXp ?? activity?.totalXp ?? loops.length * 50) / Math.max(1, loops.length)),
+  );
+  const heading = title ?? activity?.title ?? theme.themeName;
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -318,7 +331,10 @@ export default function TomJerryCinematicGame({
     setJerryPose('Jerry_Escaping');
     playSfx('Victory');
     confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-    const line = completed?.jerry_dialogue || completed?.tom_dialogue || 'Jerry wins this round!';
+    const line =
+      completed?.jerry_dialogue ||
+      completed?.tom_dialogue ||
+      `${theme.characters.runner} wins this round!`;
     setSpeaker(completed?.jerry_dialogue ? 'jerry' : 'tom');
     setCaption(line);
     void speakCharacter(line, completed?.jerry_dialogue ? 'jerry' : 'tom', !muted);
@@ -344,7 +360,9 @@ export default function TomJerryCinematicGame({
     <div className="overflow-hidden rounded-3xl border border-amber-400/30 bg-[#1c1917] text-white shadow-[0_0_40px_rgba(251,191,36,0.18)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-200">Cinematic Tom & Jerry Challenge</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-200">
+            {theme.themeName}
+          </p>
           <h3 className="text-lg font-extrabold text-white">{heading}</h3>
         </div>
         <div className="flex items-center gap-2">
@@ -372,27 +390,59 @@ export default function TomJerryCinematicGame({
         </div>
       </div>
 
-      <div className="tj-stage">
+      <div className={['tj-stage', theme.stageClass].join(' ')}>
         <div className="tj-cabinet tj-cabinet-left" />
         <div className="tj-cabinet tj-cabinet-right" />
         <div className="tj-fridge" />
         <div className="tj-floor" />
-        <div className={['tj-trap', phase === 'setup' ? 'is-set' : ''].join(' ')}>🪤</div>
+        <div className={['tj-trap', phase === 'setup' ? 'is-set' : ''].join(' ')}>
+          {theme.choiceEmoji}
+        </div>
 
         {caption ? (
           <div className="tj-bubble" data-speaker={speaker}>
             <p className="text-[10px] font-bold uppercase tracking-wide text-orange-700">
-              {speaker === 'tom' ? 'Tom' : 'Jerry'}
+              {speaker === 'tom' ? theme.characters.host : theme.characters.runner}
             </p>
             <p className="text-sm font-semibold leading-snug">{caption}</p>
           </div>
         ) : null}
 
         <div className="tj-tom" data-pose={tomPose}>
-          <CharacterSprite kind="tom" pose={tomPose} />
+          <CharacterSprite
+            kind="tom"
+            pose={tomPose}
+            hostEmoji={{
+              idle: theme.hostIdle,
+              active: theme.hostActive,
+              win: theme.hostWin,
+              lose: theme.hostLose,
+            }}
+            runnerEmoji={{
+              idle: theme.runnerIdle,
+              move: theme.runnerMove,
+              win: theme.runnerWin,
+              lose: theme.runnerLose,
+            }}
+          />
         </div>
         <div className="tj-jerry" data-pose={jerryPose} data-hole={selectedId ?? undefined}>
-          <CharacterSprite kind="jerry" pose={jerryPose} />
+          <CharacterSprite
+            kind="jerry"
+            pose={jerryPose}
+            hostEmoji={{
+              idle: theme.hostIdle,
+              active: theme.hostActive,
+              win: theme.hostWin,
+              lose: theme.hostLose,
+            }}
+            runnerEmoji={{
+              idle: theme.runnerIdle,
+              move: theme.runnerMove,
+              win: theme.runnerWin,
+              lose: theme.runnerLose,
+            }}
+          />
         </div>
 
         <div className="tj-holes">
@@ -426,7 +476,7 @@ export default function TomJerryCinematicGame({
           <div className="text-center">
             <p className="text-base font-bold text-amber-50">{current.prompt}</p>
             <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-amber-200/70">
-              {current.game_mechanics.replace(/_/g, ' ')} — click a mousehole
+              {current.game_mechanics.replace(/_/g, ' ')} — click a {theme.choiceLabel.replace(/s$/, '')}
             </p>
           </div>
         ) : null}

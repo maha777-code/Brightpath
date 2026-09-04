@@ -1,4 +1,5 @@
 import {
+  getGenerationTemplate,
   templatePromptBlock,
   type PedagogicalArchetype,
   type SceneVisualConfig,
@@ -588,13 +589,16 @@ export async function generateStructuredVideoScript(
     `[videoPipeline/script] Cinematic SweetRush director — RAG excerpts=${ctx.ragExcerpts.length} topic="${ctx.code} ${ctx.title}"`,
   );
 
+  const template = getGenerationTemplate(ctx.templateId);
   const user = [
     `Topic code: ${ctx.code}`,
     `Topic title: ${ctx.title}`,
     `Chapter: ${ctx.chapterTitle}`,
     `Textbook: ${ctx.textbookTitle} (${ctx.subject}, ${ctx.gradeLabel})`,
     `Chapter summary: ${ctx.chapterSummary}`,
-    ctx.templateId ? `Visual / dialogue template:\n${templatePromptBlock(ctx.templateId)}` : '',
+    `Selected templateId: ${template.id}`,
+    `Visual / dialogue template:\n${templatePromptBlock(template.id)}`,
+    `CRITICAL: Match characters, tone, and visuals to templateId "${template.id}". Do not default to Tom & Jerry unless templateId is tom_and_jerry.`,
     ctx.teacherPrompt ? `Teacher refinement: ${ctx.teacherPrompt}` : '',
     `RAW RAG EXCERPTS (GROUND TRUTH — teacher attachments are prefixed and must be prioritized over textbook text):\n${excerpts || '(no excerpts — use topic title and chapter summary only)'}`,
     ctx.attachmentImageUrls?.length
@@ -603,6 +607,7 @@ export async function generateStructuredVideoScript(
     'Output exactly 3 scenes: CHALLENGE (8s), SIMULATION (12s), DISCOVERY (8s). Total 28 seconds.',
     'Choose visualArchetype, teacherGesture, and cameraMotion for each scene.',
     'All visualConfig labels must be taken from this PDF context — do not invent a default lab kit.',
+    `Also set pedagogicalPattern / teacherName consistent with ${template.title}.`,
   ]
     .filter(Boolean)
     .join('\n\n');

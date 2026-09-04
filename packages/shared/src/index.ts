@@ -406,13 +406,17 @@ export type {
   ClassBatchPublic,
 } from './rbac.js';
 
-export type { GenerationTemplateId, GenerationTemplate, GenerationTemplateKind } from './generationTemplates.js';
+export type { GenerationTemplateId, GenerationTemplate, GenerationTemplateKind, TemplateConfig } from './generationTemplates.js';
 export {
   GENERATION_TEMPLATE_IDS,
   GENERATION_TEMPLATES,
+  TEMPLATE_CONFIGS,
   DEFAULT_GENERATION_TEMPLATE_ID,
   isGenerationTemplateId,
   getGenerationTemplate,
+  getTemplateConfig,
+  templateIdFromActivityType,
+  templatesForGenerationType,
   templatePromptBlock,
 } from './generationTemplates.js';
 
@@ -422,6 +426,8 @@ export {
   questionsFromCinematicScript,
   cinematicScriptFromQuiz,
   resolveActivityScript,
+  resolveActivityTemplateId,
+  extractTemplateIdFromContent,
   isActivityPlayable,
   JERRY_ACTION_CORRECT,
   JERRY_ACTION_WRONG,

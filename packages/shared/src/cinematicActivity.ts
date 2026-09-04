@@ -9,6 +9,12 @@ import type {
   GamifiedQuizQuestion,
   TeacherActivity,
 } from './teacher.js';
+import {
+  getTemplateConfig,
+  isGenerationTemplateId,
+  templateIdFromActivityType,
+  type GenerationTemplateId,
+} from './generationTemplates.js';
 
 export const JERRY_ACTION_CORRECT = 'jerry_escapes_into_mousehole';
 export const JERRY_ACTION_WRONG = 'jerry_runs_into_wrong_hole';
@@ -29,7 +35,12 @@ function asString(value: unknown, fallback = ''): string {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }
 
-function normalizeOption(raw: unknown, index: number): CinematicQuestionOption | null {
+function normalizeOption(
+  raw: unknown,
+  index: number,
+  templateId?: GenerationTemplateId,
+): CinematicQuestionOption | null {
+  const cfg = getTemplateConfig(templateId);
   const rec = asRecord(raw);
   if (!rec) return null;
   const text = asString(rec.text) || asString(rec.label);
@@ -37,23 +48,31 @@ function normalizeOption(raw: unknown, index: number): CinematicQuestionOption |
   const id = asString(rec.id, OPTION_IDS[index] ?? String(index + 1)).slice(0, 4).toUpperCase();
   const correct = Boolean(rec.correct);
   const jerry_action = asString(
-    rec.jerry_action,
-    correct ? JERRY_ACTION_CORRECT : JERRY_ACTION_WRONG,
+    rec.jerry_action ?? rec.runner_action,
+    correct ? cfg.animationTriggers.correctAction : cfg.animationTriggers.wrongAction,
   );
   return { id, text, correct, jerry_action };
 }
 
-function normalizeQuestionLoop(rec: Record<string, unknown>): CinematicQuestionLoopScene | null {
+function normalizeQuestionLoop(
+  rec: Record<string, unknown>,
+  templateId?: GenerationTemplateId,
+): CinematicQuestionLoopScene | null {
+  const cfg = getTemplateConfig(templateId);
   const prompt = asString(rec.prompt) || asString(rec.questionText);
   if (!prompt) return null;
   const rawOptions = Array.isArray(rec.options) ? rec.options : [];
   const options = rawOptions
-    .map((opt, i) => normalizeOption(opt, i))
+    .map((opt, i) => normalizeOption(opt, i, templateId))
     .filter((opt): opt is CinematicQuestionOption => Boolean(opt))
     .slice(0, 4);
   if (options.length < 2) return null;
   if (!options.some((opt) => opt.correct)) {
-    options[0] = { ...options[0], correct: true, jerry_action: JERRY_ACTION_CORRECT };
+    options[0] = {
+      ...options[0],
+      correct: true,
+      jerry_action: cfg.animationTriggers.correctAction,
+    };
   }
   let seenCorrect = false;
   const unique = options.map((opt, i) => {
@@ -63,60 +82,70 @@ function normalizeQuestionLoop(rec: Record<string, unknown>): CinematicQuestionL
       ...opt,
       id: OPTION_IDS[i] ?? opt.id,
       correct: isCorrect,
-      jerry_action: isCorrect ? asString(opt.jerry_action, JERRY_ACTION_CORRECT) : JERRY_ACTION_WRONG,
+      jerry_action: isCorrect
+        ? asString(opt.jerry_action, cfg.animationTriggers.correctAction)
+        : cfg.animationTriggers.wrongAction,
     };
   });
   return {
     scene_type: 'question_loop',
     prompt,
-    game_mechanics: asString(rec.game_mechanics, DEFAULT_GAME_MECHANICS),
-    tom_dialogue_repeat: asString(rec.tom_dialogue_repeat, 'Answer correctly or it is mouse-trap time!'),
+    game_mechanics: asString(rec.game_mechanics, cfg.gameMechanics),
+    tom_dialogue_repeat: asString(
+      rec.tom_dialogue_repeat ?? rec.host_dialogue_repeat,
+      `${cfg.characters.host}: Choose wisely!`,
+    ),
     options: unique,
   };
 }
 
-function parseScene(raw: unknown): CinematicScriptScene | null {
+function parseScene(raw: unknown, templateId?: GenerationTemplateId): CinematicScriptScene | null {
+  const cfg = getTemplateConfig(templateId);
   const rec = asRecord(raw);
   if (!rec) return null;
   const kind = asString(rec.scene_type);
   if (kind === 'setup') {
-    const tom_dialogue = asString(rec.tom_dialogue);
+    const tom_dialogue = asString(rec.tom_dialogue) || asString(rec.host_dialogue);
     if (!tom_dialogue) return null;
     const scene: CinematicSetupScene = {
       scene_type: 'setup',
       tom_dialogue,
-      animation_trigger: asString(rec.animation_trigger, TOM_TRAP_SETUP),
+      animation_trigger: asString(rec.animation_trigger, cfg.animationTriggers.setup),
     };
     return scene;
   }
   if (kind === 'question_loop') {
-    return normalizeQuestionLoop(rec);
+    return normalizeQuestionLoop(rec, templateId);
   }
   if (kind === 'correct_outcome') {
     const scene: CinematicCorrectOutcomeScene = {
       scene_type: 'correct_outcome',
       tom_dialogue_on_failure: asString(
-        rec.tom_dialogue_on_failure,
-        'Drat! That mouse is smarter than he looks!',
+        rec.tom_dialogue_on_failure ?? rec.host_dialogue,
+        `${cfg.characters.host}: Foiled again!`,
       ),
-      animation_outcome: asString(rec.animation_outcome, TOM_BONKED),
+      animation_outcome: asString(rec.animation_outcome, cfg.animationTriggers.correctOutcome),
     };
     return scene;
   }
   if (kind === 'incorrect_outcome') {
     const scene: CinematicIncorrectOutcomeScene = {
       scene_type: 'incorrect_outcome',
-      tom_dialogue_on_failure: asString(rec.tom_dialogue_on_failure, 'Caught you! Time for a lesson!'),
-      animation_outcome: asString(rec.animation_outcome, JERRY_CAUGHT_CINEMATIC),
+      tom_dialogue_on_failure: asString(
+        rec.tom_dialogue_on_failure ?? rec.host_dialogue,
+        `${cfg.characters.host}: Gotcha!`,
+      ),
+      animation_outcome: asString(rec.animation_outcome, cfg.animationTriggers.incorrectOutcome),
     };
     return scene;
   }
   if (kind === 'completed') {
     const scene: CinematicCompletedScene = {
       scene_type: 'completed',
-      tom_dialogue: asString(rec.tom_dialogue) || undefined,
-      jerry_dialogue: asString(rec.jerry_dialogue) || undefined,
-      animation_trigger: asString(rec.animation_trigger) || undefined,
+      tom_dialogue: asString(rec.tom_dialogue ?? rec.host_dialogue) || undefined,
+      jerry_dialogue: asString(rec.jerry_dialogue ?? rec.runner_dialogue) || undefined,
+      animation_trigger:
+        asString(rec.animation_trigger, cfg.animationTriggers.completed) || undefined,
     };
     return scene;
   }
@@ -133,10 +162,25 @@ function extractSceneArray(raw: unknown): unknown[] | null {
   return null;
 }
 
-export function parseCinematicScript(raw: unknown): CinematicScriptScene[] {
+export function extractTemplateIdFromContent(raw: unknown): GenerationTemplateId | undefined {
+  const rec = asRecord(raw);
+  if (!rec) return undefined;
+  if (isGenerationTemplateId(rec.templateId)) return rec.templateId;
+  return undefined;
+}
+
+export function parseCinematicScript(
+  raw: unknown,
+  templateId?: GenerationTemplateId | string | null,
+): CinematicScriptScene[] {
+  const tid =
+    (isGenerationTemplateId(templateId) ? templateId : undefined) ??
+    extractTemplateIdFromContent(raw);
   const arr = extractSceneArray(raw);
   if (!arr) return [];
-  return arr.map(parseScene).filter((scene): scene is CinematicScriptScene => Boolean(scene));
+  return arr
+    .map((scene) => parseScene(scene, tid))
+    .filter((scene): scene is CinematicScriptScene => Boolean(scene));
 }
 
 export function questionLoopsFromScript(script: CinematicScriptScene[]): CinematicQuestionLoopScene[] {
@@ -147,7 +191,9 @@ export function questionsFromCinematicScript(
   script: CinematicScriptScene[],
   xpReward = 50,
 ): GamifiedQuizQuestion[] {
-  const correct = script.find((s): s is CinematicCorrectOutcomeScene => s.scene_type === 'correct_outcome');
+  const correct = script.find(
+    (s): s is CinematicCorrectOutcomeScene => s.scene_type === 'correct_outcome',
+  );
   return questionLoopsFromScript(script).map((loop) => {
     const correctIndex = Math.max(0, loop.options.findIndex((opt) => opt.correct));
     return {
@@ -163,58 +209,79 @@ export function questionsFromCinematicScript(
 export function cinematicScriptFromQuiz(
   questions: GamifiedQuizQuestion[],
   topicTitle: string,
+  templateId?: GenerationTemplateId | string | null,
 ): CinematicScriptScene[] {
+  const cfg = getTemplateConfig(templateId);
   const topic = topicTitle.trim() || 'this topic';
+  const host = cfg.characters.host;
+  const runner = cfg.characters.runner;
   const scenes: CinematicScriptScene[] = [
     {
       scene_type: 'setup',
-      tom_dialogue: `Aha! You little mouse, think you can sneak past this trap? First you must prove you understand ${topic}!`,
-      animation_trigger: TOM_TRAP_SETUP,
+      tom_dialogue: `${host}: Hold it, ${runner}! Prove you understand ${topic} before you pass.`,
+      animation_trigger: cfg.animationTriggers.setup,
     },
   ];
   for (const q of questions) {
     scenes.push({
       scene_type: 'question_loop',
       prompt: q.questionText,
-      game_mechanics: DEFAULT_GAME_MECHANICS,
-      tom_dialogue_repeat: 'Answer correctly or it is mouse-trap time!',
+      game_mechanics: cfg.gameMechanics,
+      tom_dialogue_repeat: `${host}: Pick the correct option!`,
       options: q.options.slice(0, 4).map((text, i) => ({
         id: OPTION_IDS[i] ?? String(i + 1),
         text,
         correct: i === q.correctAnswerIndex,
-        jerry_action: i === q.correctAnswerIndex ? JERRY_ACTION_CORRECT : JERRY_ACTION_WRONG,
+        jerry_action:
+          i === q.correctAnswerIndex
+            ? cfg.animationTriggers.correctAction
+            : cfg.animationTriggers.wrongAction,
       })),
     });
   }
   scenes.push({
     scene_type: 'correct_outcome',
-    tom_dialogue_on_failure: 'Drat! That mouse is smarter than he looks!',
-    animation_outcome: TOM_BONKED,
+    tom_dialogue_on_failure: `${host}: Foiled again! ${runner} knew the science.`,
+    animation_outcome: cfg.animationTriggers.correctOutcome,
   });
   scenes.push({
     scene_type: 'incorrect_outcome',
-    tom_dialogue_on_failure: 'Caught you! Time for a lesson!',
-    animation_outcome: JERRY_CAUGHT_CINEMATIC,
+    tom_dialogue_on_failure: `${host}: Caught you! Time for a textbook lesson.`,
+    animation_outcome: cfg.animationTriggers.incorrectOutcome,
   });
   scenes.push({
     scene_type: 'completed',
-    tom_dialogue: 'Not again! How does that mouse keep winning?',
-    jerry_dialogue: `Science saves the day — ${topic} is no match for a clever mouse!`,
-    animation_trigger: 'jerry_victory_dance',
+    tom_dialogue: `${host}: Not again!`,
+    jerry_dialogue: `${runner}: ${topic} unlocked — on to the next challenge!`,
+    animation_trigger: cfg.animationTriggers.completed,
   });
   return scenes;
 }
 
-export function resolveActivityScript(activity: Pick<TeacherActivity, 'content' | 'questions' | 'title'>): CinematicScriptScene[] {
-  const fromContent = parseCinematicScript(activity.content);
+export function resolveActivityTemplateId(
+  activity: Pick<TeacherActivity, 'templateId' | 'type' | 'content'>,
+): GenerationTemplateId {
+  if (isGenerationTemplateId(activity.templateId)) return activity.templateId;
+  const fromContent = extractTemplateIdFromContent(activity.content);
+  if (fromContent) return fromContent;
+  return templateIdFromActivityType(activity.type);
+}
+
+export function resolveActivityScript(
+  activity: Pick<TeacherActivity, 'content' | 'questions' | 'title' | 'templateId' | 'type'>,
+): CinematicScriptScene[] {
+  const templateId = resolveActivityTemplateId(activity);
+  const fromContent = parseCinematicScript(activity.content, templateId);
   if (fromContent.some((s) => s.scene_type === 'question_loop')) return fromContent;
   if (activity.questions.length > 0) {
-    return cinematicScriptFromQuiz(activity.questions, activity.title);
+    return cinematicScriptFromQuiz(activity.questions, activity.title, templateId);
   }
   return fromContent;
 }
 
-export function isActivityPlayable(activity: Pick<TeacherActivity, 'content' | 'questions'> | null | undefined): boolean {
+export function isActivityPlayable(
+  activity: Pick<TeacherActivity, 'content' | 'questions'> | null | undefined,
+): boolean {
   if (!activity) return false;
   if (parseCinematicScript(activity.content).some((s) => s.scene_type === 'question_loop')) return true;
   return activity.questions.length > 0;

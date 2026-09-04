@@ -37,7 +37,8 @@ router.post('/generate-activity', async (req: AuthRequest, res) => {
   }
 
   try {
-    const template = getGenerationTemplate(parsed.data.templateId);
+    const templateId = parsed.data.templateId ?? 'tom_and_jerry';
+    const template = getGenerationTemplate(templateId);
     const result = await generateGamifiedActivity({
       teacherId: req.teacherId!,
       subtopicId: parsed.data.subtopicId,

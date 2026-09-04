@@ -1,16 +1,13 @@
 import { z } from 'zod';
 import {
-  DEFAULT_GAME_MECHANICS,
-  JERRY_ACTION_CORRECT,
-  JERRY_ACTION_WRONG,
-  JERRY_CAUGHT_CINEMATIC,
-  TOM_BONKED,
-  TOM_TRAP_SETUP,
   cinematicScriptFromQuiz,
+  extractTemplateIdFromContent,
   getGenerationTemplate,
+  getTemplateConfig,
   parseCinematicScript,
   questionLoopsFromScript,
   questionsFromCinematicScript,
+  templateIdFromActivityType,
   templatePromptBlock,
   type CinematicScriptScene,
   type GamifiedQuizQuestion,
@@ -90,16 +87,20 @@ export function parseQuizQuestions(raw: unknown): GamifiedQuizQuestion[] {
 }
 
 function resolveScript(row: ActivityRow, title: string): CinematicScriptScene[] {
-  const fromContent = parseCinematicScript(row.content);
+  const templateId =
+    extractTemplateIdFromContent(row.content) ?? templateIdFromActivityType(row.type);
+  const fromContent = parseCinematicScript(row.content, templateId);
   if (questionLoopsFromScript(fromContent).length > 0) return fromContent;
-  const fromJson = parseCinematicScript(row.questionsJson);
+  const fromJson = parseCinematicScript(row.questionsJson, templateId);
   if (questionLoopsFromScript(fromJson).length > 0) return fromJson;
   const questions = parseQuizQuestions(row.questionsJson);
-  if (questions.length > 0) return cinematicScriptFromQuiz(questions, title);
+  if (questions.length > 0) return cinematicScriptFromQuiz(questions, title, templateId);
   return fromContent;
 }
 
 export function toTeacherActivity(row: ActivityRow): TeacherActivity {
+  const templateId =
+    extractTemplateIdFromContent(row.content) ?? templateIdFromActivityType(row.type);
   const content = resolveScript(row, row.title);
   const parsedQuestions = parseQuizQuestions(row.questionsJson);
   const questions =
@@ -110,6 +111,7 @@ export function toTeacherActivity(row: ActivityRow): TeacherActivity {
     chapterId: row.chapterId,
     type: row.type,
     title: row.title,
+    templateId,
     content,
     questions,
     totalXp: row.totalXp || questions.reduce((sum, q) => sum + q.xpReward, 0),
@@ -207,27 +209,24 @@ function fallbackQuestions(input: {
   ];
 }
 
-function flavorTomSetup(title: string): string {
-  return `Aha! You little mouse, think you can get past this? You must tell me the truth about ${title} first!`;
-}
-
 function fallbackCinematicScript(input: {
   code: string;
   title: string;
   chapterTitle: string;
   excerpts: string[];
+  templateId?: string;
 }): CinematicScriptScene[] {
   const quiz = fallbackQuestions(input);
-  const script = cinematicScriptFromQuiz(quiz, input.title);
-  const setup = script.find((s) => s.scene_type === 'setup');
-  if (setup && setup.scene_type === 'setup') {
-    setup.tom_dialogue = flavorTomSetup(input.title);
-    setup.animation_trigger = TOM_TRAP_SETUP;
-  }
-  return script;
+  return cinematicScriptFromQuiz(quiz, input.title, input.templateId);
 }
 
-function ensureOutcomeScenes(script: CinematicScriptScene[]): CinematicScriptScene[] {
+function ensureOutcomeScenes(
+  script: CinematicScriptScene[],
+  templateId?: string,
+): CinematicScriptScene[] {
+  const cfg = getTemplateConfig(templateId);
+  const host = cfg.characters.host;
+  const runner = cfg.characters.runner;
   const hasSetup = script.some((s) => s.scene_type === 'setup');
   const hasCorrect = script.some((s) => s.scene_type === 'correct_outcome');
   const hasIncorrect = script.some((s) => s.scene_type === 'incorrect_outcome');
@@ -236,30 +235,30 @@ function ensureOutcomeScenes(script: CinematicScriptScene[]): CinematicScriptSce
   if (!hasSetup) {
     next.unshift({
       scene_type: 'setup',
-      tom_dialogue: flavorTomSetup('this lesson'),
-      animation_trigger: TOM_TRAP_SETUP,
+      tom_dialogue: `${host}: Hold it, ${runner}! Answer correctly to continue.`,
+      animation_trigger: cfg.animationTriggers.setup,
     });
   }
   if (!hasCorrect) {
     next.push({
       scene_type: 'correct_outcome',
-      tom_dialogue_on_failure: 'Drat! That mouse is smarter than he looks!',
-      animation_outcome: TOM_BONKED,
+      tom_dialogue_on_failure: `${host}: Foiled again!`,
+      animation_outcome: cfg.animationTriggers.correctOutcome,
     });
   }
   if (!hasIncorrect) {
     next.push({
       scene_type: 'incorrect_outcome',
-      tom_dialogue_on_failure: 'Caught you! Time for a lesson!',
-      animation_outcome: JERRY_CAUGHT_CINEMATIC,
+      tom_dialogue_on_failure: `${host}: Caught you! Time for a lesson.`,
+      animation_outcome: cfg.animationTriggers.incorrectOutcome,
     });
   }
   if (!hasCompleted) {
     next.push({
       scene_type: 'completed',
-      tom_dialogue: 'Not again! How does that mouse keep winning?',
-      jerry_dialogue: 'Science saves the day!',
-      animation_trigger: 'jerry_victory_dance',
+      tom_dialogue: `${host}: Not again!`,
+      jerry_dialogue: `${runner}: Science saves the day!`,
+      animation_trigger: cfg.animationTriggers.completed,
     });
   }
   return next;
@@ -267,10 +266,13 @@ function ensureOutcomeScenes(script: CinematicScriptScene[]): CinematicScriptSce
 
 function cinematicSystemPrompt(templateId?: string): string {
   const template = getGenerationTemplate(templateId);
+  const cfg = getTemplateConfig(template.id);
   return `You write a character-driven classroom game script for Class 9 Science — NOT a plain quiz.
-Template: ${template.title}.
-${template.dialogueTone}
-Character 1 delivers the setup/question. Character 2's responses are the answer options (paths / holes / clues / firing lanes).
+templateId MUST be "${template.id}".
+Theme: ${cfg.themeName}.
+${cfg.systemPrompt}
+Host (${cfg.characters.host}) delivers setup/questions. Runner (${cfg.characters.runner}) responses are the answer options.
+Do NOT invent Tom & Jerry unless templateId is tom_and_jerry.
 Return JSON only.`;
 }
 
@@ -282,7 +284,10 @@ function cinematicUserPrompt(input: {
   templateId?: string;
 }): string {
   const template = getGenerationTemplate(input.templateId);
-  return `Create a ${template.title} activity for this subtopic.
+  const cfg = getTemplateConfig(template.id);
+  const host = cfg.characters.host;
+  const runner = cfg.characters.runner;
+  return `Create a ${cfg.themeName} activity for this subtopic.
 Subtopic: ${input.code} ${input.title}
 Chapter: ${input.chapterTitle}
 
@@ -293,55 +298,55 @@ ${input.context}
 
 Return JSON with this exact shape:
 {
+  "templateId": "${template.id}",
+  "subtopicId": "${input.code}",
   "title": "${template.title}: ${input.title}",
   "xpReward": 50,
   "script": [
     {
       "scene_type": "setup",
-      "tom_dialogue": "Aha! You little mouse, think you can get past this? You must tell me ... first!",
-      "animation_trigger": "${TOM_TRAP_SETUP}"
+      "tom_dialogue": "${host}: setup line in this theme's voice",
+      "animation_trigger": "${cfg.animationTriggers.setup}"
     },
     {
       "scene_type": "question_loop",
       "prompt": "Curriculum question grounded in the textbook",
-      "game_mechanics": "${DEFAULT_GAME_MECHANICS}",
-      "tom_dialogue_repeat": "Answer correctly or it's mouse trap time!",
+      "game_mechanics": "${cfg.gameMechanics}",
+      "tom_dialogue_repeat": "${host}: Choose the correct ${cfg.choiceLabel}!",
       "options": [
-        { "id": "A", "text": "Wrong claim", "correct": false, "jerry_action": "${JERRY_ACTION_WRONG}" },
-        { "id": "B", "text": "Correct claim", "correct": true, "jerry_action": "${JERRY_ACTION_CORRECT}" },
-        { "id": "C", "text": "Wrong claim", "correct": false, "jerry_action": "${JERRY_ACTION_WRONG}" },
-        { "id": "D", "text": "Wrong claim", "correct": false, "jerry_action": "${JERRY_ACTION_WRONG}" }
+        { "id": "A", "text": "Wrong claim", "correct": false, "jerry_action": "${cfg.animationTriggers.wrongAction}" },
+        { "id": "B", "text": "Correct claim", "correct": true, "jerry_action": "${cfg.animationTriggers.correctAction}" },
+        { "id": "C", "text": "Wrong claim", "correct": false, "jerry_action": "${cfg.animationTriggers.wrongAction}" },
+        { "id": "D", "text": "Wrong claim", "correct": false, "jerry_action": "${cfg.animationTriggers.wrongAction}" }
       ]
     },
     {
       "scene_type": "correct_outcome",
-      "tom_dialogue_on_failure": "Drat! That mouse is smarter than he looks!",
-      "animation_outcome": "${TOM_BONKED}"
+      "tom_dialogue_on_failure": "${host}: reaction when ${runner} succeeds",
+      "animation_outcome": "${cfg.animationTriggers.correctOutcome}"
     },
     {
       "scene_type": "incorrect_outcome",
-      "tom_dialogue_on_failure": "Caught you! Time for a lesson!",
-      "animation_outcome": "${JERRY_CAUGHT_CINEMATIC}"
+      "tom_dialogue_on_failure": "${host}: reaction when ${runner} fails",
+      "animation_outcome": "${cfg.animationTriggers.incorrectOutcome}"
     },
     {
       "scene_type": "completed",
-      "tom_dialogue": "Not again!",
-      "jerry_dialogue": "That's science for you, Tom!",
-      "animation_trigger": "jerry_victory_dance"
+      "tom_dialogue": "${host}: closing line",
+      "jerry_dialogue": "${runner}: victory line",
+      "animation_trigger": "${cfg.animationTriggers.completed}"
     }
   ]
 }
 
 Rules:
-- Ground every prompt and option in the textbook context. No trivia unrelated to the subtopic.
-- Include exactly 1 setup scene, exactly ${QUESTION_COUNT} question_loop scenes, 1 correct_outcome, 1 incorrect_outcome, and 1 completed scene.
-- Each question_loop has exactly 4 options with ids A, B, C, D. Exactly one option has correct: true.
-- Correct options use jerry_action "${JERRY_ACTION_CORRECT}". Incorrect use "${JERRY_ACTION_WRONG}".
-- game_mechanics should match this template (${template.mechanics}).
-- Character-1 dialogue must match the template tone.
-- animation_trigger for setup is "${TOM_TRAP_SETUP}".
-- correct_outcome animation_outcome is "${TOM_BONKED}".
-- incorrect_outcome animation_outcome is "${JERRY_CAUGHT_CINEMATIC}".`;
+- Ground every prompt and option in the textbook context.
+- Include exactly 1 setup, exactly ${QUESTION_COUNT} question_loop scenes, 1 correct_outcome, 1 incorrect_outcome, and 1 completed.
+- Each question_loop has exactly 4 options A–D with exactly one correct:true.
+- Correct options use jerry_action "${cfg.animationTriggers.correctAction}". Incorrect use "${cfg.animationTriggers.wrongAction}".
+- game_mechanics must be "${cfg.gameMechanics}".
+- Characters must be ${host} and ${runner} only for this templateId.
+- Field names stay tom_dialogue / jerry_action for schema compatibility, but spoken content must match ${host}/${runner}.`;
 }
 
 async function generateCinematicScriptFromLlm(input: {
@@ -351,16 +356,18 @@ async function generateCinematicScriptFromLlm(input: {
   excerpts: string[];
   templateId?: string;
 }): Promise<CinematicScriptScene[]> {
+  const templateId = getGenerationTemplate(input.templateId).id;
+  const cfg = getTemplateConfig(templateId);
   const provider = getActiveProvider();
   if (!provider) {
-    return fallbackCinematicScript(input);
+    return fallbackCinematicScript({ ...input, templateId });
   }
 
   const context = input.excerpts.slice(0, 8).join('\n\n').slice(0, 6000);
   const raw = await withTimeout(
     provider.completeJson<unknown>({
-      system: cinematicSystemPrompt(input.templateId),
-      user: cinematicUserPrompt({ ...input, context }),
+      system: cinematicSystemPrompt(templateId),
+      user: cinematicUserPrompt({ ...input, templateId, context }),
     }),
     LLM_TIMEOUT_MS,
     'Activity generation timed out',
@@ -369,23 +376,25 @@ async function generateCinematicScriptFromLlm(input: {
   const asObject =
     Array.isArray(raw) ? { script: raw } : raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const quizQuestions = parseQuizQuestions(asObject.questions);
-  let script = ensureOutcomeScenes(parseCinematicScript(raw));
+  let script = ensureOutcomeScenes(parseCinematicScript(raw, templateId), templateId);
   if (questionLoopsFromScript(script).length < 3 && quizQuestions.length >= 3) {
-    script = cinematicScriptFromQuiz(quizQuestions, input.title);
+    script = cinematicScriptFromQuiz(quizQuestions, input.title, templateId);
   }
   if (questionLoopsFromScript(script).length < 3) {
-    return fallbackCinematicScript(input);
+    return fallbackCinematicScript({ ...input, templateId });
   }
 
   return script.map((scene) => {
     if (scene.scene_type !== 'question_loop') return scene;
     return {
       ...scene,
-      game_mechanics: scene.game_mechanics || DEFAULT_GAME_MECHANICS,
+      game_mechanics: scene.game_mechanics || cfg.gameMechanics,
       options: scene.options.slice(0, 4).map((opt, i) => ({
         ...opt,
         id: OPTION_IDS[i] ?? opt.id,
-        jerry_action: opt.correct ? JERRY_ACTION_CORRECT : JERRY_ACTION_WRONG,
+        jerry_action: opt.correct
+          ? cfg.animationTriggers.correctAction
+          : cfg.animationTriggers.wrongAction,
       })),
     };
   });
@@ -412,7 +421,7 @@ export async function generateGamifiedActivity(input: {
 
   const template = getGenerationTemplate(input.templateId);
   const packet = await retrieveTextbookContext(sub.id);
-  const content = await generateCinematicScriptFromLlm({
+  const script = await generateCinematicScriptFromLlm({
     code: sub.code,
     title: sub.title,
     chapterTitle: sub.chapter.title,
@@ -420,7 +429,13 @@ export async function generateGamifiedActivity(input: {
     templateId: template.id,
   });
 
-  const questions = questionsFromCinematicScript(content, 50);
+  const contentPayload = {
+    templateId: template.id,
+    subtopicId: sub.code,
+    script,
+  };
+
+  const questions = questionsFromCinematicScript(script, 50);
   const title = `${sub.code} ${template.title}`;
   const totalXp = questions.reduce((sum, q) => sum + q.xpReward, 0) || 250;
 
@@ -428,9 +443,9 @@ export async function generateGamifiedActivity(input: {
     data: {
       subtopicId: sub.id,
       chapterId: sub.chapterId,
-      type: template.activityType || input.type || 'tom_jerry_cinematic',
+      type: template.activityType || input.type || template.id,
       title,
-      content,
+      content: contentPayload,
       questionsJson: questions,
       totalXp,
     },
@@ -445,7 +460,7 @@ export async function generateGamifiedActivity(input: {
   });
 
   return {
-    activity: toTeacherActivity({ ...row, content, questionsJson: questions }),
+    activity: toTeacherActivity({ ...row, content: contentPayload, questionsJson: questions }),
     subtopicId: sub.id,
     activityTitle: title,
   };

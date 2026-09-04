@@ -266,7 +266,9 @@ export interface TeacherActivity {
   chapterId: string;
   type: 'gamified_quiz' | 'tom_jerry_cinematic' | string;
   title: string;
-  /** Cinematic Tom & Jerry script stored in Activity.content. */
+  /** Selected generation template (tom_and_jerry, space_shooter, …). */
+  templateId?: string;
+  /** Cinematic script scenes (or legacy quiz-derived script). */
   content?: CinematicScriptScene[];
   questions: GamifiedQuizQuestion[];
   totalXp: number;

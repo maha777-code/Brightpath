@@ -1,26 +1,38 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Sparkles, X } from 'lucide-react';
 import {
   DEFAULT_GENERATION_TEMPLATE_ID,
   GENERATION_TEMPLATES,
+  templatesForGenerationType,
   type GenerationTemplate,
   type GenerationTemplateId,
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
 
+export type GenerationType = 'video' | 'activity';
+
 interface TemplateSelectorModalProps {
-  kind: 'video' | 'activity';
+  /** @deprecated use generationType */
+  kind?: GenerationType;
+  generationType: GenerationType;
+  subtopicId: string;
   title: string;
   subtitle: string;
-  confirmLabel: string;
+  confirmLabel?: string;
   initialTemplateId?: GenerationTemplateId;
   submitting?: boolean;
   onClose: () => void;
-  onConfirm: (templateId: GenerationTemplateId) => void;
+  onConfirm: (payload: {
+    generationType: GenerationType;
+    templateId: GenerationTemplateId;
+    subtopicId: string;
+  }) => void;
 }
 
 export default function TemplateSelectorModal({
   kind,
+  generationType: generationTypeProp,
+  subtopicId,
   title,
   subtitle,
   confirmLabel,
@@ -29,10 +41,25 @@ export default function TemplateSelectorModal({
   onClose,
   onConfirm,
 }: TemplateSelectorModalProps) {
-  const [templates, setTemplates] = useState<GenerationTemplate[]>(GENERATION_TEMPLATES);
-  const [selected, setSelected] = useState<GenerationTemplateId>(
-    initialTemplateId ?? DEFAULT_GENERATION_TEMPLATE_ID,
+  const generationType = generationTypeProp ?? kind ?? 'activity';
+  const [allTemplates, setAllTemplates] = useState<GenerationTemplate[]>(GENERATION_TEMPLATES);
+  const templates = useMemo(
+    () => templatesForGenerationType(generationType).filter((t) =>
+      allTemplates.some((a) => a.id === t.id),
+    ).map((t) => allTemplates.find((a) => a.id === t.id) ?? t),
+    [allTemplates, generationType],
   );
+
+  const defaultId =
+    (initialTemplateId && templates.some((t) => t.id === initialTemplateId)
+      ? initialTemplateId
+      : templates[0]?.id) ?? DEFAULT_GENERATION_TEMPLATE_ID;
+
+  const [selected, setSelected] = useState<GenerationTemplateId>(defaultId);
+
+  useEffect(() => {
+    setSelected(defaultId);
+  }, [defaultId, generationType]);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,7 +67,7 @@ export default function TemplateSelectorModal({
       .listTemplates()
       .then((body) => {
         if (cancelled || !body?.templates?.length) return;
-        setTemplates(body.templates);
+        setAllTemplates(body.templates);
       })
       .catch(() => undefined);
     return () => {
@@ -49,14 +76,31 @@ export default function TemplateSelectorModal({
   }, []);
 
   const chosen = templates.find((t) => t.id === selected) ?? templates[0];
+  const modeLabel =
+    generationType === 'video' ? 'Video Mode · Remotion cinematic presets' : 'Activity Mode · Interactive game presets';
+  const actionLabel =
+    confirmLabel ??
+    (generationType === 'video' ? 'Generate Video with Template' : 'Generate Activity with Template');
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4">
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-cyan-400/30 bg-[#1e1b4b] p-8 text-white shadow-[0_0_40px_rgba(6,182,212,0.2)]">
+      <div
+        className={[
+          'max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl border p-8 text-white shadow-[0_0_40px_rgba(6,182,212,0.2)]',
+          generationType === 'video'
+            ? 'border-cyan-400/40 bg-[#0c4a6e]'
+            : 'border-amber-400/40 bg-[#1e1b4b]',
+        ].join(' ')}
+      >
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-cyan-200">
-              Select template · {kind === 'video' ? 'Video explainer' : 'Gamified activity'}
+            <p
+              className={[
+                'text-sm font-semibold uppercase tracking-wide',
+                generationType === 'video' ? 'text-cyan-200' : 'text-amber-200',
+              ].join(' ')}
+            >
+              {modeLabel}
             </p>
             <h3 className="text-2xl font-extrabold">{title}</h3>
             <p className="mt-1 text-base text-cyan-100/80">{subtitle}</p>
@@ -82,14 +126,19 @@ export default function TemplateSelectorModal({
                 className={[
                   'rounded-2xl border p-5 text-left transition',
                   active
-                    ? 'border-amber-300 bg-amber-400/15 ring-2 ring-amber-300/70'
-                    : 'border-white/10 bg-slate-950/40 hover:border-cyan-300/40',
+                    ? generationType === 'video'
+                      ? 'border-cyan-300 bg-cyan-400/15 ring-2 ring-cyan-300/70'
+                      : 'border-amber-300 bg-amber-400/15 ring-2 ring-amber-300/70'
+                    : 'border-white/10 bg-slate-950/40 hover:border-white/30',
                 ].join(' ')}
               >
                 <div className="mb-3 flex items-center gap-3">
                   <span
                     className="grid h-14 w-14 place-items-center rounded-2xl text-3xl"
-                    style={{ background: `${template.accent}22`, boxShadow: `inset 0 0 0 2px ${template.accent}` }}
+                    style={{
+                      background: `${template.accent}22`,
+                      boxShadow: `inset 0 0 0 2px ${template.accent}`,
+                    }}
                   >
                     {template.icon}
                   </span>
@@ -119,11 +168,23 @@ export default function TemplateSelectorModal({
             <button
               type="button"
               disabled={submitting || !chosen}
-              onClick={() => chosen && onConfirm(chosen.id)}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#FBBF24] px-5 py-2.5 text-sm font-bold text-stone-900 disabled:opacity-60"
+              onClick={() =>
+                chosen &&
+                onConfirm({
+                  generationType,
+                  templateId: chosen.id,
+                  subtopicId,
+                })
+              }
+              className={[
+                'inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold disabled:opacity-60',
+                generationType === 'video'
+                  ? 'bg-cyan-400 text-slate-950'
+                  : 'bg-[#FBBF24] text-stone-900',
+              ].join(' ')}
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {confirmLabel}
+              {actionLabel}
             </button>
           </div>
         </div>

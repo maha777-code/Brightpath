@@ -434,7 +434,8 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => 
   });
 
   // Clear any stuck in-memory lock by enqueueing fresh job
-  enqueueHybridVideoJob(existing.id, parsed.data.prompt, parsed.data.templateId);
+  const templateId = parsed.data.templateId ?? 'tom_and_jerry';
+  enqueueHybridVideoJob(existing.id, parsed.data.prompt, templateId);
 
   res.status(202).json({
     subtopic: toSubtopic(updated),

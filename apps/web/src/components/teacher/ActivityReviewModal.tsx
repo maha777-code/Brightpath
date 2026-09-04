@@ -1,8 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Clapperboard, Code2, Play, X } from 'lucide-react';
 import type { CinematicScriptScene, TeacherActivity, TeacherSubtopic } from '@brightpath/shared';
-import { questionLoopsFromScript, resolveActivityScript } from '@brightpath/shared';
-import TomJerryCinematicGame from '@/components/games/TomJerryCinematicGame';
+import {
+  getGenerationTemplate,
+  questionLoopsFromScript,
+  resolveActivityScript,
+  resolveActivityTemplateId,
+} from '@brightpath/shared';
+import ActivityGamePlayer from '@/components/games/ActivityGamePlayer';
 
 interface ActivityReviewModalProps {
   subtopic: TeacherSubtopic;
@@ -52,7 +57,7 @@ function sceneMeta(scene: CinematicScriptScene): string {
     case 'setup':
       return scene.animation_trigger;
     case 'question_loop':
-      return `${scene.game_mechanics} · ${scene.options.length} mouseholes`;
+      return `${scene.game_mechanics} · ${scene.options.length} choices`;
     case 'correct_outcome':
     case 'incorrect_outcome':
       return scene.animation_outcome;
@@ -73,6 +78,8 @@ export default function ActivityReviewModal({
   const [tab, setTab] = useState<ReviewTab>('timeline');
   const script = useMemo(() => resolveActivityScript(activity), [activity]);
   const loops = questionLoopsFromScript(script);
+  const templateId = resolveActivityTemplateId(activity);
+  const template = getGenerationTemplate(templateId);
   let questionCursor = 0;
 
   return (
@@ -83,7 +90,7 @@ export default function ActivityReviewModal({
             <p className="text-sm font-semibold text-amber-200">{subtopic.code}</p>
             <h3 className="text-2xl font-extrabold">{activity.title}</h3>
             <p className="mt-1 text-base text-cyan-100/80">
-              {loops.length} chase questions · {activity.totalXp} XP · cinematic script
+              {template.icon} {template.title} · {loops.length} questions · {activity.totalXp} XP
             </p>
           </div>
           <button
@@ -165,8 +172,8 @@ export default function ActivityReviewModal({
         ) : null}
 
         {tab === 'play' ? (
-          <TomJerryCinematicGame
-            key={activity.id}
+          <ActivityGamePlayer
+            key={`${activity.id}-${templateId}`}
             activity={activity}
             script={script}
             title={activity.title}
@@ -176,7 +183,7 @@ export default function ActivityReviewModal({
 
         {tab === 'json' ? (
           <pre className="max-h-[50vh] overflow-auto rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-xs leading-relaxed text-amber-50">
-            {JSON.stringify(script, null, 2)}
+            {JSON.stringify({ templateId, subtopicId: subtopic.code, script }, null, 2)}
           </pre>
         ) : null}
 

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Eye, LayoutTemplate, Loader2, PlayCircle, Plus } from 'lucide-react';
+import { AlertTriangle, Eye, Loader2, PlayCircle, Plus } from 'lucide-react';
 import {
   getGenerationTemplate,
   isActivityPlayable,
+  resolveActivityTemplateId,
   type GenerationTemplateId,
   type TeacherChapter,
   type TeacherSubtopic,
@@ -42,11 +43,13 @@ export function SubtopicManager({
   const [reviewActivitySub, setReviewActivitySub] = useState<TeacherSubtopic | null>(null);
   const [attachSub, setAttachSub] = useState<TeacherSubtopic | null>(null);
   const [templatePick, setTemplatePick] = useState<{
-    kind: 'video' | 'activity';
+    generationType: 'video' | 'activity';
     sub: TeacherSubtopic;
-    openReview?: boolean;
   } | null>(null);
-  const [templateBySub, setTemplateBySub] = useState<Record<string, GenerationTemplateId>>({});
+  const [videoTemplateBySub, setVideoTemplateBySub] = useState<Record<string, GenerationTemplateId>>({});
+  const [activityTemplateBySub, setActivityTemplateBySub] = useState<
+    Record<string, GenerationTemplateId>
+  >({});
   const pollRef = useRef<number | null>(null);
   const onUpdatedRef = useRef(onUpdated);
   onUpdatedRef.current = onUpdated;
@@ -185,7 +188,7 @@ export function SubtopicManager({
     templateId?: GenerationTemplateId,
   ) => {
     if (!chapter) return;
-    const chosen = templateId ?? templateBySub[sub.id] ?? 'tom_and_jerry';
+    const chosen = templateId ?? activityTemplateBySub[sub.id] ?? 'tom_and_jerry';
     setIsGenerating((prev) => ({ ...prev, [sub.id]: true }));
     const ctrl = new AbortController();
     const timer = window.setTimeout(() => ctrl.abort(), 60_000);
@@ -218,7 +221,7 @@ export function SubtopicManager({
   };
 
   const startGenerate = async (sub: TeacherSubtopic, templateId?: GenerationTemplateId) => {
-    const chosen = templateId ?? templateBySub[sub.id] ?? 'tom_and_jerry';
+    const chosen = templateId ?? videoTemplateBySub[sub.id] ?? 'sweetrush_quest';
     setBusyId(sub.id);
     try {
       const res = await api.generateTopicVideo(sub.id, { templateId: chosen });
@@ -331,10 +334,14 @@ export function SubtopicManager({
                         No activity
                       </span>
                     )}
-                    {templateBySub[sub.id] ? (
-                      <span className="rounded-full bg-white/10 px-4 py-1.5 text-cyan-100">
-                        {getGenerationTemplate(templateBySub[sub.id]).icon}{' '}
-                        {getGenerationTemplate(templateBySub[sub.id]).title}
+                    {activityTemplateBySub[sub.id] ? (
+                      <span className="rounded-full bg-amber-500/20 px-4 py-1.5 text-amber-100">
+                        🎮 {getGenerationTemplate(activityTemplateBySub[sub.id]).title}
+                      </span>
+                    ) : null}
+                    {videoTemplateBySub[sub.id] ? (
+                      <span className="rounded-full bg-cyan-500/20 px-4 py-1.5 text-cyan-100">
+                        🎬 {getGenerationTemplate(videoTemplateBySub[sub.id]).title}
                       </span>
                     ) : null}
                   </div>
@@ -345,11 +352,11 @@ export function SubtopicManager({
                     sub={sub}
                     status={status}
                     busy={busyId === sub.id}
-                    onGenerate={() => setTemplatePick({ kind: 'video', sub })}
+                    onSelectTemplate={() => setTemplatePick({ generationType: 'video', sub })}
                     onReview={() => void openReview(sub)}
                   />
 
-                  {activityReady && !generating && (
+                  {activityReady && !generating ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -361,31 +368,26 @@ export function SubtopicManager({
                       <Eye className="h-5 w-5 shrink-0" />
                       Review Activity
                     </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setTemplatePick({ generationType: 'activity', sub })}
+                      disabled={generating}
+                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-amber-400/40 bg-[#FBBF24]/80 px-6 py-3 text-base font-medium text-white disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {generating ? (
+                        <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
+                      ) : (
+                        <span aria-hidden>🎮</span>
+                      )}
+                      {generating ? 'Generating Activity...' : 'Activity Template'}
+                    </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setTemplatePick({ kind: 'activity', sub, openReview: activityReady })}
-                    disabled={generating}
-                    className={[
-                      'inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-amber-400/40 px-6 py-3 text-base font-medium text-white disabled:cursor-wait',
-                      generating ? 'bg-amber-900/50' : 'bg-[#FBBF24]/80',
-                    ].join(' ')}
-                  >
-                    {generating ? (
-                      <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
-                    ) : (
-                      <LayoutTemplate className="h-5 w-5 shrink-0" />
-                    )}
-                    {generating
-                      ? 'Generating Activity...'
-                      : activityReady
-                        ? 'Select Template / Regenerate'
-                        : 'Select Template'}
-                  </button>
+
                   <button
                     type="button"
                     onClick={() => setAttachSub(sub)}
-                    className="td-btn-cta inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-6 py-3 text-base font-medium"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-white/20 bg-transparent px-6 py-3 text-base font-medium text-cyan-100 hover:bg-white/5"
                   >
                     <Plus className="h-5 w-5 shrink-0" />
                     Attach media
@@ -415,35 +417,50 @@ export function SubtopicManager({
           activity={reviewActivitySub.activity}
           regenerating={Boolean(isGenerating[reviewActivitySub.id])}
           onClose={() => setReviewActivitySub(null)}
-          onRegenerate={() => void generateActivity(reviewActivitySub, true)}
+          onRegenerate={() =>
+            void generateActivity(
+              reviewActivitySub,
+              true,
+              reviewActivitySub.activity
+                ? resolveActivityTemplateId(reviewActivitySub.activity)
+                : activityTemplateBySub[reviewActivitySub.id],
+            )
+          }
         />
       )}
       {templatePick && (
         <TemplateSelectorModal
-          kind={templatePick.kind}
+          generationType={templatePick.generationType}
+          subtopicId={templatePick.sub.id}
           title={
-            templatePick.kind === 'video'
-              ? `Video template · ${templatePick.sub.code}`
-              : `Activity template · ${templatePick.sub.code}`
+            templatePick.generationType === 'video'
+              ? `Video Template · ${templatePick.sub.code}`
+              : `Activity Template · ${templatePick.sub.code}`
           }
           subtitle={templatePick.sub.title}
-          confirmLabel="Generate with Selected Template"
-          initialTemplateId={templateBySub[templatePick.sub.id]}
+          initialTemplateId={
+            templatePick.generationType === 'video'
+              ? videoTemplateBySub[templatePick.sub.id]
+              : activityTemplateBySub[templatePick.sub.id]
+          }
           submitting={
-            templatePick.kind === 'video'
+            templatePick.generationType === 'video'
               ? busyId === templatePick.sub.id
               : Boolean(isGenerating[templatePick.sub.id])
           }
           onClose={() => setTemplatePick(null)}
-          onConfirm={(templateId) => {
-            setTemplateBySub((prev) => ({ ...prev, [templatePick.sub.id]: templateId }));
-            const target = templatePick.sub;
-            const openReview = templatePick.openReview;
+          onConfirm={({ generationType, templateId, subtopicId }) => {
+            const target =
+              templatePick.sub.id === subtopicId
+                ? templatePick.sub
+                : localSubs.find((s) => s.id === subtopicId) ?? templatePick.sub;
             setTemplatePick(null);
-            if (templatePick.kind === 'video') {
+            if (generationType === 'video') {
+              setVideoTemplateBySub((prev) => ({ ...prev, [target.id]: templateId }));
               void startGenerate(target, templateId);
             } else {
-              void generateActivity(target, Boolean(openReview), templateId);
+              setActivityTemplateBySub((prev) => ({ ...prev, [target.id]: templateId }));
+              void generateActivity(target, true, templateId);
             }
           }}
         />
@@ -519,13 +536,13 @@ function GenerateVideoButton({
   sub,
   status,
   busy,
-  onGenerate,
+  onSelectTemplate,
   onReview,
 }: {
   sub: TeacherSubtopic;
   status: TopicVideoStatus;
   busy: boolean;
-  onGenerate: () => void;
+  onSelectTemplate: () => void;
   onReview: () => void;
 }) {
   if (status === 'generating') {
@@ -566,7 +583,7 @@ function GenerateVideoButton({
     return (
       <button
         type="button"
-        onClick={onGenerate}
+        onClick={onSelectTemplate}
         disabled={busy}
         title={sub.videoError ?? 'Generation failed'}
         className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-rose-400/50 bg-rose-500/80 px-6 py-3 text-base font-medium text-white hover:bg-rose-500 disabled:opacity-50"
@@ -581,28 +598,24 @@ function GenerateVideoButton({
     );
   }
 
-  if (status === 'pending_review') {
+  if (status === 'pending_review' || status === 'published') {
     return (
       <button
         type="button"
         onClick={onReview}
-        className="td-btn-cta inline-flex animate-pulse items-center gap-2 whitespace-nowrap rounded-xl px-6 py-3 text-base font-medium"
+        className={[
+          'inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-6 py-3 text-base font-medium text-white',
+          status === 'pending_review'
+            ? 'td-btn-cta animate-pulse'
+            : 'bg-[#10B981]/80 hover:bg-[#10B981]',
+        ].join(' ')}
       >
-        <Eye className="h-5 w-5 shrink-0" />
+        {status === 'published' ? (
+          <PlayCircle className="h-5 w-5 shrink-0" />
+        ) : (
+          <Eye className="h-5 w-5 shrink-0" />
+        )}
         Review Video
-      </button>
-    );
-  }
-
-  if (status === 'published') {
-    return (
-      <button
-        type="button"
-        onClick={onReview}
-        className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-[#10B981]/80 px-6 py-3 text-base font-medium text-white hover:bg-[#10B981]"
-      >
-        <PlayCircle className="h-5 w-5 shrink-0" />
-        Video Ready / Re-generate
       </button>
     );
   }
@@ -610,16 +623,12 @@ function GenerateVideoButton({
   return (
     <button
       type="button"
-      onClick={onGenerate}
+      onClick={onSelectTemplate}
       disabled={busy}
-      className="td-btn-cta inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-6 py-3 text-base font-medium disabled:opacity-50"
+      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-cyan-400/40 bg-[#06B6D4]/80 px-6 py-3 text-base font-medium text-white disabled:opacity-50"
     >
-      {busy ? (
-        <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
-      ) : (
-        <LayoutTemplate className="h-5 w-5 shrink-0" />
-      )}
-      Select Template
+      {busy ? <Loader2 className="h-5 w-5 shrink-0 animate-spin" /> : <span aria-hidden>🎬</span>}
+      Video Template
     </button>
   );
 }
