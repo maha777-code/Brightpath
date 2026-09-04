@@ -9,6 +9,7 @@
     "upgrade": "remotion upgrade"
   },
   "dependencies": {
+    "@brightpath/shared": "*",
     "@react-three/fiber": "8.17.10",
     "@remotion/bundler": "4.0.499",
     "@remotion/cli": "4.0.499",

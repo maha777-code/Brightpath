@@ -2,6 +2,7 @@
 
 export type { UserRole, SignupRole, AppRole, PlanType } from './rbac.js';
 import type { PlanType } from './rbac.js';
+import type { PhysicsWorldSpec } from './box3dPhysics.js';
 
 export type TextbookStatus = 'UPLOADED' | 'VERIFYING' | 'INDEXED' | 'FAILED';
 
@@ -273,10 +274,20 @@ export interface TeacherActivity {
   /** Selected generation template (tom_and_jerry, space_shooter, …). */
   templateId?: string;
   /** Cinematic script scenes (or legacy quiz-derived script). */
-  content?: CinematicScriptScene[];
+  content?: CinematicScriptScene[] | ActivityContentPayload;
+  /** Physics-driven world metadata (also nested under content when stored). */
+  physicsWorld?: PhysicsWorldSpec;
   questions: GamifiedQuizQuestion[];
   totalXp: number;
   createdAt: string;
+}
+
+/** Stored Activity.content JSON shape (script + optional physics). */
+export interface ActivityContentPayload {
+  templateId?: string;
+  subtopicId?: string;
+  script?: CinematicScriptScene[];
+  physicsWorld?: PhysicsWorldSpec;
 }
 
 export interface TeacherSubtopic {

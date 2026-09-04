@@ -367,6 +367,7 @@ export type {
   TeacherSubtopic,
   TeacherActivity,
   TeacherAttachment,
+  ActivityContentPayload,
   GamifiedQuizQuestion,
   CinematicScriptScene,
   CinematicSetupScene,
@@ -439,6 +440,23 @@ export {
   TOM_BONKED,
   JERRY_CAUGHT_CINEMATIC,
 } from './cinematicActivity.js';
+
+export type {
+  Vec3,
+  PhysicsTargetSpec,
+  PhysicsWorldSpec,
+  PhysicsBodyState,
+  PhysicsContactEvent,
+  PhysicsContactHandler,
+} from './box3dPhysics.js';
+export {
+  PHYSICS_PRESETS,
+  Box3DWorld,
+  buildPhysicsWorldForTemplate,
+  defaultTargetsForOptions,
+  parsePhysicsWorld,
+  extractPhysicsWorldFromContent,
+} from './box3dPhysics.js';
 
 export {
   DEFAULT_PLAN_FOR_ROLE,

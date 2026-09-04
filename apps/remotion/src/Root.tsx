@@ -7,6 +7,7 @@ import {
   resolveLessonProps,
   type GamifiedLessonProps,
 } from './Compositions/GamifiedLesson';
+import { Box3DVideoComposition } from './Compositions/Box3DVideoComposition';
 
 function sceneDurationSum(props: GamifiedLessonProps): number {
   const scenes = props.scriptData?.scenes?.length ? props.scriptData.scenes : props.scenes;
@@ -31,6 +32,7 @@ export const RemotionRoot: React.FC = () => {
   });
 
   return (
+    <>
     <Composition
       id="GamifiedLesson"
       component={GamifiedLesson}
@@ -79,5 +81,20 @@ export const RemotionRoot: React.FC = () => {
         };
       }}
     />
+      <Composition
+        id="Box3DPhysics"
+        component={Box3DVideoComposition}
+        durationInFrames={90}
+        fps={30}
+        width={1280}
+        height={720}
+        defaultProps={{
+          templateId: 'space_shooter',
+          title: 'Box3D Physics Preview',
+          optionIds: ['A', 'B', 'C', 'D'],
+          correctOptionId: 'B',
+        }}
+      />
+    </>
   );
 };

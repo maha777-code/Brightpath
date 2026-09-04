@@ -1,9 +1,12 @@
 import { z } from 'zod';
 import {
+  buildPhysicsWorldForTemplate,
   cinematicScriptFromQuiz,
+  extractPhysicsWorldFromContent,
   extractTemplateIdFromContent,
   getTemplateConfig,
   parseCinematicScript,
+  parsePhysicsWorld,
   questionLoopsFromScript,
   questionsFromCinematicScript,
   resolveActiveTemplate,
@@ -13,6 +16,7 @@ import {
   TEMPLATE_CONFIGS,
   type CinematicScriptScene,
   type GamifiedQuizQuestion,
+  type PhysicsWorldSpec,
   type TeacherActivity,
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
@@ -107,6 +111,9 @@ export function toTeacherActivity(row: ActivityRow): TeacherActivity {
   const parsedQuestions = parseQuizQuestions(row.questionsJson);
   const questions =
     parsedQuestions.length > 0 ? parsedQuestions : questionsFromCinematicScript(content);
+  const loops = questionLoopsFromScript(content);
+  const optionSeeds = (loops[0]?.options ?? []).map((o) => ({ id: o.id, correct: o.correct }));
+  const physicsWorld = extractPhysicsWorldFromContent(row.content, templateId, optionSeeds);
   return {
     id: row.id,
     subtopicId: row.subtopicId,
@@ -114,7 +121,12 @@ export function toTeacherActivity(row: ActivityRow): TeacherActivity {
     type: row.type,
     title: row.title,
     templateId,
-    content,
+    content: {
+      templateId,
+      script: content,
+      physicsWorld,
+    },
+    physicsWorld,
     questions,
     totalXp: row.totalXp || questions.reduce((sum, q) => sum + q.xpReward, 0),
     createdAt: row.createdAt.toISOString(),
@@ -283,6 +295,13 @@ Template title: ${template.title}.
 Return JSON only.`;
 }
 
+const PHYSICS_GRAVITY_HINT: Record<string, [number, number, number]> = {
+  tom_and_jerry: [0, -9.8, 0],
+  space_shooter: [0, -0.15, 0],
+  detective_mystery: [0, -9.8, 0],
+  sweetrush_quest: [0, -6.2, 0],
+};
+
 function cinematicUserPrompt(input: {
   code: string;
   title: string;
@@ -357,7 +376,16 @@ Return JSON with this exact shape:
       "jerry_dialogue": "${runner}: victory line",
       "animation_trigger": "${cfg.animationTriggers.completed}"
     }
-  ]
+  ],
+  "physicsWorld": {
+    "gravity": ${JSON.stringify(PHYSICS_GRAVITY_HINT[id] ?? [0, -9.8, 0])},
+    "targets": [
+      { "id": "A", "position": [-3.2, 1.2, 0], "mass": 5, "isCorrect": false },
+      { "id": "B", "position": [-1.05, 1.2, 0], "mass": 5, "isCorrect": true },
+      { "id": "C", "position": [1.05, 1.2, 0], "mass": 5, "isCorrect": false },
+      { "id": "D", "position": [3.2, 1.2, 0], "mass": 5, "isCorrect": false }
+    ]
+  }
 }
 
 Rules:
@@ -365,6 +393,7 @@ Rules:
 - Include exactly 1 setup, exactly ${QUESTION_COUNT} question_loop scenes, 1 correct_outcome, 1 incorrect_outcome, and 1 completed.
 - Each question_loop has exactly 4 options A–D with exactly one correct:true.
 - Each question_loop MUST include correct_outcome_text and incorrect_outcome_text matching this template's theme (not Tom & Jerry unless templateId is tom_and_jerry).
+- Include physicsWorld with gravity vector and 4 targets matching option ids; isCorrect must match the correct option in the first question_loop.
 - Correct options use jerry_action "${cfg.animationTriggers.correctAction}". Incorrect use "${cfg.animationTriggers.wrongAction}".
 - game_mechanics must be "${cfg.gameMechanics}".
 - Characters must be ${host} and ${runner} only for this templateId.
@@ -377,16 +406,23 @@ async function generateCinematicScriptFromLlm(input: {
   chapterTitle: string;
   excerpts: string[];
   templateId?: string;
-}): Promise<CinematicScriptScene[]> {
+}): Promise<{ script: CinematicScriptScene[]; physicsWorld: PhysicsWorldSpec }> {
   const { id: templateId, config: cfg } = resolveActiveTemplate(input.templateId);
-  // Guard: TEMPLATE_CONFIGS[templateId] || TEMPLATE_CONFIGS['tom_and_jerry']
   const activeConfig = TEMPLATE_CONFIGS[templateId] || TEMPLATE_CONFIGS.tom_and_jerry;
   void activeConfig;
 
+  const buildFallback = (): { script: CinematicScriptScene[]; physicsWorld: PhysicsWorldSpec } => {
+    const script = getFallbackScriptForTemplate(templateId, input);
+    const loops = questionLoopsFromScript(script);
+    const seeds = (loops[0]?.options ?? []).map((o) => ({ id: o.id, correct: o.correct }));
+    return {
+      script,
+      physicsWorld: buildPhysicsWorldForTemplate(templateId, seeds),
+    };
+  };
+
   const provider = getActiveProvider();
-  if (!provider) {
-    return fallbackCinematicScript({ ...input, templateId });
-  }
+  if (!provider) return buildFallback();
 
   const context = input.excerpts.slice(0, 8).join('\n\n').slice(0, 6000);
 
@@ -405,7 +441,7 @@ async function generateCinematicScriptFromLlm(input: {
       `[gamifiedActivity] LLM call failed for templateId=${templateId}; using fallback script.`,
       err instanceof Error ? err.message : err,
     );
-    return fallbackCinematicScript({ ...input, templateId });
+    return buildFallback();
   }
 
   try {
@@ -419,7 +455,7 @@ async function generateCinematicScriptFromLlm(input: {
           templateId,
           parseErr,
         );
-        return getFallbackScriptForTemplate(templateId, input);
+        return buildFallback();
       }
     }
 
@@ -440,10 +476,10 @@ async function generateCinematicScriptFromLlm(input: {
         templateId,
         'too few question_loops',
       );
-      return getFallbackScriptForTemplate(templateId, input);
+      return buildFallback();
     }
 
-    return script.map((scene) => {
+    script = script.map((scene) => {
       if (scene.scene_type !== 'question_loop') return scene;
       const labels = outcomeLabelsForTemplate(templateId);
       return {
@@ -460,13 +496,18 @@ async function generateCinematicScriptFromLlm(input: {
         })),
       };
     });
+
+    const loops = questionLoopsFromScript(script);
+    const seeds = (loops[0]?.options ?? []).map((o) => ({ id: o.id, correct: o.correct }));
+    const physicsWorld = parsePhysicsWorld(asObject.physicsWorld, templateId, seeds);
+    return { script, physicsWorld };
   } catch (err) {
     console.error(
       '[Template Generation Error] Failed to parse LLM JSON output for template:',
       templateId,
       err,
     );
-    return getFallbackScriptForTemplate(templateId, input);
+    return buildFallback();
   }
 }
 
@@ -505,7 +546,7 @@ export async function generateGamifiedActivity(input: {
 
   const { id: templateId, template } = resolveActiveTemplate(input.templateId);
   const packet = await retrieveTextbookContext(sub.id);
-  const script = await generateCinematicScriptFromLlm({
+  const { script, physicsWorld } = await generateCinematicScriptFromLlm({
     code: sub.code,
     title: sub.title,
     chapterTitle: sub.chapter.title,
@@ -517,6 +558,7 @@ export async function generateGamifiedActivity(input: {
     templateId,
     subtopicId: sub.code,
     script,
+    physicsWorld,
   };
 
   const questions = questionsFromCinematicScript(script, 50);
@@ -543,7 +585,6 @@ export async function generateGamifiedActivity(input: {
       activityTemplateId: templateId,
     },
   }).catch(async (err) => {
-    // Schema may lag until ensureDatabaseSchema / db push adds activityTemplateId.
     console.warn('[gamifiedActivity] activityTemplateId update failed, retrying without it:', err);
     await prisma.teacherSubtopic.update({
       where: { id: sub.id },
