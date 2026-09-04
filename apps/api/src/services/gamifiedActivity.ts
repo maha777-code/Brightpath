@@ -7,6 +7,7 @@ import {
   questionLoopsFromScript,
   questionsFromCinematicScript,
   resolveActiveTemplate,
+  outcomeLabelsForTemplate,
   templateIdFromActivityType,
   templatePromptBlock,
   TEMPLATE_CONFIGS,
@@ -292,6 +293,19 @@ function cinematicUserPrompt(input: {
   const { id, config: cfg, template } = resolveActiveTemplate(input.templateId);
   const host = cfg.characters.host;
   const runner = cfg.characters.runner;
+  const labels = outcomeLabelsForTemplate(id);
+  const exampleCorrect =
+    id === 'space_shooter'
+      ? 'CORRECT — ALIEN BOSS HIT!'
+      : id === 'detective_mystery'
+        ? 'CORRECT — SUSPECT CONFESSED!'
+        : labels.correct;
+  const exampleIncorrect =
+    id === 'space_shooter'
+      ? 'INCORRECT — SHIP TOOK DAMAGE!'
+      : id === 'detective_mystery'
+        ? 'INCORRECT — FALSE LEAD!'
+        : labels.incorrect;
   return `Create a ${cfg.themeName} activity for this subtopic.
 Subtopic: ${input.code} ${input.title}
 Chapter: ${input.chapterTitle}
@@ -318,6 +332,8 @@ Return JSON with this exact shape:
       "prompt": "Curriculum question grounded in the textbook",
       "game_mechanics": "${cfg.gameMechanics}",
       "tom_dialogue_repeat": "${host}: Choose the correct ${cfg.choiceLabel}!",
+      "correct_outcome_text": "${exampleCorrect}",
+      "incorrect_outcome_text": "${exampleIncorrect}",
       "options": [
         { "id": "A", "text": "Wrong claim", "correct": false, "jerry_action": "${cfg.animationTriggers.wrongAction}" },
         { "id": "B", "text": "Correct claim", "correct": true, "jerry_action": "${cfg.animationTriggers.correctAction}" },
@@ -348,6 +364,7 @@ Rules:
 - Ground every prompt and option in the textbook context.
 - Include exactly 1 setup, exactly ${QUESTION_COUNT} question_loop scenes, 1 correct_outcome, 1 incorrect_outcome, and 1 completed.
 - Each question_loop has exactly 4 options A–D with exactly one correct:true.
+- Each question_loop MUST include correct_outcome_text and incorrect_outcome_text matching this template's theme (not Tom & Jerry unless templateId is tom_and_jerry).
 - Correct options use jerry_action "${cfg.animationTriggers.correctAction}". Incorrect use "${cfg.animationTriggers.wrongAction}".
 - game_mechanics must be "${cfg.gameMechanics}".
 - Characters must be ${host} and ${runner} only for this templateId.
@@ -428,9 +445,12 @@ async function generateCinematicScriptFromLlm(input: {
 
     return script.map((scene) => {
       if (scene.scene_type !== 'question_loop') return scene;
+      const labels = outcomeLabelsForTemplate(templateId);
       return {
         ...scene,
         game_mechanics: scene.game_mechanics || cfg.gameMechanics,
+        correct_outcome_text: scene.correct_outcome_text || labels.correct,
+        incorrect_outcome_text: scene.incorrect_outcome_text || labels.incorrect,
         options: scene.options.slice(0, 4).map((opt, i) => ({
           ...opt,
           id: OPTION_IDS[i] ?? opt.id,

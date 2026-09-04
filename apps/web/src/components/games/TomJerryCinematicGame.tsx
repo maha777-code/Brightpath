@@ -8,6 +8,7 @@ import type {
 } from '@brightpath/shared';
 import {
   getTemplateConfig,
+  outcomeLabelsForTemplate,
   questionLoopsFromScript,
   resolveActivityScript,
   resolveActivityTemplateId,
@@ -199,6 +200,7 @@ export default function TomJerryCinematicGame({
     return 'tom_and_jerry';
   }, [templateIdProp, activity]);
   const theme = useMemo(() => getTemplateConfig(templateId), [templateId]);
+  const outcomeLabels = useMemo(() => outcomeLabelsForTemplate(templateId), [templateId]);
 
   const script = useMemo(
     () => scriptProp ?? (activity ? resolveActivityScript(activity) : []),
@@ -224,6 +226,13 @@ export default function TomJerryCinematicGame({
   const completedNotified = useRef(false);
 
   const current = loops[questionIndex] as CinematicQuestionLoopScene | undefined;
+  const statusText =
+    phase === 'outcome' && lastCorrect !== null
+      ? lastCorrect
+        ? current?.correct_outcome_text || outcomeLabels.correct
+        : current?.incorrect_outcome_text || outcomeLabels.incorrect
+      : null;
+  const inputStatusText = `${theme.characters.runner} is moving…`;
   const xpPerQuestion = Math.max(
     10,
     Math.round((totalXp ?? activity?.totalXp ?? loops.length * 50) / Math.max(1, loops.length)),
@@ -485,8 +494,8 @@ export default function TomJerryCinematicGame({
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-200/80">
             {phase === 'setup' && 'Setup'}
             {phase === 'question' && `Question ${questionIndex + 1} of ${loops.length}`}
-            {phase === 'input' && 'Jerry is running…'}
-            {phase === 'outcome' && (lastCorrect ? 'Correct — Tom got bonked!' : 'Incorrect — Jerry was caught')}
+            {phase === 'input' && inputStatusText}
+            {phase === 'outcome' && statusText}
             {phase === 'completed' && 'Victory cinematic'}
           </p>
           <div className="flex flex-wrap gap-2">

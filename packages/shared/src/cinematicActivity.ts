@@ -12,6 +12,7 @@ import type {
 import {
   getTemplateConfig,
   isGenerationTemplateId,
+  outcomeLabelsForTemplate,
   templateIdFromActivityType,
   type GenerationTemplateId,
 } from './generationTemplates.js';
@@ -96,6 +97,8 @@ function normalizeQuestionLoop(
       `${cfg.characters.host}: Choose wisely!`,
     ),
     options: unique,
+    correct_outcome_text: asString(rec.correct_outcome_text) || undefined,
+    incorrect_outcome_text: asString(rec.incorrect_outcome_text) || undefined,
   };
 }
 
@@ -212,6 +215,7 @@ export function cinematicScriptFromQuiz(
   templateId?: GenerationTemplateId | string | null,
 ): CinematicScriptScene[] {
   const cfg = getTemplateConfig(templateId);
+  const labels = outcomeLabelsForTemplate(templateId);
   const topic = topicTitle.trim() || 'this topic';
   const host = cfg.characters.host;
   const runner = cfg.characters.runner;
@@ -237,6 +241,8 @@ export function cinematicScriptFromQuiz(
             ? cfg.animationTriggers.correctAction
             : cfg.animationTriggers.wrongAction,
       })),
+      correct_outcome_text: labels.correct,
+      incorrect_outcome_text: labels.incorrect,
     });
   }
   scenes.push({

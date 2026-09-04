@@ -231,6 +231,10 @@ export interface CinematicQuestionLoopScene {
   game_mechanics: TomJerryGameMechanics;
   tom_dialogue_repeat: string;
   options: CinematicQuestionOption[];
+  /** Optional per-question footer banner when answered correctly. */
+  correct_outcome_text?: string;
+  /** Optional per-question footer banner when answered incorrectly. */
+  incorrect_outcome_text?: string;
 }
 
 export interface CinematicCorrectOutcomeScene {

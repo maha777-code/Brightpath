@@ -230,6 +230,29 @@ export const GENERATION_TEMPLATES: GenerationTemplate[] = [
 
 export const DEFAULT_GENERATION_TEMPLATE_ID: GenerationTemplateId = 'tom_and_jerry';
 
+/** Footer banner copy for correct / incorrect question outcomes. */
+export const OUTCOME_LABELS: Record<
+  GenerationTemplateId,
+  { correct: string; incorrect: string }
+> = {
+  tom_and_jerry: {
+    correct: 'CORRECT — TOM GOT BONKED!',
+    incorrect: 'INCORRECT — JERRY WAS CAUGHT!',
+  },
+  space_shooter: {
+    correct: 'CORRECT — ALIEN SHIP DESTROYED!',
+    incorrect: 'INCORRECT — SHIP TOOK DAMAGE!',
+  },
+  detective_mystery: {
+    correct: 'CORRECT — CLUE UNLOCKED!',
+    incorrect: 'INCORRECT — FALSE LEAD!',
+  },
+  sweetrush_quest: {
+    correct: 'CORRECT — STAGE CLEARED!',
+    incorrect: 'INCORRECT — TRY AGAIN!',
+  },
+};
+
 export function templatesForGenerationType(generationType: 'video' | 'activity'): GenerationTemplate[] {
   const preferred = GENERATION_TEMPLATES.filter(
     (t) => t.kind === generationType || t.kind === 'both',
@@ -242,6 +265,13 @@ export function isGenerationTemplateId(value: unknown): value is GenerationTempl
     typeof value === 'string' &&
     (GENERATION_TEMPLATE_IDS as readonly string[]).includes(value)
   );
+}
+
+export function outcomeLabelsForTemplate(
+  templateId?: string | null,
+): { correct: string; incorrect: string } {
+  const tid = isGenerationTemplateId(templateId) ? templateId : DEFAULT_GENERATION_TEMPLATE_ID;
+  return OUTCOME_LABELS[tid] ?? OUTCOME_LABELS.tom_and_jerry;
 }
 
 export function getGenerationTemplate(id?: string | null): GenerationTemplate {
