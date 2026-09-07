@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FileUp, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
-import type { Textbook } from '@brightpath/shared';
+import type { TeacherChapter, Textbook } from '@brightpath/shared';
 import { getPlanLimits, maxPdfBytes } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -8,7 +8,19 @@ import { useAuth } from '@/context/AuthContext';
 interface DocumentUploaderProps {
   textbook: Textbook | null;
   onUploaded: (t: Textbook) => void;
-  onVerified: (t: Textbook) => void;
+  onVerified: (payload: { textbook: Textbook; chapters?: TeacherChapter[] }) => void | Promise<void>;
+}
+
+function titleFromFileName(fileName: string): string {
+  const base = fileName.replace(/\.pdf$/i, '').replace(/^\d+-/, '').trim();
+  if (!base) return '';
+  if (/^dsml$/i.test(base)) return 'DSML - Data Science & Machine Learning';
+  return base
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentUploaderProps) {
@@ -17,7 +29,11 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState<'upload' | 'verify' | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [title, setTitle] = useState('NCERT Science Class 9');
+  const [title, setTitle] = useState('');
+
+  useEffect(() => {
+    if (textbook?.title) setTitle(textbook.title);
+  }, [textbook?.id, textbook?.title]);
 
   const limits = getPlanLimits(planType ?? 'teacher_free');
   const maxBytes = maxPdfBytes(planType ?? 'teacher_free');
@@ -37,14 +53,18 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
     }
     setError(null);
     setBusy('upload');
+    const derived =
+      title.trim() && !/^ncert science class 9$/i.test(title.trim())
+        ? title.trim()
+        : titleFromFileName(file.name);
+    if (derived) setTitle(derived);
     try {
       const res = await api.uploadTextbook({
-        title: title.trim() || file.name.replace(/\.pdf$/i, ''),
+        title: derived || file.name.replace(/\.pdf$/i, ''),
         fileName: file.name,
         file,
-        subject: 'Science',
-        gradeLabel: 'Class 9',
       });
+      setTitle(res.textbook.title);
       onUploaded(res.textbook);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed');
@@ -66,7 +86,8 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
     setError(null);
     try {
       const res = await api.verifyTextbook(textbook.id);
-      onVerified(res.textbook);
+      setTitle(res.textbook.title);
+      await onVerified({ textbook: res.textbook, chapters: res.chapters });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Verification failed');
     } finally {
@@ -82,7 +103,7 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
           <p className="mt-1 text-base text-cyan-200/80">Upload a state textbook PDF, then verify for RAG indexing.</p>
           <p className="mt-1 text-base font-semibold text-cyan-200/80">
             Plan limit: {maxMb} MB · {maxCountLabel} PDF{limits.pdfUploadCount === 1 ? '' : 's'}
-            {limits.pdfUploadCount === 1 ? ' · Upgrade for unlimited' : ''}
+            {limits.pdfUploadCount === 1 ? ' · New upload replaces the current book' : ''}
           </p>
         </div>
         {textbook?.status === 'INDEXED' && (
@@ -97,6 +118,7 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          placeholder="Auto-filled from PDF filename (e.g. DSML)"
           className="td-input mt-2 w-full rounded-xl p-4 text-lg font-semibold outline-none"
         />
       </label>
@@ -135,6 +157,7 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
       {textbook && (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-400/20 bg-slate-950/40 p-6">
           <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wider text-cyan-200/70">Textbook title</p>
             <p className="truncate text-lg font-bold text-white">{textbook.title}</p>
             <p className="text-base text-cyan-200/80">
               {textbook.fileName} · {(textbook.fileSizeBytes / 1024).toFixed(0)} KB · {textbook.status}
@@ -155,6 +178,11 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
       {busy === 'upload' && (
         <p className="mt-4 flex items-center gap-2 text-base font-semibold text-cyan-200/80">
           <Loader2 className="h-5 w-5 animate-spin" /> Uploading PDF…
+        </p>
+      )}
+      {busy === 'verify' && (
+        <p className="mt-4 flex items-center gap-2 text-base font-semibold text-amber-100">
+          <Loader2 className="h-5 w-5 animate-spin" /> Extracting chapters &amp; curriculum from new PDF…
         </p>
       )}
       {error && <p className="mt-4 text-base font-semibold text-rose-300">{error}</p>}

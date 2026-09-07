@@ -377,7 +377,8 @@ export interface TeacherDoubtsResponse {
 
 /** Metadata fields for textbook upload (PDF sent as multipart binary field `file`). */
 export interface UploadTextbookRequest {
-  title: string;
+  /** Optional — server derives from PDF metadata / filename when omitted. */
+  title?: string;
   subject?: string;
   gradeLabel?: string;
   fileName?: string;
@@ -391,6 +392,7 @@ export interface UploadTextbookResponse {
 export interface VerifyTextbookResponse {
   textbook: Textbook;
   chaptersCreated: number;
+  chapters?: TeacherChapter[];
   message: string;
 }
 

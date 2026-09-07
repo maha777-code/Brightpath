@@ -155,9 +155,24 @@ export default function TeacherDashboard() {
                 setTextbook(t);
                 setChapters([]);
                 setSelectedChapterId(null);
+                setPreviewSubtopic(null);
+                setDoubts([]);
+                setEngagementNote(`Uploaded “${t.title}” — verify to extract curriculum.`);
               }}
-              onVerified={async (t) => {
+              onVerified={async ({ textbook: t, chapters: nextChapters }) => {
+                // Invalidate stale curriculum immediately
                 setTextbook(t);
+                setSelectedChapterId(null);
+                setPreviewSubtopic(null);
+                setEngagementNote(null);
+                if (nextChapters && nextChapters.length > 0) {
+                  setChapters(nextChapters);
+                  const first = [...nextChapters].sort((a, b) => a.sequenceOrder - b.sequenceOrder)[0];
+                  setSelectedChapterId(first?.id ?? null);
+                } else {
+                  setChapters([]);
+                }
+                // Full reload for doubts + consistent server truth
                 await load();
               }}
             />

@@ -23,8 +23,11 @@ import activityRoutes from './activity.js';
 import mediaRoutes from './media.js';
 import { DEFAULT_SAMPLE_DOUBTS } from '../lib/teacherCurriculumSeed.js';
 import {
+  clearTextbookCurriculum,
+  deriveTextbookTitle,
   ensureCompleteChapterOneSubtopics,
-  parseTextbookIntoChapters,
+  isNcertScienceTextbook,
+  parseTextbookIntoChaptersAsync,
 } from '../services/textbook.js';
 import { latestActivitiesBySubtopic } from '../services/gamifiedActivity.js';
 import { attachmentsBySubtopic } from '../services/attachMedia.js';
@@ -98,7 +101,13 @@ router.get('/chapters', async (req: AuthRequest, res) => {
     return;
   }
 
-  await ensureCompleteChapterOneSubtopics(latest.id);
+  const meta = await prisma.textbook.findUnique({
+    where: { id: latest.id },
+    select: { title: true, subject: true, fileName: true },
+  });
+  if (meta && isNcertScienceTextbook(meta)) {
+    await ensureCompleteChapterOneSubtopics(latest.id);
+  }
 
   const textbook = await prisma.textbook.findFirst({
     where: { id: latest.id },
@@ -148,46 +157,94 @@ router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, 
     return;
   }
 
-  if (planMaxCount !== null) {
-    const existingCount = await prisma.textbook.count({ where: { teacherId: req.teacherId! } });
-    if (existingCount >= planMaxCount) {
-      fs.unlink(file.path, () => undefined);
-      res.status(402).json({
-        error: `Free plan allows ${planMaxCount} PDF upload. Upgrade to Teacher Pro for unlimited textbooks.`,
-        planType,
-      });
-      return;
-    }
-  }
-
   const schema = z.object({
-    title: z.string().min(2),
+    title: z.string().min(1).optional(),
     subject: z.string().optional(),
     gradeLabel: z.string().optional(),
   });
-  const parsed = schema.safeParse(req.body);
+  const parsed = schema.safeParse(req.body ?? {});
   if (!parsed.success) {
     fs.unlink(file.path, () => undefined);
     res.status(400).json({ error: parsed.error.flatten() });
     return;
   }
 
-  const { title, subject, gradeLabel } = parsed.data;
   const fileName = file.originalname;
+  const title = deriveTextbookTitle({
+    explicitTitle: parsed.data.title,
+    fileName,
+    storagePath: file.path,
+  });
+  const subject = parsed.data.subject?.trim() || 'General';
+  const gradeLabel = parsed.data.gradeLabel?.trim() || 'All grades';
 
   const teacherRow = await prisma.teacher.findUnique({ where: { id: req.teacherId! } });
   const organizationId = req.organizationId ?? teacherRow?.organizationId ?? null;
+  const teacherId = req.teacherId!;
+
+  const existingLatest = await prisma.textbook.findFirst({
+    where: { teacherId },
+    orderBy: { updatedAt: 'desc' },
+  });
+  const existingCount = await prisma.textbook.count({ where: { teacherId } });
+  const atLimit = planMaxCount !== null && existingCount >= planMaxCount;
+
+  // Replace active textbook when at plan limit or when one already exists (keeps dashboard in sync).
+  if (existingLatest && (atLimit || existingCount === 1)) {
+    const oldPath = existingLatest.storagePath;
+    await clearTextbookCurriculum(existingLatest.id, teacherId);
+
+    const replaced = await prisma.textbook.update({
+      where: { id: existingLatest.id },
+      data: {
+        title,
+        fileName,
+        fileSizeBytes: file.size,
+        subject,
+        gradeLabel,
+        status: 'UPLOADED',
+        pageCount: null,
+        indexedChunkCount: 0,
+        storagePath: file.path,
+        organizationId,
+      },
+    });
+
+    if (oldPath && oldPath !== file.path) {
+      fs.unlink(oldPath, () => undefined);
+    }
+
+    res.status(201).json({
+      textbook: toTextbook(replaced),
+      message:
+        'Textbook replaced. Previous chapters, videos, and activities were cleared. Click Verify Document to extract the new curriculum.',
+      planType,
+      replaced: true,
+      ragIndexing: hasFeatureAccess(planType, 'rag_indexing'),
+      organizationId,
+    });
+    return;
+  }
+
+  if (planMaxCount !== null && existingCount >= planMaxCount) {
+    fs.unlink(file.path, () => undefined);
+    res.status(402).json({
+      error: `Free plan allows ${planMaxCount} PDF upload. Upgrade to Teacher Pro for unlimited textbooks.`,
+      planType,
+    });
+    return;
+  }
 
   const textbook = await prisma.textbook.create({
     data: {
-      teacherId: req.teacherId!,
+      teacherId,
       organizationId,
       isGlobal: false,
       title,
       fileName,
       fileSizeBytes: file.size,
-      subject: subject ?? 'Science',
-      gradeLabel: gradeLabel ?? 'Class 9',
+      subject,
+      gradeLabel,
       status: 'UPLOADED',
       pageCount: null,
       indexedChunkCount: 0,
@@ -199,12 +256,13 @@ router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, 
     textbook: toTextbook(textbook),
     message: 'Textbook uploaded. Click Verify Document to parse chapters and build the RAG index.',
     planType,
+    replaced: false,
     ragIndexing: hasFeatureAccess(planType, 'rag_indexing'),
     organizationId,
   });
 });
 
-/** POST /teacher/textbooks/:id/verify — parse + vector index pipeline (simulated) */
+/** POST /teacher/textbooks/:id/verify — parse + vector index pipeline */
 router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
   const teacherId = req.teacherId!;
   if (!hasFeatureAccess(req.planType ?? 'teacher_free', 'rag_indexing')) {
@@ -227,16 +285,25 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
     data: { status: 'VERIFYING' },
   });
 
-  // Clear prior structure for re-verify
-  await prisma.studentDoubt.deleteMany({ where: { teacherId, chapter: { textbookId: textbook.id } } });
-  await prisma.ragChunk.deleteMany({ where: { textbookId: textbook.id } });
-  await prisma.teacherChapter.deleteMany({ where: { textbookId: textbook.id } });
+  // Cascade: doubts, RAG chunks, chapters → subtopics → activities / attachments / videos
+  await clearTextbookCurriculum(textbook.id, teacherId);
 
   const teacherRow = await prisma.teacher.findUnique({ where: { id: teacherId } });
   const organizationId = textbook.organizationId ?? teacherRow?.organizationId ?? req.organizationId ?? null;
 
-  // PDF parse → chapter/subtopic extraction + embedding index (falls back to NCERT seed)
-  const parsedChapters = parseTextbookIntoChapters(textbook.storagePath);
+  const derivedTitle = deriveTextbookTitle({
+    explicitTitle: textbook.title,
+    fileName: textbook.fileName,
+    storagePath: textbook.storagePath,
+  });
+
+  const { chapters: parsedChapters, documentTitle } = await parseTextbookIntoChaptersAsync(
+    textbook.storagePath,
+    { fileName: textbook.fileName, titleHint: derivedTitle },
+  );
+
+  const finalTitle = documentTitle?.trim() || derivedTitle;
+
   let chaptersCreated = 0;
   const ragChunkCreates: { content: string; pageHint: string; sequence: number }[] = [];
   for (let i = 0; i < parsedChapters.length; i++) {
@@ -247,22 +314,26 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
         title: ch.title,
         sequenceOrder: i + 1,
         summary: ch.summary,
-        classProgressPct: ch.classProgressPct,
-        studentCount: ch.studentCount,
-        completedCount: ch.completedCount,
+        classProgressPct: 0,
+        studentCount: 0,
+        completedCount: 0,
         subtopics: {
           create: ch.subtopics.map((s, si) => ({
             code: s.code,
             title: s.title,
             sequenceOrder: si + 1,
-            hasVideoExplainer: s.hasVideoExplainer,
-            hasGamifiedActivity: s.hasGamifiedActivity,
-            videoTitle: s.videoTitle,
-            activityTitle: s.activityTitle,
-            videoUrl: s.videoUrl,
-            videoStatus: s.hasVideoExplainer && s.videoUrl ? 'published' : 'none',
-            videoProgress: s.hasVideoExplainer && s.videoUrl ? 100 : 0,
-            generatedVideoUrl: s.videoUrl,
+            hasVideoExplainer: false,
+            hasGamifiedActivity: false,
+            videoTitle: null,
+            activityTitle: null,
+            videoUrl: null,
+            videoStatus: 'none',
+            videoProgress: 0,
+            generatedVideoUrl: null,
+            videoError: null,
+            videoScript: null,
+            videoAudioUrl: null,
+            videoJobStage: null,
           })),
         },
       },
@@ -283,22 +354,24 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
       });
     }
 
-    // Seed sample doubts on first verify
-    for (const sample of DEFAULT_SAMPLE_DOUBTS.filter((d) => d.chapterIndex === i)) {
-      const sub = created.subtopics.find((s) => s.code === sample.subtopicCode);
-      await prisma.studentDoubt.create({
-        data: {
-          teacherId,
-          chapterId: created.id,
-          subtopicId: sub?.id,
-          studentName: sample.studentName,
-          question: sample.question,
-          status: sample.status,
-          aiAnswerText: sample.aiAnswerText,
-          aiGroundedSources: [...sample.aiGroundedSources],
-          aiConfidence: sample.aiConfidence,
-        },
-      });
+    // Sample doubts only for NCERT science curriculum
+    if (isNcertScienceTextbook({ title: finalTitle, subject: textbook.subject, fileName: textbook.fileName })) {
+      for (const sample of DEFAULT_SAMPLE_DOUBTS.filter((d) => d.chapterIndex === i)) {
+        const sub = created.subtopics.find((s) => s.code === sample.subtopicCode);
+        await prisma.studentDoubt.create({
+          data: {
+            teacherId,
+            chapterId: created.id,
+            subtopicId: sub?.id,
+            studentName: sample.studentName,
+            question: sample.question,
+            status: sample.status,
+            aiAnswerText: sample.aiAnswerText,
+            aiGroundedSources: [...sample.aiGroundedSources],
+            aiConfidence: sample.aiConfidence,
+          },
+        });
+      }
     }
   }
 
@@ -314,17 +387,29 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
   const indexed = await prisma.textbook.update({
     where: { id: textbook.id },
     data: {
+      title: finalTitle,
       status: 'INDEXED',
       organizationId,
       indexedChunkCount: ragChunkCreates.length,
-      pageCount: parsedChapters.length * 12,
+      pageCount: Math.max(parsedChapters.length * 8, 1),
+    },
+  });
+
+  const withChapters = await prisma.textbook.findFirst({
+    where: { id: indexed.id },
+    include: {
+      chapters: {
+        orderBy: { sequenceOrder: 'asc' },
+        include: { subtopics: { orderBy: { sequenceOrder: 'asc' } } },
+      },
     },
   });
 
   res.json({
     textbook: toTextbook(indexed),
     chaptersCreated,
-    message: `Verified & indexed ${chaptersCreated} chapters (${ragChunkCreates.length} RAG chunks) into the shared school library.`,
+    chapters: (withChapters?.chapters ?? []).map((ch) => toChapter(ch)),
+    message: `Verified & indexed ${chaptersCreated} chapters (${ragChunkCreates.length} RAG chunks) for “${finalTitle}”.`,
   });
 });
 
@@ -339,7 +424,13 @@ router.get('/chapters/:id', async (req: AuthRequest, res) => {
     return;
   }
 
-  await ensureCompleteChapterOneSubtopics(existing.textbookId);
+  const tbMeta = await prisma.textbook.findUnique({
+    where: { id: existing.textbookId },
+    select: { title: true, subject: true, fileName: true },
+  });
+  if (tbMeta && isNcertScienceTextbook(tbMeta)) {
+    await ensureCompleteChapterOneSubtopics(existing.textbookId);
+  }
 
   const chapter = await prisma.teacherChapter.findFirst({
     where: { id: req.params.id, textbook: { teacherId: req.teacherId! } },

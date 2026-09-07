@@ -386,7 +386,7 @@ export const api = {
 
   uploadTextbook: (body: UploadTextbookRequest & { file: File | Blob }) => {
     const form = new FormData();
-    form.append('title', body.title);
+    if (body.title?.trim()) form.append('title', body.title.trim());
     if (body.subject) form.append('subject', body.subject);
     if (body.gradeLabel) form.append('gradeLabel', body.gradeLabel);
     const fileName =
