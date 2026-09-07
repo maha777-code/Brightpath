@@ -127,6 +127,30 @@ export type SceneVisualType =
   | 'callout_summary'
   | string;
 
+export interface GameplayHudStats {
+  cpu_usage?: string;
+  exp?: number;
+  mana?: string;
+  memory?: string;
+  variance?: string;
+}
+
+export interface GameplayVisual {
+  character_action?: string;
+  code_terminal_overlay?: string;
+  hud_stats?: GameplayHudStats;
+}
+
+export type PixelSfxTrigger =
+  | 'glitch_error_sound'
+  | 'success_chime'
+  | 'eight_bit_click'
+  | 'neural_net_powerup'
+  | 'compile_success'
+  | 'boss_fanfare'
+  | 'button_click'
+  | string;
+
 export interface VideoSceneSpec {
   sceneId: number;
   duration: number;
@@ -135,6 +159,8 @@ export interface VideoSceneSpec {
   voiceoverText: string;
   /** LLM alias for voiceoverText */
   voiceover?: string;
+  /** Streamer-style narration (alias of voiceover). */
+  voiceoverNarration?: string;
   /** Legacy Remotion animation key (kept for older compositions). */
   animationType: string;
   parameters: VideoSceneParameters;
@@ -155,6 +181,15 @@ export interface VideoSceneSpec {
   teacherGesture?: string;
   /** Movie camera move for this scene */
   cameraMotion?: string;
+  /** Progressive quest label, e.g. "Level 1: The Manual Era" */
+  level?: string;
+  /** Inclusive start/end seconds for this block */
+  timestampRange?: [number, number];
+  timestamp_range?: [number, number];
+  gameplayVisual?: GameplayVisual;
+  gameplay_visual?: GameplayVisual;
+  sfxTrigger?: PixelSfxTrigger;
+  sfx_trigger?: PixelSfxTrigger;
 }
 
 export interface VideoScriptManifest {
@@ -168,6 +203,8 @@ export interface VideoScriptManifest {
   wordTimings?: { word: string; start: number; end: number }[];
   /** On-screen cartoon host name */
   teacherName?: string;
+  /** Unified renderer: pixel_game_hud */
+  architecture?: 'pixel_game_hud' | string;
 }
 
 export interface TeacherUser {

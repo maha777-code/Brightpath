@@ -22,7 +22,7 @@ import { STAGE_PROGRESS, STAGE_TIMEOUTS, type PipelineStage } from './types.js';
 const running = new Set<string>();
 const jobEpoch = new Map<string, number>();
 /** Full job budget: stages + Remotion headroom (default 15 min). */
-const JOB_TIMEOUT_MS = Number(process.env.VIDEO_JOB_TIMEOUT_MS ?? 900_000);
+const JOB_TIMEOUT_MS = Number(process.env.VIDEO_JOB_TIMEOUT_MS ?? 1_200_000);
 const STALE_MS = Number(process.env.VIDEO_JOB_STALE_MS ?? 120_000); // 2 min without progress → fail on poll
 
 type QueueItem = { topicId: string; teacherPrompt?: string; templateId?: string; epoch: number };
@@ -127,7 +127,7 @@ export async function runHybridVideoPipeline(
 
         await setStage(topicId, 'scripting');
         console.log(
-          `[videoPipeline] Passing ${ctx.ragExcerpts.length} RAG excerpts into SweetRush Gemini designer`,
+          `[videoPipeline] Passing ${ctx.ragExcerpts.length} RAG excerpts into pixel-quest Gemini designer`,
         );
         const manifest = await withTimeout(
           generateStructuredVideoScript(ctx),

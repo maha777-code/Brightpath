@@ -6,7 +6,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import {
-  getGenerationTemplate,
   hasFeatureAccess,
   maxPdfBytes,
   maxPdfCount,
@@ -516,8 +515,6 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => 
   const { enqueueHybridVideoJob } = await import('../lib/videoPipeline/runPipeline.js');
   const { topicAudioPath, topicVideoPath } = await import('../lib/videoPipeline/mediaPaths.js');
 
-  const templateId = getGenerationTemplate(parsed.data.templateId).id;
-
   const cacheReset = {
     videoStatus: 'generating' as const,
     videoProgress: 2,
@@ -542,7 +539,7 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => 
   try {
     updated = await prisma.teacherSubtopic.update({
       where: { id: existing.id },
-      data: { ...cacheReset, videoTemplateId: templateId },
+      data: cacheReset,
     });
   } catch {
     updated = await prisma.teacherSubtopic.update({
@@ -552,10 +549,10 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => 
   }
 
   console.log(
-    `[teacher/generate-video] Cleared cached script/manifest/media for ${existing.id}; regenerating from latest PDF embeddings`,
+    `[teacher/generate-video] Cleared cached script for ${existing.id}; pixel-quest regenerate from PDF embeddings`,
   );
 
-  enqueueHybridVideoJob(existing.id, parsed.data.prompt, templateId);
+  enqueueHybridVideoJob(existing.id, parsed.data.prompt);
 
   res.status(202).json({
     subtopic: toSubtopic(updated),

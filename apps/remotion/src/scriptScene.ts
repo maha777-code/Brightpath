@@ -1,6 +1,7 @@
 /** Normalize SweetRush script JSON so visualArchetype + visualConfig drive 3D primitives. */
 
 export type VisualArchetypeName =
+  | 'pixel_game_hud'
   | 'split_comparison'
   | 'interactive_stage'
   | 'micro_zoom'
@@ -16,6 +17,8 @@ export type SceneProp = {
   durationSec?: number;
   voiceoverText?: string;
   voiceover?: string;
+  voiceoverNarration?: string;
+  voiceover_narration?: string;
   animationType?: string;
   phase?: string;
   phaseTitle?: string;
@@ -28,6 +31,13 @@ export type SceneProp = {
   props?: Record<string, unknown>;
   teacherGesture?: string;
   cameraMotion?: string;
+  level?: string;
+  timestampRange?: [number, number];
+  timestamp_range?: [number, number];
+  gameplayVisual?: Record<string, unknown>;
+  gameplay_visual?: Record<string, unknown>;
+  sfxTrigger?: string;
+  sfx_trigger?: string;
 };
 
 export type ScriptData = {
@@ -38,6 +48,7 @@ export type ScriptData = {
   scenes?: SceneProp[];
   wordTimings?: { word: string; start: number; end: number }[];
   teacherName?: string;
+  architecture?: string;
 };
 
 export type GamifiedLessonProps = {
@@ -70,9 +81,15 @@ export type NormalizedScene = {
   props: Record<string, unknown>;
   teacherGesture: string;
   cameraMotion: string;
+  level: string;
+  gameplayVisual: Record<string, unknown>;
+  sfxTrigger: string;
 };
 
 const LEGACY_TO_ARCHETYPE: Record<string, VisualArchetypeName> = {
+  pixel_game_hud: 'pixel_game_hud',
+  pixelquest: 'pixel_game_hud',
+  PixelQuest: 'pixel_game_hud',
   split_comparison: 'split_comparison',
   comparison_split: 'split_comparison',
   question_card: 'split_comparison',
@@ -110,17 +127,13 @@ const LEGACY_TO_ARCHETYPE: Record<string, VisualArchetypeName> = {
   MathOverlay: 'math_overlay',
 };
 
-export function canonicalVisualArchetype(raw: string | undefined, index = 0): VisualArchetypeName {
+export function canonicalVisualArchetype(raw: string | undefined, _index = 0): VisualArchetypeName {
   const key = String(raw ?? '')
     .toLowerCase()
     .trim()
     .replace(/-/g, '_');
   if (LEGACY_TO_ARCHETYPE[key]) return LEGACY_TO_ARCHETYPE[key];
-  if (index === 0) return 'math_overlay';
-  if (index === 1) return 'scatter_plot';
-  if (index === 2) return 'regression_fit';
-  if (index === 3) return 'matrix_board';
-  return 'concept_card';
+  return 'pixel_game_hud';
 }
 
 export function canonicalVisualType(raw: string): string {
@@ -129,7 +142,7 @@ export function canonicalVisualType(raw: string): string {
 
 export function sceneDuration(raw: SceneProp | undefined): number {
   const n = Number(raw?.durationSec ?? raw?.duration);
-  return Number.isFinite(n) && n > 0 ? n : 8;
+  return Number.isFinite(n) && n > 0 ? n : 45;
 }
 
 export function sceneVisualType(raw: SceneProp | undefined, index = 0): string {
@@ -151,35 +164,53 @@ export function sceneProps(raw: SceneProp | undefined): Record<string, unknown> 
 export function normalizeScene(raw: SceneProp | undefined, index = 0): NormalizedScene {
   const duration = sceneDuration(raw);
   const visualArchetype = canonicalVisualArchetype(
-    raw?.visualArchetype || raw?.visualType || raw?.visual_type || raw?.animationType,
+    raw?.visualArchetype || raw?.visualType || raw?.visual_type || raw?.animationType || 'pixel_game_hud',
     index,
   );
   const props = sceneProps(raw);
-  const phase = String(raw?.phaseTitle || raw?.phase || '').trim() || `Scene ${index + 1}`;
-  const voiceover = String(raw?.voiceoverText || raw?.voiceover || '').trim();
-  const teacherGesture = String(raw?.teacherGesture || '').trim() || (
-    index === 0 ? 'questioning' : index === 1 ? 'demonstrating' : 'eureka'
+  const gameplayVisual = {
+    ...((raw?.gameplay_visual && typeof raw.gameplay_visual === 'object' ? raw.gameplay_visual : {}) as Record<
+      string,
+      unknown
+    >),
+    ...((raw?.gameplayVisual && typeof raw.gameplayVisual === 'object' ? raw.gameplayVisual : {}) as Record<
+      string,
+      unknown
+    >),
+    ...((props.gameplay_visual && typeof props.gameplay_visual === 'object'
+      ? (props.gameplay_visual as Record<string, unknown>)
+      : {}) as Record<string, unknown>),
+  };
+  const level = String(raw?.level || raw?.phaseTitle || raw?.phase || props.level || `Level ${index + 1}`);
+  const sfxTrigger = String(
+    raw?.sfx_trigger || raw?.sfxTrigger || props.sfx_trigger || props.sfxTrigger || 'eight_bit_click',
   );
-  const cameraMotion = String(raw?.cameraMotion || '').trim() || (
-    index === 0 ? 'cinematic_pan_right' : index === 1 ? 'orbit_around_object' : 'hyper_zoom_into_particles'
-  );
+  const voiceover = String(
+    raw?.voiceoverText || raw?.voiceover || raw?.voiceoverNarration || raw?.voiceover_narration || '',
+  ).trim();
+  const teacherGesture =
+    String(raw?.teacherGesture || '').trim() || (index === 0 ? 'questioning' : 'demonstrating');
+  const cameraMotion = String(raw?.cameraMotion || '').trim() || 'push_in_close';
   return {
     sceneId: Number(raw?.sceneId) || index + 1,
     duration,
     durationSec: duration,
-    phase: phase.toUpperCase(),
-    phaseTitle: phase,
+    phase: level.toUpperCase(),
+    phaseTitle: level,
     voiceoverText: voiceover,
     voiceover,
     visualType: visualArchetype,
     visualArchetype,
-    animationType: String(raw?.animationType || ''),
-    visualConfig: props,
+    animationType: String(raw?.animationType || 'PixelQuest'),
+    visualConfig: { ...props, gameplay_visual: gameplayVisual, level, sfx_trigger: sfxTrigger },
     visualProps: props,
     parameters: props,
     props,
     teacherGesture,
     cameraMotion,
+    level,
+    gameplayVisual,
+    sfxTrigger,
   };
 }
 
@@ -195,7 +226,7 @@ export function resolveLessonProps(props: GamifiedLessonProps): GamifiedLessonPr
     Number(props.scriptData?.totalDurationSeconds) ||
     Number(props.totalDurationSeconds) ||
     scenes.reduce((acc, s) => acc + s.duration, 0) ||
-    28;
+    240;
   const topicTitle = props.scriptData?.topicTitle || props.topicTitle;
   const teacherName = props.scriptData?.teacherName || props.teacherName || 'Professor Maya';
   const wordTimings = props.scriptData?.wordTimings?.length
@@ -207,6 +238,7 @@ export function resolveLessonProps(props: GamifiedLessonProps): GamifiedLessonPr
     teacherName,
     archetype: props.scriptData?.archetype || props.archetype,
     pedagogicalPattern: props.scriptData?.pedagogicalPattern || props.pedagogicalPattern,
+    architecture: props.scriptData?.architecture || 'pixel_game_hud',
     totalDurationSeconds,
     scenes,
     wordTimings,

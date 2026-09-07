@@ -47,7 +47,7 @@ export const RemotionRoot: React.FC = () => {
           Number(resolved.scriptData?.totalDurationSeconds) ||
           Number(resolved.totalDurationSeconds) ||
           sceneDurationSum(resolved) ||
-          25;
+          180;
 
         const audioUrl = String(resolved.audioUrl || '').trim();
         if (/^https?:\/\//i.test(audioUrl)) {

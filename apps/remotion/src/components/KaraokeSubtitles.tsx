@@ -14,7 +14,7 @@ export const KaraokeSubtitles: React.FC<{
         justifyContent: 'flex-end',
         alignItems: 'center',
         paddingBottom: 28,
-        paddingRight: 196,
+        paddingRight: 24,
         pointerEvents: 'none',
       }}
     >

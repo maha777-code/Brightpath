@@ -1,158 +1,122 @@
 import React, { useMemo, useRef } from 'react';
 import { AbsoluteFill, Audio, Img, useCurrentFrame, useVideoConfig } from 'remotion';
-import { ThreeCanvas } from '@remotion/three';
-import { DynamicSplitComparison } from '../components/3D/DynamicSplitComparison';
-import { DynamicInteractiveStage } from '../components/3D/DynamicInteractiveStage';
-import { DynamicMicroZoom } from '../components/3D/DynamicMicroZoom';
-import { DynamicConceptCard } from '../components/3D/DynamicConceptCard';
-import { DynamicScatterPlot } from '../components/3D/DynamicScatterPlot';
-import { DynamicMatrixBoard, DynamicMathAxes } from '../components/3D/DynamicMatrixBoard';
-import { CinematicCameraRig, CinematicLights } from '../components/3D/CinematicCameraRig';
-import { TeacherAvatar } from '../components/Avatar/TeacherAvatar';
-import { CinematicGrade } from '../components/CinematicGrade';
+import { PixelPlayfield } from '../components/pixel/PixelPlayfield';
+import { RetroGameHUD } from '../components/pixel/RetroGameHUD';
+import { PixelSfxLayer } from '../components/pixel/PixelSfxLayer';
 import { KaraokeSubtitles } from '../components/KaraokeSubtitles';
-import { SweetRushHUD } from '../components/UI/SweetRushHUD';
-import { MathFormulaOverlay } from '../components/MathFormulaOverlay';
 import {
   resolveActiveScene,
   resolveLessonProps,
   type GamifiedLessonProps,
   type NormalizedScene,
 } from '../scriptScene';
+import type { GameplayHudStats, GameplayVisual } from '@brightpath/shared';
 
 export type { GamifiedLessonProps, SceneProp, ScriptData } from '../scriptScene';
 export { resolveLessonProps } from '../scriptScene';
 
-const DEMO_SCENES: NormalizedScene[] = [
-  {
-    sceneId: 1,
-    duration: 8,
-    durationSec: 8,
-    phase: 'CHALLENGE',
-    phaseTitle: 'CHALLENGE',
-    voiceoverText: 'What two ideas in this lesson seem opposite — until you look closer?',
-    voiceover: 'What two ideas in this lesson seem opposite — until you look closer?',
-    visualType: 'split_comparison',
-    visualArchetype: 'split_comparison',
-    animationType: 'StateComparison',
-    teacherGesture: 'questioning',
-    cameraMotion: 'cinematic_pan_right',
-    visualConfig: {
-      leftLabel: 'Idea A',
-      rightLabel: 'Idea B',
-      primaryShape: 'cube',
-      primaryColor: '#00A8FF',
-      secondaryColor: '#FF5722',
+const DEMO_LEVELS: Array<Pick<NormalizedScene, 'level' | 'voiceover' | 'gameplayVisual' | 'sfxTrigger' | 'duration'>> =
+  [
+    {
+      level: 'Level 1: The Manual Era',
+      duration: 45,
+      voiceover: 'Hardcoded move_right() slams into the wall. One frozen rule is not a level.',
+      gameplayVisual: {
+        character_action: 'running_into_wall',
+        code_terminal_overlay: 'move_right(); jump(); // Hardcoded fail',
+        hud_stats: { cpu_usage: '12%', exp: 100, mana: '80/100' },
+      },
+      sfxTrigger: 'glitch_error_sound',
     },
-    visualProps: {},
-    parameters: {},
-    props: {
-      leftLabel: 'Idea A',
-      rightLabel: 'Idea B',
-      primaryShape: 'cube',
-      primaryColor: '#00A8FF',
-      secondaryColor: '#FF5722',
+    {
+      level: 'Level 2: The Loop & Logic Era',
+      duration: 48,
+      voiceover: 'if/else and while loops clear the repeating gates.',
+      gameplayVisual: {
+        character_action: 'looping',
+        code_terminal_overlay: 'while (hazard) { if (gap) jump(); }',
+        hud_stats: { cpu_usage: '28%', exp: 220, mana: '70/100' },
+      },
+      sfxTrigger: 'eight_bit_click',
     },
-  },
-  {
-    sceneId: 2,
-    duration: 12,
-    durationSec: 12,
-    phase: 'SIMULATION',
-    phaseTitle: 'SIMULATION',
-    voiceoverText: 'Watch the process unfold, one labeled element at a time.',
-    voiceover: 'Watch the process unfold, one labeled element at a time.',
-    visualType: 'interactive_stage',
-    visualArchetype: 'interactive_stage',
-    animationType: 'TemperatureEffect',
-    teacherGesture: 'demonstrating',
-    cameraMotion: 'orbit_around_object',
-    visualConfig: {},
-    visualProps: {},
-    parameters: {},
-    props: {
-      stageLabel: 'Process',
-      actionText: 'Transforming',
-      visualDomain: 'math',
-      elements: [
-        { name: 'Stage', type: 'cube', color: '#38bdf8' },
-        { name: 'Change', type: 'grid', color: '#facc15' },
-      ],
-      calloutBadges: ['Observe', 'Change'],
-      primaryColor: '#00A8FF',
-      secondaryColor: '#FACC15',
+    {
+      level: 'Level 3: The Unpredictable World',
+      duration: 50,
+      voiceover: 'Noise lands. Static rules miss. Time for math.',
+      gameplayVisual: {
+        character_action: 'dodge_fail',
+        code_terminal_overlay: '// pattern drift — hardcoded jump fails',
+        hud_stats: { cpu_usage: '61%', exp: 340, mana: '40/100', variance: 'σ² rising' },
+      },
+      sfxTrigger: 'glitch_error_sound',
     },
-  },
-  {
-    sceneId: 3,
-    duration: 8,
-    durationSec: 8,
-    phase: 'DISCOVERY',
-    phaseTitle: 'DISCOVERY',
-    voiceoverText: 'Zoom in: the structure underneath explains the rule.',
-    voiceover: 'Zoom in: the structure underneath explains the rule.',
-    visualType: 'micro_zoom',
-    visualArchetype: 'micro_zoom',
-    animationType: 'ParticleMotion3D',
-    teacherGesture: 'eureka',
-    cameraMotion: 'hyper_zoom_into_particles',
-    visualConfig: {},
-    visualProps: {},
-    parameters: {},
-    props: {
-      headline: 'Core insight',
-      particleMatrix: { typeA: 'blue_spheres', typeB: 'yellow_spheres' },
-      takeawayBadge: 'The hidden structure explains the observed change.',
-      primaryColor: '#38bdf8',
-      secondaryColor: '#facc15',
+    {
+      level: 'Level 4: The AI Companion',
+      duration: 52,
+      voiceover: 'Feed the pet training data and a loss. It learns the noisy path.',
+      gameplayVisual: {
+        character_action: 'feeding_data',
+        code_terminal_overlay: 'loss = (y - yhat)**2; companion.fit(X, y)',
+        hud_stats: { cpu_usage: '74%', exp: 620, mana: '90/100' },
+      },
+      sfxTrigger: 'neural_net_powerup',
     },
-  },
-];
+    {
+      level: 'Boss Battle / Level Complete',
+      duration: 45,
+      voiceover: 'Human plan plus trained companion. Co-op maze clear. EXP maxed.',
+      gameplayVisual: {
+        character_action: 'co_op_clear',
+        code_terminal_overlay: 'human.plan(); companion.predict();',
+        hud_stats: { cpu_usage: '44%', exp: 999, mana: '100/100' },
+      },
+      sfxTrigger: 'boss_fanfare',
+    },
+  ];
+
+const DEMO_SCENES: NormalizedScene[] = DEMO_LEVELS.map((row, i) => ({
+  sceneId: i + 1,
+  duration: row.duration,
+  durationSec: row.duration,
+  phase: row.level.toUpperCase(),
+  phaseTitle: row.level,
+  voiceoverText: row.voiceover,
+  voiceover: row.voiceover,
+  visualType: 'pixel_game_hud',
+  visualArchetype: 'pixel_game_hud',
+  animationType: 'PixelQuest',
+  teacherGesture: 'demonstrating',
+  cameraMotion: 'push_in_close',
+  visualConfig: { gameplay_visual: row.gameplayVisual, level: row.level },
+  visualProps: {},
+  parameters: {},
+  props: {},
+  level: row.level,
+  gameplayVisual: row.gameplayVisual as Record<string, unknown>,
+  sfxTrigger: row.sfxTrigger,
+}));
 
 export const defaultGamifiedProps: GamifiedLessonProps = {
   topicId: 'demo',
-  topicTitle: 'SweetRush Micro-Lesson',
-  teacherName: 'Professor Maya',
-  totalDurationSeconds: 28,
-  archetype: 'concept',
-  pedagogicalPattern: 'concept_card',
+  topicTitle: 'Pixel Quest Micro-Lesson',
+  teacherName: 'Pixel Sage',
+  totalDurationSeconds: DEMO_SCENES.reduce((a, s) => a + s.duration, 0),
+  archetype: 'process',
+  pedagogicalPattern: 'process_flow',
   audioUrl: '',
   wordTimings: [],
   scenes: DEMO_SCENES,
   scriptData: {
-    topicTitle: 'SweetRush Micro-Lesson',
-    teacherName: 'Professor Maya',
-    archetype: 'concept',
-    pedagogicalPattern: 'concept_card',
-    totalDurationSeconds: 28,
+    topicTitle: 'Pixel Quest Micro-Lesson',
+    teacherName: 'Pixel Sage',
+    architecture: 'pixel_game_hud',
+    archetype: 'process',
+    pedagogicalPattern: 'process_flow',
+    totalDurationSeconds: DEMO_SCENES.reduce((a, s) => a + s.duration, 0),
     scenes: DEMO_SCENES,
     wordTimings: [],
   },
 };
-
-const glOpts = {
-  powerPreference: 'high-performance' as const,
-  failIfMajorPerformanceCaveat: false,
-  preserveDrawingBuffer: true,
-  antialias: true,
-  alpha: false,
-};
-
-function collectBadges(cfg: Record<string, unknown>): string[] {
-  const fromCallouts = Array.isArray(cfg.calloutBadges)
-    ? cfg.calloutBadges.map((b) => String(b))
-    : [];
-  const fromSteps = Array.isArray(cfg.stepLabels) ? cfg.stepLabels.map((b) => String(b)) : [];
-  const extras = [
-    cfg.stageLabel,
-    cfg.actionText,
-    cfg.headline,
-    cfg.container,
-  ]
-    .map((x) => (typeof x === 'string' ? x : ''))
-    .filter(Boolean);
-  return [...fromCallouts, ...fromSteps, ...extras].filter(Boolean).slice(0, 4);
-}
 
 function overlayUrlsFromConfig(config: Record<string, unknown>): string[] {
   const many = config.overlayImageUrls;
@@ -176,15 +140,14 @@ function AttachmentOverlay({ config }: { config: Record<string, unknown> }) {
           src={url}
           style={{
             position: 'absolute',
-            right: 28,
-            bottom: 118 + i * 12,
-            width: 240,
-            height: 150,
+            right: 268,
+            bottom: 300 + i * 8,
+            width: 160,
+            height: 100,
             objectFit: 'cover',
-            borderRadius: 18,
-            border: '2px solid rgba(165,243,252,0.45)',
-            boxShadow: '0 12px 30px rgba(2,6,23,0.45)',
-            opacity: 0.92,
+            border: '3px solid #22d3ee',
+            imageRendering: 'pixelated',
+            opacity: 0.9,
           }}
         />
       ))}
@@ -192,76 +155,18 @@ function AttachmentOverlay({ config }: { config: Record<string, unknown> }) {
   );
 }
 
-function sceneFormula(config: Record<string, unknown>): string {
-  return String(config.formulaText || config.equationLatex || '').trim();
-}
-
-function isLabScene(config: Record<string, unknown>): boolean {
-  const d = String(config.visualDomain || config.domain || '').toLowerCase();
-  return d === 'chemistry' || d === 'lab';
-}
-
-function SceneVisual({
-  scene,
-  frame,
-  progress01,
-}: {
-  scene: NormalizedScene;
-  frame: number;
-  progress01: number;
-}) {
-  const arch = scene.visualArchetype;
-  const config = scene.visualConfig;
-  const lighting = String(config.lighting || '');
-  const lab = isLabScene(config);
-
-  return (
-    <ThreeCanvas
-      key={`${scene.sceneId}-${arch}`}
-      width={1280}
-      height={720}
-      camera={{ position: [0, 1.2, 8], fov: 48 }}
-      gl={glOpts}
-      onCreated={({ gl }) => {
-        gl.setPixelRatio(1);
-      }}
-    >
-      <color attach="background" args={['#020617']} />
-      <CinematicLights lighting={lighting} />
-      <CinematicCameraRig motion={scene.cameraMotion} progress01={progress01} />
-
-      {arch === 'split_comparison' ? (
-        <DynamicSplitComparison config={config as never} frame={frame} />
-      ) : null}
-      {arch === 'interactive_stage' && lab ? (
-        <DynamicInteractiveStage config={config as never} frame={frame} />
-      ) : null}
-      {arch === 'interactive_stage' && !lab ? (
-        <DynamicMathAxes config={config as never} frame={frame} />
-      ) : null}
-      {arch === 'micro_zoom' && lab ? (
-        <DynamicMicroZoom config={config as never} frame={frame} />
-      ) : null}
-      {arch === 'micro_zoom' && !lab ? (
-        <DynamicScatterPlot config={config as never} frame={frame} showFitLine={false} />
-      ) : null}
-      {arch === 'concept_card' ? (
-        <DynamicConceptCard config={config as never} frame={frame} />
-      ) : null}
-      {arch === 'scatter_plot' ? (
-        <DynamicScatterPlot config={config as never} frame={frame} showFitLine={false} />
-      ) : null}
-      {arch === 'regression_fit' ? (
-        <DynamicScatterPlot config={config as never} frame={frame} showFitLine />
-      ) : null}
-      {arch === 'matrix_board' ? (
-        <DynamicMatrixBoard config={config as never} frame={frame} />
-      ) : null}
-      {arch === 'math_overlay' ? (
-        <DynamicMathAxes config={config as never} frame={frame} />
-      ) : null}
-    </ThreeCanvas>
-  );
+function readGameplay(scene: NormalizedScene): GameplayVisual {
+  const fromScene = scene.gameplayVisual ?? {};
+  const fromConfig = (scene.visualConfig.gameplay_visual ||
+    scene.visualConfig.gameplayVisual ||
+    {}) as Record<string, unknown>;
+  const merged = { ...fromConfig, ...fromScene };
+  const hudRaw = (merged.hud_stats || merged.hudStats) as GameplayHudStats | undefined;
+  return {
+    character_action: String(merged.character_action || merged.characterAction || ''),
+    code_terminal_overlay: String(merged.code_terminal_overlay || merged.codeTerminalOverlay || ''),
+    hud_stats: hudRaw,
+  };
 }
 
 export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
@@ -273,26 +178,15 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
   const props = useMemo(() => resolveLessonProps(rawProps), [rawProps]);
   const scenes = (props.scriptData?.scenes ?? props.scenes) as NormalizedScene[];
   const topicTitle = props.topicTitle;
-  const teacherName = props.teacherName || props.scriptData?.teacherName || 'Professor Maya';
-  const pattern = props.pedagogicalPattern || props.archetype;
   const wordTimings = props.wordTimings;
   const audioUrl = props.audioUrl;
 
   if (frame === 0) {
     const live = rawProps.scriptData;
-    if (!live?.scenes?.length) {
-      console.error(
-        '[Remotion Render] WARNING: scriptData is missing or invalid! Using fallback.',
-      );
-    } else {
-      console.log(
-        `[Remotion Render] Rendering dynamic scenes for: ${live.topicTitle || topicTitle} ` +
-          `teacher=${live.teacherName || teacherName} scenes=${live.scenes.length} ` +
-          `audio=${audioUrl ? 'yes' : 'NO'} ` +
-          `cameras=${live.scenes.map((s) => s.cameraMotion || s.visualArchetype).join(',')} ` +
-          `gestures=${live.scenes.map((s) => s.teacherGesture || '?').join(',')}`,
-      );
-    }
+    console.log(
+      `[Remotion Render] Pixel quest scenes=${live?.scenes?.length || scenes.length} ` +
+        `audio=${audioUrl ? 'yes' : 'NO'} title=${live?.topicTitle || topicTitle}`,
+    );
   }
 
   const active = resolveActiveScene(scenes, currentTime);
@@ -303,86 +197,48 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
   const sceneWords = (wordTimings ?? []).filter((w) => {
     return w.start >= active.start - 0.12 && w.start < active.end + 0.05;
   });
-  const takeaway =
-    activeScene.phase === 'DISCOVERY'
-      ? String(visualConfig.takeawayBadge || visualConfig.keyTakeaway || visualConfig.headline || '')
-      : '';
-  const stepLabels = Array.isArray(visualConfig.calloutBadges)
-    ? (visualConfig.calloutBadges as string[])
-    : Array.isArray(visualConfig.stepLabels)
-      ? (visualConfig.stepLabels as string[])
-      : undefined;
-
-  const sceneKey = `${activeScene.sceneId}:${activeScene.visualArchetype}`;
+  const gameplay = readGameplay(activeScene);
+  const level = activeScene.level || activeScene.phaseTitle || `Level ${active.index + 1}`;
+  const sfx = activeScene.sfxTrigger || String(visualConfig.sfx_trigger || 'eight_bit_click');
+  const formula = String(visualConfig.formulaText || visualConfig.equationLatex || '');
+  const sceneKey = `${activeScene.sceneId}:${level}`;
   if (loggedScene.current !== sceneKey) {
     loggedScene.current = sceneKey;
     console.log(
-      `[GamifiedLesson] t=${currentTime.toFixed(2)}s scene=${activeScene.sceneId} ` +
-        `visualArchetype=${activeScene.visualArchetype} camera=${activeScene.cameraMotion} ` +
-        `gesture=${activeScene.teacherGesture} durationSec=${activeScene.durationSec} ` +
-        `config=${Object.keys(visualConfig).join(',') || '(none)'}`,
+      `[GamifiedLesson] t=${currentTime.toFixed(2)}s ${level} action=${gameplay.character_action} sfx=${sfx}`,
     );
   }
 
+  const compileFloater = /loop|train|feed|clear|compil|celebr/i.test(String(gameplay.character_action));
+
   return (
-    <AbsoluteFill className="bg-slate-950" style={{ backgroundColor: '#020617' }}>
-      <AbsoluteFill>
-        <SceneVisual scene={activeScene} frame={frame} progress01={sceneProgress} />
-      </AbsoluteFill>
-
-      <MathFormulaOverlay
-        formula={sceneFormula(visualConfig) || (isLabScene(visualConfig) ? '' : String(visualConfig.headline || ''))}
-        subtitle={
-          !isLabScene(visualConfig)
-            ? String(visualConfig.takeawayBadge || visualConfig.stageLabel || '')
-            : undefined
-        }
-        xAxisLabel={visualConfig.xAxisLabel as string | undefined}
-        yAxisLabel={visualConfig.yAxisLabel as string | undefined}
-      />
-
-      <AttachmentOverlay config={visualConfig} />
-
-      <AbsoluteFill
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(2,6,23,0.45) 0%, transparent 26%, transparent 62%, rgba(2,6,23,0.55) 100%)',
-        }}
-      />
-
-      <CinematicGrade lighting={String(visualConfig.lighting || '')} />
-
-      <SweetRushHUD
-        topicTitle={topicTitle}
-        phaseTitle={activeScene.phaseTitle}
-        phase={activeScene.phase}
-        pattern={pattern}
+    <AbsoluteFill style={{ backgroundColor: '#0b1020' }}>
+      <PixelPlayfield
+        levelIndex={active.index}
+        action={gameplay.character_action}
         progress01={sceneProgress}
-        voiceover={activeScene.voiceover}
-        leftConcept={
-          (visualConfig.leftLabel || visualConfig.leftConcept) as string | undefined
-        }
-        rightConcept={
-          (visualConfig.rightLabel || visualConfig.rightConcept) as string | undefined
-        }
-        badges={collectBadges(visualConfig)}
-        takeawayBadge={takeaway || undefined}
-        stepLabels={stepLabels}
+        formula={formula}
       />
-
-      <TeacherAvatar
-        gesture={activeScene.teacherGesture}
-        teacherName={teacherName}
-        currentTime={currentTime}
-        wordTimings={wordTimings}
+      <RetroGameHUD
+        topicTitle={topicTitle}
+        level={level}
+        terminal={gameplay.code_terminal_overlay || formula}
+        hud={gameplay.hud_stats}
+        action={gameplay.character_action}
+        progress01={sceneProgress}
+        showExpFloater={compileFloater}
       />
-
+      <PixelSfxLayer
+        key={`${activeScene.sceneId}-${sfx}`}
+        trigger={sfx}
+        sceneStartFrame={Math.round(active.start * fps)}
+      />
+      <AttachmentOverlay config={visualConfig} />
       <KaraokeSubtitles
         words={sceneWords}
         currentTime={currentTime}
         fallbackText={activeScene.voiceover}
       />
-
       {audioUrl ? <Audio src={audioUrl} /> : null}
     </AbsoluteFill>
   );
