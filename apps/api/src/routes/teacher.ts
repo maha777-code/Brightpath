@@ -20,14 +20,15 @@ import {
 } from '../lib/teacherSerializers.js';
 import activityRoutes from './activity.js';
 import mediaRoutes from './media.js';
-import { DEFAULT_SAMPLE_DOUBTS } from '../lib/teacherCurriculumSeed.js';
+import {
+  enqueueTextbookVerifyJob,
+  isTextbookVerifyJobActive,
+} from '../lib/textbookVerify/runVerifyJob.js';
 import {
   clearTextbookCurriculum,
   deriveTextbookTitle,
   ensureCompleteChapterOneSubtopics,
-  ensureTextbookPdfBodyChunks,
   isNcertScienceTextbook,
-  parseTextbookIntoChaptersAsync,
 } from '../services/textbook.js';
 import { latestActivitiesBySubtopic } from '../services/gamifiedActivity.js';
 import { attachmentsBySubtopic } from '../services/attachMedia.js';
@@ -103,9 +104,9 @@ router.get('/chapters', async (req: AuthRequest, res) => {
 
   const meta = await prisma.textbook.findUnique({
     where: { id: latest.id },
-    select: { title: true, subject: true, fileName: true },
+    select: { title: true, subject: true, fileName: true, status: true },
   });
-  if (meta && isNcertScienceTextbook(meta)) {
+  if (meta && meta.status !== 'VERIFYING' && isNcertScienceTextbook(meta)) {
     await ensureCompleteChapterOneSubtopics(latest.id);
   }
 
@@ -122,6 +123,10 @@ router.get('/chapters', async (req: AuthRequest, res) => {
   if (!textbook) {
     res.json({ textbook: null, chapters: [] });
     return;
+  }
+
+  if (textbook.status === 'VERIFYING' && !isTextbookVerifyJobActive(textbook.id)) {
+    enqueueTextbookVerifyJob(textbook.id, teacherId);
   }
 
   const subtopicIds = textbook.chapters.flatMap((ch) => ch.subtopics.map((s) => s.id));
@@ -262,7 +267,7 @@ router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, 
   });
 });
 
-/** POST /teacher/textbooks/:id/verify — parse + vector index pipeline */
+/** POST /teacher/textbooks/:id/verify — enqueue parse + RAG index; return immediately. */
 router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
   const teacherId = req.teacherId!;
   if (!hasFeatureAccess(req.planType ?? 'teacher_free', 'rag_indexing')) {
@@ -280,138 +285,30 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
     return;
   }
 
-  await prisma.textbook.update({
+  if (textbook.status === 'VERIFYING' && isTextbookVerifyJobActive(textbook.id)) {
+    res.status(200).json({
+      textbook: toTextbook(textbook),
+      chaptersCreated: 0,
+      chapters: [],
+      status: 'PROCESSING',
+      message: 'Indexing is already running in the background.',
+    });
+    return;
+  }
+
+  const queued = await prisma.textbook.update({
     where: { id: textbook.id },
     data: { status: 'VERIFYING' },
   });
 
-  // Cascade: doubts, RAG chunks, chapters → subtopics → activities / attachments / videos
-  await clearTextbookCurriculum(textbook.id, teacherId);
+  enqueueTextbookVerifyJob(textbook.id, teacherId);
 
-  const teacherRow = await prisma.teacher.findUnique({ where: { id: teacherId } });
-  const organizationId = textbook.organizationId ?? teacherRow?.organizationId ?? req.organizationId ?? null;
-
-  const derivedTitle = deriveTextbookTitle({
-    explicitTitle: textbook.title,
-    fileName: textbook.fileName,
-    storagePath: textbook.storagePath,
-  });
-
-  const { chapters: parsedChapters, documentTitle } = await parseTextbookIntoChaptersAsync(
-    textbook.storagePath,
-    { fileName: textbook.fileName, titleHint: derivedTitle },
-  );
-
-  const finalTitle = documentTitle?.trim() || derivedTitle;
-
-  let chaptersCreated = 0;
-  const ragChunkCreates: { content: string; pageHint: string; sequence: number }[] = [];
-  for (let i = 0; i < parsedChapters.length; i++) {
-    const ch = parsedChapters[i];
-    const created = await prisma.teacherChapter.create({
-      data: {
-        textbookId: textbook.id,
-        title: ch.title,
-        sequenceOrder: i + 1,
-        summary: ch.summary,
-        classProgressPct: 0,
-        studentCount: 0,
-        completedCount: 0,
-        subtopics: {
-          create: ch.subtopics.map((s, si) => ({
-            code: s.code,
-            title: s.title,
-            sequenceOrder: si + 1,
-            hasVideoExplainer: false,
-            hasGamifiedActivity: false,
-            videoTitle: null,
-            activityTitle: null,
-            videoUrl: null,
-            videoStatus: 'none',
-            videoProgress: 0,
-            generatedVideoUrl: null,
-            videoError: null,
-            videoScript: null,
-            videoAudioUrl: null,
-            videoJobStage: null,
-          })),
-        },
-      },
-      include: { subtopics: true },
-    });
-    chaptersCreated += 1;
-
-    ragChunkCreates.push({
-      content: `${ch.title}. ${ch.summary}. Subtopics: ${ch.subtopics.map((s) => s.title).join(', ')}.`,
-      pageHint: `Chapter ${i + 1}`,
-      sequence: i + 1,
-    });
-    for (const s of created.subtopics) {
-      ragChunkCreates.push({
-        content: `${ch.title} — ${s.code} ${s.title}. ${ch.summary}`,
-        pageHint: `Chapter ${i + 1} / ${s.code}`,
-        sequence: ragChunkCreates.length + 1,
-      });
-    }
-
-    // Sample doubts only for NCERT science curriculum
-    if (isNcertScienceTextbook({ title: finalTitle, subject: textbook.subject, fileName: textbook.fileName })) {
-      for (const sample of DEFAULT_SAMPLE_DOUBTS.filter((d) => d.chapterIndex === i)) {
-        const sub = created.subtopics.find((s) => s.code === sample.subtopicCode);
-        await prisma.studentDoubt.create({
-          data: {
-            teacherId,
-            chapterId: created.id,
-            subtopicId: sub?.id,
-            studentName: sample.studentName,
-            question: sample.question,
-            status: sample.status,
-            aiAnswerText: sample.aiAnswerText,
-            aiGroundedSources: [...sample.aiGroundedSources],
-            aiConfidence: sample.aiConfidence,
-          },
-        });
-      }
-    }
-  }
-
-  await prisma.ragChunk.createMany({
-    data: ragChunkCreates.map((c) => ({
-      textbookId: textbook.id,
-      content: c.content,
-      pageHint: c.pageHint,
-      sequence: c.sequence,
-    })),
-  });
-
-  const pdfBodyCount = await ensureTextbookPdfBodyChunks(textbook.id, textbook.storagePath);
-
-  const indexed = await prisma.textbook.update({
-    where: { id: textbook.id },
-    data: {
-      title: finalTitle,
-      status: 'INDEXED',
-      organizationId,
-      indexedChunkCount: ragChunkCreates.length + pdfBodyCount,
-      pageCount: Math.max(parsedChapters.length * 8, 1),
-    },
-  });
-
-  const withChapters = await prisma.textbook.findFirst({
-    where: { id: indexed.id },
-    include: {
-      chapters: {
-        orderBy: { sequenceOrder: 'asc' },
-        include: { subtopics: { orderBy: { sequenceOrder: 'asc' } } },
-      },
-    },
-  });
-
-  res.json({
-    textbook: toTextbook(indexed),
-    chaptersCreated,
-    chapters: (withChapters?.chapters ?? []).map((ch) => toChapter(ch)),
-    message: `Verified & indexed ${chaptersCreated} chapters (${ragChunkCreates.length} outline + ${pdfBodyCount} PDF body RAG chunks) for “${finalTitle}”.`,
+  res.status(200).json({
+    textbook: toTextbook(queued),
+    chaptersCreated: 0,
+    chapters: [],
+    status: 'PROCESSING',
+    message: 'Indexing started in the background. Curriculum will appear when status is INDEXED.',
   });
 });
 

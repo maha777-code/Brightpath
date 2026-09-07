@@ -4,7 +4,7 @@ export type { UserRole, SignupRole, AppRole, PlanType } from './rbac.js';
 import type { PlanType } from './rbac.js';
 import type { PhysicsWorldSpec } from './box3dPhysics.js';
 
-export type TextbookStatus = 'UPLOADED' | 'VERIFYING' | 'INDEXED' | 'FAILED';
+export type TextbookStatus = 'UPLOADED' | 'VERIFYING' | 'PROCESSING' | 'INDEXED' | 'FAILED';
 
 export type DoubtStatus = 'PENDING' | 'AI_DRAFT' | 'APPROVED' | 'OVERRIDDEN' | 'REJECTED';
 
@@ -442,6 +442,8 @@ export interface VerifyTextbookResponse {
   chaptersCreated: number;
   chapters?: TeacherChapter[];
   message: string;
+  /** Present on the async verify path — HTTP 200 while RAG indexing continues. */
+  status?: TextbookStatus;
 }
 
 export interface ReviewDoubtRequest {

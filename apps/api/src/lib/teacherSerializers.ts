@@ -57,7 +57,7 @@ export function toTextbook(t: DbTextbook): Textbook {
     fileSizeBytes: t.fileSizeBytes,
     subject: t.subject,
     gradeLabel: t.gradeLabel,
-    status: t.status,
+    status: t.status === 'VERIFYING' ? 'PROCESSING' : t.status,
     pageCount: t.pageCount,
     indexedChunkCount: t.indexedChunkCount,
     createdAt: t.createdAt.toISOString(),

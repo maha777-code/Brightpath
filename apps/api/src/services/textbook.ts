@@ -1,7 +1,14 @@
 import fs from 'node:fs';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
-import { extractPdfText } from '../lib/pdf/extractPdfText.js';
+import {
+  BODY_EXTRACT_OPTS,
+  extractPdfTextFromFile,
+  extractPdfTextFromPathSync,
+  iteratePdfStreamText,
+  readPdfHeaderLatin1,
+  TOC_EXTRACT_OPTS,
+} from '../lib/pdf/extractPdfText.js';
 import {
   CHAPTER_ONE_CANONICAL_TITLES,
   extractSubtopicHeadings,
@@ -109,14 +116,54 @@ export function chaptersFromHeadingsOnly(headings: ExtractedSubtopicHeading[]): 
     }));
 }
 
+function isPdfMagic(storagePath: string): boolean {
+  try {
+    const fd = fs.openSync(storagePath, 'r');
+    try {
+      const head = Buffer.alloc(5);
+      const n = fs.readSync(fd, head, 0, 5, 0);
+      return n >= 4 && head.subarray(0, 4).toString('utf8') === '%PDF';
+    } finally {
+      fs.closeSync(fd);
+    }
+  } catch {
+    return storagePath.toLowerCase().endsWith('.pdf');
+  }
+}
+
+function readPlainTextHead(storagePath: string, maxChars = 80_000): string {
+  const size = fs.statSync(storagePath).size;
+  const n = Math.min(size, maxChars);
+  const buf = Buffer.alloc(n);
+  const fd = fs.openSync(storagePath, 'r');
+  try {
+    fs.readSync(fd, buf, 0, n, 0);
+    return buf.toString('utf8');
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/** Bounded TOC/curriculum extract — never latin1-copies a 35MB+ PDF. */
 export function readTextbookText(storagePath: string | null | undefined): string {
   if (!storagePath || !fs.existsSync(storagePath)) return '';
   try {
-    const buf = fs.readFileSync(storagePath);
-    if (buf.length >= 4 && buf.subarray(0, 4).toString('utf8') === '%PDF') {
-      return extractPdfText(buf);
+    if (isPdfMagic(storagePath)) {
+      return extractPdfTextFromPathSync(storagePath, TOC_EXTRACT_OPTS);
     }
-    return buf.toString('utf8');
+    return readPlainTextHead(storagePath);
+  } catch {
+    return '';
+  }
+}
+
+export async function readTextbookTextAsync(storagePath: string | null | undefined): Promise<string> {
+  if (!storagePath || !fs.existsSync(storagePath)) return '';
+  try {
+    if (isPdfMagic(storagePath)) {
+      return extractPdfTextFromFile(storagePath, TOC_EXTRACT_OPTS);
+    }
+    return readPlainTextHead(storagePath);
   } catch {
     return '';
   }
@@ -145,8 +192,7 @@ export function titleFromFileName(fileName: string | null | undefined): string {
 export function titleFromPdfMetadata(storagePath: string | null | undefined): string | null {
   if (!storagePath || !fs.existsSync(storagePath)) return null;
   try {
-    const buf = fs.readFileSync(storagePath);
-    const latin = buf.toString('latin1');
+    const latin = readPdfHeaderLatin1(storagePath);
     const m = /\/Title\s*\(((?:\\.|[^\\)])*)\)/i.exec(latin);
     if (!m?.[1]) return null;
     const decoded = m[1]
@@ -276,7 +322,7 @@ export async function parseTextbookIntoChaptersAsync(
   storagePath: string | null | undefined,
   opts?: { fileName?: string | null; titleHint?: string | null },
 ): Promise<{ chapters: SeedChapter[]; documentTitle?: string }> {
-  const extracted = readTextbookText(storagePath).trim();
+  const extracted = (await readTextbookTextAsync(storagePath)).trim();
   const fileName = opts?.fileName ?? null;
 
   if (extracted.length > 80) {
@@ -451,32 +497,17 @@ export async function clearTextbookCurriculum(
   await prisma.teacherChapter.deleteMany({ where: { textbookId } });
 }
 
-function chunkPdfBody(text: string, size = 900, max = 80): string[] {
-  const cleaned = text.replace(/\s+/g, ' ').trim();
-  if (!cleaned) return [];
-  const chunks: string[] = [];
-  for (let i = 0; i < cleaned.length && chunks.length < max; i += size) {
-    chunks.push(cleaned.slice(i, i + size));
-  }
-  return chunks;
-}
+const PDF_BODY_CHUNK_SIZE = 900;
+const PDF_BODY_MAX_CHUNKS = 80;
+const PDF_EMBED_BATCH = 8;
 
-/** Index the raw PDF body (not just chapter titles) so video scripts can quote formulas. */
-export async function ensureTextbookPdfBodyChunks(
+async function persistPdfBodyChunkBatch(
   textbookId: string,
-  storagePath: string | null | undefined,
+  pieces: string[],
+  startSequence: number,
+  startIndex: number,
 ): Promise<number> {
-  const existing = await prisma.ragChunk.count({
-    where: { textbookId, sourceType: 'textbook_pdf' },
-  });
-  if (existing > 0) return existing;
-
-  const text = readTextbookText(storagePath);
-  if (text.trim().length < 80) return existing;
-
-  const pieces = chunkPdfBody(text);
-  if (!pieces.length) return existing;
-
+  if (!pieces.length) return 0;
   const { embedTexts, toPgVectorLiteral } = await import('../lib/embeddings.js');
   let embeddings: number[][] = [];
   try {
@@ -489,21 +520,14 @@ export async function ensureTextbookPdfBodyChunks(
   } catch {
     embeddings = [];
   }
-  const maxSeq =
-    (
-      await prisma.ragChunk.aggregate({
-        where: { textbookId },
-        _max: { sequence: true },
-      })
-    )._max.sequence ?? 0;
 
   for (let i = 0; i < pieces.length; i++) {
     const created = await prisma.ragChunk.create({
       data: {
         textbookId,
         content: pieces[i],
-        pageHint: `pdf_body / chunk ${i + 1}`,
-        sequence: maxSeq + i + 1,
+        pageHint: `pdf_body / chunk ${startIndex + i + 1}`,
+        sequence: startSequence + i,
         sourceType: 'textbook_pdf',
         embedding: embeddings[i] ?? [],
       },
@@ -521,13 +545,80 @@ export async function ensureTextbookPdfBodyChunks(
       }
     }
   }
-
-  await prisma.textbook.update({
-    where: { id: textbookId },
-    data: { indexedChunkCount: { increment: pieces.length } },
-  });
-  console.log(
-    `[textbook] Indexed ${pieces.length} PDF body chunks for ${textbookId} (was ${existing} textbook_pdf rows)`,
-  );
   return pieces.length;
+}
+
+/** Index PDF body in streamed 900-char chunks — never hold the full document string. */
+export async function ensureTextbookPdfBodyChunks(
+  textbookId: string,
+  storagePath: string | null | undefined,
+): Promise<number> {
+  const existing = await prisma.ragChunk.count({
+    where: { textbookId, sourceType: 'textbook_pdf' },
+  });
+  if (existing > 0) return existing;
+  if (!storagePath || !fs.existsSync(storagePath)) return existing;
+
+  let leftover = '';
+  const pending: string[] = [];
+  let createdCount = 0;
+  let maxSeq =
+    (
+      await prisma.ragChunk.aggregate({
+        where: { textbookId },
+        _max: { sequence: true },
+      })
+    )._max.sequence ?? 0;
+
+  const flushPending = async () => {
+    if (!pending.length || createdCount >= PDF_BODY_MAX_CHUNKS) {
+      pending.length = 0;
+      return;
+    }
+    const take = Math.min(PDF_EMBED_BATCH, PDF_BODY_MAX_CHUNKS - createdCount, pending.length);
+    const batch = pending.splice(0, take);
+    const wrote = await persistPdfBodyChunkBatch(textbookId, batch, maxSeq + 1, createdCount);
+    maxSeq += wrote;
+    createdCount += wrote;
+  };
+
+  const absorb = async (raw: string) => {
+    leftover = `${leftover} ${raw.replace(/\s+/g, ' ').trim()}`.trim();
+    while (leftover.length >= PDF_BODY_CHUNK_SIZE && createdCount + pending.length < PDF_BODY_MAX_CHUNKS) {
+      pending.push(leftover.slice(0, PDF_BODY_CHUNK_SIZE));
+      leftover = leftover.slice(PDF_BODY_CHUNK_SIZE);
+      if (pending.length >= PDF_EMBED_BATCH) await flushPending();
+    }
+    if (leftover.length > PDF_BODY_CHUNK_SIZE * 2) {
+      leftover = leftover.slice(0, PDF_BODY_CHUNK_SIZE);
+    }
+  };
+
+  if (isPdfMagic(storagePath)) {
+    for await (const piece of iteratePdfStreamText(storagePath, BODY_EXTRACT_OPTS)) {
+      await absorb(piece);
+      if (createdCount >= PDF_BODY_MAX_CHUNKS) break;
+    }
+  } else {
+    await absorb(readPlainTextHead(storagePath, 80_000));
+  }
+
+  if (leftover.trim().length >= 80 && createdCount + pending.length < PDF_BODY_MAX_CHUNKS) {
+    pending.push(leftover.slice(0, PDF_BODY_CHUNK_SIZE));
+  }
+  leftover = '';
+  while (pending.length && createdCount < PDF_BODY_MAX_CHUNKS) {
+    await flushPending();
+  }
+
+  if (createdCount > 0) {
+    await prisma.textbook.update({
+      where: { id: textbookId },
+      data: { indexedChunkCount: { increment: createdCount } },
+    });
+  }
+  console.log(
+    `[textbook] Indexed ${createdCount} PDF body chunks for ${textbookId} (was ${existing} textbook_pdf rows)`,
+  );
+  return createdCount;
 }

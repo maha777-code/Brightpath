@@ -11,6 +11,25 @@ interface DocumentUploaderProps {
   onVerified: (payload: { textbook: Textbook; chapters?: TeacherChapter[] }) => void | Promise<void>;
 }
 
+const VERIFY_POLL_MS = 2000;
+const VERIFY_TIMEOUT_MS = 5 * 60 * 1000;
+
+async function pollUntilIndexed(): Promise<{ textbook: Textbook; chapters: TeacherChapter[] }> {
+  const started = Date.now();
+  while (Date.now() - started < VERIFY_TIMEOUT_MS) {
+    await new Promise((r) => setTimeout(r, VERIFY_POLL_MS));
+    const structure = await api.teacherChapters();
+    const status = structure.textbook?.status;
+    if (status === 'INDEXED' && structure.textbook) {
+      return { textbook: structure.textbook, chapters: structure.chapters };
+    }
+    if (status === 'FAILED') {
+      throw new Error('Verification failed while indexing the textbook.');
+    }
+  }
+  throw new Error('Verification timed out. Refresh the dashboard to check status.');
+}
+
 function titleFromFileName(fileName: string): string {
   const base = fileName.replace(/\.pdf$/i, '').replace(/^\d+-/, '').trim();
   if (!base) return '';
@@ -34,6 +53,28 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
   useEffect(() => {
     if (textbook?.title) setTitle(textbook.title);
   }, [textbook?.id, textbook?.title]);
+
+  useEffect(() => {
+    if (!textbook) return;
+    if (textbook.status !== 'PROCESSING' && textbook.status !== 'VERIFYING') return;
+    let cancelled = false;
+    setBusy('verify');
+    void (async () => {
+      try {
+        const done = await pollUntilIndexed();
+        if (cancelled) return;
+        setTitle(done.textbook.title);
+        await onVerified(done);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Verification failed');
+      } finally {
+        if (!cancelled) setBusy(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [textbook?.id, textbook?.status]);
 
   const limits = getPlanLimits(planType ?? 'teacher_free');
   const maxBytes = maxPdfBytes(planType ?? 'teacher_free');
@@ -87,7 +128,9 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
     try {
       const res = await api.verifyTextbook(textbook.id);
       setTitle(res.textbook.title);
-      await onVerified({ textbook: res.textbook, chapters: res.chapters });
+      const done = await pollUntilIndexed();
+      setTitle(done.textbook.title);
+      await onVerified(done);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Verification failed');
     } finally {
@@ -106,11 +149,15 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
             {limits.pdfUploadCount === 1 ? ' · New upload replaces the current book' : ''}
           </p>
         </div>
-        {textbook?.status === 'INDEXED' && (
+        {busy === 'verify' ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/80 px-4 py-1.5 text-base font-medium text-white">
+            <Loader2 className="h-4 w-4 animate-spin" /> Indexing
+          </span>
+        ) : textbook?.status === 'INDEXED' ? (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/80 px-4 py-1.5 text-base font-medium text-white shadow-[0_0_14px_rgba(6,182,212,0.35)]">
             <CheckCircle2 className="h-4 w-4" /> Indexed
           </span>
-        )}
+        ) : null}
       </div>
 
       <label className="mb-4 block text-sm font-semibold uppercase tracking-wider text-[#A5F3FC]">
@@ -160,12 +207,17 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
             <p className="text-xs font-semibold uppercase tracking-wider text-cyan-200/70">Textbook title</p>
             <p className="truncate text-lg font-bold text-white">{textbook.title}</p>
             <p className="text-base text-cyan-200/80">
-              {textbook.fileName} · {(textbook.fileSizeBytes / 1024).toFixed(0)} KB · {textbook.status}
+              {textbook.fileName} · {(textbook.fileSizeBytes / 1024).toFixed(0)} KB ·{' '}
+              {busy === 'verify' || textbook.status === 'VERIFYING' ? 'PROCESSING' : textbook.status}
             </p>
           </div>
           <button
             type="button"
-            disabled={busy === 'verify' || textbook.status === 'VERIFYING'}
+            disabled={
+              busy === 'verify' ||
+              textbook.status === 'VERIFYING' ||
+              textbook.status === 'PROCESSING'
+            }
             onClick={() => void verify()}
             className="td-btn-cta inline-flex items-center gap-2 rounded-xl px-6 py-3 text-base font-medium disabled:opacity-60"
           >
@@ -182,7 +234,7 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
       )}
       {busy === 'verify' && (
         <p className="mt-4 flex items-center gap-2 text-base font-semibold text-amber-100">
-          <Loader2 className="h-5 w-5 animate-spin" /> Extracting chapters &amp; curriculum from new PDF…
+          <Loader2 className="h-5 w-5 animate-spin" /> Indexing in background… extracting chapters and building the RAG index.
         </p>
       )}
       {error && <p className="mt-4 text-base font-semibold text-rose-300">{error}</p>}
