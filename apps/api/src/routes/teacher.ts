@@ -26,6 +26,7 @@ import {
   clearTextbookCurriculum,
   deriveTextbookTitle,
   ensureCompleteChapterOneSubtopics,
+  ensureTextbookPdfBodyChunks,
   isNcertScienceTextbook,
   parseTextbookIntoChaptersAsync,
 } from '../services/textbook.js';
@@ -384,13 +385,15 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
     })),
   });
 
+  const pdfBodyCount = await ensureTextbookPdfBodyChunks(textbook.id, textbook.storagePath);
+
   const indexed = await prisma.textbook.update({
     where: { id: textbook.id },
     data: {
       title: finalTitle,
       status: 'INDEXED',
       organizationId,
-      indexedChunkCount: ragChunkCreates.length,
+      indexedChunkCount: ragChunkCreates.length + pdfBodyCount,
       pageCount: Math.max(parsedChapters.length * 8, 1),
     },
   });
@@ -409,7 +412,7 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
     textbook: toTextbook(indexed),
     chaptersCreated,
     chapters: (withChapters?.chapters ?? []).map((ch) => toChapter(ch)),
-    message: `Verified & indexed ${chaptersCreated} chapters (${ragChunkCreates.length} RAG chunks) for “${finalTitle}”.`,
+    message: `Verified & indexed ${chaptersCreated} chapters (${ragChunkCreates.length} outline + ${pdfBodyCount} PDF body RAG chunks) for “${finalTitle}”.`,
   });
 });
 
@@ -511,52 +514,52 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => 
   }
 
   const { enqueueHybridVideoJob } = await import('../lib/videoPipeline/runPipeline.js');
+  const { topicAudioPath, topicVideoPath } = await import('../lib/videoPipeline/mediaPaths.js');
 
   const templateId = getGenerationTemplate(parsed.data.templateId).id;
+
+  const cacheReset = {
+    videoStatus: 'generating' as const,
+    videoProgress: 2,
+    videoJobStage: 'queued',
+    videoJobStartedAt: new Date(),
+    generatedVideoUrl: null,
+    videoAudioUrl: null,
+    videoError: null,
+    videoManifestJson: Prisma.JsonNull,
+    videoScript: null,
+    videoTitle: null,
+    animationCuesJson: Prisma.JsonNull,
+    hasVideoExplainer: false,
+  };
+
+  await Promise.all([
+    fs.promises.unlink(topicVideoPath(existing.id)).catch(() => undefined),
+    fs.promises.unlink(topicAudioPath(existing.id)).catch(() => undefined),
+  ]);
 
   let updated;
   try {
     updated = await prisma.teacherSubtopic.update({
       where: { id: existing.id },
-      data: {
-        videoStatus: 'generating',
-        videoProgress: 2,
-        videoJobStage: 'queued',
-        videoJobStartedAt: new Date(),
-        generatedVideoUrl: null,
-        videoAudioUrl: null,
-        videoError: null,
-        videoManifestJson: Prisma.JsonNull,
-        videoScript: null,
-        animationCuesJson: Prisma.JsonNull,
-        hasVideoExplainer: false,
-        videoTemplateId: templateId,
-      },
+      data: { ...cacheReset, videoTemplateId: templateId },
     });
   } catch {
     updated = await prisma.teacherSubtopic.update({
       where: { id: existing.id },
-      data: {
-        videoStatus: 'generating',
-        videoProgress: 2,
-        videoJobStage: 'queued',
-        videoJobStartedAt: new Date(),
-        generatedVideoUrl: null,
-        videoAudioUrl: null,
-        videoError: null,
-        videoManifestJson: Prisma.JsonNull,
-        videoScript: null,
-        animationCuesJson: Prisma.JsonNull,
-        hasVideoExplainer: false,
-      },
+      data: cacheReset,
     });
   }
+
+  console.log(
+    `[teacher/generate-video] Cleared cached script/manifest/media for ${existing.id}; regenerating from latest PDF embeddings`,
+  );
 
   enqueueHybridVideoJob(existing.id, parsed.data.prompt, templateId);
 
   res.status(202).json({
     subtopic: toSubtopic(updated),
-    message: 'Hybrid video pipeline queued (RAG → LLM → TTS → Remotion)',
+    message: 'Hybrid video pipeline queued — cached script cleared; regenerating from latest PDF embeddings',
   });
 });
 

@@ -450,3 +450,84 @@ export async function clearTextbookCurriculum(
   // TeacherChapter cascade removes subtopics → activities, attachments
   await prisma.teacherChapter.deleteMany({ where: { textbookId } });
 }
+
+function chunkPdfBody(text: string, size = 900, max = 80): string[] {
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  if (!cleaned) return [];
+  const chunks: string[] = [];
+  for (let i = 0; i < cleaned.length && chunks.length < max; i += size) {
+    chunks.push(cleaned.slice(i, i + size));
+  }
+  return chunks;
+}
+
+/** Index the raw PDF body (not just chapter titles) so video scripts can quote formulas. */
+export async function ensureTextbookPdfBodyChunks(
+  textbookId: string,
+  storagePath: string | null | undefined,
+): Promise<number> {
+  const existing = await prisma.ragChunk.count({
+    where: { textbookId, sourceType: 'textbook_pdf' },
+  });
+  if (existing > 0) return existing;
+
+  const text = readTextbookText(storagePath);
+  if (text.trim().length < 80) return existing;
+
+  const pieces = chunkPdfBody(text);
+  if (!pieces.length) return existing;
+
+  const { embedTexts, toPgVectorLiteral } = await import('../lib/embeddings.js');
+  let embeddings: number[][] = [];
+  try {
+    embeddings = await Promise.race([
+      embedTexts(pieces),
+      new Promise<number[][]>((resolve) => {
+        setTimeout(() => resolve([]), 12_000);
+      }),
+    ]);
+  } catch {
+    embeddings = [];
+  }
+  const maxSeq =
+    (
+      await prisma.ragChunk.aggregate({
+        where: { textbookId },
+        _max: { sequence: true },
+      })
+    )._max.sequence ?? 0;
+
+  for (let i = 0; i < pieces.length; i++) {
+    const created = await prisma.ragChunk.create({
+      data: {
+        textbookId,
+        content: pieces[i],
+        pageHint: `pdf_body / chunk ${i + 1}`,
+        sequence: maxSeq + i + 1,
+        sourceType: 'textbook_pdf',
+        embedding: embeddings[i] ?? [],
+      },
+    });
+    const vec = embeddings[i];
+    if (vec?.length) {
+      const literal = toPgVectorLiteral(vec);
+      const id = created.id.replace(/'/g, "''");
+      try {
+        await prisma.$executeRawUnsafe(
+          `UPDATE "RagChunk" SET embedding_vec = '${literal}'::vector WHERE id = '${id}'`,
+        );
+      } catch {
+        /* Json embedding still stored */
+      }
+    }
+  }
+
+  await prisma.textbook.update({
+    where: { id: textbookId },
+    data: { indexedChunkCount: { increment: pieces.length } },
+  });
+  console.log(
+    `[textbook] Indexed ${pieces.length} PDF body chunks for ${textbookId} (was ${existing} textbook_pdf rows)`,
+  );
+  return pieces.length;
+}

@@ -5,11 +5,14 @@ import { DynamicSplitComparison } from '../components/3D/DynamicSplitComparison'
 import { DynamicInteractiveStage } from '../components/3D/DynamicInteractiveStage';
 import { DynamicMicroZoom } from '../components/3D/DynamicMicroZoom';
 import { DynamicConceptCard } from '../components/3D/DynamicConceptCard';
+import { DynamicScatterPlot } from '../components/3D/DynamicScatterPlot';
+import { DynamicMatrixBoard, DynamicMathAxes } from '../components/3D/DynamicMatrixBoard';
 import { CinematicCameraRig, CinematicLights } from '../components/3D/CinematicCameraRig';
 import { TeacherAvatar } from '../components/Avatar/TeacherAvatar';
 import { CinematicGrade } from '../components/CinematicGrade';
 import { KaraokeSubtitles } from '../components/KaraokeSubtitles';
 import { SweetRushHUD } from '../components/UI/SweetRushHUD';
+import { MathFormulaOverlay } from '../components/MathFormulaOverlay';
 import {
   resolveActiveScene,
   resolveLessonProps,
@@ -70,9 +73,10 @@ const DEMO_SCENES: NormalizedScene[] = [
     props: {
       stageLabel: 'Process',
       actionText: 'Transforming',
+      visualDomain: 'math',
       elements: [
-        { name: 'Stage', type: 'container', color: '#e2e8f0' },
-        { name: 'Change', type: 'particles', color: '#00a8ff' },
+        { name: 'Stage', type: 'cube', color: '#38bdf8' },
+        { name: 'Change', type: 'grid', color: '#facc15' },
       ],
       calloutBadges: ['Observe', 'Change'],
       primaryColor: '#00A8FF',
@@ -188,6 +192,15 @@ function AttachmentOverlay({ config }: { config: Record<string, unknown> }) {
   );
 }
 
+function sceneFormula(config: Record<string, unknown>): string {
+  return String(config.formulaText || config.equationLatex || '').trim();
+}
+
+function isLabScene(config: Record<string, unknown>): boolean {
+  const d = String(config.visualDomain || config.domain || '').toLowerCase();
+  return d === 'chemistry' || d === 'lab';
+}
+
 function SceneVisual({
   scene,
   frame,
@@ -200,6 +213,7 @@ function SceneVisual({
   const arch = scene.visualArchetype;
   const config = scene.visualConfig;
   const lighting = String(config.lighting || '');
+  const lab = isLabScene(config);
 
   return (
     <ThreeCanvas
@@ -219,14 +233,32 @@ function SceneVisual({
       {arch === 'split_comparison' ? (
         <DynamicSplitComparison config={config as never} frame={frame} />
       ) : null}
-      {arch === 'interactive_stage' ? (
+      {arch === 'interactive_stage' && lab ? (
         <DynamicInteractiveStage config={config as never} frame={frame} />
       ) : null}
-      {arch === 'micro_zoom' ? (
+      {arch === 'interactive_stage' && !lab ? (
+        <DynamicMathAxes config={config as never} frame={frame} />
+      ) : null}
+      {arch === 'micro_zoom' && lab ? (
         <DynamicMicroZoom config={config as never} frame={frame} />
+      ) : null}
+      {arch === 'micro_zoom' && !lab ? (
+        <DynamicScatterPlot config={config as never} frame={frame} showFitLine={false} />
       ) : null}
       {arch === 'concept_card' ? (
         <DynamicConceptCard config={config as never} frame={frame} />
+      ) : null}
+      {arch === 'scatter_plot' ? (
+        <DynamicScatterPlot config={config as never} frame={frame} showFitLine={false} />
+      ) : null}
+      {arch === 'regression_fit' ? (
+        <DynamicScatterPlot config={config as never} frame={frame} showFitLine />
+      ) : null}
+      {arch === 'matrix_board' ? (
+        <DynamicMatrixBoard config={config as never} frame={frame} />
+      ) : null}
+      {arch === 'math_overlay' ? (
+        <DynamicMathAxes config={config as never} frame={frame} />
       ) : null}
     </ThreeCanvas>
   );
@@ -297,6 +329,17 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
       <AbsoluteFill>
         <SceneVisual scene={activeScene} frame={frame} progress01={sceneProgress} />
       </AbsoluteFill>
+
+      <MathFormulaOverlay
+        formula={sceneFormula(visualConfig) || (isLabScene(visualConfig) ? '' : String(visualConfig.headline || ''))}
+        subtitle={
+          !isLabScene(visualConfig)
+            ? String(visualConfig.takeawayBadge || visualConfig.stageLabel || '')
+            : undefined
+        }
+        xAxisLabel={visualConfig.xAxisLabel as string | undefined}
+        yAxisLabel={visualConfig.yAxisLabel as string | undefined}
+      />
 
       <AttachmentOverlay config={visualConfig} />
 

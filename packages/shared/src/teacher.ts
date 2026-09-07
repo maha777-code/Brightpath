@@ -34,7 +34,13 @@ export type VisualArchetype =
   | 'split_comparison'
   | 'interactive_stage'
   | 'micro_zoom'
-  | 'concept_card';
+  | 'concept_card'
+  | 'scatter_plot'
+  | 'regression_fit'
+  | 'math_overlay'
+  | 'matrix_board';
+
+export type VisualContentDomain = 'dsml' | 'math' | 'chemistry' | 'generic';
 
 export interface VisualStageElement {
   name?: string;
@@ -57,6 +63,11 @@ export interface SceneVisualConfig {
   particleMatrix?: { typeA?: string; typeB?: string };
   takeawayBadge?: string;
   lighting?: string;
+  visualDomain?: VisualContentDomain | string;
+  formulaText?: string;
+  equationLatex?: string;
+  xAxisLabel?: string;
+  yAxisLabel?: string;
   [key: string]: unknown;
 }
 

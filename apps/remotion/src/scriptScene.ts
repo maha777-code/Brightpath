@@ -4,7 +4,11 @@ export type VisualArchetypeName =
   | 'split_comparison'
   | 'interactive_stage'
   | 'micro_zoom'
-  | 'concept_card';
+  | 'concept_card'
+  | 'scatter_plot'
+  | 'regression_fit'
+  | 'math_overlay'
+  | 'matrix_board';
 
 export type SceneProp = {
   sceneId: number;
@@ -84,10 +88,26 @@ const LEGACY_TO_ARCHETYPE: Record<string, VisualArchetypeName> = {
   concept_card: 'concept_card',
   callout_summary: 'concept_card',
   concept_hero: 'concept_card',
+  scatter_plot: 'scatter_plot',
+  scatter: 'scatter_plot',
+  scatterplot: 'scatter_plot',
+  regression_fit: 'regression_fit',
+  regression: 'regression_fit',
+  least_squares: 'regression_fit',
+  math_overlay: 'math_overlay',
+  latex: 'math_overlay',
+  equation: 'math_overlay',
+  formula: 'math_overlay',
+  matrix_board: 'matrix_board',
+  matrix: 'matrix_board',
+  design_matrix: 'matrix_board',
   TemperatureEffect: 'interactive_stage',
   StateComparison: 'split_comparison',
   ParticleMotion3D: 'micro_zoom',
   ConceptCallout: 'concept_card',
+  ScatterRegression: 'scatter_plot',
+  MatrixBoard: 'matrix_board',
+  MathOverlay: 'math_overlay',
 };
 
 export function canonicalVisualArchetype(raw: string | undefined, index = 0): VisualArchetypeName {
@@ -96,9 +116,10 @@ export function canonicalVisualArchetype(raw: string | undefined, index = 0): Vi
     .trim()
     .replace(/-/g, '_');
   if (LEGACY_TO_ARCHETYPE[key]) return LEGACY_TO_ARCHETYPE[key];
-  if (index === 0) return 'split_comparison';
-  if (index === 1) return 'interactive_stage';
-  if (index === 2) return 'micro_zoom';
+  if (index === 0) return 'math_overlay';
+  if (index === 1) return 'scatter_plot';
+  if (index === 2) return 'regression_fit';
+  if (index === 3) return 'matrix_board';
   return 'concept_card';
 }
 

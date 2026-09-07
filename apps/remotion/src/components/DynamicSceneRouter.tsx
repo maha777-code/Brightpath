@@ -5,6 +5,8 @@ import { DynamicSplitComparison } from './3D/DynamicSplitComparison';
 import { DynamicInteractiveStage } from './3D/DynamicInteractiveStage';
 import { DynamicMicroZoom } from './3D/DynamicMicroZoom';
 import { DynamicConceptCard } from './3D/DynamicConceptCard';
+import { DynamicScatterPlot } from './3D/DynamicScatterPlot';
+import { DynamicMatrixBoard, DynamicMathAxes } from './3D/DynamicMatrixBoard';
 import { canonicalVisualArchetype } from '../scriptScene';
 
 export type DynamicSceneProps = {
@@ -41,6 +43,25 @@ export const DynamicSceneRouter: React.FC<DynamicSceneProps> = ({
     }
     if (arch === 'concept_card') {
       return <DynamicConceptCard config={parameters as never} frame={frame} />;
+    }
+    if (arch === 'scatter_plot' || arch === 'regression_fit') {
+      return (
+        <DynamicScatterPlot
+          config={parameters as never}
+          frame={frame}
+          showFitLine={arch === 'regression_fit'}
+        />
+      );
+    }
+    if (arch === 'matrix_board') {
+      return <DynamicMatrixBoard config={parameters as never} frame={frame} />;
+    }
+    if (arch === 'math_overlay') {
+      return <DynamicMathAxes config={parameters as never} frame={frame} />;
+    }
+    const domain = String(parameters.visualDomain || parameters.domain || '').toLowerCase();
+    if (domain && domain !== 'chemistry' && domain !== 'lab') {
+      return <DynamicMathAxes config={parameters as never} frame={frame} />;
     }
     return <DynamicInteractiveStage config={parameters as never} frame={frame} />;
   }, [arch, parameters, frame]);

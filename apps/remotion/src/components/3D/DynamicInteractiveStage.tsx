@@ -25,15 +25,22 @@ export type StageConfig = {
   primaryShape?: string;
   calloutBadges?: string[];
   speedMultiplier?: number;
+  visualDomain?: string;
+  domain?: string;
 };
 
-function elementKind(el: StageElement, fallback: PrimitiveKind): PrimitiveKind {
+function isLabDomain(config: StageConfig): boolean {
+  const d = String(config.visualDomain || config.domain || '').toLowerCase();
+  return d === 'chemistry' || d === 'lab';
+}
+
+function elementKind(el: StageElement, fallback: PrimitiveKind, lab: boolean): PrimitiveKind {
   const t = String(el.type || el.name || '').toLowerCase();
-  if (t.includes('container') || t.includes('beaker') || t.includes('flask') || t.includes('vessel')) {
+  if (lab && (t.includes('container') || t.includes('beaker') || t.includes('flask') || t.includes('vessel'))) {
     return 'container';
   }
   if (t.includes('particle') || t.includes('atom') || t.includes('cell') || t.includes('grain')) {
-    return 'particles';
+    return lab ? 'particles' : 'sphere';
   }
   return kindFromShape(el.type || el.name, fallback);
 }
@@ -98,11 +105,13 @@ export const DynamicInteractiveStage: React.FC<{
   const speed = Number(config.speedMultiplier ?? 1.25);
   const primary = parseHexColor(config.primaryColor, '#00A8FF');
   const secondary = parseHexColor(config.secondaryColor, '#FACC15');
+  const lab = isLabDomain(config);
+  const defaultShape = lab ? 'container' : config.primaryShape || 'cube';
   const elements = (config.elements?.length
     ? config.elements
     : [
-        { name: config.stageLabel || 'Primary', type: config.primaryShape || 'container', color: primary },
-        { name: config.actionText || 'Change', type: 'particles', color: secondary },
+        { name: config.stageLabel || 'Primary', type: defaultShape, color: primary },
+        { name: config.actionText || 'Change', type: lab ? 'particles' : 'grid', color: secondary },
       ]
   ).slice(0, 5);
   const n = Math.max(1, elements.length);
@@ -116,14 +125,14 @@ export const DynamicInteractiveStage: React.FC<{
 
       {elements.map((el, i) => {
         const x = (i - (n - 1) / 2) * 2.15;
-        const kind = elementKind(el, i === 0 ? 'container' : 'sphere');
+        const kind = elementKind(el, i === 0 ? (lab ? 'container' : 'cube') : 'sphere', lab);
         const color = parseHexColor(el.color, i % 2 === 0 ? primary : secondary);
         const bob = Math.sin(t * speed + i) * 0.08;
         return (
           <group key={`${el.name || kind}-${i}`} position={[x, bob, 0]}>
-            {kind === 'container' ? (
+            {lab && kind === 'container' ? (
               <GlassContainer color={color} t={t * speed} />
-            ) : kind === 'particles' ? (
+            ) : lab && kind === 'particles' ? (
               <ParticleCloud color={color} t={t * speed} />
             ) : (
               <mesh rotation={[0.2, t * 0.4 * (i % 2 === 0 ? 1 : -1), 0.1]}>

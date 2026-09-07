@@ -358,6 +358,7 @@ export type {
   VideoSceneParameters,
   PedagogicalArchetype,
   VisualArchetype,
+  VisualContentDomain,
   SceneVisualConfig,
   VisualStageElement,
   SceneVisualType,

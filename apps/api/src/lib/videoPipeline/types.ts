@@ -21,9 +21,9 @@ export const STAGE_PROGRESS: Record<PipelineStage, number> = {
 
 /** Per-stage budgets (ms). Rendering needs headroom for bundle + Chromium on slow VMs. */
 export const STAGE_TIMEOUTS = {
-  retrieving: 30_000,
-  scripting: 60_000,
-  tts: 90_000,
+  retrieving: 45_000,
+  scripting: 90_000,
+  tts: 180_000,
   rendering: 600_000, // 10 minutes
 } as const;
 
@@ -36,10 +36,12 @@ export interface TopicContextPacket {
   textbookTitle: string;
   subject: string;
   gradeLabel: string;
+  fileName?: string;
   ragExcerpts: string[];
   attachmentImageUrls?: string[];
   teacherPrompt?: string;
   templateId?: string;
+  contentDomain?: 'dsml' | 'math' | 'chemistry' | 'generic';
 }
 
 export interface VoiceSynthesisResult {

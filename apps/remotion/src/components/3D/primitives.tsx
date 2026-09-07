@@ -25,8 +25,11 @@ export function colorFromToken(token: string | undefined, fallback: string): str
 export function kindFromShape(raw: string | undefined, fallback: PrimitiveKind = 'sphere'): PrimitiveKind {
   const t = String(raw ?? '').toLowerCase();
   if (t.includes('cube') || t.includes('box') || t.includes('square')) return 'cube';
-  if (t.includes('cylind') || t.includes('rod') || t.includes('container') || t.includes('beaker')) {
+  if (t.includes('cylind') || t.includes('rod')) {
     return 'cylinder';
+  }
+  if (t.includes('container') || t.includes('beaker')) {
+    return fallback === 'container' ? 'cylinder' : fallback;
   }
   if (t.includes('grid') || t.includes('lattice') || t.includes('mesh')) return 'grid';
   if (t.includes('octa') || t.includes('crystal')) return 'octa';

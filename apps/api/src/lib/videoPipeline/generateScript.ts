@@ -7,93 +7,125 @@ import {
   type VideoSceneParameters,
   type VideoScriptManifest,
   type VisualArchetype,
+  type VisualContentDomain,
   type VisualStageElement,
 } from '@brightpath/shared';
 import { getActiveProvider } from '../llm/provider.js';
+import {
+  defaultArchetypesForDomain,
+  detectContentDomain,
+  extractFormulasFromContext,
+  isLabVisualDomain,
+} from './contentDomain.js';
 import type { TopicContextPacket } from './types.js';
 
-const CINEMATIC_SWEETRUSH_PROMPT = `
+const MIN_SCENES = 4;
+const MAX_SCENES = 6;
+const MIN_TOTAL_SEC = 60;
+const MAX_TOTAL_SEC = 90;
+const DEFAULT_SCENE_SEC = 15;
+const MIN_SCENE_SEC = 12;
+const MAX_SCENE_SEC = 18;
+
+function cinematicSystemPrompt(domain: VisualContentDomain, formulas: string[]): string {
+  const formulaBlock = formulas.length
+    ? formulas.map((f) => `- ${f}`).join('\n')
+    : '- (quote every equation, definition, and named study that appears in the RAG excerpts)';
+
+  const visualGuide =
+    domain === 'dsml'
+      ? `DSML / STATISTICS VISUALS (required):
+- 'scatter_plot' — 2D/3D scatter of (x, y) observations
+- 'regression_fit' — scatter plus the fit line y = β₀ + β₁ x
+- 'matrix_board' — design matrix X, response Y, parameter vector β
+- 'math_overlay' — animated LaTeX/text of g*(x) = E[Y | X = x], squared-error loss, σ²
+Do NOT emit chemistry lab apparatus, beakers, stirrers, water, salt, or NCERT science clips.`
+      : domain === 'math'
+        ? `MATHEMATICS VISUALS:
+- 'math_overlay' — glowing axes, vector spaces, LaTeX formula plaques
+- 'matrix_board' — matrices / vectors
+- 'concept_card' — theorem or definition
+Do NOT emit chemistry lab media.`
+        : domain === 'chemistry'
+          ? `LAB VISUALS are allowed only because this topic is chemistry:
+- 'interactive_stage' / 'micro_zoom' / 'split_comparison' / 'concept_card'`
+          : `GENERIC / MATHEMATICAL FALLBACK (this is NOT a chemistry lab):
+- Prefer 'math_overlay', 'concept_card', 'matrix_board', 'split_comparison'
+- Render animated equations, glowing coordinate axes, or vector spaces
+- NEVER default to a water beaker, stirrer, salt, or NCERT chemistry clip.`;
+
+  return `
 You are a Lead Animation Director for high-end educational movies (SweetRush style).
-Transform the provided textbook context into a 3-scene cinematic movie script with a cartoon teacher narrator.
+Transform the provided textbook RAG context into a ${MIN_SCENES}–${MAX_SCENES} scene cinematic script with a cartoon teacher narrator.
 
-Analyze the PDF and choose a Visual Archetype per scene:
-1. 'split_comparison' — two contrasting concepts, states, or theories
-2. 'interactive_stage' — sequence, lab step, apparatus, or diagram
-3. 'micro_zoom' — microscopic, structural, or sub-component view
-4. 'concept_card' — formula, definition, or core law
+TARGET RUNTIME: ${MIN_TOTAL_SEC}–${MAX_TOTAL_SEC} seconds (NOT a 20-second bumper).
+Each scene durationSec MUST be ${MIN_SCENE_SEC}–${MAX_SCENE_SEC}. Use ${MIN_SCENES} to ${MAX_SCENES} detailed steps. Typical: 5 scenes × 15s = 75s.
 
-Do NOT assume chemistry, a beaker, salt, wood, sand, or any other fixed apparatus.
-Derive labels, colors, shapes, and element names ONLY from the PDF excerpts, topic title, and chapter context.
+CONTEXT ENFORCEMENT:
+Extract EXACT formulas, equations, definitions, and real-world examples from the RAG excerpts.
+Quote them in voiceover and visualConfig.formulaText / equationLatex.
+Examples of the fidelity we need when they appear in the PDF:
+${formulaBlock}
 
-Output a JSON payload matching this strict schema:
+${visualGuide}
+
+Visual archetypes:
+1. 'split_comparison' — two contrasting concepts
+2. 'interactive_stage' — process / diagram (NOT a beaker unless the PDF is chemistry)
+3. 'micro_zoom' — structure close-up
+4. 'concept_card' — definition or law
+5. 'scatter_plot' — observation cloud
+6. 'regression_fit' — fitted line through points
+7. 'math_overlay' — LaTeX / formula on glowing axes
+8. 'matrix_board' — matrix / vector layout
+
+DYNAMIC THEME CONTEXT:
+Character dialogue MUST discuss the actual mathematics from the PDF (parameter vector β, design matrix X, error variance σ², loss functions, estimators) in the selected template's voice.
+Do not replace math with lab metaphors.
+
+Output a JSON payload matching this schema:
 {
   "topicTitle": "Textbook Chapter Title",
-  "teacherName": "Professor Maya",
-  "pedagogicalPattern": "lab_experiment | conceptual_comparison | process_flow | concept_card",
-  "totalDurationSeconds": 28,
+  "teacherName": "Host character name",
+  "pedagogicalPattern": "conceptual_comparison | process_flow | concept_card | lab_experiment",
+  "totalDurationSeconds": 75,
   "scenes": [
     {
       "sceneId": 1,
-      "phaseTitle": "THE DILEMMA",
-      "durationSec": 8,
-      "voiceover": "Curriculum grounded hook delivered by cartoon narrator",
-      "teacherGesture": "explaining | questioning | excited | pointing",
-      "cameraMotion": "cinematic_pan_right | push_in_close | wide_angle_reveal",
-      "visualArchetype": "split_comparison | interactive_stage | micro_zoom | concept_card",
+      "phaseTitle": "THE HOOK",
+      "durationSec": 15,
+      "voiceover": "40–70 words grounded in the PDF, naming the study or formula",
+      "teacherGesture": "explaining | questioning | excited | pointing | demonstrating | eureka | celebrating",
+      "cameraMotion": "cinematic_pan_right | push_in_close | wide_angle_reveal | orbit_around_object | top_down_macro",
+      "visualArchetype": "math_overlay | scatter_plot | regression_fit | matrix_board | split_comparison | concept_card | interactive_stage | micro_zoom",
       "visualConfig": {
-        "leftLabel": "Concept A from the text",
-        "rightLabel": "Concept B from the text",
-        "primaryShape": "sphere | cube | cylinder | grid",
+        "visualDomain": "${domain}",
+        "formulaText": "Exact formula from RAG",
+        "equationLatex": "g^*(x) = E[Y | X = x]",
+        "leftLabel": "From the text",
+        "rightLabel": "From the text",
+        "xAxisLabel": "X",
+        "yAxisLabel": "Y",
+        "primaryShape": "grid | cube | sphere | cylinder",
         "primaryColor": "#00A8FF",
-        "secondaryColor": "#FF5722",
+        "secondaryColor": "#FACC15",
         "lighting": "warm_cinematic | dramatic_spotlight | cool_discovery",
-        "calloutBadges": ["Hook", "Contrast"]
-      }
-    },
-    {
-      "sceneId": 2,
-      "phaseTitle": "THE SIMULATION",
-      "durationSec": 12,
-      "voiceover": "Step-by-step activity text explaining the process from the PDF",
-      "teacherGesture": "demonstrating | pointing_to_apparatus | explaining",
-      "cameraMotion": "orbit_around_object | top_down_macro | push_in_close",
-      "visualArchetype": "interactive_stage | split_comparison | micro_zoom",
-      "visualConfig": {
-        "stageLabel": "Main process from the text",
-        "elements": [
-          {"name": "Item 1 from the text", "type": "container", "color": "#ffffff"},
-          {"name": "Item 2 from the text", "type": "particles", "color": "#00a8ff"}
-        ],
-        "actionText": "The change described in the PDF",
-        "lighting": "dramatic_spotlight",
-        "calloutBadges": ["Action", "Observe"]
-      }
-    },
-    {
-      "sceneId": 3,
-      "phaseTitle": "THE REVEAL",
-      "durationSec": 8,
-      "voiceover": "Why this happens, grounded in the text conclusion",
-      "teacherGesture": "eureka | celebrating | explaining",
-      "cameraMotion": "hyper_zoom_into_particles | push_in_close",
-      "visualArchetype": "micro_zoom | concept_card",
-      "visualConfig": {
-        "headline": "Core insight from the text",
-        "particleMatrix": { "typeA": "type_from_text", "typeB": "type_from_text" },
-        "takeawayBadge": "Summary rule extracted from PDF",
-        "lighting": "cool_discovery",
-        "calloutBadges": ["Why"]
+        "calloutBadges": ["Hook", "Definition"],
+        "headline": "Core claim from the PDF",
+        "takeawayBadge": "Takeaway quoted from the text"
       }
     }
   ]
 }
 
 STRICT RULES:
-- Ground EVERY voiceover line in the provided RAG textbook excerpts.
-- visualConfig labels must come from this PDF / topic.
+- Ground EVERY voiceover line in the RAG textbook excerpts. Quote named studies (e.g. Galton 1889) when present.
+- ${MIN_SCENES}–${MAX_SCENES} scenes. totalDurationSeconds between ${MIN_TOTAL_SEC} and ${MAX_TOTAL_SEC}.
+- visualConfig.visualDomain must be "${domain}".
+- visualConfig labels and formulaText must come from this PDF / topic.
 - Return ONLY valid JSON (no markdown).
-- Scene durations must be durationSec 8, 12, 8 (sum 28).
 `;
+}
 
 type LlmSceneRaw = {
   sceneId?: number;
@@ -123,20 +155,41 @@ type LlmManifestRaw = {
   scenes?: LlmSceneRaw[];
 };
 
-const PHASE_BY_INDEX = ['CHALLENGE', 'SIMULATION', 'DISCOVERY'] as const;
-const DURATION_BY_INDEX = [8, 12, 8] as const;
-const ARCHETYPE_BY_INDEX: VisualArchetype[] = [
-  'split_comparison',
-  'interactive_stage',
-  'micro_zoom',
-];
-const GESTURE_BY_INDEX = ['questioning', 'demonstrating', 'eureka'] as const;
+const PHASE_BY_INDEX = [
+  'HOOK',
+  'DEFINITION',
+  'WORKED_EXAMPLE',
+  'SIMULATION',
+  'INSIGHT',
+  'TAKEAWAY',
+] as const;
+
+const GESTURE_BY_INDEX = [
+  'questioning',
+  'explaining',
+  'demonstrating',
+  'pointing',
+  'eureka',
+  'celebrating',
+] as const;
+
 const CAMERA_BY_INDEX = [
   'cinematic_pan_right',
+  'push_in_close',
   'orbit_around_object',
+  'wide_angle_reveal',
+  'top_down_macro',
   'hyper_zoom_into_particles',
 ] as const;
-const LIGHTING_BY_INDEX = ['warm_cinematic', 'dramatic_spotlight', 'cool_discovery'] as const;
+
+const LIGHTING_BY_INDEX = [
+  'warm_cinematic',
+  'dramatic_spotlight',
+  'cool_discovery',
+  'warm_cinematic',
+  'cool_discovery',
+  'dramatic_spotlight',
+] as const;
 
 function normalizeTeacherGesture(raw: string | undefined, index: number): string {
   const g = String(raw ?? '')
@@ -230,45 +283,61 @@ function classifyPatternFromText(text: string): PedagogicalArchetype {
   return 'concept';
 }
 
-/** Map any legacy visualType or new visualArchetype onto the 4 universal families. */
+const STEM_ARCHETYPES = new Set<string>([
+  'split_comparison',
+  'interactive_stage',
+  'micro_zoom',
+  'concept_card',
+  'scatter_plot',
+  'regression_fit',
+  'math_overlay',
+  'matrix_board',
+]);
+
+/** Map any legacy visualType or new visualArchetype onto the visual families. */
 export function normalizeVisualArchetype(
   raw: string | undefined,
   index: number,
+  domain: VisualContentDomain = 'generic',
 ): VisualArchetype {
   const v = String(raw ?? '')
     .toLowerCase()
     .trim()
     .replace(/-/g, '_');
+  if (v === 'scatter_plot' || v === 'scatter' || v === 'scatterplot') return 'scatter_plot';
+  if (v === 'regression_fit' || v === 'regression' || v === 'least_squares' || v === 'fit_line') {
+    return 'regression_fit';
+  }
+  if (v === 'math_overlay' || v === 'latex' || v === 'equation' || v === 'formula') return 'math_overlay';
+  if (v === 'matrix_board' || v === 'matrix' || v === 'design_matrix') return 'matrix_board';
   if (v === 'split_comparison' || v === 'comparison_split' || v === 'question_card') {
     return 'split_comparison';
   }
-  if (
-    v === 'interactive_stage' ||
-    v === '3d_beaker_experiment' ||
-    v === 'lab_simulation' ||
-    v === 'flow_step' ||
-    v === 'dynamic_diagram'
-  ) {
-    return 'interactive_stage';
+  if (v === 'interactive_stage' || v === 'lab_simulation' || v === 'flow_step' || v === 'dynamic_diagram') {
+    return isLabVisualDomain(domain) ? 'interactive_stage' : 'math_overlay';
   }
-  if (
-    v === 'micro_zoom' ||
-    v === '3d_particle_zoom' ||
-    v === 'particle_zoom' ||
-    v === 'macro_reveal'
-  ) {
-    return 'micro_zoom';
+  if (v === '3d_beaker_experiment') {
+    return isLabVisualDomain(domain) ? 'interactive_stage' : 'math_overlay';
+  }
+  if (v === 'micro_zoom' || v === '3d_particle_zoom' || v === 'particle_zoom' || v === 'macro_reveal') {
+    return isLabVisualDomain(domain) ? 'micro_zoom' : 'scatter_plot';
   }
   if (v === 'concept_card' || v === 'callout_summary' || v === 'concept_hero') {
     return 'concept_card';
   }
-  return ARCHETYPE_BY_INDEX[index] ?? 'concept_card';
+  if (STEM_ARCHETYPES.has(v)) return v as VisualArchetype;
+  const fallbacks = defaultArchetypesForDomain(domain);
+  return fallbacks[index] ?? 'math_overlay';
 }
 
 function archetypeToLegacyVisualType(arch: VisualArchetype): string {
   if (arch === 'split_comparison') return 'comparison_split';
   if (arch === 'interactive_stage') return 'interactive_stage';
   if (arch === 'micro_zoom') return '3d_particle_zoom';
+  if (arch === 'scatter_plot') return 'scatter_plot';
+  if (arch === 'regression_fit') return 'regression_fit';
+  if (arch === 'math_overlay') return 'math_overlay';
+  if (arch === 'matrix_board') return 'matrix_board';
   return 'callout_summary';
 }
 
@@ -276,6 +345,9 @@ function archetypeToAnimation(arch: VisualArchetype): string {
   if (arch === 'interactive_stage') return 'TemperatureEffect';
   if (arch === 'split_comparison') return 'StateComparison';
   if (arch === 'micro_zoom') return 'ParticleMotion3D';
+  if (arch === 'scatter_plot' || arch === 'regression_fit') return 'ScatterRegression';
+  if (arch === 'matrix_board') return 'MatrixBoard';
+  if (arch === 'math_overlay') return 'MathOverlay';
   return 'ConceptCallout';
 }
 
@@ -287,7 +359,7 @@ function clipText(raw: string, max: number): string {
 
 function significantTokens(text: string): string[] {
   return text
-    .split(/[^A-Za-z0-9%°µ]+/)
+    .split(/[^A-Za-z0-9%°µβσ]+/)
     .map((w) => w.trim())
     .filter((w) => w.length > 2 && !STOP_WORDS.has(w.toLowerCase()))
     .slice(0, 12);
@@ -308,25 +380,28 @@ function contrastLabels(ctx: TopicContextPacket): [string, string] {
 
 function excerptAt(ctx: TopicContextPacket, index: number, fallback: string): string {
   const raw = ctx.ragExcerpts[index] || ctx.ragExcerpts[0] || ctx.chapterSummary || fallback;
-  return clipText(raw, 180);
+  return clipText(raw, 280);
 }
 
 function asElements(raw: unknown): VisualStageElement[] {
   if (!Array.isArray(raw)) return [];
-  return raw
-    .map((el) => {
-      if (!el || typeof el !== 'object') return null;
-      const o = el as Record<string, unknown>;
-      return {
-        name: o.name != null ? String(o.name) : undefined,
-        type: o.type != null ? String(o.type) : undefined,
-        color: o.color != null ? String(o.color) : undefined,
-      };
-    })
-    .filter((x): x is VisualStageElement => Boolean(x));
+  const out: VisualStageElement[] = [];
+  for (const el of raw) {
+    if (!el || typeof el !== 'object') continue;
+    const o = el as Record<string, unknown>;
+    out.push({
+      name: o.name != null ? String(o.name) : undefined,
+      type: o.type != null ? String(o.type) : undefined,
+      color: o.color != null ? String(o.color) : undefined,
+    });
+  }
+  return out;
 }
 
-function flattenVisualConfig(config: SceneVisualConfig): VideoSceneParameters {
+function flattenVisualConfig(
+  config: SceneVisualConfig,
+  domain: VisualContentDomain,
+): VideoSceneParameters {
   const badges = Array.isArray(config.calloutBadges)
     ? config.calloutBadges.map((b) => String(b)).filter(Boolean)
     : [];
@@ -335,8 +410,14 @@ function flattenVisualConfig(config: SceneVisualConfig): VideoSceneParameters {
   const takeaway = String(config.takeawayBadge || config.headline || '').trim();
   const typeA = config.particleMatrix?.typeA;
   const typeB = config.particleMatrix?.typeB;
+  const lab = isLabVisualDomain(domain);
   return {
     ...config,
+    visualDomain: config.visualDomain || domain,
+    formulaText: config.formulaText,
+    equationLatex: config.equationLatex,
+    xAxisLabel: config.xAxisLabel,
+    yAxisLabel: config.yAxisLabel,
     leftLabel: left || undefined,
     rightLabel: right || undefined,
     leftConcept: left || undefined,
@@ -349,7 +430,7 @@ function flattenVisualConfig(config: SceneVisualConfig): VideoSceneParameters {
     headline: config.headline,
     title: config.title,
     stageLabel: config.stageLabel || config.title,
-    container: config.stageLabel || config.title,
+    container: lab ? config.stageLabel || config.title : undefined,
     action: config.actionText,
     actionText: config.actionText,
     stepLabels: badges.length ? badges : undefined,
@@ -360,9 +441,11 @@ function flattenVisualConfig(config: SceneVisualConfig): VideoSceneParameters {
     particleTypeB: typeB,
     particleMatrix: config.particleMatrix,
     elements: config.elements,
-    showLabels: [left, right, takeaway, config.stageLabel].filter(Boolean).slice(0, 3) as string[],
+    showLabels: [left, right, takeaway, config.stageLabel, config.formulaText]
+      .filter(Boolean)
+      .slice(0, 4) as string[],
     particleDensity: 'medium',
-    temperature: 32,
+    temperature: lab ? 32 : undefined,
     speedMultiplier: 1.35,
   };
 }
@@ -388,86 +471,163 @@ function heuristicVisualConfig(
   ctx: TopicContextPacket,
   index: number,
   arch: VisualArchetype,
+  domain: VisualContentDomain,
+  formulas: string[],
 ): SceneVisualConfig {
   const [left, right] = contrastLabels(ctx);
   const tokens = significantTokens(`${ctx.title} ${excerptAt(ctx, 0, ctx.title)}`);
   const primary = tokens[0] || left;
   const secondary = tokens[1] || right;
+  const formula = formulas[index] || formulas[0] || '';
+  const base = {
+    visualDomain: domain,
+    formulaText: formula || undefined,
+    equationLatex: formula || undefined,
+    lighting: LIGHTING_BY_INDEX[index],
+    primaryColor: domain === 'dsml' ? '#38bdf8' : '#818cf8',
+    secondaryColor: '#FACC15',
+  };
+
+  if (arch === 'scatter_plot' || arch === 'regression_fit') {
+    return {
+      ...base,
+      title: clipText(ctx.title, 40),
+      headline: formula || clipText(ctx.title, 42),
+      xAxisLabel: 'X',
+      yAxisLabel: 'Y',
+      formulaText: formula || 'y = β₀ + β₁ x',
+      equationLatex: formula || 'y = β₀ + β₁ x',
+      calloutBadges: ['Scatter', arch === 'regression_fit' ? 'Fit line' : 'Observations'],
+    };
+  }
+  if (arch === 'math_overlay') {
+    return {
+      ...base,
+      headline: formula || clipText(ctx.title, 42),
+      formulaText: formula || clipText(excerptAt(ctx, 0, ctx.title), 80),
+      equationLatex: formula || undefined,
+      xAxisLabel: 'x',
+      yAxisLabel: 'y',
+      primaryShape: 'grid',
+      calloutBadges: tokens.slice(0, 3).length ? tokens.slice(0, 3) : ['Definition', 'Formula'],
+    };
+  }
+  if (arch === 'matrix_board') {
+    return {
+      ...base,
+      headline: formula || 'Y = Xβ + ε',
+      formulaText: formula || 'Y = Xβ + ε',
+      stageLabel: 'Design matrix',
+      leftLabel: 'X',
+      rightLabel: 'β',
+      calloutBadges: ['X', 'β', 'σ²'],
+    };
+  }
   if (arch === 'split_comparison') {
     return {
+      ...base,
       title: clipText(ctx.title, 40),
       leftLabel: left,
       rightLabel: right,
       primaryShape: index === 0 ? 'cube' : 'sphere',
-      primaryColor: '#00A8FF',
-      secondaryColor: '#FF5722',
-      lighting: LIGHTING_BY_INDEX[index],
       calloutBadges: [left, right].filter(Boolean),
     };
   }
   if (arch === 'interactive_stage') {
+    const lab = isLabVisualDomain(domain);
     return {
+      ...base,
       title: clipText(ctx.title, 40),
       stageLabel: clipText(ctx.title, 36),
-      primaryColor: '#00A8FF',
-      secondaryColor: '#FACC15',
-      lighting: LIGHTING_BY_INDEX[index],
       actionText: clipText(excerptAt(ctx, 1, 'Follow the process in the text'), 48),
-      elements: [
-        { name: primary, type: 'container', color: '#e2e8f0' },
-        { name: secondary, type: 'particles', color: '#00a8ff' },
-      ],
+      elements: lab
+        ? [
+            { name: primary, type: 'container', color: '#e2e8f0' },
+            { name: secondary, type: 'particles', color: '#00a8ff' },
+          ]
+        : [
+            { name: primary, type: 'cube', color: '#38bdf8' },
+            { name: secondary, type: 'grid', color: '#FACC15' },
+          ],
       calloutBadges: tokens.slice(0, 3).length ? tokens.slice(0, 3) : ['Observe', 'Change'],
     };
   }
   if (arch === 'micro_zoom') {
     return {
+      ...base,
       headline: clipText(ctx.title, 42),
       particleMatrix: { typeA: primary || 'type_a', typeB: secondary || 'type_b' },
       takeawayBadge: clipText(excerptAt(ctx, 2, ctx.chapterSummary || ctx.title), 90),
-      primaryColor: '#38bdf8',
-      secondaryColor: '#facc15',
-      lighting: LIGHTING_BY_INDEX[index],
       calloutBadges: ['Zoom in'],
     };
   }
   return {
+    ...base,
     headline: clipText(ctx.title, 42),
     takeawayBadge: clipText(ctx.chapterSummary || excerptAt(ctx, 0, ctx.title), 90),
-    primaryColor: '#818cf8',
-    secondaryColor: '#34d399',
-    lighting: LIGHTING_BY_INDEX[index],
     calloutBadges: tokens.slice(0, 2),
     primaryShape: 'grid',
   };
 }
 
+function heuristicVoiceovers(
+  ctx: TopicContextPacket,
+  formulas: string[],
+  host: string,
+  runner: string,
+  domain: VisualContentDomain,
+): string[] {
+  const tip = ctx.teacherPrompt?.trim() ? ` ${ctx.teacherPrompt.trim()}` : '';
+  const f0 = formulas[0] || 'the core equation in the text';
+  const f1 = formulas[1] || formulas[0] || 'the estimator';
+  const study = excerptAt(ctx, 0, ctx.title);
+  if (domain === 'dsml' || domain === 'math') {
+    return [
+      `${host} stops ${runner}: "${study}" We are going to stay inside this textbook — no lab demo, just the math.${tip}`,
+      `${host}: Write this down — ${f0}. That is the population regression function: the best predictor is the conditional expectation.`,
+      `${host}: Galton's 1889 height study is the classic picture — parents on X, offspring on Y. ${runner} asks why a line. Because we minimize squared-error loss.`,
+      `${host}: In matrix form, ${f1.includes('Y') ? f1 : 'Y = Xβ + ε'}. β is the parameter vector, X is the design matrix, and the noise has variance σ².`,
+      `${host}: Fit ŷ = β₀ + β₁ x through the cloud. Residuals are Y minus the projection onto the column space of X.`,
+      `${host}: Takeaway from the text: ${clipText(ctx.chapterSummary || excerptAt(ctx, 2, ctx.title), 160)}`,
+    ];
+  }
+  return [
+    `Quick challenge from the text: ${study}${tip}`,
+    `Here is the definition the textbook actually uses: ${excerptAt(ctx, 1, f0)}`,
+    `Worked example from the PDF: ${excerptAt(ctx, 2, ctx.title)}`,
+    `Let's follow what the textbook describes: ${excerptAt(ctx, 3, ctx.chapterSummary || ctx.title)}`,
+    `Here's why, according to the text: ${excerptAt(ctx, 4, ctx.chapterSummary || ctx.title)}`,
+    `Remember ${ctx.code}: ${ctx.title}. ${clipText(ctx.chapterSummary || '', 120)}`,
+  ];
+}
+
 function heuristicManifest(ctx: TopicContextPacket): VideoScriptManifest {
+  const domain = ctx.contentDomain || detectContentDomain(ctx);
+  const formulas = extractFormulasFromContext(ctx);
   const text = [ctx.title, ctx.chapterSummary, ...ctx.ragExcerpts.slice(0, 4)].join(' ');
   const pedagogy = classifyPatternFromText(text);
-  const tip = ctx.teacherPrompt?.trim() ? ` ${ctx.teacherPrompt.trim()}` : '';
+  const template = getGenerationTemplate(ctx.templateId);
+  const activeConfig = TEMPLATE_CONFIGS[template.id] || TEMPLATE_CONFIGS.tom_and_jerry;
+  const host = activeConfig.characters.host;
+  const runner = activeConfig.characters.runner;
+  const arches = defaultArchetypesForDomain(domain);
+  const sceneCount = 5;
+  const lines = heuristicVoiceovers(ctx, formulas, host, runner, domain);
 
-  const hook = `Quick challenge from the text: ${excerptAt(ctx, 0, ctx.title)}${tip}`;
-  const sim = `Let's follow what the textbook describes: ${excerptAt(ctx, 1, ctx.chapterSummary || ctx.title)}`;
-  const reveal = `Here's why, according to the text: ${excerptAt(ctx, 2, ctx.chapterSummary || ctx.title)} ${ctx.code}: ${ctx.title}.`;
-
-  const scenes = PHASE_BY_INDEX.map((phase, i) => {
-    let arch: VisualArchetype = ARCHETYPE_BY_INDEX[i];
-    if (i === 1 && pedagogy === 'comparison') arch = 'split_comparison';
-    if (i === 1 && pedagogy === 'concept') arch = 'interactive_stage';
-    if (i === 2 && pedagogy === 'concept') arch = 'concept_card';
-    const visualConfig = heuristicVisualConfig(ctx, i, arch);
-    const parameters = flattenVisualConfig(visualConfig);
-    const duration = DURATION_BY_INDEX[i];
-    const voiceover = i === 0 ? hook : i === 1 ? sim : reveal;
+  const scenes = Array.from({ length: sceneCount }, (_, i) => {
+    const arch = arches[i] ?? 'math_overlay';
+    const visualConfig = heuristicVisualConfig(ctx, i, arch, domain, formulas);
+    const parameters = flattenVisualConfig(visualConfig, domain);
+    const duration = DEFAULT_SCENE_SEC;
+    const phase = PHASE_BY_INDEX[i] ?? `SCENE ${i + 1}`;
     return {
       sceneId: i + 1,
       duration,
       durationSec: duration,
       phase,
       phaseTitle: phase,
-      voiceoverText: voiceover,
-      voiceover,
+      voiceoverText: lines[i] ?? lines[0],
+      voiceover: lines[i] ?? lines[0],
       visualArchetype: arch,
       visualType: archetypeToLegacyVisualType(arch),
       animationType: archetypeToAnimation(arch),
@@ -482,7 +642,7 @@ function heuristicManifest(ctx: TopicContextPacket): VideoScriptManifest {
 
   return {
     topicTitle: ctx.title,
-    teacherName: 'Professor Maya',
+    teacherName: host,
     archetype: pedagogy,
     pedagogicalPattern:
       pedagogy === 'experiment'
@@ -497,25 +657,56 @@ function heuristicManifest(ctx: TopicContextPacket): VideoScriptManifest {
   };
 }
 
+function clampSceneDuration(raw: number): number {
+  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_SCENE_SEC;
+  return Math.min(MAX_SCENE_SEC, Math.max(MIN_SCENE_SEC, Math.round(raw)));
+}
+
+function rescaleDurations(scenes: Array<{ duration: number; durationSec?: number }>): void {
+  let total = scenes.reduce((a, s) => a + s.duration, 0);
+  if (total < MIN_TOTAL_SEC || total > MAX_TOTAL_SEC) {
+    const target = Math.min(MAX_TOTAL_SEC, Math.max(MIN_TOTAL_SEC, total || MIN_TOTAL_SEC));
+    const scale = target / (total || 1);
+    for (const s of scenes) {
+      const next = clampSceneDuration(s.duration * scale);
+      s.duration = next;
+      s.durationSec = next;
+    }
+    total = scenes.reduce((a, s) => a + s.duration, 0);
+  }
+  if (total < MIN_TOTAL_SEC && scenes.length > 0) {
+    const bump = Math.ceil((MIN_TOTAL_SEC - total) / scenes.length);
+    for (const s of scenes) {
+      const next = Math.min(MAX_SCENE_SEC, s.duration + bump);
+      s.duration = next;
+      s.durationSec = next;
+    }
+  }
+}
+
 function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoScriptManifest {
+  const domain = ctx.contentDomain || detectContentDomain(ctx);
+  const formulas = extractFormulasFromContext(ctx);
   const fallback = heuristicManifest(ctx);
   const pedagogy =
     patternToPedagogy(raw.pedagogicalPattern || raw.archetype) || fallback.archetype || 'concept';
-  const rawScenes = Array.isArray(raw.scenes) ? raw.scenes.slice(0, 3) : [];
+  const rawScenes = Array.isArray(raw.scenes) ? raw.scenes.slice(0, MAX_SCENES) : [];
   if (!rawScenes.length) return fallback;
 
-  const scenes = rawScenes.map((s, i) => {
-    const visualArchetype = normalizeVisualArchetype(s.visualArchetype || s.visualType, i);
+  const scenes: VideoScriptManifest['scenes'] = rawScenes.map((s, i) => {
+    const visualArchetype = normalizeVisualArchetype(s.visualArchetype || s.visualType, i, domain);
     const visualConfig = mergeVisualConfig(
-      heuristicVisualConfig(ctx, i, visualArchetype),
+      heuristicVisualConfig(ctx, i, visualArchetype, domain, formulas),
       s.parameters,
       s.visualProps,
       s.props,
       s.visualConfig,
+      { visualDomain: domain },
     );
     if (!visualConfig.lighting) visualConfig.lighting = LIGHTING_BY_INDEX[i];
-    const parameters = flattenVisualConfig(visualConfig);
-    const duration = DURATION_BY_INDEX[i] ?? Math.max(5, Number(s.durationSec ?? s.duration) || 8);
+    if (!visualConfig.formulaText && formulas[0]) visualConfig.formulaText = formulas[0];
+    const parameters = flattenVisualConfig(visualConfig, domain);
+    const duration = clampSceneDuration(Number(s.durationSec ?? s.duration) || DEFAULT_SCENE_SEC);
     const phase = String(s.phaseTitle || s.phase || PHASE_BY_INDEX[i] || `Scene ${i + 1}`).toUpperCase();
     const voiceover =
       String(s.voiceover || s.voiceoverText || '').trim() ||
@@ -542,13 +733,16 @@ function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoS
     };
   });
 
-  while (scenes.length < 3) {
-    scenes.push(fallback.scenes[scenes.length]);
+  while (scenes.length < MIN_SCENES) {
+    const extra = fallback.scenes[scenes.length] ?? fallback.scenes[fallback.scenes.length - 1];
+    scenes.push({ ...extra, sceneId: scenes.length + 1 });
   }
+
+  rescaleDurations(scenes);
 
   return {
     topicTitle: raw.topicTitle || ctx.title,
-    teacherName: String(raw.teacherName || 'Professor Maya').trim() || 'Professor Maya',
+    teacherName: String(raw.teacherName || fallback.teacherName || 'Professor Maya').trim() || 'Professor Maya',
     archetype: pedagogy,
     pedagogicalPattern: raw.pedagogicalPattern || fallback.pedagogicalPattern,
     totalDurationSeconds: scenes.reduce((a, s) => a + s.duration, 0),
@@ -566,7 +760,7 @@ function applyAttachmentOverlays(
     ...manifest,
     scenes: manifest.scenes.map((s, i) => {
       const overlayImageUrl = urls[Math.min(i, urls.length - 1)];
-      const overlayImageUrls = urls.slice(0, 3);
+      const overlayImageUrls = urls.slice(0, 4);
       const visualConfig = { ...(s.visualConfig ?? {}), overlayImageUrls, overlayImageUrl };
       const parameters = { ...(s.parameters ?? {}), overlayImageUrls, overlayImageUrl };
       return {
@@ -624,52 +818,63 @@ export async function generateStructuredVideoScript(
   ctx: TopicContextPacket,
 ): Promise<VideoScriptManifest> {
   const provider = getActiveProvider();
-  const excerpts = ctx.ragExcerpts.slice(0, 10).join('\n---\n');
+  const domain = ctx.contentDomain || detectContentDomain(ctx);
+  const formulas = extractFormulasFromContext(ctx);
+  const excerpts = ctx.ragExcerpts.slice(0, 16).join('\n---\n');
   console.log(
-    `[videoPipeline/script] Cinematic SweetRush director — RAG excerpts=${ctx.ragExcerpts.length} topic="${ctx.code} ${ctx.title}"`,
+    `[videoPipeline/script] STEM director domain=${domain} RAG excerpts=${ctx.ragExcerpts.length} formulas=${formulas.length} topic="${ctx.code} ${ctx.title}"`,
   );
 
   const template = getGenerationTemplate(ctx.templateId);
   const activeConfig = TEMPLATE_CONFIGS[template.id] || TEMPLATE_CONFIGS.tom_and_jerry;
+  const host = activeConfig.characters.host;
+  const runner = activeConfig.characters.runner;
+  const packet: TopicContextPacket = { ...ctx, contentDomain: domain };
+
   const user = [
     `Topic code: ${ctx.code}`,
     `Topic title: ${ctx.title}`,
     `Chapter: ${ctx.chapterTitle}`,
-    `Textbook: ${ctx.textbookTitle} (${ctx.subject}, ${ctx.gradeLabel})`,
+    `Textbook: ${ctx.textbookTitle} (${ctx.subject}, ${ctx.gradeLabel}) file=${ctx.fileName ?? 'uploaded.pdf'}`,
+    `Detected content domain: ${domain}`,
     `Chapter summary: ${ctx.chapterSummary}`,
     `Selected templateId: ${template.id}`,
     `Theme: ${activeConfig.themeName}`,
-    `Host narrator: ${activeConfig.characters.host}`,
+    `Host narrator: ${host}`,
+    `Second character: ${runner}`,
     `Visual / dialogue template:\n${templatePromptBlock(template.id)}`,
     `CRITICAL: Match characters, tone, and visuals to templateId "${template.id}". Do not default to Tom & Jerry unless templateId is tom_and_jerry.`,
+    domain === 'dsml' || domain === 'math'
+      ? `DYNAMIC THEME DIALOGUE: ${host} and ${runner} must speak the mathematics. Example: "${host}: the parameter vector β sits with design matrix X; the error variance is σ²." Quote Galton 1889, g*(x) = E[Y | X = x], squared-error loss, and Y = Xβ + ε when those appear in RAG.`
+      : '',
     ctx.teacherPrompt ? `Teacher refinement: ${ctx.teacherPrompt}` : '',
+    formulas.length ? `EXTRACTED FORMULAS / STUDIES (must appear in voiceover + formulaText):\n${formulas.join('\n')}` : '',
     `RAW RAG EXCERPTS (GROUND TRUTH — teacher attachments are prefixed and must be prioritized over textbook text):\n${excerpts || '(no excerpts — use topic title and chapter summary only)'}`,
     ctx.attachmentImageUrls?.length
       ? `Teacher image URLs for on-screen overlay: ${ctx.attachmentImageUrls.join(', ')}`
       : '',
-    'Output exactly 3 scenes: CHALLENGE (8s), SIMULATION (12s), DISCOVERY (8s). Total 28 seconds.',
-    'Choose visualArchetype, teacherGesture, and cameraMotion for each scene.',
-    'All visualConfig labels must be taken from this PDF context — do not invent a default lab kit.',
-    `Also set pedagogicalPattern / teacherName consistent with ${template.title} (${activeConfig.characters.host}).`,
+    `Output ${MIN_SCENES} to ${MAX_SCENES} detailed scenes. Each durationSec ${MIN_SCENE_SEC}–${MAX_SCENE_SEC}. Total ${MIN_TOTAL_SEC}–${MAX_TOTAL_SEC} seconds. Do NOT output a 3-scene 28-second bumper.`,
+    `Set visualConfig.visualDomain="${domain}". Choose visualArchetype from the domain guide — never a chemistry beaker unless domain is chemistry.`,
+    `Also set pedagogicalPattern / teacherName consistent with ${template.title} (${host}).`,
   ]
     .filter(Boolean)
     .join('\n\n');
 
-  if (!provider) return getFallbackScriptForTemplate(template.id, ctx);
+  if (!provider) return getFallbackScriptForTemplate(template.id, packet);
 
   try {
     const raw = await Promise.race([
       provider.completeJson<LlmManifestRaw | string>({
-        system: CINEMATIC_SWEETRUSH_PROMPT,
+        system: cinematicSystemPrompt(domain, formulas),
         user,
       }),
       new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('LLM script timed out')), 45_000);
+        setTimeout(() => reject(new Error('LLM script timed out')), 70_000);
       }),
     ]);
-    const manifest = parseLlmManifestSafely(raw, template.id, ctx);
+    const manifest = parseLlmManifestSafely(raw, template.id, packet);
     console.log(
-      `[videoPipeline/script] templateId=${template.id} archetypes=${manifest.scenes
+      `[videoPipeline/script] templateId=${template.id} domain=${domain} scenes=${manifest.scenes.length} duration=${manifest.totalDurationSeconds}s archetypes=${manifest.scenes
         .map((s) => s.visualArchetype || s.visualType)
         .join(',')} cameras=${manifest.scenes.map((s) => s.cameraMotion).join(',')} overlays=${(ctx.attachmentImageUrls ?? []).length}`,
     );
@@ -680,7 +885,7 @@ export async function generateStructuredVideoScript(
       template.id,
       err,
     );
-    return getFallbackScriptForTemplate(template.id, ctx);
+    return getFallbackScriptForTemplate(template.id, packet);
   }
 }
 
