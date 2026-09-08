@@ -18,10 +18,14 @@ async function pollUntilIndexed(): Promise<{ textbook: Textbook; chapters: Teach
   const started = Date.now();
   while (Date.now() - started < VERIFY_TIMEOUT_MS) {
     await new Promise((r) => setTimeout(r, VERIFY_POLL_MS));
-    const structure = await api.teacherChapters();
-    const status = structure.textbook?.status;
-    if (status === 'INDEXED' && structure.textbook) {
-      return { textbook: structure.textbook, chapters: structure.chapters };
+    const [structure, current] = await Promise.all([
+      api.teacherChapters(),
+      api.teacherTextbookCurrent(),
+    ]);
+    const textbook = current.textbook ?? structure.textbook;
+    const status = textbook?.status;
+    if (status === 'INDEXED' && textbook) {
+      return { textbook, chapters: structure.chapters };
     }
     if (status === 'FAILED') {
       throw new Error('Verification failed while indexing the textbook.');
@@ -94,14 +98,10 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
     }
     setError(null);
     setBusy('upload');
-    const derived =
-      title.trim() && !/^ncert science class 9$/i.test(title.trim())
-        ? title.trim()
-        : titleFromFileName(file.name);
-    if (derived) setTitle(derived);
+    const fromFile = titleFromFileName(file.name) || file.name.replace(/\.pdf$/i, '');
+    setTitle(fromFile);
     try {
       const res = await api.uploadTextbook({
-        title: derived || file.name.replace(/\.pdf$/i, ''),
         fileName: file.name,
         file,
       });
@@ -207,7 +207,7 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
             <p className="text-xs font-semibold uppercase tracking-wider text-cyan-200/70">Textbook title</p>
             <p className="truncate text-lg font-bold text-white">{textbook.title}</p>
             <p className="text-base text-cyan-200/80">
-              {textbook.fileName} · {(textbook.fileSizeBytes / 1024).toFixed(0)} KB ·{' '}
+              {textbook.fileUrl || textbook.fileName} · {(textbook.fileSizeBytes / 1024).toFixed(0)} KB ·{' '}
               {busy === 'verify' || textbook.status === 'VERIFYING' ? 'PROCESSING' : textbook.status}
             </p>
           </div>

@@ -95,6 +95,7 @@ import type {
   AttachSubtopicFilesResponse,
   TeacherSubtopic,
   TeacherChapter,
+  Textbook,
   GenerateActivityRequest,
   GenerateActivityResponse,
   GenerationTemplate,
@@ -379,7 +380,14 @@ export const api = {
     request<{ teacher: TeacherUser; role: 'teacher' }>('/auth/teacher/me'),
 
   teacherChapters: () =>
-    request<TeacherChapterListResponse>('/teacher/chapters'),
+    request<TeacherChapterListResponse>('/teacher/chapters', {
+      cache: 'no-store',
+    }),
+
+  teacherTextbookCurrent: () =>
+    request<{ textbook: Textbook | null }>('/teacher/textbooks/current', {
+      cache: 'no-store',
+    }),
 
   teacherChapter: (id: string) =>
     request<{ chapter: TeacherChapter }>(`/teacher/chapters/${id}`),

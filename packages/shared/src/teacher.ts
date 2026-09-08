@@ -224,6 +224,8 @@ export interface Textbook {
   teacherId: string;
   title: string;
   fileName: string;
+  /** Original uploaded filename (mirrors fileName for clients that expect fileUrl). */
+  fileUrl?: string | null;
   fileSizeBytes: number;
   subject: string;
   gradeLabel: string;

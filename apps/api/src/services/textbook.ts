@@ -179,7 +179,7 @@ export function titleFromFileName(fileName: string | null | undefined): string {
   const base = String(fileName ?? '')
     .replace(/^.*[\\/]/, '')
     .replace(/\.pdf$/i, '')
-    .replace(/^\d+-/, '')
+    .replace(/^\d{10,}-/, '')
     .trim();
   if (!base) return 'Uploaded Textbook';
   const spaced = base
@@ -187,10 +187,65 @@ export function titleFromFileName(fileName: string | null | undefined): string {
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/\s+/g, ' ')
     .trim();
-  // Expand common acronyms lightly
   if (/^dsml$/i.test(spaced)) return 'DSML - Data Science & Machine Learning';
   if (/^ncert/i.test(spaced)) return spaced.replace(/\b\w/g, (c) => c.toUpperCase());
   return spaced.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function isJunkPdfTitle(value: string | null | undefined): boolean {
+  const t = String(value ?? '').trim();
+  if (t.length < 2 || t.length > 200) return true;
+  return /^(untitled|unknown|document|microsoft word( document)?|pdf)$/i.test(t);
+}
+
+function normalizeTitleKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function titleLooksLikeDsml(value: string): boolean {
+  return /data\s*science|machine\s*learning|\bdsml\b/i.test(value);
+}
+
+function fileLooksLikeDsml(fileName: string | null | undefined): boolean {
+  return titleLooksLikeDsml(String(fileName ?? ''));
+}
+
+export function titleAgreesWithFile(title: string | null | undefined, fileName: string | null | undefined): boolean {
+  const t = String(title ?? '').trim();
+  const f = String(fileName ?? '').trim();
+  if (!t) return false;
+  if (titleLooksLikeDsml(t) && !fileLooksLikeDsml(f)) return false;
+  if (!f) return true;
+  const tk = normalizeTitleKey(t);
+  const fk = normalizeTitleKey(titleFromFileName(f));
+  if (!tk || !fk) return false;
+  return tk.includes(fk.slice(0, 10)) || fk.includes(tk.slice(0, 10));
+}
+
+/** First meaningful cover-page line (NCERT / state textbook mastheads). */
+export function titleFromPdfCover(storagePath: string | null | undefined): string | null {
+  if (!storagePath || !fs.existsSync(storagePath)) return null;
+  try {
+    const text = extractPdfTextFromPathSync(storagePath, {
+      maxStreams: 8,
+      maxChars: 6_000,
+      maxStreamBytes: 800_000,
+      maxFileBytes: 2 * 1024 * 1024,
+    });
+    const lines = text
+      .split(/\n+/)
+      .map((l) => l.replace(/\s+/g, ' ').trim())
+      .filter((l) => l.length >= 6 && l.length <= 140 && /[a-zA-Z]{3,}/.test(l))
+      .filter((l) => !/^contents$|^table of contents$|^index$/i.test(l));
+    const preferred = lines.find((l) =>
+      /ncert|science textbook|textbook for class|class\s*(ix|9|viii|8)|9th\s+.*science/i.test(l),
+    );
+    const chosen = preferred ?? lines[0];
+    if (!chosen || isJunkPdfTitle(chosen)) return null;
+    return sanitizeUtf8(chosen);
+  } catch {
+    return null;
+  }
 }
 
 /** Read PDF `/Title` metadata when present. */
@@ -207,28 +262,48 @@ export function titleFromPdfMetadata(storagePath: string | null | undefined): st
       .replace(/\\\\/g, '\\')
       .replace(/\\(\d{1,3})/g, (_, oct: string) => String.fromCharCode(parseInt(oct, 8)))
       .trim();
-    if (decoded.length < 2 || decoded.length > 200) return null;
-    if (/^untitled$/i.test(decoded)) return null;
-    return decoded;
+    if (isJunkPdfTitle(decoded)) return null;
+    return sanitizeUtf8(decoded);
   } catch {
     return null;
   }
 }
 
+/**
+ * Title for a newly uploaded/verified PDF.
+ * Never keeps a previously saved textbook title that does not match this file.
+ */
 export function deriveTextbookTitle(opts: {
   explicitTitle?: string | null;
   fileName?: string | null;
   storagePath?: string | null;
 }): string {
-  const explicit = opts.explicitTitle?.trim();
-  if (
-    explicit &&
-    !/^ncert science class 9$/i.test(explicit) &&
-    !/^untitled$/i.test(explicit)
-  ) {
-    return explicit;
-  }
-  return titleFromPdfMetadata(opts.storagePath) ?? titleFromFileName(opts.fileName);
+  const fromFile = titleFromFileName(opts.fileName);
+  const fromPdf = titleFromPdfMetadata(opts.storagePath);
+  const fromCover = titleFromPdfCover(opts.storagePath);
+
+  const usable = (value: string | null | undefined): string | null => {
+    if (!value || isJunkPdfTitle(value)) return null;
+    if (!titleAgreesWithFile(value, opts.fileName)) return null;
+    return value;
+  };
+
+  const rich = (value: string | null): string | null =>
+    value && value.trim().split(/\s+/).length >= 3 ? value : null;
+
+  const pdf = usable(fromPdf);
+  const cover = usable(fromCover);
+  const explicit = usable(opts.explicitTitle?.trim());
+
+  return (
+    rich(pdf) ??
+    rich(cover) ??
+    (fromFile && fromFile !== 'Uploaded Textbook' ? fromFile : null) ??
+    explicit ??
+    pdf ??
+    cover ??
+    fromFile
+  );
 }
 
 export function looksLikeNcertScience(text: string, title?: string | null): boolean {
@@ -236,7 +311,8 @@ export function looksLikeNcertScience(text: string, title?: string | null): bool
   return (
     /ncert/.test(blob) ||
     /matter in our surroundings/.test(blob) ||
-    /physical nature of matter/.test(blob)
+    /physical nature of matter/.test(blob) ||
+    (/(?:class\s*(?:ix|9)|9th)/.test(blob) && /science/.test(blob))
   );
 }
 
@@ -332,17 +408,37 @@ export async function parseTextbookIntoChaptersAsync(
 
   if (extracted.length > 80) {
     const llm = await parseCurriculumWithLlm(extracted, fileName);
-    if (llm?.chapters.length) {
-      return { chapters: llm.chapters, documentTitle: llm.documentTitle };
+    const llmStale =
+      llm &&
+      titleLooksLikeDsml(
+        `${llm.documentTitle ?? ''} ${llm.chapters.map((c) => c.title).join(' ')}`,
+      ) &&
+      !fileLooksLikeDsml(fileName);
+    if (llm?.chapters.length && !llmStale) {
+      const freshTitle = deriveTextbookTitle({ fileName, storagePath });
+      const documentTitle =
+        llm.documentTitle && titleAgreesWithFile(llm.documentTitle, fileName)
+          ? llm.documentTitle
+          : freshTitle;
+      return { chapters: llm.chapters, documentTitle };
     }
 
     const headings = extractSubtopicHeadings(extracted);
     if (headings.length > 0) {
-      if (looksLikeNcertScience(extracted, opts?.titleHint)) {
-        return { chapters: mergeExtractedHeadings(headings) };
+      const hint = `${opts?.titleHint ?? ''} ${fileName ?? ''}`;
+      if (looksLikeNcertScience(extracted, hint)) {
+        return {
+          chapters: mergeExtractedHeadings(headings),
+          documentTitle: deriveTextbookTitle({ fileName, storagePath }),
+        };
       }
       const only = chaptersFromHeadingsOnly(headings);
-      if (only.length > 0) return { chapters: only };
+      if (only.length > 0) {
+        return {
+          chapters: only,
+          documentTitle: deriveTextbookTitle({ fileName, storagePath }),
+        };
+      }
     }
   }
 
@@ -351,12 +447,14 @@ export async function parseTextbookIntoChaptersAsync(
     const headings = extractSubtopicHeadings(
       extracted.length > 0 ? extracted : NCERT_CLASS9_CH1_SAMPLE,
     );
-    return { chapters: mergeExtractedHeadings(headings) };
+    return {
+      chapters: mergeExtractedHeadings(headings),
+      documentTitle: deriveTextbookTitle({ fileName, storagePath }),
+    };
   }
 
   // Generic fallback: single chapter from filename so UI is never stuck on NCERT
   const title = deriveTextbookTitle({
-    explicitTitle: opts?.titleHint,
     fileName,
     storagePath,
   });
@@ -494,11 +592,29 @@ export async function clearTextbookCurriculum(
   textbookId: string,
   teacherId: string,
 ): Promise<void> {
+  const chapters = await prisma.teacherChapter.findMany({
+    where: { textbookId },
+    select: { subtopics: { select: { id: true } } },
+  });
+  const subtopicIds = chapters.flatMap((ch) => ch.subtopics.map((s) => s.id));
+  if (subtopicIds.length) {
+    try {
+      const { topicAudioPath, topicVideoPath } = await import('../lib/videoPipeline/mediaPaths.js');
+      await Promise.all(
+        subtopicIds.flatMap((id) => [
+          fs.promises.unlink(topicVideoPath(id)).catch(() => undefined),
+          fs.promises.unlink(topicAudioPath(id)).catch(() => undefined),
+        ]),
+      );
+    } catch {
+      /* media cleanup is best-effort */
+    }
+  }
+
   await prisma.studentDoubt.deleteMany({
     where: { teacherId, chapter: { textbookId } },
   });
   await prisma.ragChunk.deleteMany({ where: { textbookId } });
-  // TeacherChapter cascade removes subtopics → activities, attachments
   await prisma.teacherChapter.deleteMany({ where: { textbookId } });
 }
 

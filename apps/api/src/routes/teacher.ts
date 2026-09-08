@@ -8,7 +8,6 @@ import multer from 'multer';
 import {
   hasFeatureAccess,
   maxPdfBytes,
-  maxPdfCount,
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireTeacher, type AuthRequest } from '../middleware/auth.js';
@@ -22,6 +21,7 @@ import activityRoutes from './activity.js';
 import mediaRoutes from './media.js';
 import {
   enqueueTextbookVerifyJob,
+  invalidateTextbookVerifyJobs,
   isTextbookVerifyJobActive,
 } from '../lib/textbookVerify/runVerifyJob.js';
 import {
@@ -90,6 +90,7 @@ function handleTextbookUpload(req: AuthRequest, res: Response, next: NextFunctio
 
 /** GET /teacher/chapters — course structure + textbook */
 router.get('/chapters', async (req: AuthRequest, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const teacherId = req.teacherId!;
   const latest = await prisma.textbook.findFirst({
     where: { teacherId },
@@ -141,6 +142,17 @@ router.get('/chapters', async (req: AuthRequest, res) => {
   });
 });
 
+/** GET /teacher/textbooks/current — latest textbook metadata (no stale cache). */
+router.get('/textbooks/current', async (req: AuthRequest, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const teacherId = req.teacherId!;
+  const textbook = await prisma.textbook.findFirst({
+    where: { teacherId },
+    orderBy: { updatedAt: 'desc' },
+  });
+  res.json({ textbook: textbook ? toTextbook(textbook) : null });
+});
+
 /** POST /teacher/textbooks/upload — multipart PDF (field: file) for RAG pipeline */
 router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, res) => {
   const file = req.file;
@@ -151,7 +163,6 @@ router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, 
 
   const planType = req.planType ?? 'teacher_free';
   const planMaxBytes = maxPdfBytes(planType);
-  const planMaxCount = maxPdfCount(planType);
 
   if (file.size > planMaxBytes) {
     fs.unlink(file.path, () => undefined);
@@ -176,7 +187,6 @@ router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, 
 
   const fileName = file.originalname;
   const title = deriveTextbookTitle({
-    explicitTitle: parsed.data.title,
     fileName,
     storagePath: file.path,
   });
@@ -191,12 +201,11 @@ router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, 
     where: { teacherId },
     orderBy: { updatedAt: 'desc' },
   });
-  const existingCount = await prisma.textbook.count({ where: { teacherId } });
-  const atLimit = planMaxCount !== null && existingCount >= planMaxCount;
 
-  // Replace active textbook when at plan limit or when one already exists (keeps dashboard in sync).
-  if (existingLatest && (atLimit || existingCount === 1)) {
+  // Always replace the latest textbook so the dashboard cannot keep a stale book.
+  if (existingLatest) {
     const oldPath = existingLatest.storagePath;
+    invalidateTextbookVerifyJobs(existingLatest.id);
     await clearTextbookCurriculum(existingLatest.id, teacherId);
 
     const replaced = await prisma.textbook.update({
@@ -227,15 +236,6 @@ router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, 
       replaced: true,
       ragIndexing: hasFeatureAccess(planType, 'rag_indexing'),
       organizationId,
-    });
-    return;
-  }
-
-  if (planMaxCount !== null && existingCount >= planMaxCount) {
-    fs.unlink(file.path, () => undefined);
-    res.status(402).json({
-      error: `Free plan allows ${planMaxCount} PDF upload. Upgrade to Teacher Pro for unlimited textbooks.`,
-      planType,
     });
     return;
   }

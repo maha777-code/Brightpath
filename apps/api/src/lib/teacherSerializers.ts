@@ -54,6 +54,7 @@ export function toTextbook(t: DbTextbook): Textbook {
     teacherId: t.teacherId,
     title: t.title,
     fileName: t.fileName,
+    fileUrl: t.fileName,
     fileSizeBytes: t.fileSizeBytes,
     subject: t.subject,
     gradeLabel: t.gradeLabel,

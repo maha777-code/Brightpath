@@ -7,6 +7,7 @@ import {
   isNcertScienceTextbook,
   parseTextbookIntoChaptersAsync,
   sanitizeUtf8,
+  titleAgreesWithFile,
 } from '../../services/textbook.js';
 
 type VerifyJob = { textbookId: string; teacherId: string; epoch: number };
@@ -18,6 +19,15 @@ let draining = false;
 
 export function isTextbookVerifyJobActive(textbookId: string): boolean {
   return running.has(textbookId) || queue.some((q) => q.textbookId === textbookId);
+}
+
+/** Drop queued/in-flight verify work for this textbook (e.g. a newer PDF was uploaded). */
+export function invalidateTextbookVerifyJobs(textbookId: string): void {
+  const epoch = (jobEpoch.get(textbookId) ?? 0) + 1;
+  jobEpoch.set(textbookId, epoch);
+  for (let i = queue.length - 1; i >= 0; i--) {
+    if (queue[i].textbookId === textbookId) queue.splice(i, 1);
+  }
 }
 
 async function drainQueue() {
@@ -72,21 +82,28 @@ export async function runTextbookVerifyJob(
 
     await clearTextbookCurriculum(textbook.id, teacherId);
 
+    const fresh = await prisma.textbook.findFirst({
+      where: { id: textbookId, teacherId },
+    });
+    const current = fresh ?? textbook;
+
     const teacherRow = await prisma.teacher.findUnique({ where: { id: teacherId } });
-    const organizationId = textbook.organizationId ?? teacherRow?.organizationId ?? null;
+    const organizationId = current.organizationId ?? teacherRow?.organizationId ?? null;
 
     const derivedTitle = deriveTextbookTitle({
-      explicitTitle: textbook.title,
-      fileName: textbook.fileName,
-      storagePath: textbook.storagePath,
+      fileName: current.fileName,
+      storagePath: current.storagePath,
     });
 
     const { chapters: parsedChapters, documentTitle } = await parseTextbookIntoChaptersAsync(
-      textbook.storagePath,
-      { fileName: textbook.fileName, titleHint: derivedTitle },
+      current.storagePath,
+      { fileName: current.fileName, titleHint: derivedTitle },
     );
 
-    const finalTitle = documentTitle?.trim() || derivedTitle;
+    const finalTitle =
+      documentTitle?.trim() && titleAgreesWithFile(documentTitle, current.fileName)
+        ? documentTitle.trim()
+        : derivedTitle;
 
     let chaptersCreated = 0;
     const ragChunkCreates: { content: string; pageHint: string; sequence: number }[] = [];
@@ -142,7 +159,7 @@ export async function runTextbookVerifyJob(
         });
       }
 
-      if (isNcertScienceTextbook({ title: finalTitle, subject: textbook.subject, fileName: textbook.fileName })) {
+      if (isNcertScienceTextbook({ title: finalTitle, subject: current.subject, fileName: current.fileName })) {
         for (const sample of DEFAULT_SAMPLE_DOUBTS.filter((d) => d.chapterIndex === i)) {
           const sub = created.subtopics.find((s) => s.code === sample.subtopicCode);
           await prisma.studentDoubt.create({
@@ -195,7 +212,7 @@ export async function runTextbookVerifyJob(
       }
     }
 
-    const pdfBodyCount = await ensureTextbookPdfBodyChunks(textbook.id, textbook.storagePath);
+    const pdfBodyCount = await ensureTextbookPdfBodyChunks(current.id, current.storagePath);
 
     if (epoch !== undefined && jobEpoch.get(textbookId) !== epoch) return;
 

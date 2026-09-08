@@ -32,15 +32,19 @@ export default function TeacherDashboard() {
     [...chapters].sort((a, b) => a.sequenceOrder - b.sequenceOrder)[0] ??
     null;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
-      const [structure, doubtRes] = await Promise.all([
+      const [structure, current, doubtRes] = await Promise.all([
         api.teacherChapters(),
+        api.teacherTextbookCurrent(),
         api.teacherDoubts(),
       ]);
-      setTextbook(structure.textbook);
+      const nextTextbook = current.textbook ?? structure.textbook;
+      setTextbook(nextTextbook);
       setChapters(structure.chapters);
       setDoubts(doubtRes.doubts);
       const chapterOne = [...structure.chapters].sort((a, b) => a.sequenceOrder - b.sequenceOrder)[0];
@@ -51,7 +55,7 @@ export default function TeacherDashboard() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load teacher dashboard');
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
@@ -158,13 +162,13 @@ export default function TeacherDashboard() {
                 setPreviewSubtopic(null);
                 setDoubts([]);
                 setEngagementNote(`Uploaded “${t.title}” — verify to extract curriculum.`);
+                void load({ silent: true });
               }}
               onVerified={async ({ textbook: t, chapters: nextChapters }) => {
-                // Invalidate stale curriculum immediately
                 setTextbook(t);
                 setSelectedChapterId(null);
                 setPreviewSubtopic(null);
-                setEngagementNote(null);
+                setEngagementNote(`Verified “${t.title}” — curriculum refreshed.`);
                 if (nextChapters && nextChapters.length > 0) {
                   setChapters(nextChapters);
                   const first = [...nextChapters].sort((a, b) => a.sequenceOrder - b.sequenceOrder)[0];
@@ -172,8 +176,7 @@ export default function TeacherDashboard() {
                 } else {
                   setChapters([]);
                 }
-                // Full reload for doubts + consistent server truth
-                await load();
+                await load({ silent: true });
               }}
             />
 
