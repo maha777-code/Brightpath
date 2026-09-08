@@ -11,27 +11,25 @@ export interface LlmProvider {
 }
 
 /**
- * Preferred Gemini cycle for capacity / 503 ("high demand") recovery.
+ * Preferred Gemini cycle for capacity / 503 ("high demand") and 404 (retired ID) recovery.
  * Env GEMINI_MODEL is tried first when set.
+ * gemini-1.5-* IDs are retired and omitted.
  */
 const GEMINI_FALLBACK_SEQUENCE = [
   'gemini-2.5-flash',
   'gemini-2.5-pro',
-  'gemini-1.5-flash',
+  'gemini-2.5-flash-lite',
 ] as const;
 
-/** Broader defaults — 3.x often works for newer API keys. */
+/** Additional production aliases after the 2.5 tier (used when 2.5 returns 404). */
 const GEMINI_MODEL_DEFAULTS = [
   ...GEMINI_FALLBACK_SEQUENCE,
   'gemini-3.6-flash',
-  'gemini-3.1-flash-lite',
   'gemini-3.5-flash',
   'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
   'gemini-flash-latest',
   'gemini-flash-lite-latest',
-  'gemini-2.5-flash-lite',
-  'gemini-1.5-flash-latest',
-  'gemini-1.5-pro',
 ] as const;
 
 let cachedDiscoveredModels: string[] | null = null;
@@ -107,17 +105,26 @@ function geminiModels(): string[] {
   return ordered;
 }
 
-function isRetryableGeminiError(msg: string): boolean {
+function isNotFoundGeminiError(msg: string): boolean {
+  return /\b404\b/.test(msg) || /not found/i.test(msg) || /is not found/i.test(msg);
+}
+
+function isUnavailableGeminiError(msg: string): boolean {
   return (
     /\b503\b/.test(msg) ||
     /high demand/i.test(msg) ||
     /unavailable/i.test(msg) ||
-    /resource.?exhausted/i.test(msg) ||
     /overloaded/i.test(msg) ||
+    /resource.?exhausted/i.test(msg)
+  );
+}
+
+function isRetryableGeminiError(msg: string): boolean {
+  return (
+    isUnavailableGeminiError(msg) ||
+    isNotFoundGeminiError(msg) ||
     /\b429\b/.test(msg) ||
     /quota/i.test(msg) ||
-    /\b404\b/.test(msg) ||
-    /not found/i.test(msg) ||
     /not supported/i.test(msg)
   );
 }
@@ -140,31 +147,46 @@ function createGeminiProvider(apiKey: string): LlmProvider {
       }
 
       console.log(
-        `[LLM] Gemini model cycle (503-aware): ${candidates.slice(0, 6).join(' → ')}${candidates.length > 6 ? ' → …' : ''}`,
+        `[LLM] Gemini model cycle (503/404-aware): ${candidates.slice(0, 6).join(' → ')}${candidates.length > 6 ? ' → …' : ''}`,
       );
 
       for (const model of candidates) {
         tried.push(model);
-        try {
-          const result = await callGemini<T>(apiKey, model, req);
-          console.log(`[LLM] Using Gemini model: ${model}`);
-          return result;
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          errors.push(`${model}: ${msg.slice(0, 120)}`);
-          const retryable = isRetryableGeminiError(msg);
-          console.warn(
-            `[LLM] Gemini model ${model} failed${retryable ? ' (retryable → next model)' : ''}:`,
-            msg,
-          );
-          if (/\b503\b|high demand/i.test(msg)) {
-            await sleep(400);
+        const maxAttempts = 3;
+        let skipModel = false;
+        for (let attempt = 1; attempt <= maxAttempts && !skipModel; attempt++) {
+          try {
+            const result = await callGemini<T>(apiKey, model, req);
+            console.log(`[LLM] Using Gemini model: ${model}`);
+            return result;
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            errors.push(`${model}#${attempt}: ${msg.slice(0, 120)}`);
+            if (isNotFoundGeminiError(msg)) {
+              console.warn(`[LLM] Gemini model ${model} returned 404 — skipping to next model`);
+              skipModel = true;
+              break;
+            }
+            if (isUnavailableGeminiError(msg) && attempt < maxAttempts) {
+              const delay = 400 * attempt;
+              console.warn(
+                `[LLM] Gemini model ${model} HTTP 503 (attempt ${attempt}/${maxAttempts}), retrying in ${delay}ms`,
+              );
+              await sleep(delay);
+              continue;
+            }
+            const retryable = isRetryableGeminiError(msg);
+            console.warn(
+              `[LLM] Gemini model ${model} failed${retryable ? ' (retryable → next model)' : ' — next model'}:`,
+              msg,
+            );
+            skipModel = true;
           }
         }
       }
 
       throw new Error(
-        `All Gemini models failed (incl. 503 high-demand fallbacks: ${GEMINI_FALLBACK_SEQUENCE.join(', ')}). ` +
+        `All Gemini models failed (incl. 503/404 fallbacks: ${GEMINI_FALLBACK_SEQUENCE.join(', ')}). ` +
           `Tried: ${tried.slice(0, 8).join(', ')}${tried.length > 8 ? '...' : ''}. ` +
           `Last: ${errors.at(-1) ?? 'unknown'}`,
       );
@@ -177,7 +199,11 @@ async function callGemini<T>(apiKey: string, model: string, req: LlmJsonRequest)
     return await callGeminiOnce<T>(apiKey, model, req, true);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes('404') || msg.includes('not found') || msg.includes('responseMimeType')) {
+    // Retired / unknown model IDs must skip — do not retry jsonMode on HTTP 404.
+    if (isNotFoundGeminiError(msg) && !/responseMimeType/i.test(msg)) {
+      throw err;
+    }
+    if (/responseMimeType/i.test(msg)) {
       return callGeminiOnce<T>(apiKey, model, req, false);
     }
     throw err;

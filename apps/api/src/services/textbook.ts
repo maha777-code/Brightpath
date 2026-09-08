@@ -23,6 +23,11 @@ import {
 } from '../lib/teacherCurriculumSeed.js';
 import { getActiveProvider } from '../lib/llm/provider.js';
 
+/** Strip NUL / C0 controls PostgreSQL UTF8 rejects (`invalid byte sequence ... 0x00`). */
+export function sanitizeUtf8(text: string): string {
+  return text.replace(/\0/g, '').replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+}
+
 function cloneChapters(source: SeedChapter[]): SeedChapter[] {
   return source.map((ch) => ({
     ...ch,
@@ -294,7 +299,7 @@ Fresh curricula must start with hasVideoExplainer/hasGamifiedActivity implied fa
         user: [
           `Source file: ${fileName ?? 'textbook.pdf'}`,
           'Extract the real chapters and subtopics from this PDF text:',
-          text.slice(0, 14000),
+          sanitizeUtf8(text).slice(0, 14000),
         ].join('\n\n'),
       }),
       new Promise<never>((_, reject) => {
@@ -457,8 +462,8 @@ export async function ensureCompleteChapterOneSubtopics(textbookId: string): Pro
     await prisma.ragChunk.create({
       data: {
         textbookId,
-        content: `${chapter.title} — ${created.code} ${created.title}. ${chapter.summary}`,
-        pageHint: `Chapter 1 / ${created.code}`,
+        content: sanitizeUtf8(`${chapter.title} — ${created.code} ${created.title}. ${chapter.summary}`),
+        pageHint: sanitizeUtf8(`Chapter 1 / ${created.code}`),
         sequence: maxRag + i + 1,
       },
     });
@@ -521,31 +526,43 @@ async function persistPdfBodyChunkBatch(
     embeddings = [];
   }
 
+  let wrote = 0;
   for (let i = 0; i < pieces.length; i++) {
-    const created = await prisma.ragChunk.create({
-      data: {
-        textbookId,
-        content: pieces[i],
-        pageHint: `pdf_body / chunk ${startIndex + i + 1}`,
-        sequence: startSequence + i,
-        sourceType: 'textbook_pdf',
-        embedding: embeddings[i] ?? [],
-      },
-    });
-    const vec = embeddings[i];
-    if (vec?.length) {
-      const literal = toPgVectorLiteral(vec);
-      const id = created.id.replace(/'/g, "''");
-      try {
-        await prisma.$executeRawUnsafe(
-          `UPDATE "RagChunk" SET embedding_vec = '${literal}'::vector WHERE id = '${id}'`,
-        );
-      } catch {
-        /* Json embedding still stored */
+    const content = sanitizeUtf8(pieces[i] ?? '').trim();
+    if (!content) continue;
+    const pageHint = sanitizeUtf8(`pdf_body / chunk ${startIndex + wrote + 1}`);
+    try {
+      const created = await prisma.ragChunk.create({
+        data: {
+          textbookId,
+          content,
+          pageHint,
+          sequence: startSequence + wrote,
+          sourceType: 'textbook_pdf',
+          embedding: embeddings[i] ?? [],
+        },
+      });
+      const vec = embeddings[i];
+      if (vec?.length) {
+        const literal = toPgVectorLiteral(vec);
+        const id = created.id.replace(/'/g, "''");
+        try {
+          await prisma.$executeRawUnsafe(
+            `UPDATE "RagChunk" SET embedding_vec = '${literal}'::vector WHERE id = '${id}'`,
+          );
+        } catch {
+          /* Json embedding still stored */
+        }
       }
+      wrote += 1;
+    } catch (err) {
+      console.warn(
+        '[textbook] skipped RAG chunk (UTF8/persist):',
+        err instanceof Error ? err.message : err,
+      );
     }
   }
-  return pieces.length;
+  return wrote;
 }
 
 /** Index PDF body in streamed 900-char chunks — never hold the full document string. */
@@ -583,7 +600,7 @@ export async function ensureTextbookPdfBodyChunks(
   };
 
   const absorb = async (raw: string) => {
-    leftover = `${leftover} ${raw.replace(/\s+/g, ' ').trim()}`.trim();
+    leftover = `${leftover} ${sanitizeUtf8(raw).replace(/\s+/g, ' ').trim()}`.trim();
     while (leftover.length >= PDF_BODY_CHUNK_SIZE && createdCount + pending.length < PDF_BODY_MAX_CHUNKS) {
       pending.push(leftover.slice(0, PDF_BODY_CHUNK_SIZE));
       leftover = leftover.slice(PDF_BODY_CHUNK_SIZE);

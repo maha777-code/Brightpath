@@ -6,6 +6,7 @@ import {
   ensureTextbookPdfBodyChunks,
   isNcertScienceTextbook,
   parseTextbookIntoChaptersAsync,
+  sanitizeUtf8,
 } from '../../services/textbook.js';
 
 type VerifyJob = { textbookId: string; teacherId: string; epoch: number };
@@ -96,16 +97,16 @@ export async function runTextbookVerifyJob(
       const created = await prisma.teacherChapter.create({
         data: {
           textbookId: textbook.id,
-          title: ch.title,
+          title: sanitizeUtf8(ch.title),
           sequenceOrder: i + 1,
-          summary: ch.summary,
+          summary: sanitizeUtf8(ch.summary),
           classProgressPct: 0,
           studentCount: 0,
           completedCount: 0,
           subtopics: {
             create: ch.subtopics.map((s, si) => ({
-              code: s.code,
-              title: s.title,
+              code: sanitizeUtf8(s.code),
+              title: sanitizeUtf8(s.title),
               sequenceOrder: si + 1,
               hasVideoExplainer: false,
               hasGamifiedActivity: false,
@@ -127,14 +128,16 @@ export async function runTextbookVerifyJob(
       chaptersCreated += 1;
 
       ragChunkCreates.push({
-        content: `${ch.title}. ${ch.summary}. Subtopics: ${ch.subtopics.map((s) => s.title).join(', ')}.`,
-        pageHint: `Chapter ${i + 1}`,
+        content: sanitizeUtf8(
+          `${ch.title}. ${ch.summary}. Subtopics: ${ch.subtopics.map((s) => s.title).join(', ')}.`,
+        ),
+        pageHint: sanitizeUtf8(`Chapter ${i + 1}`),
         sequence: i + 1,
       });
       for (const s of created.subtopics) {
         ragChunkCreates.push({
-          content: `${ch.title} — ${s.code} ${s.title}. ${ch.summary}`,
-          pageHint: `Chapter ${i + 1} / ${s.code}`,
+          content: sanitizeUtf8(`${ch.title} — ${s.code} ${s.title}. ${ch.summary}`),
+          pageHint: sanitizeUtf8(`Chapter ${i + 1} / ${s.code}`),
           sequence: ragChunkCreates.length + 1,
         });
       }
@@ -162,14 +165,34 @@ export async function runTextbookVerifyJob(
     }
 
     if (ragChunkCreates.length) {
-      await prisma.ragChunk.createMany({
-        data: ragChunkCreates.map((c) => ({
+      const outlineChunks = ragChunkCreates
+        .map((c) => ({
           textbookId: textbook.id,
-          content: c.content,
-          pageHint: c.pageHint,
+          content: sanitizeUtf8(c.content),
+          pageHint: sanitizeUtf8(c.pageHint),
           sequence: c.sequence,
-        })),
-      });
+        }))
+        .filter((c) => c.content.trim().length > 0);
+      if (outlineChunks.length) {
+        try {
+          await prisma.ragChunk.createMany({ data: outlineChunks });
+        } catch (err) {
+          console.warn(
+            '[textbookVerify] outline createMany failed, inserting one-by-one:',
+            err instanceof Error ? err.message : err,
+          );
+          for (const row of outlineChunks) {
+            try {
+              await prisma.ragChunk.create({ data: row });
+            } catch (rowErr) {
+              console.warn(
+                '[textbookVerify] skipped outline RAG chunk:',
+                rowErr instanceof Error ? rowErr.message : rowErr,
+              );
+            }
+          }
+        }
+      }
     }
 
     const pdfBodyCount = await ensureTextbookPdfBodyChunks(textbook.id, textbook.storagePath);

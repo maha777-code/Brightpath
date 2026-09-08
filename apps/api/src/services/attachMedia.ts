@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { getPrismaModel, prisma } from '../lib/prisma.js';
 import { apiPublicOrigin } from '../lib/videoPipeline/mediaPaths.js';
 import { embedTexts, toPgVectorLiteral } from '../lib/embeddings.js';
+import { sanitizeUtf8 } from './textbook.js';
 import {
   chunkExtractedText,
   detectAttachmentKind,
@@ -248,13 +249,16 @@ export async function ingestSubtopicAttachments(input: {
     const embeddings = await embedTexts(chunks);
 
     for (let i = 0; i < chunks.length; i++) {
+      const content = sanitizeUtf8(chunks[i] ?? '').trim();
+      if (!content) continue;
+      const pageHint = sanitizeUtf8(`teacher_attachment / ${sub.code} / ${file.originalname}`);
       let createdChunk: { id: string };
       try {
         createdChunk = await ragChunkDelegate().create({
           data: {
             textbookId: sub.chapter.textbookId,
-            content: chunks[i],
-            pageHint: `teacher_attachment / ${sub.code} / ${file.originalname}`,
+            content,
+            pageHint,
             sequence: i + 1,
             sourceType: 'teacher_attachment',
             subtopicId: sub.id,
@@ -266,8 +270,8 @@ export async function ingestSubtopicAttachments(input: {
         createdChunk = await prisma.ragChunk.create({
           data: {
             textbookId: sub.chapter.textbookId,
-            content: chunks[i],
-            pageHint: `teacher_attachment / ${sub.code} / ${file.originalname}`,
+            content,
+            pageHint,
             sequence: i + 1,
           },
         });
