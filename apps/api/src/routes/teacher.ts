@@ -108,7 +108,14 @@ router.get('/chapters', async (req: AuthRequest, res) => {
     select: { title: true, subject: true, fileName: true, status: true },
   });
   if (meta && meta.status !== 'VERIFYING' && isNcertScienceTextbook(meta)) {
-    await ensureCompleteChapterOneSubtopics(latest.id);
+    try {
+      await ensureCompleteChapterOneSubtopics(latest.id);
+    } catch (err) {
+      console.error(
+        '[teacher] ensureCompleteChapterOneSubtopics failed on GET /chapters:',
+        err instanceof Error ? err.message : err,
+      );
+    }
   }
 
   const textbook = await prisma.textbook.findFirst({
@@ -328,7 +335,14 @@ router.get('/chapters/:id', async (req: AuthRequest, res) => {
     select: { title: true, subject: true, fileName: true },
   });
   if (tbMeta && isNcertScienceTextbook(tbMeta)) {
-    await ensureCompleteChapterOneSubtopics(existing.textbookId);
+    try {
+      await ensureCompleteChapterOneSubtopics(existing.textbookId);
+    } catch (err) {
+      console.error(
+        '[teacher] ensureCompleteChapterOneSubtopics failed on GET /chapters/:id:',
+        err instanceof Error ? err.message : err,
+      );
+    }
   }
 
   const chapter = await prisma.teacherChapter.findFirst({

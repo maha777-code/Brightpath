@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import {
   BODY_EXTRACT_OPTS,
@@ -503,78 +504,127 @@ export function isNcertScienceTextbook(opts: {
   return looksLikeNcertScience('', `${opts.title ?? ''} ${opts.subject ?? ''} ${opts.fileName ?? ''}`);
 }
 
+function isPrismaUniqueConflict(err: unknown): boolean {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002';
+}
+
+async function nextSubtopicSequenceOrder(chapterId: string): Promise<number> {
+  const maxSubtopic = await prisma.teacherSubtopic.findFirst({
+    where: { chapterId },
+    orderBy: { sequenceOrder: 'desc' },
+    select: { sequenceOrder: true },
+  });
+  return (maxSubtopic?.sequenceOrder ?? 0) + 1;
+}
+
 /** Back-fill 1.4 / 1.5 on textbooks indexed before Chapter 1 was complete. */
 export async function ensureCompleteChapterOneSubtopics(textbookId: string): Promise<boolean> {
-  const textbook = await prisma.textbook.findUnique({
-    where: { id: textbookId },
-    select: { title: true, subject: true, fileName: true },
-  });
-  if (textbook && !isNcertScienceTextbook(textbook)) {
+  try {
+    const textbook = await prisma.textbook.findUnique({
+      where: { id: textbookId },
+      select: { title: true, subject: true, fileName: true },
+    });
+    if (textbook && !isNcertScienceTextbook(textbook)) {
+      return false;
+    }
+
+    const chapter = await prisma.teacherChapter.findFirst({
+      where: {
+        textbookId,
+        OR: [{ sequenceOrder: 1 }, { title: { contains: 'Matter in Our Surroundings' } }],
+      },
+      include: { subtopics: true },
+    });
+    if (!chapter) return false;
+
+    const missing = CHAPTER_ONE_SUBTOPICS.filter(
+      (s) => !chapter.subtopics.some((existing) => existing.code === s.code),
+    );
+    if (missing.length === 0) return false;
+
+    let inserted = 0;
+    for (const s of missing) {
+      const already = await prisma.teacherSubtopic.findFirst({
+        where: { chapterId: chapter.id, code: s.code },
+        select: { id: true },
+      });
+      if (already) continue;
+
+      let created: { id: string; code: string; title: string } | null = null;
+      for (let attempt = 0; attempt < 8 && !created; attempt++) {
+        const sequenceOrder = await nextSubtopicSequenceOrder(chapter.id);
+        try {
+          created = await prisma.teacherSubtopic.create({
+            data: {
+              chapterId: chapter.id,
+              code: s.code,
+              title: s.title,
+              sequenceOrder,
+              hasVideoExplainer: false,
+              hasGamifiedActivity: false,
+              videoTitle: null,
+              activityTitle: null,
+              videoUrl: null,
+            },
+            select: { id: true, code: true, title: true },
+          });
+        } catch (err) {
+          if (isPrismaUniqueConflict(err)) {
+            console.warn(
+              `[textbook] P2002 on chapter ${chapter.id} sequenceOrder=${sequenceOrder} for ${s.code}; retrying`,
+            );
+            continue;
+          }
+          throw err;
+        }
+      }
+      if (!created) {
+        console.warn(`[textbook] skipped subtopic ${s.code} after unique-constraint retries`);
+        continue;
+      }
+
+      try {
+        const maxRag =
+          (
+            await prisma.ragChunk.aggregate({
+              where: { textbookId },
+              _max: { sequence: true },
+            })
+          )._max.sequence ?? 0;
+        await prisma.ragChunk.create({
+          data: {
+            textbookId,
+            content: sanitizeUtf8(`${chapter.title} — ${created.code} ${created.title}. ${chapter.summary}`),
+            pageHint: sanitizeUtf8(`Chapter 1 / ${created.code}`),
+            sequence: maxRag + 1,
+          },
+        });
+      } catch (err) {
+        console.warn(
+          '[textbook] RAG chunk for chapter-one backfill failed:',
+          err instanceof Error ? err.message : err,
+        );
+      }
+      inserted += 1;
+    }
+
+    if (inserted > 0) {
+      await prisma.textbook.update({
+        where: { id: textbookId },
+        data: {
+          indexedChunkCount: { increment: inserted },
+        },
+      });
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.error(
+      '[textbook] ensureCompleteChapterOneSubtopics failed:',
+      err instanceof Error ? err.message : err,
+    );
     return false;
   }
-
-  const chapter = await prisma.teacherChapter.findFirst({
-    where: {
-      textbookId,
-      OR: [{ sequenceOrder: 1 }, { title: { contains: 'Matter in Our Surroundings' } }],
-    },
-    include: { subtopics: true },
-  });
-  if (!chapter) return false;
-
-  const existingCodes = new Set(chapter.subtopics.map((s) => s.code));
-  const missing = CHAPTER_ONE_SUBTOPICS.filter((s) => !existingCodes.has(s.code));
-  if (missing.length === 0) return false;
-
-  const usedSeq = new Set(chapter.subtopics.map((s) => s.sequenceOrder));
-  const nextSequence = () => {
-    let seq = 1;
-    while (usedSeq.has(seq)) seq += 1;
-    usedSeq.add(seq);
-    return seq;
-  };
-  const maxRag =
-    (
-      await prisma.ragChunk.aggregate({
-        where: { textbookId },
-        _max: { sequence: true },
-      })
-    )._max.sequence ?? 0;
-
-  for (let i = 0; i < missing.length; i++) {
-    const s = missing[i];
-    const created = await prisma.teacherSubtopic.create({
-      data: {
-        chapterId: chapter.id,
-        code: s.code,
-        title: s.title,
-        sequenceOrder: nextSequence(),
-        hasVideoExplainer: false,
-        hasGamifiedActivity: false,
-        videoTitle: null,
-        activityTitle: null,
-        videoUrl: null,
-      },
-    });
-
-    await prisma.ragChunk.create({
-      data: {
-        textbookId,
-        content: sanitizeUtf8(`${chapter.title} — ${created.code} ${created.title}. ${chapter.summary}`),
-        pageHint: sanitizeUtf8(`Chapter 1 / ${created.code}`),
-        sequence: maxRag + i + 1,
-      },
-    });
-  }
-
-  await prisma.textbook.update({
-    where: { id: textbookId },
-    data: {
-      indexedChunkCount: { increment: missing.length },
-    },
-  });
-
-  return true;
 }
 
 export async function ensureCompleteChapterOneForTeacher(teacherId: string): Promise<void> {
@@ -583,7 +633,14 @@ export async function ensureCompleteChapterOneForTeacher(teacherId: string): Pro
     select: { id: true },
   });
   for (const tb of textbooks) {
-    await ensureCompleteChapterOneSubtopics(tb.id);
+    try {
+      await ensureCompleteChapterOneSubtopics(tb.id);
+    } catch (err) {
+      console.error(
+        `[textbook] chapter-one backfill failed for ${tb.id}:`,
+        err instanceof Error ? err.message : err,
+      );
+    }
   }
 }
 
