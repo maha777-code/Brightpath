@@ -24,7 +24,7 @@ export const STAGE_TIMEOUTS = {
   retrieving: 45_000,
   scripting: 120_000,
   tts: 360_000,
-  rendering: 600_000, // 10 minutes
+  rendering: 1_200_000, // 20 minutes
 } as const;
 
 export interface TopicContextPacket {

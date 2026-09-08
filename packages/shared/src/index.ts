@@ -401,6 +401,21 @@ export type {
 } from './teacher.js';
 
 export type {
+  TeacherToolBadge,
+  TeacherToolFocusArea,
+  TeacherToolDefinition,
+  TeacherToolsCatalogResponse,
+  ToggleTeacherToolFavoriteRequest,
+  ToggleTeacherToolFavoriteResponse,
+} from './teacherTools.js';
+
+export {
+  TEACHER_TOOL_FOCUS_LABELS,
+  TEACHER_TOOLS_CATALOG,
+  getTeacherToolById,
+} from './teacherTools.js';
+
+export type {
   AppRole,
   OrgType,
   PlanType,

@@ -24,10 +24,18 @@ const execFileAsync = promisify(execFile);
 const REMOTION_ROOT = path.resolve(API_ROOT, '../remotion');
 const remotionRequire = createRequire(path.join(REMOTION_ROOT, 'package.json'));
 
-/** Per renderMedia call — 10 minutes (slow VMs / first Chromium launch). */
-const REMOTION_TIMEOUT_MS = Number(process.env.REMOTION_TIMEOUT_MS ?? 600_000);
-/** Cap workers so virtualized hosts don't thrash. */
-const REMOTION_CONCURRENCY = Math.max(1, Math.floor(os.cpus().length / 2));
+/** Per renderMedia call — 20 minutes (long pixel-quest videos + slow VMs). */
+const REMOTION_TIMEOUT_MS = Number(process.env.REMOTION_TIMEOUT_MS ?? 1_200_000);
+
+/** Cap Chromium workers so Linux /dev/shm and RAM are not starved. */
+function remotionConcurrency(): number {
+  const fromEnv = Number(process.env.REMOTION_CONCURRENCY);
+  if (Number.isFinite(fromEnv) && fromEnv >= 1) {
+    return Math.max(1, Math.min(4, Math.floor(fromEnv)));
+  }
+  if (process.platform === 'linux') return 2;
+  return Math.min(4, Math.max(1, Math.floor(os.cpus().length / 2)));
+}
 
 /**
  * Chromium cannot fetch raw OS paths or file:// URIs reliably in Remotion headless.
@@ -126,6 +134,7 @@ async function importRemotion<T extends Record<string, unknown>>(pkg: string): P
 async function resolveSystemChromeExecutable(): Promise<string | null> {
   const fromEnv = (
     process.env.REMOTION_BROWSER_EXECUTABLE ||
+    process.env.CHROME_BIN ||
     process.env.CHROME_PATH ||
     process.env.PUPPETEER_EXECUTABLE_PATH ||
     ''
@@ -274,6 +283,42 @@ function assertRemotionOutputOrThrow(outFile: string): number {
     );
   }
   return size;
+}
+
+/** Map Remotion 0–1 progress onto 80–99 so the UI does not freeze at STAGE_PROGRESS.rendering. */
+function createRenderProgressReporter(topicId: string): (progress: number) => void {
+  let lastPct = -1;
+  let lastWriteMs = 0;
+  let writing = false;
+  return (progress: number) => {
+    const pct = Number.isFinite(progress) ? Math.min(1, Math.max(0, progress)) : 0;
+    const rounded = Math.min(99, Math.max(80, Math.floor(80 + pct * 19)));
+    const now = Date.now();
+    if (rounded === lastPct && now - lastWriteMs < 1_500) return;
+    if (writing) return;
+    lastPct = rounded;
+    lastWriteMs = now;
+    writing = true;
+    void import('../prisma.js')
+      .then(({ prisma }) =>
+        prisma.teacherSubtopic.update({
+          where: { id: topicId },
+          data: {
+            videoProgress: rounded,
+            videoJobStage: 'rendering',
+          },
+        }),
+      )
+      .catch((err) => {
+        console.warn(
+          '[remotion] progress persist failed:',
+          err instanceof Error ? err.message : err,
+        );
+      })
+      .finally(() => {
+        writing = false;
+      });
+  };
 }
 
 type RenderAttempt = {
@@ -454,12 +499,14 @@ export async function renderWithRemotion(opts: {
         timeoutInMilliseconds?: number;
         concurrency?: number | string | null;
         overwrite?: boolean;
+        onProgress?: (event: { progress: number }) => void;
       }) => Promise<unknown>;
     }>('@remotion/renderer');
 
+    const concurrency = remotionConcurrency();
     console.log(
       `[remotion] bundling GamifiedLesson from a FRESH outDir (no webpack cache)… ` +
-        `(timeout=${Math.round(REMOTION_TIMEOUT_MS / 1000)}s, concurrency=${REMOTION_CONCURRENCY}, outDir=${bundleOutDir})`,
+        `(timeout=${Math.round(REMOTION_TIMEOUT_MS / 1000)}s, concurrency=${concurrency}, outDir=${bundleOutDir})`,
     );
     const serveUrl = await bundle({
       entryPoint: path.join(REMOTION_ROOT, 'src', 'index.ts'),
@@ -472,8 +519,9 @@ export async function renderWithRemotion(opts: {
       }),
     });
 
-    // Full 10-minute budget per attempt (outer STAGE_TIMEOUTS.rendering also 10 min)
+    // 20-minute budget per attempt (matches STAGE_TIMEOUTS.rendering)
     const perAttemptMs = REMOTION_TIMEOUT_MS;
+    const reportProgress = createRenderProgressReporter(opts.topicId);
 
     for (const attempt of attempts) {
       try {
@@ -512,8 +560,11 @@ export async function renderWithRemotion(opts: {
           overwrite: true,
           chromiumOptions,
           browserExecutable: attempt.browserExecutable,
-          concurrency: REMOTION_CONCURRENCY,
+          concurrency,
           timeoutInMilliseconds: perAttemptMs,
+          onProgress: ({ progress }) => {
+            reportProgress(progress);
+          },
         });
 
         const size = assertRemotionOutputOrThrow(outFile);

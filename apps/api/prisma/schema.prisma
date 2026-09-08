@@ -349,8 +349,20 @@ model Teacher {
   doubts         StudentDoubt[]
   classBatches   ClassBatch[]
   platformUsers  PlatformUser[]
+  toolFavorites  TeacherToolFavorite[]
 
   @@index([organizationId])
+}
+
+model TeacherToolFavorite {
+  id        String   @id @default(cuid())
+  teacherId String
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  toolId    String
+  createdAt DateTime @default(now())
+
+  @@unique([teacherId, toolId])
+  @@index([teacherId])
 }
 
 model Textbook {

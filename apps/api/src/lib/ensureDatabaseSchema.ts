@@ -13,6 +13,18 @@ function autoPushEnabled(): boolean {
   return process.env.NODE_ENV !== 'production';
 }
 
+async function hasPublicTable(table: string): Promise<boolean> {
+  const rows = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name = ${table}
+    ) AS exists
+  `;
+  return Boolean(rows[0]?.exists);
+}
+
 async function hasPublicColumn(table: string, column: string): Promise<boolean> {
   const rows = await prisma.$queryRaw<Array<{ exists: boolean }>>`
     SELECT EXISTS (
@@ -29,27 +41,18 @@ async function hasPublicColumn(table: string, column: string): Promise<boolean> 
 /** True when login + teacher video pipeline columns are present. */
 export async function isDatabaseSchemaCurrent(): Promise<boolean> {
   try {
-    const [platformPlan, teacherPlan, videoStatus, cuesJson, activityTable, activityContent, attachmentTable, videoTemplateCol, activityTemplateCol] =
+    const [platformPlan, teacherPlan, videoStatus, cuesJson, activityTable, activityContent, attachmentTable, videoTemplateCol, activityTemplateCol, toolFavoriteTable] =
       await Promise.all([
         hasPublicColumn('PlatformUser', 'planType'),
         hasPublicColumn('Teacher', 'planType'),
         hasPublicColumn('TeacherSubtopic', 'videoStatus'),
         hasPublicColumn('TeacherSubtopic', 'animationCuesJson'),
-        prisma.$queryRaw<Array<{ exists: boolean }>>`
-          SELECT EXISTS (
-            SELECT 1 FROM information_schema.tables
-            WHERE table_schema = 'public' AND table_name = 'Activity'
-          ) AS exists
-        `.then((rows) => Boolean(rows[0]?.exists)),
+        hasPublicTable('Activity'),
         hasPublicColumn('Activity', 'content'),
-        prisma.$queryRaw<Array<{ exists: boolean }>>`
-          SELECT EXISTS (
-            SELECT 1 FROM information_schema.tables
-            WHERE table_schema = 'public' AND table_name = 'SubtopicAttachment'
-          ) AS exists
-        `.then((rows) => Boolean(rows[0]?.exists)),
+        hasPublicTable('SubtopicAttachment'),
         hasPublicColumn('TeacherSubtopic', 'videoTemplateId'),
         hasPublicColumn('TeacherSubtopic', 'activityTemplateId'),
+        hasPublicTable('TeacherToolFavorite'),
       ]);
     return (
       platformPlan &&
@@ -60,7 +63,8 @@ export async function isDatabaseSchemaCurrent(): Promise<boolean> {
       activityContent &&
       attachmentTable &&
       videoTemplateCol &&
-      activityTemplateCol
+      activityTemplateCol &&
+      toolFavoriteTable
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

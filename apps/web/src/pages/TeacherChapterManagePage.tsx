@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Eye, GraduationCap, LogOut } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, BookOpen, Eye } from 'lucide-react';
 import type { TeacherChapter, TeacherSubtopic } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { SubtopicManager } from '@/components/teacher/SubtopicManager';
-import '@/styles/teacher-dashboard.css';
+import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 
 /** Teacher admin view for a single chapter — not the student tutor stage. */
 export default function TeacherChapterManagePage() {
   const { id = '' } = useParams<{ id: string }>();
-  const { teacher, logout } = useAuth();
-  const navigate = useNavigate();
+  const { teacher } = useAuth();
   const [chapter, setChapter] = useState<TeacherChapter | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,41 +36,18 @@ export default function TeacherChapterManagePage() {
   }, [load]);
 
   return (
-    <div className="td-dash min-h-dvh w-full max-w-full text-white">
-      <header className="td-header sticky top-0 z-40 w-full">
-        <div className="flex h-20 w-full max-w-full items-center gap-4 px-8 lg:px-12">
-          <Link
-            to="/teacher/dashboard"
-            className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 px-4 py-2 text-base font-medium text-[#A5F3FC] hover:bg-cyan-400/10"
-          >
-            <ArrowLeft className="h-5 w-5" /> Dashboard
-          </Link>
-          <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/40 bg-white/5 text-white shadow-[0_0_16px_rgba(34,211,238,0.25)]">
-              <GraduationCap className="h-6 w-6 text-white" />
-            </span>
-            <div>
-              <p className="text-base font-extrabold text-white">Chapter admin</p>
-              <p className="text-sm font-semibold text-cyan-200/80">Manage videos, activities, and publishing</p>
-            </div>
-          </div>
-          <div className="ml-auto flex items-center gap-3">
-            <p className="hidden text-base font-bold text-white sm:block">{teacher?.name ?? 'Teacher'}</p>
-            <button
-              type="button"
-              onClick={() => {
-                logout();
-                navigate('/login');
-              }}
-              className="inline-flex items-center gap-2 rounded-full bg-[#6D28D9]/80 px-6 py-3 text-base font-medium text-white shadow-[0_0_16px_rgba(109,40,217,0.45)] hover:bg-[#7C3AED]"
-            >
-              <LogOut className="h-4 w-4" /> Log out
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="w-full max-w-full space-y-8 px-8 py-6 lg:px-12 lg:py-8">
+    <TeacherWorkspaceLayout
+      actions={
+        <p className="hidden text-base font-bold text-white sm:block">{teacher?.name ?? 'Teacher'}</p>
+      }
+    >
+      <main className="w-full max-w-full space-y-8 px-5 py-6 sm:px-8 lg:px-12 lg:py-8">
+        <Link
+          to="/teacher/dashboard"
+          className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 px-4 py-2 text-base font-medium text-[#A5F3FC] hover:bg-cyan-400/10"
+        >
+          <ArrowLeft className="h-5 w-5" /> Dashboard
+        </Link>
         {loading && (
           <p className="td-card rounded-2xl p-8 text-center text-base text-cyan-200/80">Loading chapter…</p>
         )}
@@ -177,6 +153,6 @@ export default function TeacherChapterManagePage() {
           </>
         )}
       </main>
-    </div>
+    </TeacherWorkspaceLayout>
   );
 }

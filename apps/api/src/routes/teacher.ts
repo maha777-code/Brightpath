@@ -19,6 +19,7 @@ import {
 } from '../lib/teacherSerializers.js';
 import activityRoutes from './activity.js';
 import mediaRoutes from './media.js';
+import teacherToolsRoutes from './teacherTools.js';
 import {
   enqueueTextbookVerifyJob,
   invalidateTextbookVerifyJobs,
@@ -40,6 +41,7 @@ const MAX_PDF_ERROR = 'File size exceeds the 80 MB limit. Please select a smalle
 
 const router = Router();
 router.use(requireTeacher);
+router.use(teacherToolsRoutes);
 router.use(activityRoutes);
 router.use(mediaRoutes);
 

@@ -19,6 +19,8 @@ import VideoLessonPage from '@/pages/VideoLessonPage';
 import ChapterTestPage from '@/pages/ChapterTestPage';
 import ChapterExplorePage from '@/pages/ChapterExplorePage';
 import TeacherDashboard from '@/pages/TeacherDashboard';
+import TeacherTools from '@/pages/TeacherTools';
+import TeacherToolPage from '@/pages/TeacherToolPage';
 import TeacherChapterManagePage from '@/pages/TeacherChapterManagePage';
 import SchoolDashboard from '@/pages/SchoolDashboard';
 import CenterDashboard from '@/pages/CenterDashboard';
@@ -186,6 +188,8 @@ export default function App() {
         <Route path="/learn/:subject" element={<ProtectedLearner><TutorSession /></ProtectedLearner>} />
         <Route path="/progress" element={<ProtectedStudent><Progress /></ProtectedStudent>} />
         <Route path="/teacher/dashboard" element={<ProtectedTeacher><TeacherDashboard /></ProtectedTeacher>} />
+        <Route path="/teacher/tools" element={<ProtectedTeacher><TeacherTools /></ProtectedTeacher>} />
+        <Route path="/teacher/tools/:toolId" element={<ProtectedTeacher><TeacherToolPage /></ProtectedTeacher>} />
         <Route
           path="/teacher/chapter/:id"
           element={

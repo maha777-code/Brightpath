@@ -96,6 +96,8 @@ import type {
   TeacherSubtopic,
   TeacherChapter,
   Textbook,
+  TeacherToolsCatalogResponse,
+  ToggleTeacherToolFavoriteResponse,
   GenerateActivityRequest,
   GenerateActivityResponse,
   GenerationTemplate,
@@ -413,6 +415,15 @@ export const api = {
     request<TeacherDoubtsResponse>(
       status ? `/teacher/doubts?status=${encodeURIComponent(status)}` : '/teacher/doubts',
     ),
+
+  teacherTools: () =>
+    request<TeacherToolsCatalogResponse>('/teacher/tools', { cache: 'no-store' }),
+
+  toggleTeacherToolFavorite: (toolId: string) =>
+    request<ToggleTeacherToolFavoriteResponse>('/teacher/tools/favorite', {
+      method: 'POST',
+      body: JSON.stringify({ toolId }),
+    }),
 
   reviewDoubt: (id: string, body: ReviewDoubtRequest) =>
     request<ReviewDoubtResponse>(`/teacher/doubts/${id}/review`, {

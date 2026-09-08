@@ -74,7 +74,7 @@ export function SubtopicManager({
     });
   }, [chapter]);
 
-  // Poll generating topics every 3s until pending_review / failed
+  // Poll generating topics every 2s so Remotion render progress (80–99%) is visible
   useEffect(() => {
     const generatingIds = localSubs
       .filter((s) => resolveStatus(s) === 'generating')
@@ -140,7 +140,7 @@ export function SubtopicManager({
     };
 
     void tick();
-    pollRef.current = window.setInterval(() => void tick(), 3000);
+    pollRef.current = window.setInterval(() => void tick(), 2000);
 
     return () => {
       if (pollRef.current) {

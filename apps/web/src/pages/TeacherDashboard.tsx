@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Compass, GraduationCap, LogOut, RefreshCw } from 'lucide-react';
+import { Compass, RefreshCw } from 'lucide-react';
 import type {
   StudentDoubt,
   TeacherChapter,
@@ -13,11 +12,10 @@ import { DocumentUploader } from '@/components/teacher/DocumentUploader';
 import { ChapterList } from '@/components/teacher/ChapterList';
 import { SubtopicManager } from '@/components/teacher/SubtopicManager';
 import { TeacherDoubtAssistant } from '@/components/teacher/TeacherDoubtAssistant';
-import '@/styles/teacher-dashboard.css';
+import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 
 export default function TeacherDashboard() {
-  const { teacher, role, logout } = useAuth();
-  const navigate = useNavigate();
+  const { teacher, role } = useAuth();
   const [textbook, setTextbook] = useState<Textbook | null>(null);
   const [chapters, setChapters] = useState<TeacherChapter[]>([]);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
@@ -79,60 +77,36 @@ export default function TeacherDashboard() {
   };
 
   return (
-    <div className="td-dash min-h-dvh w-full max-w-full text-white">
-      <header className="td-header sticky top-0 z-40 w-full">
-        <div className="flex h-20 w-full max-w-full items-center gap-4 px-8 lg:px-12">
-          <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/40 bg-white/5 text-white shadow-[0_0_16px_rgba(34,211,238,0.25)]">
-              <GraduationCap className="h-6 w-6 text-white" />
-            </span>
-            <div>
-              <p className="text-base font-extrabold text-white">Brightpath Teacher</p>
-              <p className="text-sm font-semibold text-cyan-200/80">Curriculum & live doubt control</p>
-            </div>
+    <TeacherWorkspaceLayout
+      actions={
+        <>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC] hover:bg-cyan-400/10"
+            aria-label="Sync"
+            title="Sync"
+          >
+            <RefreshCw className="h-5 w-5" />
+          </button>
+          <a
+            href="#td-chapters"
+            className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC] hover:bg-cyan-400/10"
+            aria-label="Explore"
+            title="Explore"
+          >
+            <Compass className="h-5 w-5" />
+          </a>
+          <div className="hidden text-right sm:block">
+            <p className="text-base font-bold text-white">{teacher?.name ?? 'Teacher'}</p>
+            <p className="text-sm text-[#A5F3FC]">
+              {teacher?.schoolName ?? 'School'} · {teacher?.subjectFocus ?? 'Science'}
+            </p>
           </div>
-          <nav className="mx-auto hidden items-center gap-5 text-base font-semibold text-[#A5F3FC] md:flex">
-            <span className="font-bold text-white">Teacher Dashboard</span>
-          </nav>
-          <div className="ml-auto flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC] hover:bg-cyan-400/10"
-              aria-label="Sync"
-              title="Sync"
-            >
-              <RefreshCw className="h-5 w-5" />
-            </button>
-            <a
-              href="#td-chapters"
-              className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC] hover:bg-cyan-400/10"
-              aria-label="Explore"
-              title="Explore"
-            >
-              <Compass className="h-5 w-5" />
-            </a>
-            <div className="hidden text-right sm:block">
-              <p className="text-base font-bold text-white">{teacher?.name ?? 'Teacher'}</p>
-              <p className="text-sm text-[#A5F3FC]">
-                {teacher?.schoolName ?? 'School'} · {teacher?.subjectFocus ?? 'Science'}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                logout();
-                navigate('/login');
-              }}
-              className="inline-flex items-center gap-2 rounded-full bg-[#6D28D9]/80 px-6 py-3 text-base font-medium text-white shadow-[0_0_16px_rgba(109,40,217,0.45)] hover:bg-[#7C3AED]"
-            >
-              <LogOut className="h-4 w-4" /> Log out
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="w-full max-w-full space-y-8 px-8 py-6 lg:px-12 lg:py-8">
+        </>
+      }
+    >
+      <main className="w-full max-w-full space-y-8 px-5 py-6 sm:px-8 lg:px-12 lg:py-8">
         <div className="td-card rounded-3xl p-8">
           <h1 className="text-4xl font-extrabold tracking-tight text-white">Teacher Dashboard</h1>
           <p className="mt-2 text-base text-cyan-200/80">
@@ -222,6 +196,6 @@ export default function TeacherDashboard() {
           </>
         )}
       </main>
-    </div>
+    </TeacherWorkspaceLayout>
   );
 }
