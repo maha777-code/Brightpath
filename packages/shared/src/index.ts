@@ -407,6 +407,9 @@ export type {
   TeacherToolsCatalogResponse,
   ToggleTeacherToolFavoriteRequest,
   ToggleTeacherToolFavoriteResponse,
+  QuizGeneratorPayload,
+  QuizGeneratorQuestion,
+  QuizGeneratorResponse,
 } from './teacherTools.js';
 
 export {

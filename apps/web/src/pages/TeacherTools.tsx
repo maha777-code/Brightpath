@@ -261,34 +261,53 @@ export default function TeacherTools() {
       </main>
 
       {activeTool && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/70 p-4 sm:items-center"
-          onClick={() => setActiveTool(null)}
-        >
+        <div className="fixed inset-0 z-[60] flex items-end justify-center p-4 sm:items-center">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-950/70"
+            aria-label="Dismiss tool launcher"
+            onClick={() => setActiveTool(null)}
+          />
           <div
-            className="td-card max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-3xl p-6 sm:p-8"
+            className={
+              activeTool.id === 'quiz-generator'
+                ? 'relative z-10 max-h-[92dvh] w-full max-w-6xl overflow-y-auto rounded-3xl bg-white p-5 text-slate-800 shadow-2xl sm:p-8'
+                : 'relative z-10 td-card max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-3xl p-6 sm:p-8'
+            }
             role="dialog"
             aria-modal="true"
             aria-labelledby="tool-launcher-title"
-            onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-4 flex items-start justify-between gap-4">
+            <div className="mb-3 flex items-start justify-end">
               <h2 id="tool-launcher-title" className="sr-only">
                 {activeTool.title}
               </h2>
               <button
                 type="button"
-                className="ml-auto rounded-full border border-white/15 p-2 text-cyan-100 hover:bg-white/10"
+                className={
+                  activeTool.id === 'quiz-generator'
+                    ? 'rounded-full border border-slate-200 p-2 text-slate-500 hover:bg-slate-100'
+                    : 'rounded-full border border-white/15 p-2 text-cyan-100 hover:bg-white/10'
+                }
                 aria-label="Close tool launcher"
                 onClick={() => setActiveTool(null)}
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <TeacherToolLauncher tool={activeTool} embedded />
+            <TeacherToolLauncher
+              tool={activeTool}
+              embedded
+              favorited={favoriteIds.includes(activeTool.id)}
+              onToggleFavorite={() => void toggleFavorite(activeTool.id)}
+            />
             <button
               type="button"
-              className="mt-4 text-sm font-semibold text-cyan-200 underline"
+              className={
+                activeTool.id === 'quiz-generator'
+                  ? 'mt-4 text-sm font-semibold text-violet-700 underline'
+                  : 'mt-4 text-sm font-semibold text-cyan-200 underline'
+              }
               onClick={() => navigate(activeTool.href)}
             >
               Open dedicated page

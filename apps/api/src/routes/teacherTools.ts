@@ -9,6 +9,7 @@ import {
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
+import { generateMultipleChoiceQuiz } from '../services/llm.js';
 
 const favoriteBody = z.object({
   toolId: z.string().min(1).max(80),
@@ -127,6 +128,53 @@ router.post('/tools/favorite', async (req: AuthRequest, res: Response) => {
   } catch (err) {
     console.error('[teacher/tools/favorite] toggle failed', err);
     res.status(500).json({ error: 'Failed to update favorite' });
+  }
+});
+
+const quizBody = z
+  .object({
+    gradeLevel: z.string().min(1).max(80),
+    numberOfQuestions: z.coerce.number().int().min(1).max(40),
+    optionsPerQuestion: z.coerce.number().int().min(3).max(7),
+    topicDescription: z.string().max(400_000).optional(),
+    assessmentDescription: z.string().max(400_000).optional(),
+    standardsAlignment: z.string().max(400_000).optional(),
+    attachments: z.array(z.string().max(240)).max(20).optional(),
+  })
+  .refine((d) => Boolean((d.topicDescription ?? d.assessmentDescription ?? '').trim()), {
+    message: 'topicDescription is required',
+  });
+
+/** POST /teacher/tools/quiz-generator */
+router.post('/tools/quiz-generator', async (req: AuthRequest, res: Response) => {
+  const teacherId = req.teacherId;
+  if (!teacherId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const parsed = quizBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid quiz generator payload' });
+    return;
+  }
+
+  const input = parsed.data;
+  const topicDescription = (input.topicDescription ?? input.assessmentDescription ?? '').trim();
+
+  try {
+    const quiz = await generateMultipleChoiceQuiz({
+      gradeLevel: input.gradeLevel,
+      numberOfQuestions: input.numberOfQuestions,
+      optionsPerQuestion: input.optionsPerQuestion,
+      topicDescription,
+      standardsAlignment: input.standardsAlignment,
+      attachments: input.attachments,
+    });
+    res.json(quiz);
+  } catch (err) {
+    console.error('[teacher/tools/quiz-generator] failed', err);
+    res.status(500).json({ error: 'Failed to generate quiz' });
   }
 });
 

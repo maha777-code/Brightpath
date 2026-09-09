@@ -163,6 +163,30 @@ export interface ToggleTeacherToolFavoriteResponse {
   favoriteIds: string[];
 }
 
+export interface QuizGeneratorPayload {
+  gradeLevel: string;
+  numberOfQuestions: number;
+  optionsPerQuestion: number;
+  /** Preferred field for the assessment prompt */
+  topicDescription?: string;
+  /** @deprecated use topicDescription */
+  assessmentDescription?: string;
+  standardsAlignment?: string;
+  attachments?: string[];
+}
+
+export interface QuizGeneratorQuestion {
+  id: number;
+  question: string;
+  options: string[];
+  correctOption: string;
+}
+
+export interface QuizGeneratorResponse {
+  questions: QuizGeneratorQuestion[];
+  answerKey: string[];
+}
+
 export function getTeacherToolById(id: string): TeacherToolDefinition | undefined {
   return TEACHER_TOOLS_CATALOG.find((t) => t.id === id);
 }

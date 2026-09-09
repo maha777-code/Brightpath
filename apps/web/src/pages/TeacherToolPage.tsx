@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { getTeacherToolById, type TeacherToolDefinition } from '@brightpath/shared';
+import QuizGenerator from '@/pages/TeacherTools/QuizGenerator';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 
 function sampleOutput(tool: TeacherToolDefinition, topic: string, grade: string): string {
@@ -35,13 +36,35 @@ function sampleOutput(tool: TeacherToolDefinition, topic: string, grade: string)
 export function TeacherToolLauncher({
   tool,
   embedded,
+  favorited,
+  onToggleFavorite,
 }: {
   tool: TeacherToolDefinition;
   embedded?: boolean;
+  favorited?: boolean;
+  onToggleFavorite?: () => void;
 }) {
   const [topic, setTopic] = useState('');
   const [grade, setGrade] = useState('Class 9');
   const [output, setOutput] = useState<string | null>(null);
+
+  if (tool.id === 'quiz-generator') {
+    const quiz = <QuizGenerator favorited={favorited} onToggleFavorite={onToggleFavorite} />;
+    if (embedded) return quiz;
+    return (
+      <TeacherWorkspaceLayout>
+        <main className="w-full max-w-7xl px-6 py-6 lg:px-10 lg:py-8">
+          <Link
+            to="/teacher/tools"
+            className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-cyan-200 hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to AI Tools Suite
+          </Link>
+          <div className="rounded-2xl bg-white p-5 shadow-xl sm:p-8">{quiz}</div>
+        </main>
+      </TeacherWorkspaceLayout>
+    );
+  }
 
   const body = (
     <div className="space-y-5">

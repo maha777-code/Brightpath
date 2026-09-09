@@ -98,6 +98,8 @@ import type {
   Textbook,
   TeacherToolsCatalogResponse,
   ToggleTeacherToolFavoriteResponse,
+  QuizGeneratorPayload,
+  QuizGeneratorResponse,
   GenerateActivityRequest,
   GenerateActivityResponse,
   GenerationTemplate,
@@ -423,6 +425,12 @@ export const api = {
     request<ToggleTeacherToolFavoriteResponse>('/teacher/tools/favorite', {
       method: 'POST',
       body: JSON.stringify({ toolId }),
+    }),
+
+  generateQuiz: (body: QuizGeneratorPayload) =>
+    request<QuizGeneratorResponse>('/teacher/tools/quiz-generator', {
+      method: 'POST',
+      body: JSON.stringify(body),
     }),
 
   reviewDoubt: (id: string, body: ReviewDoubtRequest) =>
