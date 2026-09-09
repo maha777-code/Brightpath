@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { getTeacherToolById, type TeacherToolDefinition } from '@brightpath/shared';
 import QuizGenerator from '@/pages/TeacherTools/QuizGenerator';
+import WorksheetGenerator from '@/pages/TeacherTools/WorksheetGenerator';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 
 function sampleOutput(tool: TeacherToolDefinition, topic: string, grade: string): string {
@@ -61,6 +62,20 @@ export function TeacherToolLauncher({
             <ArrowLeft className="h-4 w-4" /> Back to AI Tools Suite
           </Link>
           <div className="rounded-2xl bg-white p-5 shadow-xl sm:p-8">{quiz}</div>
+        </main>
+      </TeacherWorkspaceLayout>
+    );
+  }
+
+  if (tool.id === 'worksheet-generator') {
+    const worksheet = (
+      <WorksheetGenerator favorited={favorited} onToggleFavorite={onToggleFavorite} />
+    );
+    if (embedded) return worksheet;
+    return (
+      <TeacherWorkspaceLayout>
+        <main className="w-full max-w-7xl px-6 py-6 lg:px-10 lg:py-8">
+          <div className="rounded-2xl bg-white p-5 shadow-xl sm:p-8">{worksheet}</div>
         </main>
       </TeacherWorkspaceLayout>
     );

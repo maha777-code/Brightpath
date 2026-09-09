@@ -9,7 +9,7 @@ import {
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
-import { generateMultipleChoiceQuiz } from '../services/llm.js';
+import { generateMultipleChoiceQuiz, generateWorksheet } from '../services/llm.js';
 
 const favoriteBody = z.object({
   toolId: z.string().min(1).max(80),
@@ -175,6 +175,35 @@ router.post('/tools/quiz-generator', async (req: AuthRequest, res: Response) => 
   } catch (err) {
     console.error('[teacher/tools/quiz-generator] failed', err);
     res.status(500).json({ error: 'Failed to generate quiz' });
+  }
+});
+
+const worksheetBody = z.object({
+  gradeLevel: z.string().min(1).max(80),
+  topicOrText: z.string().min(1).max(400_000),
+  attachments: z.array(z.string().max(240)).max(20).optional(),
+});
+
+/** POST /teacher/tools/worksheet-generator */
+router.post('/tools/worksheet-generator', async (req: AuthRequest, res: Response) => {
+  const teacherId = req.teacherId;
+  if (!teacherId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const parsed = worksheetBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid worksheet generator payload' });
+    return;
+  }
+
+  try {
+    const worksheet = await generateWorksheet(parsed.data);
+    res.json(worksheet);
+  } catch (err) {
+    console.error('[teacher/tools/worksheet-generator] failed', err);
+    res.status(500).json({ error: 'Failed to generate worksheet' });
   }
 });
 

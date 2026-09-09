@@ -118,6 +118,10 @@ export default function TeacherTools() {
       navigate('/teacher/dashboard');
       return;
     }
+    if (tool.id === 'worksheet-generator') {
+      navigate('/teacher/tools/worksheet-generator');
+      return;
+    }
     setActiveTool(tool);
   };
 

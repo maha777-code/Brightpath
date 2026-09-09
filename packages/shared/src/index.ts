@@ -410,6 +410,10 @@ export type {
   QuizGeneratorPayload,
   QuizGeneratorQuestion,
   QuizGeneratorResponse,
+  WorksheetGeneratorPayload,
+  WorksheetItem,
+  WorksheetSection,
+  WorksheetGeneratorResponse,
 } from './teacherTools.js';
 
 export {

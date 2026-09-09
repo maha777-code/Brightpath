@@ -100,6 +100,8 @@ import type {
   ToggleTeacherToolFavoriteResponse,
   QuizGeneratorPayload,
   QuizGeneratorResponse,
+  WorksheetGeneratorPayload,
+  WorksheetGeneratorResponse,
   GenerateActivityRequest,
   GenerateActivityResponse,
   GenerationTemplate,
@@ -429,6 +431,12 @@ export const api = {
 
   generateQuiz: (body: QuizGeneratorPayload) =>
     request<QuizGeneratorResponse>('/teacher/tools/quiz-generator', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  generateWorksheet: (body: WorksheetGeneratorPayload) =>
+    request<WorksheetGeneratorResponse>('/teacher/tools/worksheet-generator', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

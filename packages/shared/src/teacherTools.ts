@@ -187,6 +187,29 @@ export interface QuizGeneratorResponse {
   answerKey: string[];
 }
 
+export interface WorksheetGeneratorPayload {
+  gradeLevel: string;
+  topicOrText: string;
+  attachments?: string[];
+}
+
+export interface WorksheetItem {
+  id: number;
+  prompt: string;
+}
+
+export interface WorksheetSection {
+  heading: string;
+  items: WorksheetItem[];
+}
+
+export interface WorksheetGeneratorResponse {
+  title: string;
+  gradeLevel: string;
+  instructions?: string;
+  sections: WorksheetSection[];
+}
+
 export function getTeacherToolById(id: string): TeacherToolDefinition | undefined {
   return TEACHER_TOOLS_CATALOG.find((t) => t.id === id);
 }

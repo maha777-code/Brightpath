@@ -1,4 +1,9 @@
-import type { QuizGeneratorPayload, QuizGeneratorResponse } from '@brightpath/shared';
+import type {
+  QuizGeneratorPayload,
+  QuizGeneratorResponse,
+  WorksheetGeneratorPayload,
+  WorksheetGeneratorResponse,
+} from '@brightpath/shared';
 import { getActiveProvider } from '../lib/llm/provider.js';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
@@ -154,4 +159,129 @@ export function normalizeQuizResponse(
   const answerKey = questions.map((q, i) => fromModel[i] || q.correctOption);
 
   return { questions, answerKey };
+}
+
+const WORKSHEET_SYSTEM = `You are an expert K–12 worksheet designer. Generate a clean, printable classroom worksheet.
+
+Return JSON only in this exact shape:
+{
+  "title": "string",
+  "gradeLevel": "string",
+  "instructions": "string",
+  "sections": [
+    {
+      "heading": "string",
+      "items": [{ "id": 1, "prompt": "string" }]
+    }
+  ]
+}
+
+Rules:
+- Age-appropriate for the given grade level.
+- 2–4 sections (e.g. Warm-up, Vocabulary, Practice, Apply).
+- 8–12 numbered items total across all sections.
+- Each prompt is a complete student-facing question or task.
+- Mix short answer, labeling, and application items.
+- No markdown fences, no extra commentary.`;
+
+export function fallbackWorksheet(input: WorksheetGeneratorPayload): WorksheetGeneratorResponse {
+  const topic = input.topicOrText.trim() || 'this topic';
+  const grade = input.gradeLevel;
+  return {
+    title: `${topic} — Practice worksheet`,
+    gradeLevel: grade,
+    instructions: `Complete every section. Use complete sentences where asked. Grade: ${grade}.`,
+    sections: [
+      {
+        heading: 'Warm-up',
+        items: [
+          { id: 1, prompt: `In your own words, what is ${topic}?` },
+          { id: 2, prompt: `Name one real-world example of ${topic}.` },
+        ],
+      },
+      {
+        heading: 'Vocabulary & ideas',
+        items: [
+          { id: 3, prompt: `List two key terms related to ${topic} and define each.` },
+          { id: 4, prompt: `What is a common misconception about ${topic}?` },
+          { id: 5, prompt: `How would you explain ${topic} to a classmate who missed class?` },
+        ],
+      },
+      {
+        heading: 'Practice',
+        items: [
+          { id: 6, prompt: `Apply ${topic} to a short ${grade} classroom scenario.` },
+          { id: 7, prompt: `What evidence would you use to show that a student understands ${topic}?` },
+          { id: 8, prompt: `Write one follow-up question a teacher could ask about ${topic}.` },
+        ],
+      },
+    ],
+  };
+}
+
+export function normalizeWorksheetResponse(
+  raw: {
+    title?: unknown;
+    gradeLevel?: unknown;
+    instructions?: unknown;
+    sections?: unknown;
+  },
+  input: WorksheetGeneratorPayload,
+  fallback: WorksheetGeneratorResponse,
+): WorksheetGeneratorResponse {
+  if (!Array.isArray(raw.sections) || raw.sections.length === 0) return fallback;
+
+  let nextId = 1;
+  const sections = raw.sections.slice(0, 6).map((section) => {
+    const s = (section ?? {}) as { heading?: unknown; items?: unknown };
+    const rawItems = Array.isArray(s.items) ? s.items : [];
+    const items = rawItems.slice(0, 12).map((item) => {
+      const it = (item ?? {}) as { id?: unknown; prompt?: unknown; question?: unknown };
+      const prompt = String(it.prompt ?? it.question ?? '').trim() || `Practice item ${nextId}`;
+      const id = typeof it.id === 'number' ? it.id : nextId;
+      nextId += 1;
+      return { id, prompt };
+    });
+    return {
+      heading: String(s.heading ?? '').trim() || 'Section',
+      items: items.length ? items : [{ id: nextId++, prompt: `Respond to a question about this topic.` }],
+    };
+  });
+
+  return {
+    title: String(raw.title ?? '').trim() || fallback.title,
+    gradeLevel: String(raw.gradeLevel ?? '').trim() || input.gradeLevel,
+    instructions: String(raw.instructions ?? '').trim() || fallback.instructions,
+    sections,
+  };
+}
+
+export async function generateWorksheet(
+  input: WorksheetGeneratorPayload,
+): Promise<WorksheetGeneratorResponse> {
+  const fallback = fallbackWorksheet(input);
+  const llm = getActiveProvider();
+  if (!llm) return fallback;
+
+  try {
+    const raw = await llm.completeJson<{
+      title?: unknown;
+      gradeLevel?: unknown;
+      instructions?: unknown;
+      sections?: unknown;
+    }>({
+      system: WORKSHEET_SYSTEM,
+      user: [
+        `Grade level: ${input.gradeLevel}`,
+        `Topic or source text:\n${input.topicOrText.trim()}`,
+        input.attachments?.length ? `Attached files: ${input.attachments.join(', ')}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+    });
+    return normalizeWorksheetResponse(raw, input, fallback);
+  } catch (err) {
+    console.error('[llm] worksheet generation failed', err);
+    return fallback;
+  }
 }
