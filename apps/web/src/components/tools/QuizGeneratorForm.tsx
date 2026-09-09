@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   ChevronDown,
   FilePlus,
@@ -33,11 +33,13 @@ const OPTION_COUNTS = [3, 4, 5, 6, 7] as const;
 const WORD_LIMIT = 75_000;
 
 const EXEMPLAR_TOPIC = 'Data analysis in spreadsheets and Python DataFrames';
-const TOPIC_PLACEHOLDER = 'Data analysis in spreadsheets and Python DataFrames';
+const TOPIC_PLACEHOLDER = 'Enter topic, standard, or source text...';
 const STANDARDS_PLACEHOLDER = 'Any standards worldwide (CCSS, TEKS, Ontario, Florida)';
 
-const TOOL_TEXTAREA_FONT =
-  'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+const TOOL_TEXTAREA_STYLE: CSSProperties = {
+  fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  WebkitTextFillColor: '#ffffff',
+};
 
 function countWords(value: string): number {
   return value.trim() ? value.trim().split(/\s+/).length : 0;
@@ -129,6 +131,10 @@ function SelectField({
       <div className="relative">
         <select
           className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 pr-9 text-sm text-slate-800 shadow-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+          style={{
+            fontFamily:
+              "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+          }}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         >
@@ -184,8 +190,8 @@ function RichTextArea({
       <div className="overflow-hidden rounded-lg border border-slate-700 bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-purple-500">
         <div className="relative">
           <textarea
-            className="min-h-[148px] w-full resize-y rounded-lg border-0 bg-slate-900 p-3 pr-11 font-sans text-sm leading-relaxed text-slate-100 placeholder:text-slate-500 focus:outline-none"
-            style={{ fontFamily: TOOL_TEXTAREA_FONT }}
+            className="h-32 w-full resize-y rounded-lg border border-slate-700 bg-[#0f172a] p-3 pr-11 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            style={TOOL_TEXTAREA_STYLE}
             placeholder={placeholder}
             value={value}
             onChange={handleTextChange}
