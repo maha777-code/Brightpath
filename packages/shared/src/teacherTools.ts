@@ -207,6 +207,8 @@ export interface WorksheetGeneratorResponse {
   title: string;
   gradeLevel: string;
   instructions?: string;
+  /** Optional reading passage shown at the top of the printable sheet */
+  passage?: string;
   sections: WorksheetSection[];
 }
 

@@ -168,6 +168,7 @@ Return JSON only in this exact shape:
   "title": "string",
   "gradeLevel": "string",
   "instructions": "string",
+  "passage": "string",
   "sections": [
     {
       "heading": "string",
@@ -178,22 +179,58 @@ Return JSON only in this exact shape:
 
 Rules:
 - Age-appropriate for the given grade level.
-- 2–4 sections (e.g. Warm-up, Vocabulary, Practice, Apply).
+- Include a 2–4 paragraph reading passage in "passage".
+- First section heading should often be "Reading Passage" questions that follow the passage.
+- 2–4 sections after the passage (Comprehension, Vocabulary, Practice, Apply).
 - 8–12 numbered items total across all sections.
 - Each prompt is a complete student-facing question or task.
-- Mix short answer, labeling, and application items.
 - No markdown fences, no extra commentary.`;
 
 export function fallbackWorksheet(input: WorksheetGeneratorPayload): WorksheetGeneratorResponse {
   const topic = input.topicOrText.trim() || 'this topic';
   const grade = input.gradeLevel;
+  const war = /world\s*war|ww\s*2|wwii/i.test(topic);
+  if (war) {
+    return {
+      title: 'World War II Worksheet',
+      gradeLevel: grade,
+      instructions: 'Read the passage, then answer the questions in complete sentences.',
+      passage:
+        'World War II was a global conflict that lasted from 1939 to 1945. It involved most of the world’s nations and reshaped borders, governments, and daily life. Causes included unresolved tensions from World War I, economic hardship, and the rise of aggressive dictatorships. The conflict spread across Europe, Asia, Africa, and the Pacific. Its consequences included enormous loss of life, the founding of the United Nations, and a new balance of power that defined the second half of the twentieth century.',
+      sections: [
+        {
+          heading: 'Comprehension',
+          items: [
+            { id: 1, prompt: 'When did World War II begin and end?' },
+            { id: 2, prompt: 'Name two causes of the war mentioned in the passage.' },
+            { id: 3, prompt: 'What international organization was founded after the war?' },
+          ],
+        },
+        {
+          heading: 'Vocabulary',
+          items: [
+            { id: 4, prompt: 'Define “dictatorship” in your own words.' },
+            { id: 5, prompt: 'What does “consequences” mean in the last sentence?' },
+          ],
+        },
+        {
+          heading: 'Apply',
+          items: [
+            { id: 6, prompt: 'Why might unresolved tensions from an earlier war lead to a new conflict?' },
+            { id: 7, prompt: 'Give one way World War II still influences the world today.' },
+          ],
+        },
+      ],
+    };
+  }
   return {
-    title: `${topic} — Practice worksheet`,
+    title: `${topic} Worksheet`,
     gradeLevel: grade,
     instructions: `Complete every section. Use complete sentences where asked. Grade: ${grade}.`,
+    passage: `${topic} is an important idea for ${grade} students to understand. Read carefully, then answer the questions that follow using evidence from the text and your own reasoning.`,
     sections: [
       {
-        heading: 'Warm-up',
+        heading: 'Comprehension',
         items: [
           { id: 1, prompt: `In your own words, what is ${topic}?` },
           { id: 2, prompt: `Name one real-world example of ${topic}.` },
@@ -224,6 +261,7 @@ export function normalizeWorksheetResponse(
     title?: unknown;
     gradeLevel?: unknown;
     instructions?: unknown;
+    passage?: unknown;
     sections?: unknown;
   },
   input: WorksheetGeneratorPayload,
@@ -252,6 +290,7 @@ export function normalizeWorksheetResponse(
     title: String(raw.title ?? '').trim() || fallback.title,
     gradeLevel: String(raw.gradeLevel ?? '').trim() || input.gradeLevel,
     instructions: String(raw.instructions ?? '').trim() || fallback.instructions,
+    passage: String(raw.passage ?? '').trim() || fallback.passage,
     sections,
   };
 }
@@ -268,6 +307,7 @@ export async function generateWorksheet(
       title?: unknown;
       gradeLevel?: unknown;
       instructions?: unknown;
+      passage?: unknown;
       sections?: unknown;
     }>({
       system: WORKSHEET_SYSTEM,

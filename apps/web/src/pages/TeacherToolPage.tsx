@@ -75,7 +75,7 @@ export function TeacherToolLauncher({
     return (
       <TeacherWorkspaceLayout>
         <main className="w-full max-w-7xl px-6 py-6 lg:px-10 lg:py-8">
-          <div className="rounded-2xl bg-white p-5 shadow-xl sm:p-8">{worksheet}</div>
+          <div className="rounded-2xl bg-slate-50 p-4 shadow-xl sm:p-6">{worksheet}</div>
         </main>
       </TeacherWorkspaceLayout>
     );
