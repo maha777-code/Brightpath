@@ -45,9 +45,11 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
 };
 
 function badgeClass(badge: TeacherToolBadge): string {
-  if (badge === 'New') return 'td-tool-badge td-tool-badge-new';
-  if (badge === 'Hot') return 'td-tool-badge td-tool-badge-hot';
-  return 'td-tool-badge td-tool-badge-beta';
+  const base =
+    'rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide border';
+  if (badge === 'New') return `${base} bg-cyan-500/20 text-cyan-300 border-cyan-500/30`;
+  if (badge === 'Hot') return `${base} bg-amber-500/20 text-amber-300 border-amber-500/30`;
+  return `${base} bg-violet-500/20 text-violet-300 border-violet-500/30`;
 }
 
 export default function TeacherTools() {
@@ -207,29 +209,33 @@ export default function TeacherTools() {
                 <article
                   key={tool.id}
                   className={[
-                    'td-tool-card group relative flex min-h-[220px] flex-col rounded-3xl p-5 text-left',
-                    tool.highlighted ? 'td-tool-card-featured lg:col-span-2' : '',
+                    'td-tool-tile group relative flex min-h-[220px] cursor-pointer flex-col rounded-xl border border-slate-600 bg-slate-800/90 p-5 text-left text-white shadow-lg backdrop-blur-md transition-all',
+                    'hover:border-cyan-500/50 hover:bg-slate-800 hover:shadow-cyan-500/10',
+                    tool.highlighted ? 'lg:col-span-2 border-cyan-500/40 bg-slate-800' : '',
                   ].join(' ')}
+                  onClick={() => openTool(tool)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openTool(tool);
+                    }
+                  }}
+                  role="link"
+                  tabIndex={0}
                 >
-                  <button
-                    type="button"
-                    className="absolute inset-0 z-0 rounded-3xl"
-                    onClick={() => openTool(tool)}
-                    aria-label={`Open ${tool.title}`}
-                  />
-                  <div className="relative z-10 flex items-start justify-between gap-3 pointer-events-none">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-400/10 text-cyan-100">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-950 text-cyan-400">
                       <Icon className="h-5 w-5" />
-                    </span>
+                    </div>
                     <div className="flex items-center gap-2">
                       {tool.badge ? <span className={badgeClass(tool.badge)}>{tool.badge}</span> : null}
                       <button
                         type="button"
                         className={[
-                          'pointer-events-auto rounded-full border p-2 transition',
+                          'rounded-md border-0 bg-transparent p-1.5 appearance-none transition',
                           favorited
-                            ? 'border-amber-300/50 bg-amber-400/20 text-amber-200'
-                            : 'border-white/15 bg-white/5 text-cyan-100/70 hover:text-amber-200',
+                            ? 'text-amber-400 hover:text-amber-300'
+                            : 'text-slate-400 hover:text-amber-400',
                         ].join(' ')}
                         aria-label={favorited ? `Unpin ${tool.title} from favorites` : `Pin ${tool.title} to favorites`}
                         aria-pressed={favorited}
@@ -242,13 +248,9 @@ export default function TeacherTools() {
                       </button>
                     </div>
                   </div>
-                  <h2 className="mt-4 text-lg font-extrabold leading-snug text-white">
-                    {tool.title}
-                  </h2>
-                  <p className="mt-2 flex-1 text-sm leading-relaxed text-cyan-100/75">
-                    {tool.description}
-                  </p>
-                  <p className="mt-4 text-xs font-bold uppercase tracking-widest text-cyan-200/60">
+                  <h3 className="mt-4 text-lg font-semibold text-white">{tool.title}</h3>
+                  <p className="mt-1 flex-1 text-sm text-slate-300 line-clamp-2">{tool.description}</p>
+                  <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-cyan-400">
                     {tool.highlighted ? 'Open Curriculum Studio' : 'Launch tool'}
                   </p>
                 </article>
