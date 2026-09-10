@@ -247,6 +247,143 @@ export interface WorksheetRefinePayload {
   currentWorksheet?: WorksheetGeneratorResponse;
 }
 
+export interface WorksheetTranslatePayload {
+  worksheetId?: string;
+  targetLanguage: string;
+  currentWorksheet?: WorksheetGeneratorResponse;
+}
+
+const TRANSLATION_PREFIX: Record<string, string> = {
+  Spanish: 'Versión en español:',
+  French: 'Version française :',
+  German: 'Deutsche Fassung:',
+  Hindi: 'हिंदी संस्करण:',
+  Chinese: '中文译本：',
+  Arabic: 'النسخة العربية:',
+  Portuguese: 'Versão em português:',
+};
+
+const TRANSLATED_HEADINGS: Record<string, Record<string, string>> = {
+  Spanish: {
+    'Reading Passage': 'Pasaje de lectura',
+    'Reading Comprehension': 'Comprensión lectora',
+    Vocabulary: 'Vocabulario',
+    'Vocabulary in Context': 'Vocabulario en contexto',
+    Comprehension: 'Comprensión',
+    Apply: 'Aplicar',
+    Practice: 'Práctica',
+    'Answer Key': 'Clave de respuestas',
+    'Critical Thinking & Historical Analysis': 'Pensamiento crítico y análisis histórico',
+    'Follow-up': 'Seguimiento',
+    'Multiple Choice': 'Opción múltiple',
+  },
+  French: {
+    'Reading Passage': 'Texte de lecture',
+    'Reading Comprehension': 'Compréhension écrite',
+    Vocabulary: 'Vocabulaire',
+    'Vocabulary in Context': 'Vocabulaire en contexte',
+    Comprehension: 'Compréhension',
+    Apply: 'Appliquer',
+    Practice: 'Exercices',
+    'Answer Key': 'Corrigé',
+    'Critical Thinking & Historical Analysis': 'Esprit critique et analyse historique',
+    'Follow-up': 'Suivi',
+    'Multiple Choice': 'QCM',
+  },
+  German: {
+    'Reading Passage': 'Lesetext',
+    'Reading Comprehension': 'Leseverstehen',
+    Vocabulary: 'Wortschatz',
+    'Vocabulary in Context': 'Wortschatz im Kontext',
+    Comprehension: 'Verstehen',
+    Apply: 'Anwenden',
+    Practice: 'Übung',
+    'Answer Key': 'Lösungsschlüssel',
+    'Critical Thinking & Historical Analysis': 'Kritisches Denken und historische Analyse',
+    'Follow-up': 'Fortsetzung',
+    'Multiple Choice': 'Multiple Choice',
+  },
+  Hindi: {
+    'Reading Passage': 'पठन अंश',
+    'Reading Comprehension': 'पठन बोध',
+    Vocabulary: 'शब्दावली',
+    'Vocabulary in Context': 'संदर्भ में शब्दावली',
+    Comprehension: 'बोध',
+    Apply: 'लागू करें',
+    Practice: 'अभ्यास',
+    'Answer Key': 'उत्तर कुंजी',
+    'Critical Thinking & Historical Analysis': 'आलोचनात्मक सोच और ऐतिहासिक विश्लेषण',
+    'Follow-up': 'अनुवर्ती',
+    'Multiple Choice': 'बहुविकल्पीय',
+  },
+  Chinese: {
+    'Reading Passage': '阅读短文',
+    'Reading Comprehension': '阅读理解',
+    Vocabulary: '词汇',
+    'Vocabulary in Context': '语境词汇',
+    Comprehension: '理解',
+    Apply: '应用',
+    Practice: '练习',
+    'Answer Key': '参考答案',
+    'Critical Thinking & Historical Analysis': '批判性思维与历史分析',
+    'Follow-up': '后续练习',
+    'Multiple Choice': '选择题',
+  },
+  Arabic: {
+    'Reading Passage': 'قطعة القراءة',
+    'Reading Comprehension': 'الاستيعاب القرائي',
+    Vocabulary: 'المفردات',
+    'Vocabulary in Context': 'المفردات في السياق',
+    Comprehension: 'الاستيعاب',
+    Apply: 'التطبيق',
+    Practice: 'التدريب',
+    'Answer Key': 'مفتاح الإجابات',
+    'Critical Thinking & Historical Analysis': 'التفكير النقدي والتحليل التاريخي',
+    'Follow-up': 'متابعة',
+    'Multiple Choice': 'اختيار من متعدد',
+  },
+  Portuguese: {
+    'Reading Passage': 'Texto de leitura',
+    'Reading Comprehension': 'Compreensão leitora',
+    Vocabulary: 'Vocabulário',
+    'Vocabulary in Context': 'Vocabulário em contexto',
+    Comprehension: 'Compreensão',
+    Apply: 'Aplicar',
+    Practice: 'Prática',
+    'Answer Key': 'Gabarito',
+    'Critical Thinking & Historical Analysis': 'Pensamento crítico e análise histórica',
+    'Follow-up': 'Acompanhamento',
+    'Multiple Choice': 'Múltipla escolha',
+  },
+};
+
+export function applyWorksheetTranslation(
+  worksheet: WorksheetGeneratorResponse,
+  targetLanguage: string,
+): WorksheetGeneratorResponse {
+  const language = targetLanguage.trim() || 'Spanish';
+  const prefix = TRANSLATION_PREFIX[language] ?? `${language}:`;
+  const headings = TRANSLATED_HEADINGS[language] ?? {};
+  const wrap = (value?: string) => {
+    const text = value?.trim();
+    if (!text) return text;
+    return text.startsWith(prefix) ? text : `${prefix} ${text}`;
+  };
+  return {
+    ...worksheet,
+    title: worksheet.title.includes(language) ? worksheet.title : `${worksheet.title} (${language})`,
+    instructions: wrap(worksheet.instructions),
+    passage: wrap(worksheet.passage),
+    sections: worksheet.sections.map((section) => ({
+      heading: headings[section.heading] ?? `${section.heading} (${language})`,
+      items: section.items.map((item) => ({
+        ...item,
+        prompt: wrap(item.prompt) ?? item.prompt,
+      })),
+    })),
+  };
+}
+
 export function applyWorksheetFollowUp(
   worksheet: WorksheetGeneratorResponse,
   instruction: string,

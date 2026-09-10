@@ -13,7 +13,7 @@ import {
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
-import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet } from '../services/llm.js';
+import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet } from '../services/llm.js';
 import { randomUUID } from 'node:crypto';
 
 const favoriteBody = z.object({
@@ -215,6 +215,12 @@ const refineBody = z.object({
 const feedbackBody = z.object({
   worksheetId: z.string().min(1).max(80),
   rating: z.enum(['positive', 'negative']),
+});
+
+const translateBody = z.object({
+  worksheetId: z.string().max(80).optional(),
+  targetLanguage: z.string().min(1).max(80),
+  currentWorksheet: refineBody.shape.currentWorksheet,
 });
 
 let worksheetTablesReady = false;
@@ -424,6 +430,63 @@ router.post('/tools/worksheet-generator/refine', async (req: AuthRequest, res: R
   } catch (err) {
     console.error('[teacher/tools/worksheet-generator/refine] failed', err);
     res.status(500).json({ error: 'Failed to refine worksheet' });
+  }
+});
+
+/** POST /teacher/tools/worksheet-generator/translate */
+router.post('/tools/worksheet-generator/translate', async (req: AuthRequest, res: Response) => {
+  const teacherId = req.teacherId;
+  if (!teacherId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const parsed = translateBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid worksheet translate payload' });
+    return;
+  }
+
+  try {
+    let current = parsed.data.currentWorksheet as WorksheetGeneratorResponse | undefined;
+    if (!current && parsed.data.worksheetId) {
+      await ensureWorksheetTables();
+      const rows = await prisma.$queryRawUnsafe<Array<{ worksheetJson: unknown }>>(
+        `SELECT "worksheetJson" FROM "TeacherWorksheetHistory"
+         WHERE "id" = $1 AND "teacherId" = $2
+         LIMIT 1`,
+        parsed.data.worksheetId,
+        teacherId,
+      );
+      if (rows[0]?.worksheetJson && typeof rows[0].worksheetJson === 'object') {
+        current = rows[0].worksheetJson as WorksheetGeneratorResponse;
+      }
+    }
+    if (!current) {
+      res.status(400).json({ error: 'Worksheet content is required to translate' });
+      return;
+    }
+
+    const worksheet = await translateWorksheet({
+      targetLanguage: parsed.data.targetLanguage,
+      current,
+      gradeLevel: current.gradeLevel,
+    });
+    const id = await saveWorksheetHistory(
+      teacherId,
+      {
+        gradeLevel: current.gradeLevel,
+        topicOrText: `${current.title}\n\nTranslated to ${parsed.data.targetLanguage}`,
+      },
+      { ...worksheet, id: parsed.data.worksheetId },
+    ).catch((err) => {
+      console.error('[teacher/tools/worksheet-generator/translate] history save failed', err);
+      return parsed.data.worksheetId || randomUUID();
+    });
+    res.json({ ...worksheet, id });
+  } catch (err) {
+    console.error('[teacher/tools/worksheet-generator/translate] failed', err);
+    res.status(500).json({ error: 'Failed to translate worksheet' });
   }
 });
 

@@ -419,6 +419,7 @@ export type {
   TeacherToolFeedbackPayload,
   TeacherToolFeedbackResponse,
   WorksheetRefinePayload,
+  WorksheetTranslatePayload,
 } from './teacherTools.js';
 
 export {
@@ -426,6 +427,7 @@ export {
   TEACHER_TOOLS_CATALOG,
   getTeacherToolById,
   applyWorksheetFollowUp,
+  applyWorksheetTranslation,
 } from './teacherTools.js';
 
 export type {

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import {
   applyWorksheetFollowUp,
+  applyWorksheetTranslation,
   type WorksheetGeneratorPayload,
   type WorksheetGeneratorResponse,
   type WorksheetHistoryItem,
@@ -61,6 +62,16 @@ const PROMPT_SUGGESTIONS = [
   'Add answer key',
   'Shorten the reading passage',
 ];
+
+const TRANSLATE_LANGUAGES = [
+  { id: 'Spanish', native: 'Español' },
+  { id: 'French', native: 'Français' },
+  { id: 'German', native: 'Deutsch' },
+  { id: 'Hindi', native: 'हिन्दी' },
+  { id: 'Chinese', native: '中文' },
+  { id: 'Arabic', native: 'العربية' },
+  { id: 'Portuguese', native: 'Português' },
+] as const;
 
 function loadLocalVersions(): WorksheetHistoryItem[] {
   try {
@@ -280,6 +291,16 @@ function clientFallbackWorksheet(input: WorksheetGeneratorPayload): WorksheetGen
   };
 }
 
+const PASSAGE_HEADINGS: Record<string, string> = {
+  Spanish: 'Pasaje de lectura',
+  French: 'Texte de lecture',
+  German: 'Lesetext',
+  Hindi: 'पठन अंश',
+  Chinese: '阅读短文',
+  Arabic: 'قطعة القراءة',
+  Portuguese: 'Texto de leitura',
+};
+
 function PrintableWorksheet({
   worksheet,
   title,
@@ -288,6 +309,8 @@ function PrintableWorksheet({
   title: string;
 }) {
   let number = 1;
+  const language = TRANSLATE_LANGUAGES.find((item) => title.includes(`(${item.id})`))?.id;
+  const passageHeading = (language && PASSAGE_HEADINGS[language]) || 'Reading Passage';
   return (
     <article className="ws-paper text-slate-900">
       <div className="mb-6 flex flex-wrap justify-between gap-4 text-sm">
@@ -304,7 +327,7 @@ function PrintableWorksheet({
       ) : null}
       {worksheet.passage ? (
         <section className="mt-6">
-          <h2 className="mb-2 text-base font-bold text-slate-900">Reading Passage</h2>
+          <h2 className="mb-2 text-base font-bold text-slate-900">{passageHeading}</h2>
           <p className="whitespace-pre-wrap text-sm leading-7 text-slate-800">{worksheet.passage}</p>
         </section>
       ) : null}
@@ -345,6 +368,7 @@ function WorksheetStudio({
   onReset,
   onFollowUp,
   onOpenHistory,
+  onTranslate,
   busy,
 }: {
   worksheet: WorksheetGeneratorResponse;
@@ -352,6 +376,7 @@ function WorksheetStudio({
   onReset: () => void;
   onFollowUp: (message: string, attachments?: string[]) => void;
   onOpenHistory: () => void;
+  onTranslate: (language: string) => Promise<void>;
   busy: boolean;
 }) {
   const [title, setTitle] = useState(worksheet.title);
@@ -366,8 +391,11 @@ function WorksheetStudio({
   const [followUpFiles, setFollowUpFiles] = useState<string[]>([]);
   const [listeningFollowUp, setListeningFollowUp] = useState(false);
   const [promptMenuOpen, setPromptMenuOpen] = useState(false);
+  const [isTranslateModalOpen, setIsTranslateModalOpen] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const followUpFileRef = useRef<HTMLInputElement>(null);
   const crumb = topicCrumb(payload.topicOrText, worksheet.title);
   const pageCount = Math.max(2, 1 + worksheet.sections.length);
@@ -442,6 +470,26 @@ function WorksheetStudio({
     showToast('Thank you for your feedback!');
     const worksheetId = worksheet.id || title;
     void api.submitTeacherToolFeedback({ worksheetId, rating }).catch(() => undefined);
+  };
+
+  const handleTranslate = async (language: string) => {
+    setIsTranslateModalOpen(false);
+    setIsTranslating(true);
+    try {
+      await onTranslate(language);
+    } catch {
+      showToast('Failed to translate worksheet.');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const handleScrollToBottom = () => {
+    if (bottomAnchorRef.current) {
+      bottomAnchorRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    } else {
+      chatContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
   };
 
   const sendFollowUp = () => {
@@ -614,10 +662,11 @@ function WorksheetStudio({
           >
             <PrintableWorksheet worksheet={worksheet} title={title} />
           </div>
-          {busy ? (
+          {busy || isTranslating ? (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70">
               <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
-                <Loader2 className="h-4 w-4 animate-spin" /> Updating worksheet…
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {isTranslating ? 'Translating worksheet…' : 'Updating worksheet…'}
               </div>
             </div>
           ) : null}
@@ -635,14 +684,35 @@ function WorksheetStudio({
             The {title} Studio document has been created successfully.
           </p>
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              className="rounded-lg p-2 text-slate-600 hover:bg-white"
-              aria-label="Translate"
-              title="Translate"
-            >
-              <Languages className="h-4 w-4" />
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                className="rounded-lg bg-slate-800 p-2 text-slate-200 transition-colors hover:bg-purple-600 hover:text-white"
+                aria-label="Translate worksheet"
+                title="Translate worksheet"
+                onClick={() => setIsTranslateModalOpen((v) => !v)}
+              >
+                <Languages className="h-4 w-4" />
+              </button>
+              {isTranslateModalOpen ? (
+                <div className="absolute bottom-full right-0 z-30 mb-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+                  <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Translate to
+                  </p>
+                  {TRANSLATE_LANGUAGES.map((language) => (
+                    <button
+                      key={language.id}
+                      type="button"
+                      className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-700 hover:bg-violet-50 hover:text-violet-800"
+                      onClick={() => void handleTranslate(language.id)}
+                    >
+                      <span>{language.id}</span>
+                      <span className="text-xs text-slate-400">{language.native}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
             <button
               type="button"
               className="rounded-lg p-2 text-slate-600 hover:bg-white"
@@ -677,9 +747,10 @@ function WorksheetStudio({
             </button>
             <button
               type="button"
-              className="rounded-lg p-2 text-slate-600 hover:bg-white"
-              aria-label="Scroll to follow-up"
-              onClick={() => chatContainerRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              className="rounded-lg bg-slate-800 p-2 text-slate-200 transition-colors hover:bg-purple-600 hover:text-white"
+              aria-label="Scroll to bottom"
+              title="Scroll to bottom"
+              onClick={handleScrollToBottom}
             >
               <ArrowDown className="h-4 w-4" />
             </button>
@@ -791,6 +862,7 @@ function WorksheetStudio({
           </button>
         </div>
       </div>
+      <div ref={bottomAnchorRef} />
       {toast ? (
         <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
           {toast}
@@ -990,6 +1062,23 @@ export function WorksheetGenerator({
     }
   };
 
+  const translateCurrent = async (language: string) => {
+    if (!worksheet || !submitted) throw new Error('No worksheet to translate');
+    try {
+      const next = rememberVersion(
+        submitted,
+        await api.translateWorksheet({
+          worksheetId: worksheet.id,
+          targetLanguage: language,
+          currentWorksheet: worksheet,
+        }),
+      );
+      setWorksheet(next);
+    } catch {
+      setWorksheet(rememberVersion(submitted, applyWorksheetTranslation(worksheet, language)));
+    }
+  };
+
   const words = countWords(topicOrText);
 
   if (worksheet && submitted) {
@@ -1004,6 +1093,7 @@ export function WorksheetGenerator({
           onFollowUp={(message, attachments) => {
             void refineCurrent(message, attachments);
           }}
+          onTranslate={translateCurrent}
         />
         <WorksheetHistoryDrawer
           open={historyOpen}

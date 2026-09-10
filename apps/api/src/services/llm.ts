@@ -4,7 +4,7 @@ import type {
   WorksheetGeneratorPayload,
   WorksheetGeneratorResponse,
 } from '@brightpath/shared';
-import { applyWorksheetFollowUp } from '@brightpath/shared';
+import { applyWorksheetFollowUp, applyWorksheetTranslation } from '@brightpath/shared';
 import { getActiveProvider } from '../lib/llm/provider.js';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
@@ -361,6 +361,43 @@ export async function refineWorksheet(input: {
     return normalizeWorksheetResponse(raw, input, heuristic);
   } catch (err) {
     console.error('[llm] worksheet refine failed', err);
+    return heuristic;
+  }
+}
+
+export async function translateWorksheet(input: {
+  targetLanguage: string;
+  current: WorksheetGeneratorResponse;
+  gradeLevel?: string;
+}): Promise<WorksheetGeneratorResponse> {
+  const heuristic = applyWorksheetTranslation(input.current, input.targetLanguage);
+  const llm = getActiveProvider();
+  if (!llm) return heuristic;
+
+  try {
+    const raw = await llm.completeJson<{
+      title?: unknown;
+      gradeLevel?: unknown;
+      instructions?: unknown;
+      passage?: unknown;
+      sections?: unknown;
+    }>({
+      system: `${WORKSHEET_SYSTEM}\nTranslate the entire worksheet into ${input.targetLanguage}. Keep the same JSON shape, item ids, and section count. Translate title, instructions, passage, headings, and prompts. Do not add extra commentary.`,
+      user: [
+        input.gradeLevel ? `Grade level: ${input.gradeLevel}` : '',
+        `Target language: ${input.targetLanguage}`,
+        `Current worksheet JSON:\n${JSON.stringify(input.current)}`,
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+    });
+    return normalizeWorksheetResponse(
+      raw,
+      { gradeLevel: input.current.gradeLevel, topicOrText: input.current.title },
+      heuristic,
+    );
+  } catch (err) {
+    console.error('[llm] worksheet translate failed', err);
     return heuristic;
   }
 }

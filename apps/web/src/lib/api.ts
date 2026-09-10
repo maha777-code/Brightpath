@@ -106,6 +106,7 @@ import type {
   TeacherToolFeedbackPayload,
   TeacherToolFeedbackResponse,
   WorksheetRefinePayload,
+  WorksheetTranslatePayload,
   GenerateActivityRequest,
   GenerateActivityResponse,
   GenerationTemplate,
@@ -455,6 +456,12 @@ export const api = {
 
   refineWorksheet: (body: WorksheetRefinePayload) =>
     request<WorksheetGeneratorResponse>('/teacher/tools/worksheet-generator/refine', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  translateWorksheet: (body: WorksheetTranslatePayload) =>
+    request<WorksheetGeneratorResponse>('/teacher/tools/worksheet-generator/translate', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
