@@ -25,8 +25,14 @@ import {
   ThumbsUp,
   Volume2,
 } from 'lucide-react';
-import type { WorksheetGeneratorPayload, WorksheetGeneratorResponse } from '@brightpath/shared';
+import {
+  applyWorksheetFollowUp,
+  type WorksheetGeneratorPayload,
+  type WorksheetGeneratorResponse,
+  type WorksheetHistoryItem,
+} from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { WorksheetHistoryDrawer } from '@/components/tools/WorksheetHistoryDrawer';
 
 const GRADE_LEVELS = [
   'Kindergarten',
@@ -47,6 +53,36 @@ const GRADE_LEVELS = [
 
 const WORD_LIMIT = 75_000;
 const EXEMPLAR_TOPIC = 'Mitosis';
+const HISTORY_KEY = 'brightpath_worksheet_history';
+const PROMPT_SUGGESTIONS = [
+  'Make questions harder',
+  'Add 5 more multiple-choice questions',
+  'Translate reading passage to Spanish',
+  'Add answer key',
+  'Shorten the reading passage',
+];
+
+function loadLocalVersions(): WorksheetHistoryItem[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistLocalVersions(items: WorksheetHistoryItem[]) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 30)));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+function withWorksheetId(worksheet: WorksheetGeneratorResponse): WorksheetGeneratorResponse {
+  return { ...worksheet, id: worksheet.id || crypto.randomUUID() };
+}
 const TOPIC_PLACEHOLDER =
   'Mitosis, World War II, paste a block of text or attach a PDF of content to base the worksheet on.';
 
@@ -125,26 +161,28 @@ type FormSnapshot = {
 
 function WorksheetTemplateSkeleton() {
   return (
-    <div className="ws-doc" aria-hidden>
-      <div className="mb-6 flex flex-wrap justify-between gap-4 text-sm text-slate-300">
-        <span>
-          Name <span className="inline-block min-w-[9rem] border-b border-slate-500">&nbsp;</span>
-        </span>
-        <span>
-          Date <span className="inline-block min-w-[7rem] border-b border-slate-500">&nbsp;</span>
-        </span>
-      </div>
-      <div className="mb-6 h-9 w-2/3 rounded bg-slate-700/80" />
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Title</p>
-      <div className="mb-8 space-y-2">
-        <div className="h-2.5 w-full rounded bg-slate-700/70" />
-        <div className="h-2.5 w-5/6 rounded bg-slate-700/55" />
-      </div>
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Section</p>
-      <div className="mb-6 space-y-2">
-        <div className="h-2.5 w-full rounded bg-slate-700/70" />
-        <div className="h-2.5 w-4/5 rounded bg-slate-700/50" />
-        <div className="h-2.5 w-3/5 rounded bg-slate-700/40" />
+    <div className="ws-doc flex h-full min-h-[28rem] flex-col justify-between" aria-hidden>
+      <div>
+        <div className="mb-6 flex flex-wrap justify-between gap-4 text-sm text-slate-300">
+          <span>
+            Name <span className="inline-block min-w-[9rem] border-b border-slate-500">&nbsp;</span>
+          </span>
+          <span>
+            Date <span className="inline-block min-w-[7rem] border-b border-slate-500">&nbsp;</span>
+          </span>
+        </div>
+        <div className="mb-6 h-9 w-2/3 rounded bg-slate-700/80" />
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Title</p>
+        <div className="mb-8 space-y-2">
+          <div className="h-2.5 w-full rounded bg-slate-700/70" />
+          <div className="h-2.5 w-5/6 rounded bg-slate-700/55" />
+        </div>
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Section</p>
+        <div className="mb-6 space-y-2">
+          <div className="h-2.5 w-full rounded bg-slate-700/70" />
+          <div className="h-2.5 w-4/5 rounded bg-slate-700/50" />
+          <div className="h-2.5 w-3/5 rounded bg-slate-700/40" />
+        </div>
       </div>
       <ol className="space-y-4 text-sm text-slate-400">
         {[1, 2, 3, 4, 5].map((n) => (
@@ -306,12 +344,14 @@ function WorksheetStudio({
   payload,
   onReset,
   onFollowUp,
+  onOpenHistory,
   busy,
 }: {
   worksheet: WorksheetGeneratorResponse;
   payload: WorksheetGeneratorPayload;
   onReset: () => void;
-  onFollowUp: (message: string) => void;
+  onFollowUp: (message: string, attachments?: string[]) => void;
+  onOpenHistory: () => void;
   busy: boolean;
 }) {
   const [title, setTitle] = useState(worksheet.title);
@@ -320,10 +360,15 @@ function WorksheetStudio({
   const [copied, setCopied] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
+  const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [followUp, setFollowUp] = useState('');
+  const [followUpFiles, setFollowUpFiles] = useState<string[]>([]);
   const [listeningFollowUp, setListeningFollowUp] = useState(false);
+  const [promptMenuOpen, setPromptMenuOpen] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const followUpFileRef = useRef<HTMLInputElement>(null);
   const crumb = topicCrumb(payload.topicOrText, worksheet.title);
   const pageCount = Math.max(2, 1 + worksheet.sections.length);
   const topicShort =
@@ -387,15 +432,29 @@ function WorksheetStudio({
     await navigator.clipboard.writeText(text);
   };
 
+  const showToast = (message: string) => {
+    setToast(message);
+    window.setTimeout(() => setToast(null), 2800);
+  };
+
+  const sendFeedback = (rating: 'positive' | 'negative') => {
+    setFeedback(rating);
+    showToast('Thank you for your feedback!');
+    const worksheetId = worksheet.id || title;
+    void api.submitTeacherToolFeedback({ worksheetId, rating }).catch(() => undefined);
+  };
+
   const sendFollowUp = () => {
     const msg = followUp.trim();
     if (!msg || busy) return;
     setFollowUp('');
-    onFollowUp(msg);
+    setPromptMenuOpen(false);
+    onFollowUp(msg, followUpFiles);
+    setFollowUpFiles([]);
   };
 
   return (
-    <div className="ws-studio">
+    <div className="ws-studio flex h-full min-h-0 flex-col overflow-y-auto p-4">
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <nav className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-slate-500">
           <Link to="/teacher/tools" className="font-semibold text-violet-700 hover:text-violet-900">
@@ -421,7 +480,7 @@ function WorksheetStudio({
             <button
               type="button"
               className="rounded-full border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50"
-              aria-label="Create another worksheet"
+              aria-label="Create new worksheet"
               onClick={onReset}
             >
               <Plus className="h-4 w-4" />
@@ -430,7 +489,7 @@ function WorksheetStudio({
               type="button"
               className="rounded-full border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50"
               aria-label="Version history"
-              onClick={onReset}
+              onClick={onOpenHistory}
             >
               <History className="h-4 w-4" />
             </button>
@@ -555,6 +614,13 @@ function WorksheetStudio({
           >
             <PrintableWorksheet worksheet={worksheet} title={title} />
           </div>
+          {busy ? (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70">
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
+                <Loader2 className="h-4 w-4 animate-spin" /> Updating worksheet…
+              </div>
+            </div>
+          ) : null}
           <button
             type="button"
             className="absolute left-1/2 top-1/2 z-10 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full bg-slate-900/90 px-4 py-2 text-sm font-medium text-white shadow-lg hover:bg-slate-800"
@@ -587,29 +653,33 @@ function WorksheetStudio({
             </button>
             <button
               type="button"
-              className={['rounded-lg p-2 hover:bg-white', feedback === 'up' ? 'text-emerald-700' : 'text-slate-600'].join(
-                ' ',
-              )}
+              className={[
+                'rounded-lg p-2 hover:bg-white',
+                feedback === 'positive' ? 'text-violet-600' : 'text-slate-600',
+              ].join(' ')}
               aria-label="Thumbs up"
-              onClick={() => setFeedback('up')}
+              aria-pressed={feedback === 'positive'}
+              onClick={() => sendFeedback('positive')}
             >
-              <ThumbsUp className="h-4 w-4" />
+              <ThumbsUp className="h-4 w-4" fill={feedback === 'positive' ? 'currentColor' : 'none'} />
             </button>
             <button
               type="button"
-              className={['rounded-lg p-2 hover:bg-white', feedback === 'down' ? 'text-rose-600' : 'text-slate-600'].join(
-                ' ',
-              )}
+              className={[
+                'rounded-lg p-2 hover:bg-white',
+                feedback === 'negative' ? 'text-cyan-600' : 'text-slate-600',
+              ].join(' ')}
               aria-label="Thumbs down"
-              onClick={() => setFeedback('down')}
+              aria-pressed={feedback === 'negative'}
+              onClick={() => sendFeedback('negative')}
             >
-              <ThumbsDown className="h-4 w-4" />
+              <ThumbsDown className="h-4 w-4" fill={feedback === 'negative' ? 'currentColor' : 'none'} />
             </button>
             <button
               type="button"
               className="rounded-lg p-2 text-slate-600 hover:bg-white"
               aria-label="Scroll to follow-up"
-              onClick={() => document.getElementById('ws-follow-up')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => chatContainerRef.current?.scrollIntoView({ behavior: 'smooth' })}
             >
               <ArrowDown className="h-4 w-4" />
             </button>
@@ -617,11 +687,49 @@ function WorksheetStudio({
         </div>
       </section>
 
-      <div id="ws-follow-up" className="mt-4 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+      <div
+        id="ws-follow-up"
+        ref={chatContainerRef}
+        className="mt-4 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm"
+      >
+        {followUpFiles.length > 0 && (
+          <ul className="mb-1 flex flex-wrap gap-1.5 px-1">
+            {followUpFiles.map((name) => (
+              <li key={name} className="rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700">
+                {name}
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="flex items-end gap-2">
-          <button type="button" className="mb-1 rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Attach file">
+          <button
+            type="button"
+            className="mb-1 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+            aria-label="Attach extra context"
+            onClick={() => followUpFileRef.current?.click()}
+          >
             <Plus className="h-4 w-4" />
           </button>
+          <input
+            ref={followUpFileRef}
+            type="file"
+            accept=".pdf,.docx,.txt,application/pdf,text/plain"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const list = e.target.files;
+              if (list?.length) {
+                setFollowUpFiles((prev) => {
+                  const next = [...prev];
+                  for (const file of Array.from(list)) {
+                    if (!next.includes(file.name)) next.push(file.name);
+                  }
+                  return next;
+                });
+              }
+              e.currentTarget.value = '';
+            }}
+          />
           <textarea
             className="max-h-28 min-h-[44px] flex-1 resize-y bg-transparent py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400"
             placeholder="Continue the conversation..."
@@ -645,13 +753,33 @@ function WorksheetStudio({
           >
             <Mic className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            className="mb-1 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-            aria-label="Prompt assistant"
-          >
-            <Lightbulb className="h-4 w-4" />
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              className="mb-1 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+              aria-label="Prompt assistant"
+              onClick={() => setPromptMenuOpen((v) => !v)}
+            >
+              <Lightbulb className="h-4 w-4" />
+            </button>
+            {promptMenuOpen && (
+              <div className="absolute bottom-10 right-0 z-20 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+                {PROMPT_SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-violet-50 hover:text-violet-800"
+                    onClick={() => {
+                      setFollowUp(suggestion);
+                      setPromptMenuOpen(false);
+                    }}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             type="button"
             disabled={busy || !followUp.trim()}
@@ -663,6 +791,11 @@ function WorksheetStudio({
           </button>
         </div>
       </div>
+      {toast ? (
+        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
+          {toast}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -685,6 +818,8 @@ export function WorksheetGenerator({
   const [submitted, setSubmitted] = useState<WorksheetGeneratorPayload | null>(null);
   const [localFavorited, setLocalFavorited] = useState(false);
   const [history, setHistory] = useState<FormSnapshot[]>([]);
+  const [savedVersions, setSavedVersions] = useState<WorksheetHistoryItem[]>(loadLocalVersions);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -746,6 +881,26 @@ export function WorksheetGenerator({
     setWorksheet(null);
     setSubmitted(null);
     setHistory([]);
+    setHistoryOpen(false);
+  };
+
+  const rememberVersion = (request: WorksheetGeneratorPayload, next: WorksheetGeneratorResponse) => {
+    const stored = { ...next, id: crypto.randomUUID() };
+    const item: WorksheetHistoryItem = {
+      id: stored.id as string,
+      createdAt: new Date().toISOString(),
+      title: stored.title,
+      gradeLevel: request.gradeLevel,
+      topicOrText: request.topicOrText,
+      payload: request,
+      worksheet: stored,
+    };
+    setSavedVersions((prev) => {
+      const merged = [item, ...prev.filter((row) => row.id !== item.id)].slice(0, 30);
+      persistLocalVersions(merged);
+      return merged;
+    });
+    return stored;
   };
 
   const overLimit = countWords(topicOrText) > WORD_LIMIT;
@@ -791,12 +946,45 @@ export function WorksheetGenerator({
     setBusy(true);
     setError(null);
     try {
-      const next = await api.generateWorksheet(request);
+      const next = rememberVersion(request, await api.generateWorksheet(request));
       setSubmitted(request);
       setWorksheet(next);
     } catch {
+      const next = rememberVersion(request, clientFallbackWorksheet(request));
       setSubmitted(request);
-      setWorksheet(clientFallbackWorksheet(request));
+      setWorksheet(next);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const refineCurrent = async (message: string, attachments?: string[]) => {
+    if (!submitted || !worksheet) return;
+    setBusy(true);
+    setError(null);
+    const request: WorksheetGeneratorPayload = {
+      ...submitted,
+      topicOrText: `${submitted.topicOrText}\n\nTeacher follow-up: ${message}`,
+      attachments: attachments?.length ? [...(submitted.attachments ?? []), ...attachments] : submitted.attachments,
+    };
+    try {
+      const next = rememberVersion(
+        request,
+        await api.refineWorksheet({
+          worksheetId: worksheet.id,
+          gradeLevel: submitted.gradeLevel,
+          topicOrText: submitted.topicOrText,
+          instruction: message,
+          attachments: request.attachments,
+          currentWorksheet: worksheet,
+        }),
+      );
+      setSubmitted(request);
+      setWorksheet(next);
+    } catch {
+      const next = rememberVersion(request, applyWorksheetFollowUp(worksheet, message));
+      setSubmitted(request);
+      setWorksheet(next);
     } finally {
       setBusy(false);
     }
@@ -806,240 +994,264 @@ export function WorksheetGenerator({
 
   if (worksheet && submitted) {
     return (
-      <WorksheetStudio
-        worksheet={worksheet}
-        payload={submitted}
-        busy={busy}
-        onReset={resetAll}
-        onFollowUp={(message) => {
-          void generate({
-            ...submitted,
-            topicOrText: `${submitted.topicOrText}\n\nTeacher follow-up: ${message}`,
-          });
-        }}
-      />
+      <>
+        <WorksheetStudio
+          worksheet={worksheet}
+          payload={submitted}
+          busy={busy}
+          onReset={resetAll}
+          onOpenHistory={() => setHistoryOpen(true)}
+          onFollowUp={(message, attachments) => {
+            void refineCurrent(message, attachments);
+          }}
+        />
+        <WorksheetHistoryDrawer
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          topic={submitted.topicOrText.split('\n')[0]}
+          fallbackItems={savedVersions}
+          activeId={worksheet.id}
+          onSelect={(item) => {
+            setWorksheet(withWorksheetId(item.worksheet));
+            setSubmitted(item.payload);
+            setGradeLevel(item.payload.gradeLevel);
+            setTopicOrText(item.payload.topicOrText);
+            setFiles(item.payload.attachments ?? []);
+          }}
+        />
+      </>
     );
   }
 
   return (
-    <div className="ms-quiz-form font-sans text-slate-800">
-      <nav className="mb-5 flex flex-wrap items-center justify-between gap-2 text-sm">
-        <div className="flex flex-wrap items-center gap-1.5 text-slate-500">
-          <Link to="/teacher/tools" className="font-semibold text-violet-700 hover:text-violet-900">
-            Teacher Tools
-          </Link>
-          <ChevronRight className="h-3.5 w-3.5" />
-          <span className="font-semibold text-slate-800">Worksheet Generator</span>
-        </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
-          onClick={resetAll}
-          aria-label="Reset worksheet generator"
-        >
-          <History className="h-3.5 w-3.5" /> Reset
-        </button>
-      </nav>
+    <div className="ms-quiz-form flex h-full min-h-0 w-full flex-col overflow-hidden p-4 font-sans text-slate-800">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+        <nav className="mb-5 flex shrink-0 flex-wrap items-center justify-between gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-1.5 text-slate-500">
+            <Link to="/teacher/tools" className="font-semibold text-violet-700 hover:text-violet-900">
+              Teacher Tools
+            </Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <span className="font-semibold text-slate-800">Worksheet Generator</span>
+          </div>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            onClick={resetAll}
+            aria-label="Reset worksheet generator"
+          >
+            <History className="h-3.5 w-3.5" /> Reset
+          </button>
+        </nav>
 
-      <div className="grid h-full grid-cols-1 gap-6 lg:grid-cols-12">
-        <div className="min-w-0 lg:col-span-5">
-          <header className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Worksheet Generator</h2>
-                <button
-                  type="button"
-                  className={favorited ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}
-                  aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
-                  aria-pressed={Boolean(favorited)}
-                  onClick={toggleFavorite}
-                >
-                  <Star className="h-5 w-5" fill={favorited ? 'currentColor' : 'none'} />
-                </button>
-              </div>
-              <p className="mt-1 text-sm text-slate-500">Generate a worksheet based on any topic or text.</p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <button
-                type="button"
-                className="rounded-full border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-slate-50"
-                aria-label="Undo last change"
-                onClick={undo}
-              >
-                <RotateCcw className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-violet-700 shadow-sm hover:bg-violet-50"
-                onClick={() => {
-                  pushHistory();
-                  setShowExemplar(true);
-                  setGradeLevel('9th grade');
-                  setTopicOrText(EXEMPLAR_TOPIC);
-                }}
-              >
-                {showExemplar ? 'Exemplar loaded' : 'Show exemplar'}
-              </button>
-            </div>
-          </header>
-
-          <div className="mt-6 space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-800">
-                Grade level:<span className="ml-0.5 text-rose-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 pr-9 text-sm text-slate-800 shadow-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
-                  style={{
-                    fontFamily:
-                      "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-                  }}
-                  value={gradeLevel}
-                  onChange={(e) => setGradeLevel(e.target.value)}
-                >
-                  {GRADE_LEVELS.map((g) => (
-                    <option key={g} value={g}>
-                      {g}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-800">
-                Topic or text:<span className="ml-0.5 text-rose-500">*</span>
-              </label>
-              <div className="overflow-hidden rounded-lg border border-slate-700 bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-purple-500">
-                <div className="relative">
-                  <textarea
-                    className="h-32 w-full resize-y rounded-lg border border-slate-700 bg-[#0f172a] p-3 pr-11 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    style={TOOL_TEXTAREA_STYLE}
-                    placeholder={TOPIC_PLACEHOLDER}
-                    value={topicOrText}
-                    onChange={(e) => setTopicOrText(sanitizePastedText(e.target.value))}
-                    onPaste={handlePaste}
-                    spellCheck
-                  />
-                  <button
-                    type="button"
-                    className={[
-                      'absolute right-2 top-2 rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-purple-300',
-                      listening ? 'bg-purple-500/20 text-purple-200' : '',
-                    ].join(' ')}
-                    aria-label={listening ? 'Stop dictation' : 'Dictate with microphone'}
-                    onClick={toggle}
-                  >
-                    <Mic className="h-4 w-4" />
-                  </button>
-                </div>
-                {files.length > 0 && (
-                  <ul className="flex flex-wrap gap-1.5 border-t border-slate-700 px-3 py-2">
-                    {files.map((name) => (
-                      <li
-                        key={name}
-                        className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-slate-300"
-                      >
-                        {name}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="flex items-center justify-between gap-3 border-t border-slate-700 bg-slate-800 px-2 py-1.5">
-                  <div className="relative">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-8 lg:h-full lg:grid-cols-12">
+          <div className="flex h-full min-h-0 flex-col justify-between lg:col-span-5">
+            <div className="flex min-h-0 flex-1 flex-col">
+              <header className="flex shrink-0 flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Worksheet Generator</h2>
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white"
-                      onClick={() => setMenuOpen((v) => !v)}
+                      className={favorited ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}
+                      aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+                      aria-pressed={Boolean(favorited)}
+                      onClick={toggleFavorite}
                     >
-                      <FilePlus className="h-4 w-4" /> + Add File
-                      <ChevronDown className="h-3 w-3" />
+                      <Star className="h-5 w-5" fill={favorited ? 'currentColor' : 'none'} />
                     </button>
-                    {menuOpen && (
-                      <div className="absolute bottom-9 left-0 z-10 w-44 overflow-hidden rounded-lg border border-slate-600 bg-slate-800 py-1 shadow-lg">
-                        <button
-                          type="button"
-                          className="block w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
-                          onClick={() => {
-                            setMenuOpen(false);
-                            fileRef.current?.click();
-                          }}
-                        >
-                          Upload PDF or document
-                        </button>
-                      </div>
-                    )}
-                    <input
-                      ref={fileRef}
-                      type="file"
-                      accept=".pdf,.doc,.docx,.txt,.md,application/pdf"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => {
-                        addFiles(e.target.files);
-                        e.currentTarget.value = '';
-                      }}
-                    />
                   </div>
-                  <p className={overLimit ? 'text-xs font-medium text-rose-400' : 'text-xs text-slate-400'}>
-                    Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
-                  </p>
+                  <p className="mt-1 text-sm text-slate-500">Generate a worksheet based on any topic or text.</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    className="rounded-full border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-slate-50"
+                    aria-label="Undo last change"
+                    onClick={undo}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-violet-700 shadow-sm hover:bg-violet-50"
+                    onClick={() => {
+                      pushHistory();
+                      setShowExemplar(true);
+                      setGradeLevel('9th grade');
+                      setTopicOrText(EXEMPLAR_TOPIC);
+                    }}
+                  >
+                    {showExemplar ? 'Exemplar loaded' : 'Show exemplar'}
+                  </button>
+                </div>
+              </header>
+
+              <div className="mt-6 shrink-0">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+                  Grade level:<span className="ml-0.5 text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 pr-9 text-sm text-slate-800 shadow-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+                    style={{
+                      fontFamily:
+                        "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                    }}
+                    value={gradeLevel}
+                    onChange={(e) => setGradeLevel(e.target.value)}
+                  >
+                    {GRADE_LEVELS.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                </div>
+              </div>
+
+              <div className="my-4 flex min-h-0 flex-1 flex-col">
+                <label className="mb-1 block text-sm font-semibold text-slate-800">
+                  Topic or text:<span className="ml-0.5 text-rose-500">*</span>
+                </label>
+                <div className="relative flex min-h-[220px] flex-1 flex-col overflow-hidden rounded-xl border border-purple-500/40 bg-[#0f172a] p-3 shadow-inner focus-within:ring-2 focus-within:ring-purple-500">
+                  <div className="relative flex min-h-0 flex-1 flex-col">
+                    <textarea
+                      className="min-h-[220px] w-full flex-1 resize-none bg-transparent p-0 pr-11 text-sm text-slate-100 placeholder-slate-400 focus:outline-none"
+                      style={TOOL_TEXTAREA_STYLE}
+                      placeholder={TOPIC_PLACEHOLDER}
+                      value={topicOrText}
+                      onChange={(e) => setTopicOrText(sanitizePastedText(e.target.value))}
+                      onPaste={handlePaste}
+                      spellCheck
+                    />
+                    <button
+                      type="button"
+                      className={[
+                        'absolute right-0 top-0 flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-800 p-2 text-purple-300 shadow-md transition-all hover:bg-purple-900/60 hover:text-purple-200',
+                        listening ? 'border-purple-400 bg-purple-900/60 text-purple-200' : '',
+                      ].join(' ')}
+                      aria-label={listening ? 'Stop dictation' : 'Start recording voice prompt'}
+                      onClick={toggle}
+                    >
+                      <Mic className="h-4 w-4 text-purple-400" />
+                    </button>
+                  </div>
+                  {files.length > 0 && (
+                    <ul className="mt-2 flex flex-wrap gap-1.5 border-t border-slate-800/80 pt-2">
+                      {files.map((name) => (
+                        <li
+                          key={name}
+                          className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-slate-100"
+                        >
+                          {name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-800/80 pt-2">
+                    <div className="relative">
+                      <button
+                        type="button"
+                        className="flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-slate-800 px-3 py-1.5 text-xs font-medium text-purple-300 transition-colors hover:bg-slate-700 hover:text-white"
+                        onClick={() => setMenuOpen((v) => !v)}
+                      >
+                        <FilePlus className="h-3.5 w-3.5 text-purple-400" />
+                        <span className="text-purple-200">+ Add File</span>
+                        <ChevronDown className="h-3 w-3 text-purple-400" />
+                      </button>
+                      {menuOpen && (
+                        <div className="absolute bottom-9 left-0 z-10 w-44 overflow-hidden rounded-lg border border-slate-600 bg-slate-800 py-1 shadow-lg">
+                          <button
+                            type="button"
+                            className="block w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
+                            onClick={() => {
+                              setMenuOpen(false);
+                              fileRef.current?.click();
+                            }}
+                          >
+                            Upload PDF or document
+                          </button>
+                        </div>
+                      )}
+                      <input
+                        ref={fileRef}
+                        type="file"
+                        accept=".pdf,.doc,.docx,.txt,.md,application/pdf"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          addFiles(e.target.files);
+                          e.currentTarget.value = '';
+                        }}
+                      />
+                    </div>
+                    <p
+                      className={
+                        overLimit
+                          ? 'font-mono text-xs font-medium text-rose-400'
+                          : 'font-mono text-xs text-slate-400'
+                      }
+                    >
+                      Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-6 flex flex-col items-end gap-3">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-violet-700 hover:text-violet-900"
-              onClick={() => setAssistantOpen((v) => !v)}
-            >
-              <Lightbulb className="h-4 w-4" /> Prompt assistant
-            </button>
-            {assistantOpen && (
-              <div className="w-full rounded-xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm text-slate-700">
-                Name a topic, paste source text, or attach a PDF. Say whether you want vocabulary,
-                short answer, or mixed practice.
+            <div className="mt-auto shrink-0 pt-4">
+              <div className="mb-3 flex flex-col items-end gap-3">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-violet-700 hover:text-violet-900"
+                  onClick={() => setAssistantOpen((v) => !v)}
+                >
+                  <Lightbulb className="h-4 w-4" /> Prompt assistant
+                </button>
+                {assistantOpen && (
+                  <div className="w-full rounded-xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm text-slate-700">
+                    Name a topic, paste source text, or attach a PDF. Say whether you want vocabulary,
+                    short answer, or mixed practice.
+                  </div>
+                )}
               </div>
-            )}
-            <button
-              type="button"
-              disabled={busy || !payload.topicOrText || overLimit}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-purple-600 py-3 font-medium text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
-              onClick={() => void generate()}
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Generate
-            </button>
+              <button
+                type="button"
+                disabled={busy || !payload.topicOrText || overLimit}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500 py-3 font-medium text-white hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => void generate()}
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                Generate
+              </button>
+              {error && (
+                <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {error}
+                </p>
+              )}
+            </div>
           </div>
 
-          {error && (
-            <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {error}
-            </p>
-          )}
+          <div className="flex h-full min-h-0 flex-col lg:col-span-7">
+            <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Template preview
+            </span>
+            <div className="ws-preview-card flex h-full min-h-[500px] flex-1 flex-col justify-between overflow-y-auto rounded-xl bg-[#1a2332] p-6 text-slate-300">
+              {busy && !worksheet ? (
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 text-slate-400">
+                  <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
+                  <p className="text-sm">Generating your worksheet…</p>
+                </div>
+              ) : worksheet ? (
+                <PrintableWorksheet worksheet={worksheet} title={worksheet.title} />
+              ) : (
+                <WorksheetTemplateSkeleton />
+              )}
+            </div>
+          </div>
         </div>
-
-        <section className="flex min-h-[28rem] min-w-0 flex-col lg:col-span-7">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Template preview
-          </h3>
-          <div className="ws-preview-card flex-1 overflow-y-auto">
-            {busy && !worksheet ? (
-              <div className="flex min-h-[22rem] flex-col items-center justify-center gap-3 text-slate-400">
-                <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
-                <p className="text-sm">Generating your worksheet…</p>
-              </div>
-            ) : worksheet ? (
-              <WorksheetDocument worksheet={worksheet} />
-            ) : (
-              <WorksheetTemplateSkeleton />
-            )}
-          </div>
-        </section>
       </div>
     </div>
   );

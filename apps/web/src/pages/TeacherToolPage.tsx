@@ -4,6 +4,7 @@ import { ArrowLeft, Sparkles } from 'lucide-react';
 import { getTeacherToolById, type TeacherToolDefinition } from '@brightpath/shared';
 import QuizGenerator from '@/pages/TeacherTools/QuizGenerator';
 import WorksheetGenerator from '@/pages/TeacherTools/WorksheetGenerator';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 
 function sampleOutput(tool: TeacherToolDefinition, topic: string, grade: string): string {
@@ -72,13 +73,7 @@ export function TeacherToolLauncher({
       <WorksheetGenerator favorited={favorited} onToggleFavorite={onToggleFavorite} />
     );
     if (embedded) return worksheet;
-    return (
-      <TeacherWorkspaceLayout>
-        <main className="w-full max-w-7xl px-6 py-6 lg:px-10 lg:py-8">
-          <div className="rounded-2xl bg-slate-50 p-4 shadow-xl sm:p-6">{worksheet}</div>
-        </main>
-      </TeacherWorkspaceLayout>
-    );
+    return <DashboardLayout>{worksheet}</DashboardLayout>;
   }
 
   const body = (

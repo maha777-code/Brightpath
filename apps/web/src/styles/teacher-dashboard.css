@@ -113,13 +113,14 @@ body:has(.td-dash),
 }
 
 .ws-preview-card {
-  border-radius: 1.25rem;
+  border-radius: 0.75rem;
   border: 1px solid rgba(148, 163, 184, 0.25);
   background:
     radial-gradient(800px 280px at 10% 0%, rgba(139, 92, 246, 0.12), transparent 55%),
-    linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-  padding: 1.5rem 1.35rem;
-  min-height: 28rem;
+    linear-gradient(180deg, #1a2332 0%, #0f172a 100%);
+  padding: 1.5rem;
+  min-height: 500px;
+  height: 100%;
 }
 
 .ws-doc {

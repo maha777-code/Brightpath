@@ -414,12 +414,18 @@ export type {
   WorksheetItem,
   WorksheetSection,
   WorksheetGeneratorResponse,
+  WorksheetHistoryItem,
+  WorksheetHistoryResponse,
+  TeacherToolFeedbackPayload,
+  TeacherToolFeedbackResponse,
+  WorksheetRefinePayload,
 } from './teacherTools.js';
 
 export {
   TEACHER_TOOL_FOCUS_LABELS,
   TEACHER_TOOLS_CATALOG,
   getTeacherToolById,
+  applyWorksheetFollowUp,
 } from './teacherTools.js';
 
 export type {

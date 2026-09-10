@@ -4,6 +4,7 @@ import type {
   WorksheetGeneratorPayload,
   WorksheetGeneratorResponse,
 } from '@brightpath/shared';
+import { applyWorksheetFollowUp } from '@brightpath/shared';
 import { getActiveProvider } from '../lib/llm/provider.js';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
@@ -323,5 +324,43 @@ export async function generateWorksheet(
   } catch (err) {
     console.error('[llm] worksheet generation failed', err);
     return fallback;
+  }
+}
+
+export async function refineWorksheet(input: {
+  gradeLevel: string;
+  topicOrText: string;
+  instruction: string;
+  attachments?: string[];
+  current?: WorksheetGeneratorResponse;
+}): Promise<WorksheetGeneratorResponse> {
+  const base = input.current ?? fallbackWorksheet(input);
+  const heuristic = applyWorksheetFollowUp(base, input.instruction);
+  const llm = getActiveProvider();
+  if (!llm) return heuristic;
+
+  try {
+    const raw = await llm.completeJson<{
+      title?: unknown;
+      gradeLevel?: unknown;
+      instructions?: unknown;
+      passage?: unknown;
+      sections?: unknown;
+    }>({
+      system: `${WORKSHEET_SYSTEM}\nRevise the existing worksheet to satisfy the teacher instruction. Return the complete updated worksheet JSON.`,
+      user: [
+        `Grade level: ${input.gradeLevel}`,
+        `Original topic or text:\n${input.topicOrText.trim()}`,
+        `Teacher instruction:\n${input.instruction.trim()}`,
+        input.attachments?.length ? `Attached files: ${input.attachments.join(', ')}` : '',
+        `Current worksheet JSON:\n${JSON.stringify(base)}`,
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+    });
+    return normalizeWorksheetResponse(raw, input, heuristic);
+  } catch (err) {
+    console.error('[llm] worksheet refine failed', err);
+    return heuristic;
   }
 }

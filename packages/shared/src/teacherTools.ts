@@ -204,12 +204,128 @@ export interface WorksheetSection {
 }
 
 export interface WorksheetGeneratorResponse {
+  id?: string;
   title: string;
   gradeLevel: string;
   instructions?: string;
   /** Optional reading passage shown at the top of the printable sheet */
   passage?: string;
   sections: WorksheetSection[];
+}
+
+export interface WorksheetHistoryItem {
+  id: string;
+  createdAt: string;
+  title: string;
+  gradeLevel: string;
+  topicOrText: string;
+  payload: WorksheetGeneratorPayload;
+  worksheet: WorksheetGeneratorResponse;
+}
+
+export interface WorksheetHistoryResponse {
+  items: WorksheetHistoryItem[];
+}
+
+export interface TeacherToolFeedbackPayload {
+  worksheetId: string;
+  rating: 'positive' | 'negative';
+}
+
+export interface TeacherToolFeedbackResponse {
+  ok: true;
+  worksheetId: string;
+  rating: 'positive' | 'negative';
+}
+
+export interface WorksheetRefinePayload {
+  worksheetId?: string;
+  gradeLevel: string;
+  topicOrText: string;
+  instruction: string;
+  attachments?: string[];
+  currentWorksheet?: WorksheetGeneratorResponse;
+}
+
+export function applyWorksheetFollowUp(
+  worksheet: WorksheetGeneratorResponse,
+  instruction: string,
+): WorksheetGeneratorResponse {
+  const text = instruction.trim();
+  const lower = text.toLowerCase();
+  const nextId = () =>
+    worksheet.sections.reduce((max, section) => Math.max(max, ...section.items.map((item) => item.id)), 0) + 1;
+
+  if (/answer key/.test(lower)) {
+    const items = worksheet.sections.flatMap((section) =>
+      section.items.map((item, i) => ({
+        id: nextId() + i,
+        prompt: `Answer key — ${item.prompt} Sample response: cite the reading passage and use a complete sentence.`,
+      })),
+    );
+    return {
+      ...worksheet,
+      sections: [...worksheet.sections.filter((s) => s.heading !== 'Answer Key'), { heading: 'Answer Key', items }],
+    };
+  }
+
+  if (/harder|more difficult|challenge/.test(lower)) {
+    return {
+      ...worksheet,
+      instructions: [worksheet.instructions, 'Challenge: justify each answer with evidence from the passage.']
+        .filter(Boolean)
+        .join(' '),
+      sections: worksheet.sections.map((section) => ({
+        ...section,
+        items: section.items.map((item) => ({
+          ...item,
+          prompt: /explain|why|justify/i.test(item.prompt)
+            ? item.prompt
+            : `${item.prompt} Explain your reasoning.`,
+        })),
+      })),
+    };
+  }
+
+  if (/multiple[- ]?choice|mcq/.test(lower)) {
+    const start = nextId();
+    return {
+      ...worksheet,
+      sections: [
+        ...worksheet.sections,
+        {
+          heading: 'Multiple Choice',
+          items: [1, 2, 3, 4, 5].map((n) => ({
+            id: start + n - 1,
+            prompt: `${n}. Which statement is most accurate? A. Option one  B. Option two  C. Option three  D. Option four`,
+          })),
+        },
+      ],
+    };
+  }
+
+  if (/spanish|translate/.test(lower)) {
+    return {
+      ...worksheet,
+      title: /spanish/.test(lower) ? `${worksheet.title} (Español)` : worksheet.title,
+      passage: worksheet.passage
+        ? `Versión en español (borrador): ${worksheet.passage}`
+        : worksheet.passage,
+      instructions: [worksheet.instructions, `Teacher update: ${text}`].filter(Boolean).join(' '),
+    };
+  }
+
+  return {
+    ...worksheet,
+    instructions: [worksheet.instructions, `Teacher update: ${text}`].filter(Boolean).join(' '),
+    sections: [
+      ...worksheet.sections,
+      {
+        heading: 'Follow-up',
+        items: [{ id: nextId(), prompt: text }],
+      },
+    ],
+  };
 }
 
 export function getTeacherToolById(id: string): TeacherToolDefinition | undefined {

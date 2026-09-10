@@ -102,6 +102,10 @@ import type {
   QuizGeneratorResponse,
   WorksheetGeneratorPayload,
   WorksheetGeneratorResponse,
+  WorksheetHistoryResponse,
+  TeacherToolFeedbackPayload,
+  TeacherToolFeedbackResponse,
+  WorksheetRefinePayload,
   GenerateActivityRequest,
   GenerateActivityResponse,
   GenerationTemplate,
@@ -437,6 +441,26 @@ export const api = {
 
   generateWorksheet: (body: WorksheetGeneratorPayload) =>
     request<WorksheetGeneratorResponse>('/teacher/tools/worksheet-generator', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  worksheetHistory: (topic?: string) =>
+    request<WorksheetHistoryResponse>(
+      topic
+        ? `/teacher/tools/worksheet-generator/history?topic=${encodeURIComponent(topic)}`
+        : '/teacher/tools/worksheet-generator/history',
+      { cache: 'no-store' },
+    ),
+
+  refineWorksheet: (body: WorksheetRefinePayload) =>
+    request<WorksheetGeneratorResponse>('/teacher/tools/worksheet-generator/refine', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  submitTeacherToolFeedback: (body: TeacherToolFeedbackPayload) =>
+    request<TeacherToolFeedbackResponse>('/teacher/tools/feedback', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
