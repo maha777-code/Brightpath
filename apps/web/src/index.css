@@ -1,0 +1,40 @@
+@import url('https://fonts.cdnfonts.com/css/pickwick');
+
+@font-face {
+  font-family: 'Pickwick';
+  src: url('/fonts/Pickwick-Regular.woff2') format('woff2'),
+       url('/fonts/Pickwick-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pickwick';
+  src: url('/fonts/Pickwick-Bold.woff2') format('woff2'),
+       url('/fonts/Pickwick-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-pickwick: 'Pickwick', 'Trebuchet MS', sans-serif;
+  --font: var(--font-pickwick);
+  --font-display: var(--font-pickwick);
+}
+
+/* Universal forced font override */
+*,
+*::before,
+*::after,
+html,
+body,
+#root,
+div,
+span,
+h1, h2, h3, h4, h5, h6,
+p, a, button, input, textarea, select,
+label, li, ul, ol, td, th, table, nav, header, footer, main, section, article {
+  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
+}

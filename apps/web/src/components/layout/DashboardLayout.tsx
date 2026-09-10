@@ -5,7 +5,12 @@ import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLay
 export function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <TeacherWorkspaceLayout fillViewport>
-      <main className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">{children}</main>
+      <main
+        className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+        style={{ fontFamily: "'Pickwick', 'Trebuchet MS', sans-serif" }}
+      >
+        {children}
+      </main>
     </TeacherWorkspaceLayout>
   );
 }

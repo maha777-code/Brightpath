@@ -16,7 +16,7 @@ body:has(.td-dash),
 }
 
 .td-dash {
-  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
   --td-bg: #0f172a;
   --td-card: rgba(30, 41, 59, 0.85);
   --td-card-solid: #1e293b;
@@ -65,13 +65,13 @@ body:has(.td-dash),
 }
 
 .ms-quiz-form {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
 }
 
 .ms-quiz-form textarea,
 .ms-quiz-form input,
 .ms-quiz-form select {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
   font-style: normal !important;
   font-weight: 400 !important;
   letter-spacing: normal !important;
@@ -86,7 +86,7 @@ body:has(.td-dash),
 }
 
 .quiz-gen-shell {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
 }
 
 .quiz-gen-split {
@@ -124,12 +124,12 @@ body:has(.td-dash),
 }
 
 .ws-doc {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
   color: #e2e8f0;
 }
 
 .ws-studio {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
   color: #0f172a;
 }
 
@@ -249,4 +249,19 @@ body:has(.td-dash),
   background: rgba(139, 92, 246, 0.2);
   color: #c4b5fd;
   border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.td-dash,
+.td-dash *,
+.td-dash *::before,
+.td-dash *::after,
+.ms-quiz-form,
+.ms-quiz-form *,
+.quiz-gen-shell,
+.quiz-gen-shell *,
+.ws-studio,
+.ws-studio *,
+.ws-doc,
+.ws-doc * {
+  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
 }

@@ -17,6 +17,7 @@ export function TeacherWorkspaceLayout({
         'td-dash flex w-full max-w-full text-white',
         fillViewport ? 'h-screen overflow-hidden' : 'min-h-dvh',
       ].join(' ')}
+      style={{ fontFamily: "'Pickwick', 'Trebuchet MS', sans-serif" }}
     >
       <TeacherSidebar />
       <div

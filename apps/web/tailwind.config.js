@@ -8,8 +8,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif'],
-        serif: ['Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif'],
+        sans: ['Pickwick', 'Trebuchet MS', 'sans-serif'],
+        serif: ['Pickwick', 'serif'],
+        pickwick: ['Pickwick', 'Trebuchet MS', 'sans-serif'],
       },
       colors: {
         teal: {
