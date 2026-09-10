@@ -151,9 +151,23 @@ body:has(.td-dash),
   padding: 2rem 2.1rem 2.4rem;
 }
 
-.ws-paper-clip {
-  max-height: 34rem;
-  overflow: hidden;
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #e2e8f0;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 999px;
 }
 
 .td-btn-cta {

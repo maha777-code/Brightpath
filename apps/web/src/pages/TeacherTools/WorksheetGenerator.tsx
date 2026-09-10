@@ -14,6 +14,7 @@ import {
   Maximize2,
   Mic,
   Pencil,
+  Minimize2,
   Plus,
   Printer,
   RotateCcw,
@@ -394,8 +395,9 @@ function WorksheetStudio({
   const [isTranslateModalOpen, setIsTranslateModalOpen] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const expandedScrollRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const followUpFileRef = useRef<HTMLInputElement>(null);
   const crumb = topicCrumb(payload.topicOrText, worksheet.title);
   const pageCount = Math.max(2, 1 + worksheet.sections.length);
@@ -405,6 +407,14 @@ function WorksheetStudio({
   useEffect(() => {
     setTitle(worksheet.title);
   }, [worksheet.title]);
+
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    if (expanded) document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [expanded]);
 
   const copyDoc = async () => {
     try {
@@ -485,10 +495,12 @@ function WorksheetStudio({
   };
 
   const handleScrollToBottom = () => {
-    if (bottomAnchorRef.current) {
-      bottomAnchorRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    } else {
-      chatContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    const scroller = expanded ? expandedScrollRef.current : scrollContainerRef.current;
+    if (scroller) {
+      scroller.scrollTo({
+        top: scroller.scrollHeight,
+        behavior: 'smooth',
+      });
     }
   };
 
@@ -501,9 +513,95 @@ function WorksheetStudio({
     setFollowUpFiles([]);
   };
 
+  const statusBar = (
+    <div className="mt-2 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
+      <span className="font-medium">
+        The {title} Studio document has been created successfully.
+      </span>
+      <div className="flex items-center gap-1">
+        <div className="relative">
+          <button
+            type="button"
+            className="rounded-lg p-1.5 text-emerald-900 hover:bg-emerald-100"
+            aria-label="Translate worksheet"
+            title="Translate worksheet"
+            onClick={() => setIsTranslateModalOpen((v) => !v)}
+          >
+            <Languages className="h-4 w-4" />
+          </button>
+          {isTranslateModalOpen ? (
+            <div className="absolute bottom-full right-0 z-30 mb-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+              <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Translate to
+              </p>
+              {TRANSLATE_LANGUAGES.map((language) => (
+                <button
+                  key={language.id}
+                  type="button"
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-700 hover:bg-violet-50 hover:text-violet-800"
+                  onClick={() => void handleTranslate(language.id)}
+                >
+                  <span>{language.id}</span>
+                  <span className="text-xs text-slate-400">{language.native}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          className="rounded-lg p-1.5 text-emerald-900 hover:bg-emerald-100"
+          aria-label="Read aloud"
+          onClick={speak}
+        >
+          <Volume2 className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={[
+            'rounded-lg p-1.5 hover:bg-emerald-100',
+            feedback === 'positive' ? 'text-violet-600' : 'text-emerald-900',
+          ].join(' ')}
+          aria-label="Thumbs up"
+          aria-pressed={feedback === 'positive'}
+          onClick={() => sendFeedback('positive')}
+        >
+          <ThumbsUp className="h-4 w-4" fill={feedback === 'positive' ? 'currentColor' : 'none'} />
+        </button>
+        <button
+          type="button"
+          className={[
+            'rounded-lg p-1.5 hover:bg-emerald-100',
+            feedback === 'negative' ? 'text-cyan-600' : 'text-emerald-900',
+          ].join(' ')}
+          aria-label="Thumbs down"
+          aria-pressed={feedback === 'negative'}
+          onClick={() => sendFeedback('negative')}
+        >
+          <ThumbsDown className="h-4 w-4" fill={feedback === 'negative' ? 'currentColor' : 'none'} />
+        </button>
+        <button
+          type="button"
+          className="rounded-lg bg-purple-600 p-1.5 text-white shadow-sm hover:bg-purple-700"
+          aria-label="Scroll to bottom"
+          title="Scroll to bottom"
+          onClick={handleScrollToBottom}
+        >
+          <ArrowDown className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+
+  const documentPaper = (
+    <div ref={previewRef} className="mx-auto max-w-3xl rounded-lg bg-white p-2 shadow-md sm:p-4">
+      <PrintableWorksheet worksheet={worksheet} title={title} />
+    </div>
+  );
+
   return (
-    <div className="ws-studio flex h-full min-h-0 flex-col overflow-y-auto p-4">
-      <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <div className="ws-studio flex h-full min-h-0 flex-col overflow-hidden p-4">
+      <header className="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-3">
         <nav className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-slate-500">
           <Link to="/teacher/tools" className="font-semibold text-violet-700 hover:text-violet-900">
             Teacher Tools
@@ -553,8 +651,8 @@ function WorksheetStudio({
         </div>
       </header>
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
           <div className="flex min-w-0 items-center gap-2">
             {editingTitle ? (
               <input
@@ -650,17 +748,18 @@ function WorksheetStudio({
           </div>
         </div>
 
-        <p className="px-4 pt-3 text-xs font-medium text-slate-500">
+        <p className="shrink-0 px-4 pt-3 text-xs font-medium text-slate-500">
           Page 1/{pageCount}
           {copied ? <span className="ml-2 text-emerald-600">Copied</span> : null}
         </p>
 
-        <div className="group relative bg-slate-200/80 px-4 py-4 sm:px-8 sm:py-6">
+        <div className="relative min-h-0 flex-1">
           <div
-            ref={previewRef}
-            className={expanded ? 'mx-auto max-w-3xl' : 'ws-paper-clip mx-auto max-w-3xl'}
+            id="worksheet-document-container"
+            ref={scrollContainerRef}
+            className="custom-scrollbar h-full max-h-[calc(100vh-280px)] w-full overflow-x-hidden overflow-y-auto scroll-smooth rounded-xl bg-slate-100 p-6"
           >
-            <PrintableWorksheet worksheet={worksheet} title={title} />
+            {documentPaper}
           </div>
           {busy || isTranslating ? (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70">
@@ -673,95 +772,19 @@ function WorksheetStudio({
           <button
             type="button"
             className="absolute left-1/2 top-1/2 z-10 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full bg-slate-900/90 px-4 py-2 text-sm font-medium text-white shadow-lg hover:bg-slate-800"
-            onClick={() => setExpanded((v) => !v)}
+            onClick={() => setExpanded(true)}
           >
-            <Maximize2 className="h-4 w-4" /> {expanded ? 'Collapse preview' : 'Expand preview'}
+            <Maximize2 className="h-4 w-4" /> Expand preview
           </button>
         </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-emerald-50 px-4 py-3">
-          <p className="text-sm font-medium text-emerald-800">
-            The {title} Studio document has been created successfully.
-          </p>
-          <div className="flex items-center gap-1">
-            <div className="relative">
-              <button
-                type="button"
-                className="rounded-lg bg-slate-800 p-2 text-slate-200 transition-colors hover:bg-purple-600 hover:text-white"
-                aria-label="Translate worksheet"
-                title="Translate worksheet"
-                onClick={() => setIsTranslateModalOpen((v) => !v)}
-              >
-                <Languages className="h-4 w-4" />
-              </button>
-              {isTranslateModalOpen ? (
-                <div className="absolute bottom-full right-0 z-30 mb-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
-                  <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Translate to
-                  </p>
-                  {TRANSLATE_LANGUAGES.map((language) => (
-                    <button
-                      key={language.id}
-                      type="button"
-                      className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-700 hover:bg-violet-50 hover:text-violet-800"
-                      onClick={() => void handleTranslate(language.id)}
-                    >
-                      <span>{language.id}</span>
-                      <span className="text-xs text-slate-400">{language.native}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              className="rounded-lg p-2 text-slate-600 hover:bg-white"
-              aria-label="Read aloud"
-              onClick={speak}
-            >
-              <Volume2 className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className={[
-                'rounded-lg p-2 hover:bg-white',
-                feedback === 'positive' ? 'text-violet-600' : 'text-slate-600',
-              ].join(' ')}
-              aria-label="Thumbs up"
-              aria-pressed={feedback === 'positive'}
-              onClick={() => sendFeedback('positive')}
-            >
-              <ThumbsUp className="h-4 w-4" fill={feedback === 'positive' ? 'currentColor' : 'none'} />
-            </button>
-            <button
-              type="button"
-              className={[
-                'rounded-lg p-2 hover:bg-white',
-                feedback === 'negative' ? 'text-cyan-600' : 'text-slate-600',
-              ].join(' ')}
-              aria-label="Thumbs down"
-              aria-pressed={feedback === 'negative'}
-              onClick={() => sendFeedback('negative')}
-            >
-              <ThumbsDown className="h-4 w-4" fill={feedback === 'negative' ? 'currentColor' : 'none'} />
-            </button>
-            <button
-              type="button"
-              className="rounded-lg bg-slate-800 p-2 text-slate-200 transition-colors hover:bg-purple-600 hover:text-white"
-              aria-label="Scroll to bottom"
-              title="Scroll to bottom"
-              onClick={handleScrollToBottom}
-            >
-              <ArrowDown className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
       </section>
+
+      {statusBar}
 
       <div
         id="ws-follow-up"
         ref={chatContainerRef}
-        className="mt-4 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm"
+        className="mt-3 shrink-0 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm"
       >
         {followUpFiles.length > 0 && (
           <ul className="mb-1 flex flex-wrap gap-1.5 px-1">
@@ -862,7 +885,31 @@ function WorksheetStudio({
           </button>
         </div>
       </div>
-      <div ref={bottomAnchorRef} />
+      {expanded ? (
+        <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/70 p-4">
+          <div className="mx-auto flex h-full min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
+              <h2 className="truncate text-base font-semibold text-slate-900">{title}</h2>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+                onClick={() => setExpanded(false)}
+              >
+                <Minimize2 className="h-4 w-4" /> Collapse preview
+              </button>
+            </div>
+            <div
+              ref={expandedScrollRef}
+              className="custom-scrollbar min-h-0 flex-1 overflow-y-auto scroll-smooth bg-slate-100 p-6"
+            >
+              <div className="mx-auto max-w-3xl rounded-lg bg-white p-2 shadow-md sm:p-4">
+                <PrintableWorksheet worksheet={worksheet} title={title} />
+              </div>
+            </div>
+            {statusBar}
+          </div>
+        </div>
+      ) : null}
       {toast ? (
         <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
           {toast}
