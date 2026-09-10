@@ -88,7 +88,8 @@ function exportQuizPdf(quiz: QuizGeneratorResponse) {
   <style>
     @font-face{font-family:'Pickwick';src:url('/fonts/Pickwick-Regular.woff2') format('woff2'),url('/fonts/Pickwick-Regular.woff') format('woff');font-weight:400;font-display:swap}
     @font-face{font-family:'Pickwick';src:url('/fonts/Pickwick-Bold.woff2') format('woff2'),url('/fonts/Pickwick-Bold.woff') format('woff');font-weight:700;font-display:swap}
-    body { font-family: 'Pickwick', system-ui, sans-serif; color: #0f172a; padding: 32px; line-height: 1.45; }
+    body { font-family: 'Times New Roman', Times, serif; font-size: 18px; color: #0f172a; padding: 32px; line-height: 1.45; }
+    h1, h2, h3 { font-family: 'Pickwick', 'Trebuchet MS', sans-serif; }
     h1 { font-size: 22px; margin-bottom: 8px; }
     h2 { font-size: 16px; margin: 20px 0 8px; }
     ol { margin: 0 0 8px 0; padding-left: 0; list-style: none; }

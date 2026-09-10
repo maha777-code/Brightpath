@@ -24,7 +24,7 @@
   --radius-sm: 10px;
   --shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 12px 40px rgba(79, 70, 229, 0.15);
-  --font: 'Pickwick', 'Trebuchet MS', sans-serif;
+  --font: 'Times New Roman', Times, serif;
   --font-display: 'Pickwick', 'Trebuchet MS', sans-serif;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -37,6 +37,7 @@ html {
 
 body {
   font-family: var(--font);
+  font-size: 18px;
   background: var(--slate-50);
   color: var(--slate-800);
   line-height: 1.6;
@@ -846,7 +847,7 @@ body {
   --landing-glass: rgba(255, 255, 255, 0.72);
   --landing-glass-border: rgba(255, 255, 255, 0.9);
   --landing-radius: 28px;
-  --landing-font: 'Pickwick', 'Trebuchet MS', sans-serif;
+  --landing-font: 'Times New Roman', Times, serif;
   position: relative;
   min-height: 100dvh;
   font-family: var(--landing-font);

@@ -7,14 +7,19 @@
 
 html,
 body,
-#root,
-button,
+#root {
+  font-family: 'Times New Roman', Times, serif;
+}
+
 h1,
 h2,
 h3,
 h4,
 h5,
-h6 {
+h6,
+.page-title,
+.font-heading,
+.font-pickwick {
   font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
 }
 
@@ -23,7 +28,7 @@ input,
 textarea,
 select,
 button {
-  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
+  font-family: 'Times New Roman', Times, serif !important;
   font-style: normal !important;
   letter-spacing: normal !important;
   text-transform: none !important;

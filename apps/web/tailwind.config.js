@@ -8,9 +8,17 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Pickwick', 'Trebuchet MS', 'sans-serif'],
-        serif: ['Pickwick', 'serif'],
+        sans: ['"Times New Roman"', 'Times', 'serif'],
+        serif: ['"Times New Roman"', 'Times', 'serif'],
+        heading: ['Pickwick', 'Trebuchet MS', 'sans-serif'],
         pickwick: ['Pickwick', 'Trebuchet MS', 'sans-serif'],
+      },
+      fontSize: {
+        xs: ['0.875rem', { lineHeight: '1.25rem' }],
+        sm: ['1rem', { lineHeight: '1.5rem' }],
+        base: ['1.125rem', { lineHeight: '1.75rem' }],
+        lg: ['1.25rem', { lineHeight: '1.75rem' }],
+        xl: ['1.375rem', { lineHeight: '2rem' }],
       },
       colors: {
         teal: {

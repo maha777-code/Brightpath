@@ -95,14 +95,14 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="app-loading min-h-screen" style={{ fontFamily: "'Pickwick', 'Trebuchet MS', sans-serif" }}>
+      <div className="app-loading min-h-screen" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
         <div className="loader" aria-label="Loading" />
       </div>
     );
   }
 
   return (
-    <div className="app min-h-screen" style={{ fontFamily: "'Pickwick', 'Trebuchet MS', sans-serif" }}>
+    <div className="app min-h-screen" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginGate />} />

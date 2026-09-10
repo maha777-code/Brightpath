@@ -16,7 +16,7 @@ body:has(.td-dash),
 }
 
 .td-dash {
-  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
+  font-family: 'Times New Roman', Times, serif;
   --td-bg: #0f172a;
   --td-card: rgba(30, 41, 59, 0.85);
   --td-card-solid: #1e293b;
@@ -65,13 +65,13 @@ body:has(.td-dash),
 }
 
 .ms-quiz-form {
-  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
+  font-family: 'Times New Roman', Times, serif;
 }
 
 .ms-quiz-form textarea,
 .ms-quiz-form input,
 .ms-quiz-form select {
-  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
+  font-family: 'Times New Roman', Times, serif;
   font-style: normal !important;
   font-weight: 400 !important;
   letter-spacing: normal !important;
@@ -86,7 +86,7 @@ body:has(.td-dash),
 }
 
 .quiz-gen-shell {
-  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
+  font-family: 'Times New Roman', Times, serif;
 }
 
 .quiz-gen-split {
@@ -124,12 +124,12 @@ body:has(.td-dash),
 }
 
 .ws-doc {
-  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
+  font-family: 'Times New Roman', Times, serif;
   color: #e2e8f0;
 }
 
 .ws-studio {
-  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
+  font-family: 'Times New Roman', Times, serif;
   color: #0f172a;
 }
 
@@ -252,16 +252,30 @@ body:has(.td-dash),
 }
 
 .td-dash,
-.td-dash *,
-.td-dash *::before,
-.td-dash *::after,
 .ms-quiz-form,
-.ms-quiz-form *,
 .quiz-gen-shell,
-.quiz-gen-shell *,
 .ws-studio,
-.ws-studio *,
-.ws-doc,
-.ws-doc * {
+.ws-doc {
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.td-dash h1,
+.td-dash h2,
+.td-dash h3,
+.td-dash h4,
+.td-dash h5,
+.td-dash h6,
+.ms-quiz-form h1,
+.ms-quiz-form h2,
+.ms-quiz-form h3,
+.quiz-gen-shell h1,
+.quiz-gen-shell h2,
+.quiz-gen-shell h3,
+.ws-studio h1,
+.ws-studio h2,
+.ws-studio h3,
+.ws-doc h1,
+.ws-doc h2,
+.ws-doc h3 {
   font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
 }
