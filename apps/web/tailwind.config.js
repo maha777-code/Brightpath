@@ -8,10 +8,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Times New Roman"', 'Times', 'serif'],
-        serif: ['"Times New Roman"', 'Times', 'serif'],
-        heading: ['Pickwick', 'Trebuchet MS', 'sans-serif'],
-        pickwick: ['Pickwick', 'Trebuchet MS', 'sans-serif'],
+        sans: ['Cambria', 'Georgia', 'serif'],
+        serif: ['Cambria', 'Georgia', 'serif'],
+        heading: ['Cambria', 'Georgia', 'serif'],
+        pickwick: ['Cambria', 'Georgia', 'serif'],
       },
       fontSize: {
         xs: ['0.875rem', { lineHeight: '1.25rem' }],

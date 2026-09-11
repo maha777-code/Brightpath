@@ -16,7 +16,7 @@ body:has(.td-dash),
 }
 
 .td-dash {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Cambria', Georgia, serif;
   --td-bg: #0f172a;
   --td-card: rgba(30, 41, 59, 0.85);
   --td-card-solid: #1e293b;
@@ -65,13 +65,13 @@ body:has(.td-dash),
 }
 
 .ms-quiz-form {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Cambria', Georgia, serif;
 }
 
 .ms-quiz-form textarea,
 .ms-quiz-form input,
 .ms-quiz-form select {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Cambria', Georgia, serif;
   font-style: normal !important;
   font-weight: 400 !important;
   letter-spacing: normal !important;
@@ -86,7 +86,7 @@ body:has(.td-dash),
 }
 
 .quiz-gen-shell {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Cambria', Georgia, serif;
 }
 
 .quiz-gen-split {
@@ -124,12 +124,12 @@ body:has(.td-dash),
 }
 
 .ws-doc {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Cambria', Georgia, serif;
   color: #e2e8f0;
 }
 
 .ws-studio {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Cambria', Georgia, serif;
   color: #0f172a;
 }
 
@@ -256,7 +256,7 @@ body:has(.td-dash),
 .quiz-gen-shell,
 .ws-studio,
 .ws-doc {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Cambria', Georgia, serif;
 }
 
 .td-dash h1,
@@ -277,5 +277,5 @@ body:has(.td-dash),
 .ws-doc h1,
 .ws-doc h2,
 .ws-doc h3 {
-  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
+  font-family: 'Cambria', Georgia, serif !important;
 }

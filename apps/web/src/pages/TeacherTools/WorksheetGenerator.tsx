@@ -99,7 +99,7 @@ const TOPIC_PLACEHOLDER =
   'Mitosis, World War II, paste a block of text or attach a PDF of content to base the worksheet on.';
 
 const TOOL_TEXTAREA_STYLE: CSSProperties = {
-  fontFamily: "'Times New Roman', Times, serif",
+  fontFamily: 'Cambria, Georgia, serif',
   WebkitTextFillColor: '#ffffff',
 };
 
@@ -440,7 +440,7 @@ function WorksheetStudio({
     if (!doc) return;
     doc.open();
     doc.write(
-      `<!DOCTYPE html><html><head><title>${title}</title><style>@font-face{font-family:'Pickwick';src:url('/fonts/Pickwick-Regular.woff2') format('woff2'),url('/fonts/Pickwick-Regular.woff') format('woff');font-weight:400;font-display:swap}@font-face{font-family:'Pickwick';src:url('/fonts/Pickwick-Bold.woff2') format('woff2'),url('/fonts/Pickwick-Bold.woff') format('woff');font-weight:700;font-display:swap}body{font-family:'Times New Roman',Times,serif;font-size:18px;padding:32px;color:#0f172a} h1,h2,h3{font-family:'Pickwick','Trebuchet MS',sans-serif;text-align:center}</style></head><body>${node.innerHTML}</body></html>`,
+      `<!DOCTYPE html><html><head><title>${title}</title><style>body{font-family:Cambria,Georgia,serif;font-size:18px;padding:32px;color:#0f172a} h1,h2,h3{font-family:Cambria,Georgia,serif;text-align:center}</style></head><body>${node.innerHTML}</body></html>`,
     );
     doc.close();
     window.setTimeout(() => {
@@ -1233,7 +1233,7 @@ export function WorksheetGenerator({
                     className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 pr-9 text-sm text-slate-800 shadow-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
                     style={{
                       fontFamily:
-                        "'Times New Roman', Times, serif",
+                        'Cambria, Georgia, serif',
                     }}
                     value={gradeLevel}
                     onChange={(e) => setGradeLevel(e.target.value)}

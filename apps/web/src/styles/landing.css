@@ -13,7 +13,7 @@
   --bp-outline: rgba(167, 139, 250, 0.45);
   --bp-divider: rgba(167, 139, 250, 0.35);
   --bp-radius: 24px;
-  --bp-font: 'Times New Roman', Times, serif;
+  --bp-font: 'Cambria', Georgia, serif;
   position: relative;
   min-height: 100dvh;
   font-family: var(--bp-font);
@@ -234,7 +234,7 @@
 }
 
 .bp-holo-eq {
-  font-family: ui-monospace, "Courier New", monospace;
+  font-family: 'Cambria', Georgia, serif;
   font-size: 0.9rem;
   font-weight: 700;
   color: #4f46e5;
@@ -725,10 +725,7 @@
 .bp-landing span,
 .bp-landing li,
 .bp-landing button,
-.bp-btn {
-  font-family: 'Times New Roman', Times, serif;
-}
-
+.bp-btn,
 .bp-landing h1,
 .bp-landing h2,
 .bp-landing h3,
@@ -736,5 +733,5 @@
 .bp-landing h5,
 .bp-landing h6,
 .bp-section-title {
-  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
+  font-family: 'Cambria', Georgia, serif !important;
 }

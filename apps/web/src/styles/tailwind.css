@@ -6,14 +6,14 @@
   --primary-color: #5b46ba;
   --primary-hover: #4a3799;
   --accent-color: #0d9488;
-  --font: 'Times New Roman', Times, serif;
-  --font-display: 'Pickwick', 'Trebuchet MS', sans-serif;
+  --font: 'Cambria', Georgia, serif;
+  --font-display: 'Cambria', Georgia, serif;
 }
 
 html,
 body,
 #root {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Cambria', Georgia, serif;
 }
 
 /* Prevent global icon fonts or header fonts from breaking input text */
@@ -21,7 +21,7 @@ input,
 textarea,
 select,
 button {
-  font-family: 'Times New Roman', Times, serif !important;
+  font-family: 'Cambria', Georgia, serif !important;
   font-style: normal !important;
   letter-spacing: normal !important;
   text-transform: none !important;
@@ -36,7 +36,7 @@ select {
 
 /* Dashboard layout helpers (Tailwind-first app shell) */
 .bp-dash {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Cambria', Georgia, serif;
 }
 
 .btn-primary,
@@ -47,4 +47,3 @@ select {
 .btn-primary:hover {
   background-color: var(--primary-hover);
 }
-

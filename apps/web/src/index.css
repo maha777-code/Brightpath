@@ -1,71 +1,36 @@
-@import url('https://fonts.cdnfonts.com/css/pickwick');
-
-@font-face {
-  font-family: 'Pickwick';
-  src: url('/fonts/Pickwick-Regular.woff2') format('woff2'),
-       url('/fonts/Pickwick-Regular.woff') format('woff');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Pickwick';
-  src: url('/fonts/Pickwick-Bold.woff2') format('woff2'),
-       url('/fonts/Pickwick-Bold.woff') format('woff');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
+/* Universal forced font reset to Cambria */
+*,
+*::before,
+*::after,
+html,
+body,
+div,
+span,
+h1, h2, h3, h4, h5, h6,
+p, a, button, input, textarea, select, label, table, th, td,
+li, ul, ol, nav, header, footer, main, section, article {
+  font-family: 'Cambria', Georgia, serif !important;
 }
 
 :root {
-  --font-pickwick: 'Pickwick', 'Trebuchet MS', sans-serif;
-  --font-display: var(--font-pickwick);
-  --font: 'Times New Roman', Times, serif;
+  --font: 'Cambria', Georgia, serif;
+  --font-display: 'Cambria', Georgia, serif;
+  --font-pickwick: 'Cambria', Georgia, serif;
 }
 
-/* 1. Base body font set to Times New Roman with +2px size bump */
-html {
-  font-size: 16px;
-}
-
+/* Maintain increased baseline font size (+2px) for improved legibility */
 html,
-body,
-#root {
-  font-family: 'Times New Roman', Times, serif !important;
+body {
+  font-size: 18px !important;
   line-height: 1.6;
 }
 
-body {
-  font-size: 18px !important; /* Standard base is 16px (+2px bump) */
-}
-
-/* 2. Form controls set to Times New Roman at 18px */
 input,
 textarea,
 select,
 button,
 p,
 span,
-li,
-td,
-th,
-a,
-label {
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 1.125rem; /* 18px (+2px over standard 16px text) */
-}
-
-/* 3. Headings explicitly mapped to Pickwick font */
-h1, h2, h3, h4, h5, h6,
-h1 *, h2 *, h3 *, h4 *, h5 *, h6 *,
-.font-heading,
-.font-heading *,
-.font-pickwick,
-.font-pickwick *,
-.page-title,
-.page-title *,
-.bp-section-title,
-.bp-section-title * {
-  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
+li {
+  font-size: 1.125rem; /* 18px */
 }

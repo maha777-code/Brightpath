@@ -7,10 +7,7 @@
 
 html,
 body,
-#root {
-  font-family: 'Times New Roman', Times, serif;
-}
-
+#root,
 h1,
 h2,
 h3,
@@ -20,7 +17,7 @@ h6,
 .page-title,
 .font-heading,
 .font-pickwick {
-  font-family: 'Pickwick', 'Trebuchet MS', sans-serif !important;
+  font-family: 'Cambria', Georgia, serif;
 }
 
 /* Prevent global icon fonts or header fonts from breaking input text */
@@ -28,7 +25,7 @@ input,
 textarea,
 select,
 button {
-  font-family: 'Times New Roman', Times, serif !important;
+  font-family: 'Cambria', Georgia, serif !important;
   font-style: normal !important;
   letter-spacing: normal !important;
   text-transform: none !important;

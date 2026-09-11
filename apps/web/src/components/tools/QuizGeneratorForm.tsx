@@ -37,7 +37,7 @@ const TOPIC_PLACEHOLDER = 'Enter topic, standard, or source text...';
 const STANDARDS_PLACEHOLDER = 'Any standards worldwide (CCSS, TEKS, Ontario, Florida)';
 
 const TOOL_TEXTAREA_STYLE: CSSProperties = {
-  fontFamily: "'Times New Roman', Times, serif",
+  fontFamily: 'Cambria, Georgia, serif',
   WebkitTextFillColor: '#ffffff',
 };
 
@@ -133,7 +133,7 @@ function SelectField({
           className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 pr-9 text-sm text-slate-800 shadow-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
           style={{
             fontFamily:
-              "'Times New Roman', Times, serif",
+              'Cambria, Georgia, serif',
           }}
           value={value}
           onChange={(e) => onChange(e.target.value)}
