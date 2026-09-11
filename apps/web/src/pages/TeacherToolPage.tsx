@@ -4,6 +4,7 @@ import { ArrowLeft, Sparkles } from 'lucide-react';
 import { getTeacherToolById, type TeacherToolDefinition } from '@brightpath/shared';
 import QuizGenerator from '@/pages/TeacherTools/QuizGenerator';
 import WorksheetGenerator from '@/pages/TeacherTools/WorksheetGenerator';
+import SongGeneratorDashboard from '@/pages/TeacherTools/SongGeneratorDashboard';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 
@@ -74,6 +75,10 @@ export function TeacherToolLauncher({
     );
     if (embedded) return worksheet;
     return <DashboardLayout>{worksheet}</DashboardLayout>;
+  }
+
+  if (tool.id === 'song-generator') {
+    return <SongGeneratorDashboard />;
   }
 
   const body = (

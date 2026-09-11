@@ -420,6 +420,12 @@ export type {
   TeacherToolFeedbackResponse,
   WorksheetRefinePayload,
   WorksheetTranslatePayload,
+  SongLyricsPayload,
+  SongLyricsDraft,
+  SongRenderPayload,
+  TeacherSong,
+  TeacherSongsListResponse,
+  SongDeleteResponse,
 } from './teacherTools.js';
 
 export {
@@ -428,6 +434,13 @@ export {
   getTeacherToolById,
   applyWorksheetFollowUp,
   applyWorksheetTranslation,
+  SONG_GRADE_LEVELS,
+  SONG_STYLES,
+  SONG_VOICES,
+  FREE_SONGS_PER_WEEK,
+  PLUS_SONGS_PER_WEEK,
+  nextMondayIso,
+  lyricsPreview,
 } from './teacherTools.js';
 
 export type {

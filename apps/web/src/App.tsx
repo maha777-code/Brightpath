@@ -21,6 +21,8 @@ import ChapterExplorePage from '@/pages/ChapterExplorePage';
 import TeacherDashboard from '@/pages/TeacherDashboard';
 import TeacherTools from '@/pages/TeacherTools';
 import TeacherToolPage from '@/pages/TeacherToolPage';
+import SongGeneratorDashboard from '@/pages/TeacherTools/SongGeneratorDashboard';
+import SongGeneratorCreate from '@/pages/TeacherTools/SongGeneratorCreate';
 import TeacherChapterManagePage from '@/pages/TeacherChapterManagePage';
 import SchoolDashboard from '@/pages/SchoolDashboard';
 import CenterDashboard from '@/pages/CenterDashboard';
@@ -189,6 +191,8 @@ export default function App() {
         <Route path="/progress" element={<ProtectedStudent><Progress /></ProtectedStudent>} />
         <Route path="/teacher/dashboard" element={<ProtectedTeacher><TeacherDashboard /></ProtectedTeacher>} />
         <Route path="/teacher/tools" element={<ProtectedTeacher><TeacherTools /></ProtectedTeacher>} />
+        <Route path="/teacher/tools/song-generator/new" element={<ProtectedTeacher><SongGeneratorCreate /></ProtectedTeacher>} />
+        <Route path="/teacher/tools/song-generator" element={<ProtectedTeacher><SongGeneratorDashboard /></ProtectedTeacher>} />
         <Route path="/teacher/tools/:toolId" element={<ProtectedTeacher><TeacherToolPage /></ProtectedTeacher>} />
         <Route
           path="/teacher/chapter/:id"

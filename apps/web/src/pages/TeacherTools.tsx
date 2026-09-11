@@ -122,6 +122,10 @@ export default function TeacherTools() {
       navigate('/teacher/tools/worksheet-generator');
       return;
     }
+    if (tool.id === 'song-generator') {
+      navigate('/teacher/tools/song-generator');
+      return;
+    }
     setActiveTool(tool);
   };
 

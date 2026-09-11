@@ -3,6 +3,8 @@ import type {
   QuizGeneratorResponse,
   WorksheetGeneratorPayload,
   WorksheetGeneratorResponse,
+  SongLyricsPayload,
+  SongLyricsDraft,
 } from '@brightpath/shared';
 import { applyWorksheetFollowUp, applyWorksheetTranslation } from '@brightpath/shared';
 import { getActiveProvider } from '../lib/llm/provider.js';
@@ -399,5 +401,78 @@ export async function translateWorksheet(input: {
   } catch (err) {
     console.error('[llm] worksheet translate failed', err);
     return heuristic;
+  }
+}
+
+const SONG_LYRICS_SYSTEM = `You write original, classroom-safe educational songs for K-12 students.
+Return strict JSON with keys: title (string), lyrics (string).
+Lyrics must include labeled sections such as Verse 1, Chorus, Verse 2, and Bridge when helpful.
+Keep language grade-appropriate, scientifically/historically accurate, catchy, and singable.
+Do not include markdown or extra commentary.`;
+
+export function fallbackSongLyrics(input: SongLyricsPayload): SongLyricsDraft {
+  const topic = input.topic.trim() || 'this topic';
+  const title = `${topic} Song`;
+  const lyrics = [
+    `Verse 1`,
+    `Let's explore ${topic} today,`,
+    `${input.gradeLevel} learners leading the way.`,
+    `Ask a question, look around —`,
+    `clues and evidence can be found.`,
+    ``,
+    `Chorus`,
+    `${topic}, ${topic}, sing it true,`,
+    `learn the steps and follow through.`,
+    `In the style of ${input.songStyle},`,
+    `we remember what we do.`,
+    ``,
+    `Verse 2`,
+    `Break it down and say it slow,`,
+    `that's the way the big ideas grow.`,
+    `Try an example, check your claim,`,
+    `then we sing the facts by name.`,
+  ].join('\n');
+  return {
+    title,
+    lyrics,
+    topic,
+    gradeLevel: input.gradeLevel,
+    songStyle: input.songStyle,
+    customInstructions: input.customInstructions,
+  };
+}
+
+export async function generateSongLyrics(input: SongLyricsPayload): Promise<SongLyricsDraft> {
+  const fallback = fallbackSongLyrics(input);
+  const llm = getActiveProvider();
+  if (!llm) return fallback;
+
+  try {
+    const raw = await llm.completeJson<{ title?: unknown; lyrics?: unknown }>({
+      system: SONG_LYRICS_SYSTEM,
+      user: [
+        `Song topic: ${input.topic.trim()}`,
+        `Grade level: ${input.gradeLevel}`,
+        `Song style: ${input.songStyle}`,
+        input.customInstructions?.trim()
+          ? `Custom instructions: ${input.customInstructions.trim()}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    });
+    const title = String(raw.title ?? '').trim() || fallback.title;
+    const lyrics = String(raw.lyrics ?? '').trim() || fallback.lyrics;
+    return {
+      title,
+      lyrics,
+      topic: input.topic.trim(),
+      gradeLevel: input.gradeLevel,
+      songStyle: input.songStyle,
+      customInstructions: input.customInstructions,
+    };
+  } catch (err) {
+    console.error('[llm] song lyrics generation failed', err);
+    return fallback;
   }
 }

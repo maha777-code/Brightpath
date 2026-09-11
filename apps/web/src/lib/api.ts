@@ -107,6 +107,12 @@ import type {
   TeacherToolFeedbackResponse,
   WorksheetRefinePayload,
   WorksheetTranslatePayload,
+  SongLyricsPayload,
+  SongLyricsDraft,
+  SongRenderPayload,
+  TeacherSong,
+  TeacherSongsListResponse,
+  SongDeleteResponse,
   GenerateActivityRequest,
   GenerateActivityResponse,
   GenerationTemplate,
@@ -470,6 +476,26 @@ export const api = {
     request<TeacherToolFeedbackResponse>('/teacher/tools/feedback', {
       method: 'POST',
       body: JSON.stringify(body),
+    }),
+
+  listTeacherSongs: () =>
+    request<TeacherSongsListResponse>('/teacher/songs', { cache: 'no-store' }),
+
+  generateSongLyrics: (body: SongLyricsPayload) =>
+    request<SongLyricsDraft>('/teacher/songs/generate-lyrics', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  renderSongAudio: (body: SongRenderPayload) =>
+    request<TeacherSong>('/teacher/songs/render-audio', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  deleteTeacherSong: (id: string) =>
+    request<SongDeleteResponse>(`/teacher/songs/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
     }),
 
   reviewDoubt: (id: string, body: ReviewDoubtRequest) =>

@@ -43,10 +43,10 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
   {
     id: 'song-generator',
     title: 'Educational Song Generator',
-    description: 'Generate an original song with lyrics and audio on any topic.',
+    description: 'Generate custom lyrics and a song on any topic — to the tune of your choice!',
     focusArea: 'content',
     href: '/teacher/tools/song-generator',
-    badge: 'New',
+    badge: 'Beta',
     popularity: 88,
     newestRank: 1,
     icon: 'music',
@@ -463,6 +463,88 @@ export function applyWorksheetFollowUp(
       },
     ],
   };
+}
+
+export const SONG_GRADE_LEVELS = ['K–2', '3–5', '6–8', '9th grade', '9–12'] as const;
+
+export const SONG_STYLES = [
+  'Classic Schoolhouse Rock',
+  'Modern Pop',
+  'Hip Hop',
+  'Acoustic Folk',
+] as const;
+
+export const SONG_VOICES = [
+  { id: 'bright-kids', label: 'Bright Kids Choir' },
+  { id: 'warm-alto', label: 'Warm Teacher Alto' },
+  { id: 'upbeat-tenor', label: 'Upbeat Tenor' },
+  { id: 'classroom', label: 'Classroom Narrator' },
+] as const;
+
+export const FREE_SONGS_PER_WEEK = 1;
+export const PLUS_SONGS_PER_WEEK = 5;
+
+export interface SongLyricsPayload {
+  topic: string;
+  gradeLevel: string;
+  songStyle: string;
+  customInstructions?: string;
+}
+
+export interface SongLyricsDraft {
+  title: string;
+  lyrics: string;
+  topic: string;
+  gradeLevel: string;
+  songStyle: string;
+  customInstructions?: string;
+}
+
+export interface SongRenderPayload extends SongLyricsDraft {
+  voiceId: string;
+}
+
+export interface TeacherSong {
+  id: string;
+  title: string;
+  topic: string;
+  lyrics: string;
+  lyricsPreview: string;
+  songStyle: string;
+  gradeLevel: string;
+  voiceId: string;
+  voiceLabel: string;
+  artUrl: string;
+  audioUrl?: string;
+  createdAt: string;
+}
+
+export interface TeacherSongsListResponse {
+  items: TeacherSong[];
+  usedThisWeek: number;
+  weeklyLimit: number;
+  resetsAt: string;
+  plusLimit: number;
+}
+
+export interface SongDeleteResponse {
+  ok: true;
+  id: string;
+}
+
+export function nextMondayIso(from = new Date()): string {
+  const date = new Date(from);
+  const day = date.getDay();
+  const daysUntilMonday = (8 - day) % 7 || 7;
+  date.setDate(date.getDate() + daysUntilMonday);
+  date.setHours(0, 0, 0, 0);
+  return date.toISOString();
+}
+
+export function lyricsPreview(lyrics: string, max = 90): string {
+  const compact = lyrics.replace(/\s+/g, ' ').trim();
+  if (compact.length <= max) return compact;
+  return `${compact.slice(0, max - 1).trim()}…`;
 }
 
 export function getTeacherToolById(id: string): TeacherToolDefinition | undefined {

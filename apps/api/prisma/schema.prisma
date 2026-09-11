@@ -352,6 +352,7 @@ model Teacher {
   toolFavorites     TeacherToolFavorite[]
   worksheetHistory  TeacherWorksheetHistory[]
   toolFeedback      TeacherToolFeedback[]
+  songs             TeacherSong[]
 
   @@index([organizationId])
 }
@@ -392,6 +393,25 @@ model TeacherToolFeedback {
 
   @@index([teacherId])
   @@index([worksheetId])
+}
+
+model TeacherSong {
+  id             String   @id @default(cuid())
+  teacherId      String
+  teacher        Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  title          String
+  topic          String
+  lyrics         String
+  songStyle      String
+  gradeLevel     String
+  voiceId        String
+  voiceLabel     String
+  artUrl         String
+  audioUrl       String?
+  audioPath      String?
+  createdAt      DateTime @default(now())
+
+  @@index([teacherId, createdAt])
 }
 
 model Textbook {
