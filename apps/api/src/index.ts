@@ -89,6 +89,9 @@ app.use(
       if (filePath.endsWith('.mp3')) {
         res.setHeader('Content-Type', 'audio/mpeg');
       }
+      if (filePath.endsWith('.wav')) {
+        res.setHeader('Content-Type', 'audio/wav');
+      }
     },
   }),
 );

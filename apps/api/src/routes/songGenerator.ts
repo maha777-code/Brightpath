@@ -215,9 +215,18 @@ router.post('/songs/render-audio', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    req.setTimeout(240_000);
+    res.setTimeout(240_000);
+
     const id = randomUUID();
     const voice = SONG_VOICES.find((item) => item.id === parsed.data.voiceId) ?? SONG_VOICES[0];
-    const audio = await renderSongAudio(id, parsed.data.lyrics, parsed.data.voiceId);
+    const audio = await renderSongAudio(id, {
+      topic: parsed.data.topic,
+      lyrics: parsed.data.lyrics,
+      style: parsed.data.songStyle,
+      gradeLevel: parsed.data.gradeLevel,
+      voiceId: parsed.data.voiceId,
+    });
     const artUrl = albumArtDataUrl(parsed.data.topic || parsed.data.title);
 
     await prisma.$executeRawUnsafe(
