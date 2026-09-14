@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import {
   ChevronDown,
   FilePlus,
@@ -156,7 +156,7 @@ function StudioComposer({
   placeholder,
   files,
   onFiles,
-  promptAssistant,
+  assistantHint,
   minHeight = 168,
 }: {
   value: string;
@@ -164,10 +164,11 @@ function StudioComposer({
   placeholder: string;
   files: string[];
   onFiles: (names: string[]) => void;
-  promptAssistant?: ReactNode;
+  assistantHint?: string;
   minHeight?: number;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const { listening, toggle } = useDictation((text) => {
     onChange(value.trim() ? `${value.trim()} ${text}` : text);
@@ -176,16 +177,14 @@ function StudioComposer({
   const overLimit = words > WORD_LIMIT;
 
   return (
-    <div
-      className="rounded-xl border border-white/10 bg-[#151c2b] shadow-inner"
-      style={FONT}
-    >
-      <div className="relative px-3 pb-2 pt-3">
+    <div className="relative rounded-2xl border border-slate-800 bg-slate-900/90 p-5 shadow-xl" style={FONT}>
+      <div className="relative">
         <button
           type="button"
+          title="Voice Input"
           className={[
-            'absolute left-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/10 hover:text-white',
-            listening ? 'bg-violet-500/30 text-violet-200' : '',
+            'absolute left-3 top-3 z-10 cursor-pointer rounded-lg border border-slate-700 bg-slate-900 p-2 text-purple-400 shadow-md transition-colors hover:bg-purple-600/40 hover:text-white',
+            listening ? 'border-purple-500 bg-purple-600/40 text-white' : '',
           ].join(' ')}
           aria-label={listening ? 'Stop dictation' : 'Dictate with microphone'}
           onClick={toggle}
@@ -193,8 +192,8 @@ function StudioComposer({
           <Mic className="h-4 w-4" />
         </button>
         <textarea
-          className="min-h-[9rem] w-full resize-y bg-transparent pl-11 pr-2 text-[18px] leading-relaxed text-slate-100 placeholder:text-slate-500 focus:outline-none"
-          style={{ ...FONT, minHeight, WebkitTextFillColor: '#e2e8f0' }}
+          className="w-full resize-y rounded-xl border border-slate-700/80 bg-slate-950 p-3 pl-14 text-base text-slate-100 placeholder-slate-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+          style={{ ...FONT, minHeight, WebkitTextFillColor: '#f1f5f9' }}
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -202,32 +201,33 @@ function StudioComposer({
         />
       </div>
       {files.length > 0 ? (
-        <ul className="flex flex-wrap gap-1.5 px-3 pb-2">
+        <ul className="mt-3 flex flex-wrap gap-1.5">
           {files.map((name) => (
-            <li key={name} className="rounded-full bg-white/10 px-2.5 py-0.5 text-sm text-slate-200">
+            <li
+              key={name}
+              className="rounded-full border border-slate-700 bg-slate-950 px-2.5 py-0.5 text-sm text-slate-200"
+            >
               {name}
             </li>
           ))}
         </ul>
       ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-3 py-2.5">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <div className="relative">
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-violet-400/50 bg-[#1b2438] px-3 py-1.5 text-[18px] font-semibold text-violet-100 hover:bg-violet-500/20"
-            style={FONT}
+            className="flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-slate-950 px-3 py-1.5 text-xs font-medium text-purple-300 transition-colors hover:bg-slate-800 hover:text-white"
             onClick={() => setMenuOpen((v) => !v)}
           >
-            <FilePlus className="h-4 w-4" />
-            + Add File
-            <ChevronDown className="h-3.5 w-3.5" />
+            <FilePlus className="h-3.5 w-3.5 text-purple-400" />
+            <span>+ Add File</span>
+            <ChevronDown className="h-3 w-3" />
           </button>
           {menuOpen ? (
-            <div className="absolute bottom-11 left-0 z-20 w-52 overflow-hidden rounded-lg border border-white/15 bg-[#1b2438] py-1 shadow-xl">
+            <div className="absolute bottom-11 left-0 z-20 w-52 overflow-hidden rounded-lg border border-slate-700 bg-slate-900 py-1 shadow-xl">
               <button
                 type="button"
-                className="block w-full px-3 py-2 text-left text-[18px] text-slate-100 hover:bg-white/10"
-                style={FONT}
+                className="block w-full px-3 py-2 text-left text-sm text-slate-100 hover:bg-slate-800"
                 onClick={() => {
                   setMenuOpen(false);
                   fileRef.current?.click();
@@ -250,39 +250,26 @@ function StudioComposer({
             }}
           />
         </div>
-        <p className={overLimit ? 'text-[16px] font-medium text-rose-300' : 'text-[16px] text-slate-400'} style={FONT}>
-          Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
-        </p>
-      </div>
-      {promptAssistant}
-    </div>
-  );
-}
-
-function PromptAssistant({
-  open,
-  onToggle,
-  children,
-}: {
-  open: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex flex-col items-end gap-2 px-3 pb-3">
-      <button
-        type="button"
-        className="inline-flex items-center gap-1.5 text-[18px] font-medium text-violet-300/80 hover:text-violet-200"
-        style={FONT}
-        onClick={onToggle}
-      >
-        <Sparkles className="h-4 w-4" />
-        Prompt assistant
-      </button>
-      {open ? (
-        <div className="w-full rounded-lg border border-violet-400/20 bg-violet-500/10 px-3 py-2 text-[16px] text-slate-200">
-          {children}
+        <div className="flex flex-wrap items-center gap-4">
+          <span className={overLimit ? 'text-xs font-medium text-rose-300' : 'text-xs text-slate-400'}>
+            Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
+          </span>
+          {assistantHint ? (
+            <button
+              type="button"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-purple-500/30 bg-slate-900 px-3 py-1.5 text-sm font-medium text-purple-300 shadow-sm transition-colors hover:border-purple-500 hover:text-white"
+              onClick={() => setAssistantOpen((v) => !v)}
+            >
+              <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+              <span>Prompt assistant</span>
+            </button>
+          ) : null}
         </div>
+      </div>
+      {assistantHint && assistantOpen ? (
+        <p className="mt-3 rounded-lg border border-purple-500/30 bg-slate-950 px-3 py-2 text-sm text-slate-200">
+          {assistantHint}
+        </p>
       ) : null}
     </div>
   );
@@ -297,8 +284,6 @@ export default function LessonPlanGenerator() {
   const [criteriaFiles, setCriteriaFiles] = useState<string[]>([]);
   const [standardsFiles, setStandardsFiles] = useState<string[]>([]);
   const [history, setHistory] = useState<FormState[]>([]);
-  const [topicAssist, setTopicAssist] = useState(false);
-  const [criteriaAssist, setCriteriaAssist] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<LessonPlanResponse | null>(null);
@@ -334,16 +319,22 @@ export default function LessonPlanGenerator() {
     if (key === 'standards') setStandards(value);
   };
 
-  const undo = () => {
-    setHistory((prev) => {
-      if (!prev.length) return prev;
-      const last = prev[prev.length - 1];
-      applyState(last);
-      return prev.slice(0, -1);
+  const handleReset = () => {
+    pushHistory();
+    applyState({
+      gradeLevel: '9th grade',
+      topic: '',
+      criteria: '',
+      standards: '',
+      topicFiles: [],
+      criteriaFiles: [],
+      standardsFiles: [],
     });
+    setPlan(null);
+    setError(null);
   };
 
-  const showExemplar = () => {
+  const handleShowExemplar = () => {
     pushHistory();
     applyState(EXEMPLAR);
     setPlan(null);
@@ -386,20 +377,20 @@ export default function LessonPlanGenerator() {
               <p className="text-[18px] text-slate-300" style={FONT}>
                 Generate a lesson plan based on a standard, topic, or objective.
               </p>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-300 hover:bg-white/10 hover:text-white"
-                  aria-label="Undo"
-                  onClick={undo}
+                  onClick={handleReset}
+                  title="Reset form"
+                  aria-label="Reset form"
+                  className="rounded-lg border border-slate-700 bg-slate-900 p-2 text-purple-300 transition-colors hover:border-purple-500 hover:text-white"
                 >
-                  <RotateCcw className="h-5 w-5" />
+                  <RotateCcw className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  className="text-[18px] font-medium text-slate-200 underline-offset-4 hover:text-white hover:underline"
-                  style={FONT}
-                  onClick={showExemplar}
+                  onClick={handleShowExemplar}
+                  className="rounded-lg border border-slate-700 bg-slate-900 px-3.5 py-1.5 text-sm font-medium text-purple-300 transition-colors hover:border-purple-500 hover:text-white"
                 >
                   Show exemplar
                 </button>
@@ -441,12 +432,7 @@ export default function LessonPlanGenerator() {
                 files={topicFiles}
                 onFiles={setTopicFiles}
                 minHeight={200}
-                promptAssistant={
-                  <PromptAssistant open={topicAssist} onToggle={() => setTopicAssist((v) => !v)}>
-                    Name the standard, topic, or learning objective. Paste the full wording if you want alignment to a
-                    specific framework (NGSS, CCSS, TEKS, and others).
-                  </PromptAssistant>
-                }
+                assistantHint="Name the standard, topic, or learning objective. Paste the full wording if you want alignment to a specific framework (NGSS, CCSS, TEKS, and others)."
               />
             </div>
 
@@ -460,11 +446,7 @@ export default function LessonPlanGenerator() {
                 placeholder={CRITERIA_PLACEHOLDER}
                 files={criteriaFiles}
                 onFiles={setCriteriaFiles}
-                promptAssistant={
-                  <PromptAssistant open={criteriaAssist} onToggle={() => setCriteriaAssist((v) => !v)}>
-                    Add class context: prior lesson, grouping, materials, timing, or instructional must-haves.
-                  </PromptAssistant>
-                }
+                assistantHint="Add class context: prior lesson, grouping, materials, timing, or instructional must-haves."
               />
             </div>
 
@@ -535,10 +517,10 @@ export default function LessonPlanGenerator() {
           </div>
         </div>
 
-        <div className="relative shrink-0 bg-[#0d131f] px-5 pb-5 pt-6 sm:px-8">
+        <div className="relative shrink-0 bg-[#0d131f] px-5 pb-5 pt-3 sm:px-8">
           <button
             type="button"
-            className="absolute left-1/2 top-0 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-[#1b2438] text-slate-200 shadow-lg hover:bg-[#243044]"
+            className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-purple-300 shadow-lg transition-colors hover:border-purple-500 hover:text-white"
             aria-label="Scroll down"
             onClick={() => {
               const el = scrollRef.current;
