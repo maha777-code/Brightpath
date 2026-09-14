@@ -27,6 +27,11 @@ export interface MusicGenRequest {
   durationSeconds: number;
   audioFormat: 'mp3' | 'wav';
   stylePreset: string;
+  lyrics?: string;
+  vocalStyle?: string;
+  /** Always request a sung mix — never karaoke / instrumental-only. */
+  instrumental?: false;
+  hasVocals?: true;
 }
 
 export interface MusicGenResult {
@@ -75,6 +80,23 @@ const VOICE_DIRECTION: Record<string, string> = {
   'upbeat-tenor': 'sung by an upbeat adult male tenor',
   classroom: 'sung by a clear, encouraging teacher with a melodic singing voice (not spoken narration)',
 };
+
+const VOCAL_STYLE_LABEL: Record<string, string> = {
+  'bright-kids': "Children's Choir Lead Vocal",
+  'warm-alto': 'Female Lead Vocal',
+  'upbeat-tenor': 'Male Lead Vocal',
+  classroom: 'Warm Teacher Lead Vocal',
+};
+
+const VOCAL_API_FLAGS = {
+  instrumental: false,
+  hasVocals: true,
+  has_vocals: true,
+  force_instrumental: false,
+} as const;
+
+const NO_VOCAL_NEGATIVE =
+  'instrumental only, karaoke, no vocals, instrumental version, backing track only, spoken word, speech synthesis, TTS';
 
 function geminiApiKey(): string | null {
   return process.env.GEMINI_API_KEY?.trim() || null;
@@ -125,29 +147,61 @@ function taggedLyrics(lyrics: string): string {
   return tagged.join('\n');
 }
 
+export function vocalStyleForVoice(voiceId?: string): string {
+  return VOCAL_STYLE_LABEL[voiceId ?? ''] ?? 'Female Lead Vocal';
+}
+
+/** Add explicit vocal directive tags so the engine synthesizes singing. */
+export function prepareLyricsForSinging(
+  rawLyrics: string,
+  vocalStyle: string = 'Female Lead Vocal',
+  songStyle = 'Upbeat Pop',
+): string {
+  const vocalHeader = `[Style: ${songStyle}, Catchy Melody]\n[Vocals: ${vocalStyle}, Clear Singing Voice, Melodic]\n[vocal]\n[hasVocals: true]\n[instrumental: false]\n\n`;
+
+  const formattedLyrics = rawLyrics
+    .replace(/\[Verse(?:\s*(\d+))?\]/gi, (_match, n: string | undefined) =>
+      `[Verse${n ? ` ${n}` : ''} - Sung with rhythmic clear vocals]`,
+    )
+    .replace(/\[Chorus(?:\s*(\d+))?\]/gi, (_match, n: string | undefined) =>
+      `[Chorus${n ? ` ${n}` : ''} - Melodic singing hook]`,
+    )
+    .replace(/\[Bridge(?:\s*(\d+))?\]/gi, (_match, n: string | undefined) =>
+      `[Bridge${n ? ` ${n}` : ''} - Sung vocals]`,
+    )
+    .replace(/\[Outro\]/gi, '[Outro - Vocal fade out]');
+
+  return `${vocalHeader}${formattedLyrics}`;
+}
+
 export function buildMusicPrompt(params: EducationalSongParams, durationSeconds: number): string {
   const preset = stylePreset(params.style);
+  const vocalStyle = vocalStyleForVoice(params.voiceId);
   const voice = VOICE_DIRECTION[params.voiceId ?? ''] ?? 'sung lead vocals (not spoken text-to-speech)';
-  const lyrics = taggedLyrics(params.lyrics);
+  const lyrics = prepareLyricsForSinging(taggedLyrics(params.lyrics), vocalStyle, params.style);
   const durationHint =
     durationSeconds <= 35
-      ? 'Create a tight 30-second highlight that still feels like a full hook with drums, bass, and melody.'
-      : `Create a complete ${durationSeconds}-second song with intro, verses, chorus, and a short outro.`;
+      ? 'Create a tight 30-second highlight with a SUNG vocal hook over drums, bass, and melody — not an instrumental clip.'
+      : `Create a complete ${durationSeconds}-second song with intro, verses, chorus, and a short outro. Lead vocals must sing the lyrics throughout.`;
 
-  return `An upbeat, catchy educational song for grade level ${params.gradeLevel}.
+  return `A FULL MIX educational song WITH SUNG LEAD VOCALS (instrumental: false, hasVocals: true).
+Do not generate an instrumental, karaoke, or backing-track-only version.
+The lead singer must sing every lyric line on pitch with rhythm.
+
+An upbeat, catchy educational song for grade level ${params.gradeLevel}.
 Topic: ${params.topic}.
 Genre and Style: ${params.style} (e.g. Nursery Rhyme / Schoolhouse Rock with strong rhythmic beat, drums, bassline, and catchy melody).
 Musical attributes:
 - Tempo: ${preset.bpm} BPM
 - Groove: ${preset.groove}
-- Instrumentation: ${preset.instruments}
+- Instrumentation: ${preset.instruments} PLUS a prominent ${vocalStyle}
 - Arrangement: ${preset.description}
-- Vocals: ${voice}. The lyrics must be SUNG on pitch with rhythm — never read as speech, never spoken TTS.
-- Structure: intro → verse → chorus → verse → chorus → short outro. Use rhythmic cadence so classroom students can clap along.
+- Vocals: ${voice}. The lyrics must be SUNG on pitch with rhythm — never read as speech, never spoken TTS, never omitted.
+- Structure: intro → sung verse → sung chorus → sung verse → sung chorus → short vocal outro.
 ${durationHint}
-Full mix: stereo, 44.1 kHz, vocals sitting on top of backing instruments, drums, and bass.
+Full mix: stereo, 44.1 kHz, sung vocals sitting on top of backing instruments, drums, and bass.
 
-Lyrics (sing these exact words; keep section tags):
+Lyrics:
 ${lyrics}`;
 }
 
@@ -316,14 +370,31 @@ async function generateWithLyriaInteractions(model: string, prompt: string, back
     input: prompt,
     response_format: { type: 'audio' },
     response_modalities: ['AUDIO', 'TEXT'],
+    negative_prompt: NO_VOCAL_NEGATIVE,
+    ...VOCAL_API_FLAGS,
+    generation_config: { ...VOCAL_API_FLAGS },
   };
   if (background) body.background = true;
 
-  const res = await geminiFetch(GEMINI_INTERACTIONS, {
+  let res = await geminiFetch(GEMINI_INTERACTIONS, {
     method: 'POST',
     body: JSON.stringify(body),
   });
-  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  let json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok && (res.status === 400 || res.status === 422)) {
+    const slim = {
+      model,
+      input: prompt,
+      response_format: { type: 'audio' },
+      response_modalities: ['AUDIO', 'TEXT'],
+      ...(background ? { background: true } : {}),
+    };
+    res = await geminiFetch(GEMINI_INTERACTIONS, {
+      method: 'POST',
+      body: JSON.stringify(slim),
+    });
+    json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  }
   if (!res.ok) {
     throw new Error(`Lyria interactions HTTP ${res.status} (${model}): ${JSON.stringify(json).slice(0, 280)}`);
   }
@@ -355,6 +426,8 @@ async function generateWithLyriaContent(model: string, prompt: string): Promise<
       generationConfig: {
         responseModalities: ['AUDIO', 'TEXT'],
         response_format: { type: 'audio' },
+        negative_prompt: NO_VOCAL_NEGATIVE,
+        ...VOCAL_API_FLAGS,
       },
     }),
   });
@@ -371,11 +444,89 @@ async function generateWithLyriaContent(model: string, prompt: string): Promise<
   };
 }
 
-async function generateWithElevenLabsMusic(prompt: string, durationSeconds: number): Promise<MusicGenResult> {
+function splitLyricSections(lyrics: string): Array<{ name: string; lines: string[] }> {
+  const sections: Array<{ name: string; lines: string[] }> = [];
+  let current = { name: 'Verse 1', lines: [] as string[] };
+  for (const raw of lyrics.split(/\r?\n/)) {
+    const line = raw.trim();
+    const heading = line.match(/^\[([^\]]+)\]/);
+    if (heading && /verse|chorus|bridge|intro|outro|hook/i.test(heading[1])) {
+      if (current.lines.length) sections.push(current);
+      current = { name: heading[1].slice(0, 100), lines: [] };
+      continue;
+    }
+    if (line && !line.startsWith('[Style:') && !line.startsWith('[Vocals:') && !line.startsWith('[hasVocals') && !line.startsWith('[instrumental') && line !== '[vocal]') {
+      current.lines.push(line.slice(0, 200));
+    }
+  }
+  if (current.lines.length) sections.push(current);
+  return sections.length ? sections : [{ name: 'Verse 1', lines: lyrics.split(/\r?\n/).filter(Boolean).slice(0, 30) }];
+}
+
+function elevenLabsCompositionPlan(
+  lyrics: string,
+  stylePreset: string,
+  vocalStyle: string,
+  durationSeconds: number,
+): Record<string, unknown> {
+  const sections = splitLyricSections(lyrics).slice(0, 8);
+  const totalMs = Math.min(180_000, Math.max(36_000, Math.round(durationSeconds * 1000)));
+  const weights = sections.map((section) => Math.max(4, section.lines.length));
+  const weightSum = weights.reduce((sum, w) => sum + w, 0);
+  const positive = [
+    stylePreset,
+    'sung lead vocals',
+    vocalStyle,
+    'clear singing voice',
+    'melodic vocals over full band',
+    'drums and bassline',
+    'great production quality',
+  ];
+  const negative = ['instrumental only', 'karaoke', 'no vocals', 'spoken word', 'speech synthesis'];
+  const chunks = sections.map((section, index) => {
+    const share = Math.round((weights[index] / weightSum) * totalMs);
+    const durationMs = Math.min(120_000, Math.max(8_000, share));
+    const label = section.name.includes('[') ? section.name : `[${section.name}]`;
+    return {
+      text: `${label}\n${section.lines.slice(0, 30).join('\n')}`,
+      duration_ms: durationMs,
+      positive_styles: index === 0 ? [...positive, 'full song with vocals'] : positive,
+      negative_styles: negative,
+      context_adherence: 'high',
+    };
+  });
+  return { chunks };
+}
+
+async function generateWithElevenLabsMusic(
+  prompt: string,
+  durationSeconds: number,
+  extras?: { lyrics?: string; stylePreset?: string; vocalStyle?: string },
+): Promise<MusicGenResult> {
   const key = process.env.ELEVENLABS_API_KEY?.trim().replace(/^["']|["']$/g, '');
   if (!key) throw new Error('ELEVENLABS_API_KEY is not set');
 
   const lengthMs = Math.min(600_000, Math.max(10_000, Math.round(durationSeconds * 1000)));
+  const modelId = process.env.ELEVENLABS_MUSIC_MODEL?.trim() || 'music_v2';
+  const singingLyrics = extras?.lyrics?.trim();
+  const payload: Record<string, unknown> = singingLyrics
+    ? {
+        composition_plan: elevenLabsCompositionPlan(
+          singingLyrics,
+          extras?.stylePreset ?? 'Upbeat Pop',
+          extras?.vocalStyle ?? 'Female Lead Vocal',
+          durationSeconds,
+        ),
+        model_id: modelId,
+        force_instrumental: false,
+      }
+    : {
+        prompt,
+        music_length_ms: lengthMs,
+        model_id: modelId,
+        force_instrumental: false,
+      };
+
   const res = await fetch(`${ELEVENLABS_MUSIC}?output_format=mp3_44100_128`, {
     method: 'POST',
     signal: AbortSignal.timeout(MUSIC_TIMEOUT_MS),
@@ -384,15 +535,43 @@ async function generateWithElevenLabsMusic(prompt: string, durationSeconds: numb
       'xi-api-key': key,
       Accept: 'audio/mpeg',
     },
-    body: JSON.stringify({
-      prompt,
-      music_length_ms: lengthMs,
-      model_id: process.env.ELEVENLABS_MUSIC_MODEL?.trim() || 'music_v2',
-      force_instrumental: false,
-    }),
+    body: JSON.stringify(payload),
   });
 
-  const contentType = res.headers.get('content-type') ?? '';
+  let contentType = res.headers.get('content-type') ?? '';
+  if (!res.ok && singingLyrics) {
+    const failed = await res.text().catch(() => '');
+    console.warn('[musicService] ElevenLabs composition plan failed, retrying prompt mode:', failed.slice(0, 180));
+    const retry = await fetch(`${ELEVENLABS_MUSIC}?output_format=mp3_44100_128`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(MUSIC_TIMEOUT_MS),
+      headers: {
+        'Content-Type': 'application/json',
+        'xi-api-key': key,
+        Accept: 'audio/mpeg',
+      },
+      body: JSON.stringify({
+        prompt,
+        music_length_ms: lengthMs,
+        model_id: modelId,
+        force_instrumental: false,
+      }),
+    });
+    if (!retry.ok) {
+      const body = await retry.text().catch(() => '');
+      throw new Error(`ElevenLabs Music HTTP ${retry.status}: ${body.slice(0, 280)}`);
+    }
+    const bytes = Buffer.from(await retry.arrayBuffer());
+    contentType = retry.headers.get('content-type') ?? '';
+    if (contentType.includes('json')) {
+      const json = JSON.parse(bytes.toString('utf8')) as unknown;
+      const found = extractAudioFromUnknown(json);
+      if (!found) throw new Error('ElevenLabs Music JSON response had no audio');
+      return { audio: found.audio, mimeType: mimeForAudio(found.audio, found.mime), provider: 'elevenlabs-music' };
+    }
+    if (bytes.length < 800) throw new Error('ElevenLabs Music returned empty audio');
+    return { audio: bytes, mimeType: mimeForAudio(bytes, contentType), provider: 'elevenlabs-music' };
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`ElevenLabs Music HTTP ${res.status}: ${body.slice(0, 280)}`);
@@ -553,7 +732,11 @@ export async function callMusicGenModel(params: MusicGenRequest): Promise<MusicG
 
   if (process.env.ELEVENLABS_API_KEY?.trim()) {
     try {
-      const result = await generateWithElevenLabsMusic(params.prompt, durationSeconds);
+      const result = await generateWithElevenLabsMusic(params.prompt, durationSeconds, {
+        lyrics: params.lyrics,
+        stylePreset: params.stylePreset,
+        vocalStyle: params.vocalStyle,
+      });
       console.log(`[musicService] ElevenLabs Music produced ${result.audio.length} bytes`);
       return result;
     } catch (err) {
@@ -571,6 +754,8 @@ export async function callMusicGenModel(params: MusicGenRequest): Promise<MusicG
 
 export async function generateEducationalSong(params: EducationalSongParams): Promise<MusicGenResult> {
   const durationSeconds = DEFAULT_DURATION_SEC;
+  const vocalStyle = vocalStyleForVoice(params.voiceId);
+  const singingLyrics = prepareLyricsForSinging(taggedLyrics(params.lyrics), vocalStyle, params.style);
   const prompt = buildMusicPrompt(params, durationSeconds);
 
   try {
@@ -579,9 +764,13 @@ export async function generateEducationalSong(params: EducationalSongParams): Pr
       durationSeconds,
       audioFormat: 'mp3',
       stylePreset: params.style,
+      lyrics: singingLyrics,
+      vocalStyle,
+      instrumental: false,
+      hasVocals: true,
     });
   } catch (err) {
-    console.warn('[musicService] Remote music models failed; composing local instrumental arrangement', err);
+    console.warn('[musicService] Remote music models failed; composing local arrangement', err);
     return composeLocalArrangement(params, durationSeconds);
   }
 }
