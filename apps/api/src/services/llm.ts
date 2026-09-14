@@ -5,6 +5,8 @@ import type {
   WorksheetGeneratorResponse,
   SongLyricsPayload,
   SongLyricsDraft,
+  LessonPlanPayload,
+  LessonPlanResponse,
 } from '@brightpath/shared';
 import { applyWorksheetFollowUp, applyWorksheetTranslation } from '@brightpath/shared';
 import { getActiveProvider } from '../lib/llm/provider.js';
@@ -473,6 +475,141 @@ export async function generateSongLyrics(input: SongLyricsPayload): Promise<Song
     };
   } catch (err) {
     console.error('[llm] song lyrics generation failed', err);
+    return fallback;
+  }
+}
+
+const LESSON_PLAN_SYSTEM = `You are an expert K–12 instructional planner. Generate a classroom-ready lesson plan.
+
+Return JSON only in this exact shape:
+{
+  "title": "string",
+  "gradeLevel": "string",
+  "objective": "string",
+  "standards": ["string"],
+  "durationMinutes": 50,
+  "materials": ["string"],
+  "sections": [
+    { "heading": "Warm-up", "minutes": 5, "activities": ["string"] }
+  ],
+  "assessment": "string",
+  "differentiation": "string"
+}
+
+Rules:
+- Match the requested grade level.
+- Include warm-up, mini-lesson, guided/group practice, independent practice, and closing.
+- Honor additional criteria (grouping, prior lesson, materials).
+- Align to named standards when provided.
+- Keep activities specific and teachable in one class period.
+`;
+
+export function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse {
+  const topic = input.topic.trim() || 'this topic';
+  const firstLine = topic.split('\n')[0]?.trim() || topic;
+  return {
+    title: `${firstLine.slice(0, 72)} — Lesson Plan`,
+    gradeLevel: input.gradeLevel,
+    objective: `Students will explain ${firstLine.slice(0, 140)} with an example and apply it in a short collaborative task.`,
+    standards: input.standards
+      ? input.standards.split(/[;,\n]/).map((s) => s.trim()).filter(Boolean)
+      : [`Aligned to ${input.gradeLevel} classroom objectives`],
+    durationMinutes: 50,
+    materials: ['Whiteboard or slide deck', 'Student notebooks', 'Exit ticket slips'],
+    sections: [
+      {
+        heading: 'Warm-up',
+        minutes: 5,
+        activities: [`Activate prior knowledge related to ${firstLine.slice(0, 80)}.`, 'Turn and talk: what do you already know?'],
+      },
+      {
+        heading: 'Mini-lesson',
+        minutes: 12,
+        activities: ['Model the core idea with a worked example.', 'Check for understanding with two targeted questions.'],
+      },
+      {
+        heading: 'Guided / group practice',
+        minutes: 18,
+        activities: [
+          input.additionalCriteria?.trim() || 'Students complete a collaborative task using the lesson objective.',
+          'Teacher circulates with a success-criteria checklist.',
+        ],
+      },
+      {
+        heading: 'Independent practice',
+        minutes: 8,
+        activities: ['Students apply the idea to one new example in writing.'],
+      },
+      {
+        heading: 'Closing',
+        minutes: 7,
+        activities: ['Exit ticket: explain the idea in one sentence and give one example.'],
+      },
+    ],
+    assessment: 'Exit ticket plus teacher observation during group work.',
+    differentiation:
+      'Provide sentence starters for emerging writers; extension asks students to connect the idea to a real-world case.',
+  };
+}
+
+function asStringList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+  if (typeof value === 'string' && value.trim()) return [value.trim()];
+  return [];
+}
+
+function normalizeLessonPlan(
+  raw: Record<string, unknown>,
+  input: LessonPlanPayload,
+  fallback: LessonPlanResponse,
+): LessonPlanResponse {
+  const sectionsRaw = Array.isArray(raw.sections) ? raw.sections : [];
+  const sections = sectionsRaw.map((item) => {
+    const rec = (item ?? {}) as Record<string, unknown>;
+    const activities = asStringList(rec.activities);
+    return {
+      heading: String(rec.heading ?? '').trim() || 'Section',
+      minutes: typeof rec.minutes === 'number' ? rec.minutes : undefined,
+      activities: activities.length ? activities : ['Complete the planned classroom task.'],
+    };
+  });
+  const standards = asStringList(raw.standards);
+  const materials = asStringList(raw.materials);
+  return {
+    title: String(raw.title ?? '').trim() || fallback.title,
+    gradeLevel: String(raw.gradeLevel ?? '').trim() || input.gradeLevel,
+    objective: String(raw.objective ?? '').trim() || fallback.objective,
+    standards: standards.length ? standards : fallback.standards,
+    durationMinutes:
+      typeof raw.durationMinutes === 'number' ? raw.durationMinutes : fallback.durationMinutes,
+    materials: materials.length ? materials : fallback.materials,
+    sections: sections.length ? sections : fallback.sections,
+    assessment: String(raw.assessment ?? '').trim() || fallback.assessment,
+    differentiation: String(raw.differentiation ?? '').trim() || fallback.differentiation,
+  };
+}
+
+export async function generateLessonPlan(input: LessonPlanPayload): Promise<LessonPlanResponse> {
+  const fallback = fallbackLessonPlan(input);
+  const llm = getActiveProvider();
+  if (!llm) return fallback;
+
+  try {
+    const raw = await llm.completeJson<Record<string, unknown>>({
+      system: LESSON_PLAN_SYSTEM,
+      user: [
+        `Grade level: ${input.gradeLevel}`,
+        `Topic, standard, or objective:\n${input.topic.trim()}`,
+        input.additionalCriteria?.trim() ? `Additional criteria:\n${input.additionalCriteria.trim()}` : '',
+        input.standards?.trim() ? `Standards set to align to:\n${input.standards.trim()}` : '',
+        input.attachments?.length ? `Attached files: ${input.attachments.join(', ')}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+    });
+    return normalizeLessonPlan(raw, input, fallback);
+  } catch (err) {
+    console.error('[llm] lesson plan generation failed', err);
     return fallback;
   }
 }

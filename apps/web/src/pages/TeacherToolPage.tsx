@@ -5,6 +5,7 @@ import { getTeacherToolById, type TeacherToolDefinition } from '@brightpath/shar
 import QuizGenerator from '@/pages/TeacherTools/QuizGenerator';
 import WorksheetGenerator from '@/pages/TeacherTools/WorksheetGenerator';
 import SongGeneratorDashboard from '@/pages/TeacherTools/SongGeneratorDashboard';
+import LessonPlanGenerator from '@/pages/TeacherTools/LessonPlanGenerator';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 
@@ -79,6 +80,10 @@ export function TeacherToolLauncher({
 
   if (tool.id === 'song-generator') {
     return <SongGeneratorDashboard />;
+  }
+
+  if (tool.id === 'lesson-plan') {
+    return <LessonPlanGenerator />;
   }
 
   const body = (

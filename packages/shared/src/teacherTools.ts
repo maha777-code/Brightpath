@@ -86,9 +86,9 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
   {
     id: 'lesson-plan',
     title: 'Lesson Plan Generator',
-    description: 'Generate a lesson plan based on standard, topic, or objective.',
+    description: 'Generate a lesson plan based on a standard, topic, or objective.',
     focusArea: 'curriculum',
-    href: '/teacher/tools/lesson-plan',
+    href: '/teacher/tools/lesson-plan-generator',
     popularity: 86,
     newestRank: 5,
     icon: 'clipboard-list',
@@ -225,6 +225,50 @@ export interface WorksheetHistoryItem {
 
 export interface WorksheetHistoryResponse {
   items: WorksheetHistoryItem[];
+}
+
+export const LESSON_PLAN_GRADE_LEVELS = [
+  'Elementary',
+  'Kindergarten',
+  '1st grade',
+  '2nd grade',
+  '3rd grade',
+  '4th grade',
+  '5th grade',
+  '6th grade',
+  '7th grade',
+  '8th grade',
+  '9th grade',
+  '10th grade',
+  '11th grade',
+  '12th grade',
+  'University',
+] as const;
+
+export interface LessonPlanPayload {
+  gradeLevel: string;
+  topic: string;
+  additionalCriteria?: string;
+  standards?: string;
+  attachments?: string[];
+}
+
+export interface LessonPlanSection {
+  heading: string;
+  minutes?: number;
+  activities: string[];
+}
+
+export interface LessonPlanResponse {
+  title: string;
+  gradeLevel: string;
+  objective: string;
+  standards: string[];
+  durationMinutes: number;
+  materials: string[];
+  sections: LessonPlanSection[];
+  assessment: string;
+  differentiation: string;
 }
 
 export interface TeacherToolFeedbackPayload {

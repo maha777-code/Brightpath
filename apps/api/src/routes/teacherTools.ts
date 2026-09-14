@@ -13,7 +13,7 @@ import {
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
-import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet } from '../services/llm.js';
+import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan } from '../services/llm.js';
 import { randomUUID } from 'node:crypto';
 
 const favoriteBody = z.object({
@@ -189,6 +189,14 @@ const worksheetBody = z.object({
   attachments: z.array(z.string().max(240)).max(20).optional(),
 });
 
+const lessonPlanBody = z.object({
+  gradeLevel: z.string().min(1).max(80),
+  topic: z.string().min(1).max(400_000),
+  additionalCriteria: z.string().max(400_000).optional(),
+  standards: z.string().max(400_000).optional(),
+  attachments: z.array(z.string().max(240)).max(20).optional(),
+});
+
 const refineBody = z.object({
   worksheetId: z.string().max(80).optional(),
   gradeLevel: z.string().min(1).max(80),
@@ -311,6 +319,29 @@ router.post('/tools/worksheet-generator', async (req: AuthRequest, res: Response
   } catch (err) {
     console.error('[teacher/tools/worksheet-generator] failed', err);
     res.status(500).json({ error: 'Failed to generate worksheet' });
+  }
+});
+
+/** POST /teacher/tools/lesson-plan-generator */
+router.post('/tools/lesson-plan-generator', async (req: AuthRequest, res: Response) => {
+  const teacherId = req.teacherId;
+  if (!teacherId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const parsed = lessonPlanBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Grade level and topic, standard, or objective are required' });
+    return;
+  }
+
+  try {
+    const plan = await generateLessonPlan(parsed.data);
+    res.json(plan);
+  } catch (err) {
+    console.error('[teacher/tools/lesson-plan-generator] failed', err);
+    res.status(500).json({ error: 'Failed to generate lesson plan' });
   }
 });
 

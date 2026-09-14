@@ -6,4 +6,5 @@ export { default as TeacherChapterManagePage } from '@/pages/TeacherChapterManag
 export { default as WorksheetGenerator } from '@/pages/TeacherTools/WorksheetGenerator';
 export { default as SongGeneratorDashboard } from '@/pages/TeacherTools/SongGeneratorDashboard';
 export { default as SongGeneratorCreate } from '@/pages/TeacherTools/SongGeneratorCreate';
+export { default as LessonPlanGenerator } from '@/pages/TeacherTools/LessonPlanGenerator';
 export { TeacherSidebar } from '@/components/teacher/Sidebar';

@@ -126,6 +126,10 @@ export default function TeacherTools() {
       navigate('/teacher/tools/song-generator');
       return;
     }
+    if (tool.id === 'lesson-plan') {
+      navigate('/teacher/tools/lesson-plan-generator');
+      return;
+    }
     setActiveTool(tool);
   };
 

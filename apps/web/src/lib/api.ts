@@ -107,6 +107,8 @@ import type {
   TeacherToolFeedbackResponse,
   WorksheetRefinePayload,
   WorksheetTranslatePayload,
+  LessonPlanPayload,
+  LessonPlanResponse,
   SongLyricsPayload,
   SongLyricsDraft,
   SongRenderPayload,
@@ -448,6 +450,12 @@ export const api = {
 
   generateWorksheet: (body: WorksheetGeneratorPayload) =>
     request<WorksheetGeneratorResponse>('/teacher/tools/worksheet-generator', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  generateLessonPlan: (body: LessonPlanPayload) =>
+    request<LessonPlanResponse>('/teacher/tools/lesson-plan-generator', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
