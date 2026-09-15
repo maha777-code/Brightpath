@@ -345,6 +345,27 @@ router.post('/tools/lesson-plan-generator', async (req: AuthRequest, res: Respon
   }
 });
 
+const lessonBookmarkBody = z.object({
+  id: z.string().min(1).max(80),
+  bookmarked: z.boolean(),
+  title: z.string().max(200).optional(),
+});
+
+/** POST /teacher/tools/lesson-plan-generator/bookmark */
+router.post('/tools/lesson-plan-generator/bookmark', async (req: AuthRequest, res: Response) => {
+  const teacherId = req.teacherId;
+  if (!teacherId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  const parsed = lessonBookmarkBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Lesson id is required' });
+    return;
+  }
+  res.json({ ok: true, id: parsed.data.id, bookmarked: parsed.data.bookmarked });
+});
+
 /** GET /teacher/tools/worksheet-generator/history */
 router.get('/tools/worksheet-generator/history', async (req: AuthRequest, res: Response) => {
   const teacherId = req.teacherId;

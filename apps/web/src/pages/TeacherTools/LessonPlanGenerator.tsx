@@ -7,6 +7,12 @@ import {
   RotateCcw,
   Sparkles,
   ArrowDown,
+  Bookmark,
+  Printer,
+  Copy,
+  Download,
+  Pencil,
+  Edit3,
 } from 'lucide-react';
 import {
   LESSON_PLAN_GRADE_LEVELS,
@@ -150,6 +156,503 @@ function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse {
   };
 }
 
+const BOOKMARK_KEY = 'brightpath_lesson_plan_bookmarks';
+
+function loadBookmarks(): string[] {
+  try {
+    const raw = localStorage.getItem(BOOKMARK_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistBookmarks(ids: string[]) {
+  try {
+    localStorage.setItem(BOOKMARK_KEY, JSON.stringify(ids.slice(0, 80)));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function fileStem(title: string): string {
+  return title.replace(/[<>:"/\\|?*]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'lesson-plan';
+}
+
+function nonempty(items: string[]): string[] {
+  return items.map((item) => item.trim()).filter(Boolean);
+}
+
+function formatLessonPlanMarkdown(plan: LessonPlanResponse, title: string): string {
+  const lines = [
+    `# ${title}`,
+    '',
+    `**Grade:** ${plan.gradeLevel}`,
+    `**Duration:** ${plan.durationMinutes} minutes`,
+    '',
+    `## Objective`,
+    plan.objective,
+    '',
+  ];
+  const standards = nonempty(plan.standards);
+  const materials = nonempty(plan.materials);
+  if (standards.length) {
+    lines.push('## Standards', ...standards.map((item) => `- ${item}`), '');
+  }
+  if (materials.length) {
+    lines.push('## Materials', ...materials.map((item) => `- ${item}`), '');
+  }
+  for (const section of plan.sections) {
+    const heading = section.minutes ? `${section.heading} (${section.minutes} min)` : section.heading;
+    lines.push(`## ${heading}`, ...nonempty(section.activities).map((item) => `- ${item}`), '');
+  }
+  lines.push('## Assessment', plan.assessment, '', '## Differentiation', plan.differentiation, '');
+  return lines.join('\n');
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+
+function planToPrintBody(plan: LessonPlanResponse, title: string): string {
+  const sections = plan.sections
+    .map((section) => {
+      const heading = section.minutes ? `${escapeHtml(section.heading)} (${section.minutes} min)` : escapeHtml(section.heading);
+      const items = nonempty(section.activities).map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+      return `<h2>${heading}</h2><ul>${items}</ul>`;
+    })
+    .join('');
+  const standards = nonempty(plan.standards);
+  const materials = nonempty(plan.materials);
+  const standardsHtml = standards.length
+    ? `<p><strong>Standards:</strong> ${escapeHtml(standards.join('; '))}</p>`
+    : '';
+  return `
+    <h1>${escapeHtml(title)}</h1>
+    <p>${escapeHtml(plan.gradeLevel)} · ${plan.durationMinutes} minutes</p>
+    <p><strong>Objective:</strong> ${escapeHtml(plan.objective)}</p>
+    ${standardsHtml}
+    <p><strong>Materials:</strong> ${escapeHtml(materials.join(', '))}</p>
+    ${sections}
+    <p><strong>Assessment:</strong> ${escapeHtml(plan.assessment)}</p>
+    <p><strong>Differentiation:</strong> ${escapeHtml(plan.differentiation)}</p>
+  `;
+}
+
+function openPrintWindow(title: string, bodyHtml: string) {
+  const html = `<!DOCTYPE html>
+<html>
+  <head>
+    <title>${escapeHtml(title)}</title>
+    <style>
+      body { font-family: 'Cambria', Georgia, serif; padding: 40px; color: #000; background: #fff; font-size: 16px; line-height: 1.6; }
+      h1, h2, h3 { color: #111; margin-top: 1.5em; }
+      h1 { font-size: 26px; margin-top: 0; }
+      h2 { font-size: 18px; }
+      ul, ol { padding-left: 20px; }
+    </style>
+  </head>
+  <body>${bodyHtml}</body>
+</html>`;
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    window.setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+    return;
+  }
+  const frame = document.createElement('iframe');
+  frame.setAttribute('aria-hidden', 'true');
+  frame.style.position = 'fixed';
+  frame.style.width = '0';
+  frame.style.height = '0';
+  frame.style.border = '0';
+  document.body.appendChild(frame);
+  const doc = frame.contentDocument;
+  if (!doc) return;
+  doc.open();
+  doc.write(html);
+  doc.close();
+  window.setTimeout(() => {
+    frame.contentWindow?.focus();
+    frame.contentWindow?.print();
+    window.setTimeout(() => frame.remove(), 400);
+  }, 250);
+}
+
+function exportToPDF(plan: LessonPlanResponse, title: string) {
+  openPrintWindow(title, planToPrintBody(plan, title));
+}
+
+function exportToDocx(markdown: string, title: string) {
+  const htmlBody = markdown
+    .split('\n')
+    .map((line) => {
+      if (line.startsWith('# ')) return `<h1>${escapeHtml(line.slice(2))}</h1>`;
+      if (line.startsWith('## ')) return `<h2>${escapeHtml(line.slice(3))}</h2>`;
+      if (line.startsWith('- ')) return `<li>${escapeHtml(line.slice(2))}</li>`;
+      if (line.startsWith('**') && line.endsWith('**') === false) {
+        return `<p>${escapeHtml(line).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>`;
+      }
+      if (!line.trim()) return '';
+      return `<p>${escapeHtml(line).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>`;
+    })
+    .join('\n');
+  const doc = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
+<body style="font-family:Cambria,Georgia,serif;font-size:16px;line-height:1.6;color:#111">${htmlBody}</body></html>`;
+  downloadBlob(new Blob(['\ufeff', doc], { type: 'application/msword' }), `${fileStem(title)}.doc`);
+}
+
+function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lessonId: string }) {
+  const [lessonTitle, setLessonTitle] = useState(plan.title);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(() => loadBookmarks().includes(lessonId));
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [draft, setDraft] = useState(plan);
+  const [toast, setToast] = useState<string | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLessonTitle(plan.title);
+    setDraft(plan);
+    setIsEditing(false);
+  }, [plan]);
+
+  useEffect(() => {
+    if (!isExportOpen) return;
+    const onPointer = (event: MouseEvent) => {
+      if (!exportRef.current?.contains(event.target as Node)) setIsExportOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    return () => document.removeEventListener('mousedown', onPointer);
+  }, [isExportOpen]);
+
+  const lessonPlanContent = formatLessonPlanMarkdown(draft, lessonTitle);
+
+  const showToast = (message: string) => {
+    setToast(message);
+    window.setTimeout(() => setToast(null), 2800);
+  };
+
+  const handlePrint = () => {
+    openPrintWindow(lessonTitle, planToPrintBody(draft, lessonTitle));
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(lessonPlanContent);
+      showToast('Lesson plan copied to clipboard!');
+    } catch {
+      showToast('Failed to copy content.');
+    }
+  };
+
+  const handleBookmark = async () => {
+    const next = !isBookmarked;
+    setIsBookmarked(next);
+    const ids = loadBookmarks();
+    persistBookmarks(next ? [...ids.filter((id) => id !== lessonId), lessonId] : ids.filter((id) => id !== lessonId));
+    try {
+      await api.bookmarkLessonPlan(lessonId, next, lessonTitle);
+    } catch {
+      /* local bookmark still saved */
+    }
+    showToast(next ? 'Saved to bookmarks' : 'Removed from bookmarks');
+  };
+
+  const handleExportPDF = () => {
+    exportToPDF(draft, lessonTitle);
+    setIsExportOpen(false);
+  };
+
+  const handleExportDocx = () => {
+    exportToDocx(lessonPlanContent, lessonTitle);
+    setIsExportOpen(false);
+  };
+
+  const handleExportGoogleDocs = async () => {
+    try {
+      await navigator.clipboard.writeText(lessonPlanContent);
+      window.open('https://docs.google.com/document/create', '_blank', 'noopener,noreferrer');
+      showToast('Copied. Paste into the new Google Doc (Ctrl+V).');
+    } catch {
+      showToast('Could not open Google Docs.');
+    }
+    setIsExportOpen(false);
+  };
+
+  const editable = isEditing
+    ? 'rounded-md border border-purple-500/40 bg-slate-950/80 px-2 py-1 outline-none focus:ring-1 focus:ring-purple-500'
+    : '';
+
+  return (
+    <div className="mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/90 shadow-xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-slate-800 bg-slate-900/90 px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            className="shrink-0 text-slate-400 hover:text-purple-400"
+            aria-label="Rename lesson plan"
+            title="Rename lesson plan"
+            onClick={() => setEditingTitle(true)}
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          {editingTitle ? (
+            <input
+              className="min-w-0 flex-1 rounded-md border border-purple-500/50 bg-slate-950 px-2 py-1 text-lg font-semibold text-slate-100 outline-none focus:ring-1 focus:ring-purple-500"
+              value={lessonTitle}
+              onChange={(e) => setLessonTitle(e.target.value)}
+              onBlur={() => setEditingTitle(false)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === 'Escape') setEditingTitle(false);
+              }}
+              autoFocus
+            />
+          ) : (
+            <h2
+              className="truncate text-lg font-semibold text-slate-100"
+              onClick={() => setEditingTitle(true)}
+              title="Rename lesson plan"
+            >
+              {lessonTitle}
+            </h2>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void handleBookmark()}
+            title="Bookmark lesson plan"
+            className={`rounded-lg border bg-slate-950 p-2 transition-colors ${
+              isBookmarked
+                ? 'border-amber-500/50 text-amber-400'
+                : 'border-slate-700 text-slate-300 hover:text-white'
+            }`}
+          >
+            <Bookmark className="h-4 w-4" fill={isBookmarked ? 'currentColor' : 'none'} />
+          </button>
+          <button
+            type="button"
+            onClick={handlePrint}
+            title="Print lesson plan"
+            className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-slate-300 transition-colors hover:border-purple-500 hover:text-white"
+          >
+            <Printer className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleCopy()}
+            title="Copy text"
+            className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-slate-300 transition-colors hover:border-purple-500 hover:text-white"
+          >
+            <Copy className="h-4 w-4" />
+          </button>
+          <div className="relative" ref={exportRef}>
+            <button
+              type="button"
+              onClick={() => setIsExportOpen((open) => !open)}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm font-medium text-slate-200 transition-colors hover:border-purple-500 hover:text-white"
+            >
+              <Download className="h-4 w-4 text-purple-400" />
+              <span>Export</span>
+              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+            </button>
+            {isExportOpen ? (
+              <div className="absolute right-0 top-full z-50 mt-1.5 w-52 rounded-xl border border-slate-700 bg-[#0f172a] p-1.5 shadow-2xl">
+                <button
+                  type="button"
+                  onClick={handleExportPDF}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-purple-600/30 hover:text-white"
+                >
+                  Export as PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportDocx}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-purple-600/30 hover:text-white"
+                >
+                  Export as Word (.docx)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleExportGoogleDocs()}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-purple-600/30 hover:text-white"
+                >
+                  Export to Google Docs
+                </button>
+              </div>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsEditing((value) => !value)}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+              isEditing
+                ? 'border-purple-500 bg-purple-600 text-white'
+                : 'border-slate-700 bg-slate-950 text-slate-200 hover:border-purple-500 hover:text-white'
+            }`}
+          >
+            <Edit3 className="h-4 w-4" />
+            <span>{isEditing ? 'Done Editing' : 'Edit'}</span>
+          </button>
+        </div>
+      </div>
+
+      <article ref={printRef} className="p-6 text-slate-100" style={FONT}>
+        <p className="text-slate-300">
+          {draft.gradeLevel} · {draft.durationMinutes} minutes
+        </p>
+        <p className="mt-4">
+          <span className="font-semibold">Objective: </span>
+          {isEditing ? (
+            <textarea
+              className={`mt-1 w-full min-h-[4rem] ${editable}`}
+              value={draft.objective}
+              onChange={(e) => setDraft({ ...draft, objective: e.target.value })}
+            />
+          ) : (
+            draft.objective
+          )}
+        </p>
+        <div className="mt-2">
+          <span className="font-semibold">Standards: </span>
+          {isEditing ? (
+            <textarea
+              className={`mt-1 w-full min-h-[3rem] ${editable}`}
+              value={draft.standards.join('\n')}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  standards: e.target.value.split('\n'),
+                })
+              }
+            />
+          ) : (
+            draft.standards.join('; ')
+          )}
+        </div>
+        <div className="mt-2">
+          <span className="font-semibold">Materials: </span>
+          {isEditing ? (
+            <textarea
+              className={`mt-1 w-full min-h-[3rem] ${editable}`}
+              value={draft.materials.join('\n')}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  materials: e.target.value.split('\n'),
+                })
+              }
+            />
+          ) : (
+            draft.materials.join(', ')
+          )}
+        </div>
+        <div className="mt-5 space-y-4">
+          {draft.sections.map((section, index) => (
+            <section key={`${section.heading}-${index}`}>
+              {isEditing ? (
+                <input
+                  className={`mb-2 w-full text-[20px] font-semibold text-violet-200 ${editable}`}
+                  style={LABEL_FONT}
+                  value={section.heading}
+                  onChange={(e) => {
+                    const sections = draft.sections.map((item, i) =>
+                      i === index ? { ...item, heading: e.target.value } : item,
+                    );
+                    setDraft({ ...draft, sections });
+                  }}
+                />
+              ) : (
+                <h3 className="text-[20px] font-semibold text-violet-200" style={LABEL_FONT}>
+                  {section.heading}
+                  {section.minutes ? ` (${section.minutes} min)` : ''}
+                </h3>
+              )}
+              {isEditing ? (
+                <textarea
+                  className={`w-full min-h-[5rem] ${editable}`}
+                  value={section.activities.join('\n')}
+                  onChange={(e) => {
+                    const sections = draft.sections.map((item, i) =>
+                      i === index
+                        ? {
+                            ...item,
+                            activities: e.target.value.split('\n'),
+                          }
+                        : item,
+                    );
+                    setDraft({ ...draft, sections });
+                  }}
+                />
+              ) : (
+                <ul className="mt-1 list-disc space-y-1 pl-6 text-slate-200">
+                  {section.activities.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ))}
+        </div>
+        <div className="mt-5">
+          <span className="font-semibold">Assessment: </span>
+          {isEditing ? (
+            <textarea
+              className={`mt-1 w-full min-h-[3rem] ${editable}`}
+              value={draft.assessment}
+              onChange={(e) => setDraft({ ...draft, assessment: e.target.value })}
+            />
+          ) : (
+            draft.assessment
+          )}
+        </div>
+        <div className="mt-2">
+          <span className="font-semibold">Differentiation: </span>
+          {isEditing ? (
+            <textarea
+              className={`mt-1 w-full min-h-[3rem] ${editable}`}
+              value={draft.differentiation}
+              onChange={(e) => setDraft({ ...draft, differentiation: e.target.value })}
+            />
+          ) : (
+            draft.differentiation
+          )}
+        </div>
+      </article>
+
+      {toast ? (
+        <div className="border-t border-slate-800 bg-slate-950 px-6 py-2 text-sm text-purple-200">{toast}</div>
+      ) : null}
+    </div>
+  );
+}
+
 function StudioComposer({
   value,
   onChange,
@@ -287,6 +790,7 @@ export default function LessonPlanGenerator() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<LessonPlanResponse | null>(null);
+  const [lessonId, setLessonId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const generateRef = useRef<HTMLButtonElement>(null);
 
@@ -331,6 +835,7 @@ export default function LessonPlanGenerator() {
       standardsFiles: [],
     });
     setPlan(null);
+    setLessonId(null);
     setError(null);
   };
 
@@ -338,6 +843,7 @@ export default function LessonPlanGenerator() {
     pushHistory();
     applyState(EXEMPLAR);
     setPlan(null);
+    setLessonId(null);
     setError(null);
   };
 
@@ -358,9 +864,13 @@ export default function LessonPlanGenerator() {
     };
     try {
       const result = await api.generateLessonPlan(payload);
+      const id = crypto.randomUUID();
+      setLessonId(id);
       setPlan(result);
       scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     } catch {
+      const id = crypto.randomUUID();
+      setLessonId(id);
       setPlan(fallbackLessonPlan(payload));
       setError(null);
     } finally {
@@ -464,53 +974,7 @@ export default function LessonPlanGenerator() {
               />
             </div>
 
-            {plan ? (
-              <article className="mb-8 rounded-2xl border border-white/10 bg-[#151c2b] p-6">
-                <h2 className="text-[22px] font-semibold text-white" style={LABEL_FONT}>
-                  {plan.title}
-                </h2>
-                <p className="mt-2 text-slate-300">
-                  {plan.gradeLevel} · {plan.durationMinutes} minutes
-                </p>
-                <p className="mt-4">
-                  <span className="font-semibold">Objective: </span>
-                  {plan.objective}
-                </p>
-                {plan.standards.length ? (
-                  <p className="mt-2">
-                    <span className="font-semibold">Standards: </span>
-                    {plan.standards.join('; ')}
-                  </p>
-                ) : null}
-                <p className="mt-2">
-                  <span className="font-semibold">Materials: </span>
-                  {plan.materials.join(', ')}
-                </p>
-                <div className="mt-5 space-y-4">
-                  {plan.sections.map((section) => (
-                    <section key={section.heading}>
-                      <h3 className="text-[20px] font-semibold text-violet-200" style={LABEL_FONT}>
-                        {section.heading}
-                        {section.minutes ? ` (${section.minutes} min)` : ''}
-                      </h3>
-                      <ul className="mt-1 list-disc space-y-1 pl-6 text-slate-200">
-                        {section.activities.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    </section>
-                  ))}
-                </div>
-                <p className="mt-5">
-                  <span className="font-semibold">Assessment: </span>
-                  {plan.assessment}
-                </p>
-                <p className="mt-2">
-                  <span className="font-semibold">Differentiation: </span>
-                  {plan.differentiation}
-                </p>
-              </article>
-            ) : null}
+            {plan && lessonId ? <LessonPlanOutput key={lessonId} plan={plan} lessonId={lessonId} /> : null}
             {error ? (
               <p className="mb-6 rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-rose-200">{error}</p>
             ) : null}

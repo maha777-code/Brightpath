@@ -460,6 +460,12 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  bookmarkLessonPlan: (id: string, bookmarked: boolean, title?: string) =>
+    request<{ ok: true; id: string; bookmarked: boolean }>('/teacher/tools/lesson-plan-generator/bookmark', {
+      method: 'POST',
+      body: JSON.stringify({ id, bookmarked, title }),
+    }),
+
   worksheetHistory: (topic?: string) =>
     request<WorksheetHistoryResponse>(
       topic
