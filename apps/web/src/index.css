@@ -34,3 +34,19 @@ span,
 li {
   font-size: 1.125rem; /* 18px */
 }
+
+/* Force muted placeholder text color across dark theme textareas */
+textarea::placeholder,
+input::placeholder {
+  color: #64748b !important; /* Muted Slate 500 */
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 0.65 !important;
+  font-weight: 400 !important;
+  font-style: italic;
+}
+
+/* Ensure typed text is bright white inside the lesson-plan studio */
+.lesson-plan-studio textarea,
+.lesson-plan-studio input {
+  color: #f8fafc !important; /* Slate 50 */
+}

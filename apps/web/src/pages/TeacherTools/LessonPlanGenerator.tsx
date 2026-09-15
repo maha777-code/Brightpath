@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   ChevronDown,
   FilePlus,
+  FileText,
+  FileCode,
+  Globe,
   Loader2,
   Mic,
   RotateCcw,
@@ -31,6 +34,110 @@ const LABEL_FONT: CSSProperties = {
   ...FONT,
   fontSize: 20,
 };
+const EDIT_FIELD_STYLE: CSSProperties = {
+  fontFamily: 'Cambria, Georgia, serif',
+  color: '#f8fafc',
+  backgroundColor: '#020617',
+  caretColor: '#f8fafc',
+};
+const EDIT_FIELD_CLASS =
+  'lesson-plan-edit-input w-full rounded-xl border border-purple-500/50 bg-slate-950 p-4 text-base font-normal text-slate-100 placeholder:text-slate-500 placeholder:font-normal placeholder:italic placeholder:opacity-60 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400';
+const MENU_PANEL_CLASS =
+  'lesson-plan-menu z-50 rounded-xl border border-slate-700 bg-slate-900 p-1.5 shadow-2xl';
+const MENU_ITEM_CLASS =
+  'lesson-plan-menu-item flex w-full appearance-none items-center justify-start gap-2.5 rounded-lg border-0 bg-slate-900 px-3 py-2.5 text-left text-sm font-medium text-slate-100 shadow-none transition-colors hover:bg-purple-800 hover:text-white';
+const MENU_ITEM_STYLE: CSSProperties = {
+  appearance: 'none',
+  WebkitAppearance: 'none',
+  backgroundColor: '#0f172a',
+  backgroundImage: 'none',
+  color: '#f1f5f9',
+  WebkitTextFillColor: '#f1f5f9',
+  border: 'none',
+  boxShadow: 'none',
+};
+const STUDIO_CONTRAST_CSS = `
+.lesson-plan-studio .lesson-plan-menu {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+.lesson-plan-studio .lesson-plan-menu-item {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-color: #0f172a !important;
+  background-image: none !important;
+  color: #f1f5f9 !important;
+  -webkit-text-fill-color: #f1f5f9 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.lesson-plan-studio .lesson-plan-menu-item span {
+  color: #f1f5f9 !important;
+  -webkit-text-fill-color: #f1f5f9 !important;
+  background-color: transparent !important;
+}
+.lesson-plan-studio .lesson-plan-menu-item:hover {
+  background-color: rgb(88 28 135) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+.lesson-plan-studio .lesson-plan-menu-item:hover span {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-color: transparent !important;
+}
+.lesson-plan-studio .lesson-plan-edit-input,
+.lesson-plan-studio textarea,
+.lesson-plan-studio input[type="text"] {
+  color: #f8fafc !important;
+  background-color: #020617 !important;
+  caret-color: #f8fafc !important;
+  font-family: Cambria, Georgia, serif !important;
+}
+.lesson-plan-studio .lesson-plan-edit-input:not(:placeholder-shown),
+.lesson-plan-studio textarea:not(:placeholder-shown),
+.lesson-plan-studio input[type="text"]:not(:placeholder-shown) {
+  -webkit-text-fill-color: #f8fafc !important;
+}
+.lesson-plan-studio textarea::placeholder,
+.lesson-plan-studio input::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 0.65 !important;
+  font-weight: 400 !important;
+  font-style: italic;
+}
+`;
+
+function StudioMenuItem({
+  onClick,
+  icon,
+  children,
+}: {
+  onClick: () => void;
+  icon: ReactNode;
+  children: string;
+}) {
+  return (
+    <div
+      role="menuitem"
+      tabIndex={0}
+      className={`${MENU_ITEM_CLASS} cursor-pointer`}
+      style={MENU_ITEM_STYLE}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+    >
+      {icon}
+      <span>{children}</span>
+    </div>
+  );
+}
 
 const TOPIC_PLACEHOLDER =
   'topic, standard, or longer description of what you’re teaching.\n\nIf you include the full description, you can use any standard worldwide.  For example, “HS-PS1-1 Use the periodic table as a model to predict the relative properties of elements based on the patterns of electrons in the outermost energy level of atoms.';
@@ -404,10 +511,6 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
     setIsExportOpen(false);
   };
 
-  const editable = isEditing
-    ? 'rounded-md border border-purple-500/40 bg-slate-950/80 px-2 py-1 outline-none focus:ring-1 focus:ring-purple-500'
-    : '';
-
   return (
     <div className="mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/90 shadow-xl">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-slate-800 bg-slate-900/90 px-4 py-3 sm:px-6">
@@ -423,7 +526,9 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
           </button>
           {editingTitle ? (
             <input
-              className="min-w-0 flex-1 rounded-md border border-purple-500/50 bg-slate-950 px-2 py-1 text-lg font-semibold text-slate-100 outline-none focus:ring-1 focus:ring-purple-500"
+              type="text"
+              className={`${EDIT_FIELD_CLASS} min-w-0 flex-1 p-2 text-lg font-semibold`}
+              style={EDIT_FIELD_STYLE}
               value={lessonTitle}
               onChange={(e) => setLessonTitle(e.target.value)}
               onBlur={() => setEditingTitle(false)}
@@ -483,28 +588,19 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
               <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
             </button>
             {isExportOpen ? (
-              <div className="absolute right-0 top-full z-50 mt-1.5 w-52 rounded-xl border border-slate-700 bg-[#0f172a] p-1.5 shadow-2xl">
-                <button
-                  type="button"
-                  onClick={handleExportPDF}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-purple-600/30 hover:text-white"
-                >
+              <div role="menu" className={`${MENU_PANEL_CLASS} absolute right-0 top-full mt-2 w-52`}>
+                <StudioMenuItem icon={<FileText className="h-4 w-4 text-purple-400" />} onClick={handleExportPDF}>
                   Export as PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExportDocx}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-purple-600/30 hover:text-white"
-                >
+                </StudioMenuItem>
+                <StudioMenuItem icon={<FileCode className="h-4 w-4 text-purple-400" />} onClick={handleExportDocx}>
                   Export as Word (.docx)
-                </button>
-                <button
-                  type="button"
+                </StudioMenuItem>
+                <StudioMenuItem
+                  icon={<Globe className="h-4 w-4 text-purple-400" />}
                   onClick={() => void handleExportGoogleDocs()}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-purple-600/30 hover:text-white"
                 >
                   Export to Google Docs
-                </button>
+                </StudioMenuItem>
               </div>
             ) : null}
           </div>
@@ -527,23 +623,26 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
         <p className="text-slate-300">
           {draft.gradeLevel} · {draft.durationMinutes} minutes
         </p>
-        <p className="mt-4">
+        <div className="mt-4">
           <span className="font-semibold">Objective: </span>
           {isEditing ? (
             <textarea
-              className={`mt-1 w-full min-h-[4rem] ${editable}`}
+              className={`${EDIT_FIELD_CLASS} mt-1 min-h-[4rem]`}
+              style={EDIT_FIELD_STYLE}
               value={draft.objective}
               onChange={(e) => setDraft({ ...draft, objective: e.target.value })}
+              rows={3}
             />
           ) : (
-            draft.objective
+            <p className="mt-1 text-base leading-relaxed text-slate-200">{draft.objective}</p>
           )}
-        </p>
+        </div>
         <div className="mt-2">
           <span className="font-semibold">Standards: </span>
           {isEditing ? (
             <textarea
-              className={`mt-1 w-full min-h-[3rem] ${editable}`}
+              className={`${EDIT_FIELD_CLASS} mt-1 min-h-[3rem]`}
+              style={EDIT_FIELD_STYLE}
               value={draft.standards.join('\n')}
               onChange={(e) =>
                 setDraft({
@@ -551,16 +650,18 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
                   standards: e.target.value.split('\n'),
                 })
               }
+              rows={3}
             />
           ) : (
-            draft.standards.join('; ')
+            <p className="mt-1 text-base leading-relaxed text-slate-200">{draft.standards.join('; ')}</p>
           )}
         </div>
         <div className="mt-2">
           <span className="font-semibold">Materials: </span>
           {isEditing ? (
             <textarea
-              className={`mt-1 w-full min-h-[3rem] ${editable}`}
+              className={`${EDIT_FIELD_CLASS} mt-1 min-h-[3rem]`}
+              style={EDIT_FIELD_STYLE}
               value={draft.materials.join('\n')}
               onChange={(e) =>
                 setDraft({
@@ -568,9 +669,10 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
                   materials: e.target.value.split('\n'),
                 })
               }
+              rows={3}
             />
           ) : (
-            draft.materials.join(', ')
+            <p className="mt-1 text-base leading-relaxed text-slate-200">{draft.materials.join(', ')}</p>
           )}
         </div>
         <div className="mt-5 space-y-4">
@@ -578,8 +680,9 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
             <section key={`${section.heading}-${index}`}>
               {isEditing ? (
                 <input
-                  className={`mb-2 w-full text-[20px] font-semibold text-violet-200 ${editable}`}
-                  style={LABEL_FONT}
+                  type="text"
+                  className={`${EDIT_FIELD_CLASS} mb-2 p-2 text-[20px] font-semibold text-violet-200`}
+                  style={{ ...EDIT_FIELD_STYLE, ...LABEL_FONT, WebkitTextFillColor: '#ddd6fe' }}
                   value={section.heading}
                   onChange={(e) => {
                     const sections = draft.sections.map((item, i) =>
@@ -596,7 +699,8 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
               )}
               {isEditing ? (
                 <textarea
-                  className={`w-full min-h-[5rem] ${editable}`}
+                  className={`${EDIT_FIELD_CLASS} min-h-[5rem]`}
+                  style={EDIT_FIELD_STYLE}
                   value={section.activities.join('\n')}
                   onChange={(e) => {
                     const sections = draft.sections.map((item, i) =>
@@ -609,6 +713,7 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
                     );
                     setDraft({ ...draft, sections });
                   }}
+                  rows={4}
                 />
               ) : (
                 <ul className="mt-1 list-disc space-y-1 pl-6 text-slate-200">
@@ -624,24 +729,28 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
           <span className="font-semibold">Assessment: </span>
           {isEditing ? (
             <textarea
-              className={`mt-1 w-full min-h-[3rem] ${editable}`}
+              className={`${EDIT_FIELD_CLASS} mt-1 min-h-[3rem]`}
+              style={EDIT_FIELD_STYLE}
               value={draft.assessment}
               onChange={(e) => setDraft({ ...draft, assessment: e.target.value })}
+              rows={3}
             />
           ) : (
-            draft.assessment
+            <p className="mt-1 text-base leading-relaxed text-slate-200">{draft.assessment}</p>
           )}
         </div>
         <div className="mt-2">
           <span className="font-semibold">Differentiation: </span>
           {isEditing ? (
             <textarea
-              className={`mt-1 w-full min-h-[3rem] ${editable}`}
+              className={`${EDIT_FIELD_CLASS} mt-1 min-h-[3rem]`}
+              style={EDIT_FIELD_STYLE}
               value={draft.differentiation}
               onChange={(e) => setDraft({ ...draft, differentiation: e.target.value })}
+              rows={3}
             />
           ) : (
-            draft.differentiation
+            <p className="mt-1 text-base leading-relaxed text-slate-200">{draft.differentiation}</p>
           )}
         </div>
       </article>
@@ -695,11 +804,12 @@ function StudioComposer({
           <Mic className="h-4 w-4" />
         </button>
         <textarea
-          className="w-full resize-y rounded-xl border border-slate-700/80 bg-slate-950 p-3 pl-14 text-base text-slate-100 placeholder-slate-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-          style={{ ...FONT, minHeight, WebkitTextFillColor: '#f1f5f9' }}
+          className="w-full resize-y rounded-xl border border-slate-700/80 bg-slate-950 p-3 pl-14 text-base text-slate-100 placeholder:text-slate-500 placeholder:font-normal placeholder:italic placeholder:opacity-60 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+          style={{ ...FONT, minHeight }}
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          rows={5}
           spellCheck
         />
       </div>
@@ -727,17 +837,16 @@ function StudioComposer({
             <ChevronDown className="h-3 w-3" />
           </button>
           {menuOpen ? (
-            <div className="absolute bottom-11 left-0 z-20 w-52 overflow-hidden rounded-lg border border-slate-700 bg-slate-900 py-1 shadow-xl">
-              <button
-                type="button"
-                className="block w-full px-3 py-2 text-left text-sm text-slate-100 hover:bg-slate-800"
+            <div role="menu" className={`${MENU_PANEL_CLASS} absolute bottom-full left-0 mb-2 w-56`}>
+              <StudioMenuItem
+                icon={<FileText className="h-4 w-4 text-purple-400" />}
                 onClick={() => {
                   setMenuOpen(false);
                   fileRef.current?.click();
                 }}
               >
                 Upload PDF or document
-              </button>
+              </StudioMenuItem>
             </div>
           ) : null}
           <input
@@ -880,7 +989,11 @@ export default function LessonPlanGenerator() {
 
   return (
     <DashboardLayout>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0d131f] text-slate-100" style={FONT}>
+      <div
+        className="lesson-plan-studio flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0d131f] text-slate-100"
+        style={{ ...FONT, colorScheme: 'dark' }}
+      >
+        <style>{STUDIO_CONTRAST_CSS}</style>
         <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-8">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
