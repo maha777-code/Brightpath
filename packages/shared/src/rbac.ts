@@ -46,7 +46,7 @@ export const DEFAULT_PLAN_FOR_ROLE: Record<AppRole, PlanType> = {
 export const HOME_PATH_FOR_ROLE: Record<AppRole, string> = {
   org_admin: '/admin/school-dashboard',
   center_admin: '/admin/center-dashboard',
-  teacher: '/teacher/dashboard',
+  teacher: '/home',
   parent: '/parent/dashboard',
   student: '/student/dashboard',
 };

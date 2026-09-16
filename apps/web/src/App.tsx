@@ -4,6 +4,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { isLearnerRole, isParentPortalRole } from '@/lib/api';
 import { homePathForRole, isAppRole, type AppRole } from '@brightpath/shared';
 import Home from '@/pages/Home';
+import Landing from '@/pages/Landing';
 import Login from '@/pages/Auth/Login';
 import Register from '@/pages/Register';
 import ParentHome from '@/pages/ParentHome';
@@ -49,7 +50,7 @@ function RequireRole({
 function ProtectedStudent({ children }: { children: React.ReactNode }) {
   const { parent, role, loading } = useAuth();
   if (loading) return <div className="app-loading"><div className="loader" /></div>;
-  if (role === 'teacher') return <Navigate to="/teacher/dashboard" replace />;
+  if (role === 'teacher') return <Navigate to="/home" replace />;
   if (role === 'org_admin') return <Navigate to="/admin/school-dashboard" replace />;
   if (role === 'center_admin') return <Navigate to="/admin/center-dashboard" replace />;
   if (isParentPortalRole(role)) return <Navigate to="/parent/dashboard" replace />;
@@ -93,6 +94,12 @@ function LoginGate() {
   return <Login />;
 }
 
+function RootHome() {
+  const { role, teacher } = useAuth();
+  if (role === 'teacher' && teacher) return <Home />;
+  return <Landing />;
+}
+
 export default function App() {
   const { loading } = useAuth();
 
@@ -107,7 +114,15 @@ export default function App() {
   return (
     <div className="app min-h-screen" style={{ fontFamily: 'Cambria, Georgia, serif' }}>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<RootHome />} />
+        <Route
+          path="/home"
+          element={
+            <ProtectedTeacher>
+              <Home />
+            </ProtectedTeacher>
+          }
+        />
         <Route path="/login" element={<LoginGate />} />
         <Route path="/register" element={<Register />} />
         <Route path="/signup" element={<Navigate to="/register" replace />} />

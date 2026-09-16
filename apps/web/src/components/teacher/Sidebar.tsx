@@ -1,11 +1,18 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, LayoutGrid, LogOut, Menu, X } from 'lucide-react';
+import { BookOpen, Home, LayoutGrid, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { HomeButton } from '@/components/Navigation/HomeButton';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 const WORKSPACE_ITEMS = [
+  {
+    to: '/home',
+    label: 'Home',
+    detail: 'Raina & recommended tools',
+    icon: Home,
+    match: (pathname: string) => pathname === '/home' || pathname === '/',
+  },
   {
     to: '/teacher/dashboard',
     label: 'Teacher Dashboard',

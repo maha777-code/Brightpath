@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 
 export function BrandLogo({
   variant = 'full',
-  to = '/teacher/tools',
+  to = '/home',
   imgClassName,
 }: {
   variant?: 'full' | 'compact';
