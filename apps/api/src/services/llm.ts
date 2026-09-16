@@ -7,7 +7,10 @@ import type {
   SongLyricsDraft,
   LessonPlanPayload,
   LessonPlanResponse,
+  RainaChatRequest,
+  RainaChatResponse,
 } from '@brightpath/shared';
+import { fallbackRainaChat } from '@brightpath/shared';
 import { applyWorksheetFollowUp, applyWorksheetTranslation } from '@brightpath/shared';
 import { getActiveProvider } from '../lib/llm/provider.js';
 
@@ -610,6 +613,57 @@ export async function generateLessonPlan(input: LessonPlanPayload): Promise<Less
     return normalizeLessonPlan(raw, input, fallback);
   } catch (err) {
     console.error('[llm] lesson plan generation failed', err);
+    return fallback;
+  }
+}
+
+const RAINA_SYSTEM = `You are Raina, an expert AI pedagogical assistant. When requested to generate educational material (worksheets, quizzes, lesson plans), produce a complete, classroom-ready document formatted cleanly in Markdown. Include headers, clear instructions, word banks, and structured question parts.
+
+Return JSON only in this exact shape:
+{
+  "title": "short breadcrumb title, e.g. Photosynthesis worksheet",
+  "statusLine": "I'll search for the right tool to create your worksheet.",
+  "confirmation": "Great! Here's a photosynthesis worksheet you can use right away:",
+  "markdown": "# Full markdown document..."
+}
+
+Rules:
+- markdown must be a complete student-facing document: title, name/date lines, Part 1 Fill in the Blanks with a Word Bank, Part 2 Multiple Choice with a–d options, and a teacher answer key.
+- Use Markdown headings, bold labels, numbered lists, and blank lines (______) for fill-ins.
+- Keep statusLine and confirmation concise and warm.
+- Do not wrap markdown in code fences.
+- Match the teacher's requested topic, grade, and format.`;
+
+function normalizeRainaChat(raw: Record<string, unknown>, fallback: RainaChatResponse): RainaChatResponse {
+  const markdown = String(raw.markdown ?? '').trim();
+  return {
+    title: String(raw.title ?? '').trim() || fallback.title,
+    statusLine: String(raw.statusLine ?? '').trim() || fallback.statusLine,
+    confirmation: String(raw.confirmation ?? '').trim() || fallback.confirmation,
+    markdown: markdown || fallback.markdown,
+  };
+}
+
+export async function generateRainaChat(input: RainaChatRequest): Promise<RainaChatResponse> {
+  const fallback = fallbackRainaChat(input.prompt);
+  const llm = getActiveProvider();
+  if (!llm) return fallback;
+
+  const historyBlock = (input.history ?? [])
+    .slice(-12)
+    .map((msg) => `${msg.role === 'user' ? 'Teacher' : 'Raina'}: ${msg.content}`)
+    .join('\n\n');
+
+  try {
+    const raw = await llm.completeJson<Record<string, unknown>>({
+      system: RAINA_SYSTEM,
+      user: [historyBlock ? `Conversation so far:\n${historyBlock}` : '', `New request:\n${input.prompt.trim()}`]
+        .filter(Boolean)
+        .join('\n\n'),
+    });
+    return normalizeRainaChat(raw, fallback);
+  } catch (err) {
+    console.error('[llm] raina chat generation failed', err);
     return fallback;
   }
 }

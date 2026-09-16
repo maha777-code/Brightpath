@@ -3,47 +3,77 @@
 @tailwind utilities;
 
 :root {
-  --primary-color: #5b46ba;
-  --primary-hover: #4a3799;
-  --accent-color: #0d9488;
-  --font: 'Cambria', Georgia, serif;
-  --font-display: 'Cambria', Georgia, serif;
+  --bg-primary: #030712;
+  --bg-secondary: #0b0f19;
+  --bg-card: #0f172a;
+  --accent-cyan: #06b6d4;
+  --accent-emerald: #10b981;
+  --accent-neon: #22d3ee;
+  --accent-alert: #f43f5e;
+  --border-cyber: #1e293b;
+  --border-glow: #0891b2;
+  --text-main: #f8fafc;
+  --text-muted: #64748b;
+  --text-code: #00f0ff;
+  --primary-color: #06b6d4;
+  --primary-hover: #0891b2;
+  --accent-color: #10b981;
+  --font: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  --font-display: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
 }
 
 html,
 body,
 #root {
-  font-family: 'Cambria', Georgia, serif;
-}
-
-/* Prevent global icon fonts or header fonts from breaking input text */
-input,
-textarea,
-select,
-button {
-  font-family: 'Cambria', Georgia, serif !important;
-  font-style: normal !important;
-  letter-spacing: normal !important;
-  text-transform: none !important;
-  -webkit-text-stroke: 0px !important;
+  font-family: var(--font);
+  background: var(--bg-primary);
+  color: var(--text-main);
 }
 
 input,
 textarea,
 select {
-  font-weight: 400 !important;
+  font-family: var(--font);
+  font-style: normal;
+  letter-spacing: 0.01em;
+  -webkit-text-stroke: 0;
+  font-weight: 400;
 }
 
-/* Dashboard layout helpers (Tailwind-first app shell) */
 .bp-dash {
-  font-family: 'Cambria', Georgia, serif;
+  font-family: var(--font);
 }
 
 .btn-primary,
 .bg-brand-primary {
-  background-color: var(--primary-color);
+  background-color: transparent;
+  color: var(--accent-cyan);
+  border: 1px solid rgb(34 211 238 / 0.5);
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-hover);
+  background-color: var(--accent-cyan);
+  color: #030712;
+}
+
+@layer components {
+  .btn-cyber {
+    @apply border border-cyan-400/50 bg-cyan-500/10 font-mono text-xs uppercase tracking-wider text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:bg-cyan-500 hover:text-black;
+  }
+
+  .input-cyber {
+    @apply border border-slate-800 bg-[#0b0f19] font-mono text-cyan-100 placeholder-slate-600 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400;
+  }
+
+  .card-cyber {
+    @apply rounded-lg border border-slate-800 bg-[#0b0f19]/80 transition-all hover:border-cyan-500/60;
+  }
+
+  .badge-cyber {
+    @apply rounded border border-emerald-500/40 bg-emerald-950/80 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-emerald-400;
+  }
+
+  .nav-cyber-active {
+    @apply border-l-2 border-cyan-400 bg-cyan-950/30 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.15)];
+  }
 }

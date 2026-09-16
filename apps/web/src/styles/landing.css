@@ -1,19 +1,19 @@
 /* Brightpath AI Tutor — landing page (self-contained so Vite always loads it) */
 
 .bp-landing {
-  --bp-teal: #0d9488;
-  --bp-teal-dark: #0f766e;
-  --bp-blue: #2563eb;
-  --bp-grad: linear-gradient(135deg, #0d9488 0%, #2563eb 100%);
-  --bp-text: #334155;
-  --bp-heading: #1e293b;
+  --bp-teal: #06b6d4;
+  --bp-teal-dark: #0891b2;
+  --bp-blue: #22d3ee;
+  --bp-grad: linear-gradient(135deg, #06b6d4 0%, #10b981 100%);
+  --bp-text: #94a3b8;
+  --bp-heading: #f8fafc;
   --bp-muted: #64748b;
-  --bp-glass: rgba(255, 255, 255, 0.55);
-  --bp-glass-strong: rgba(255, 255, 255, 0.72);
-  --bp-outline: rgba(167, 139, 250, 0.45);
-  --bp-divider: rgba(167, 139, 250, 0.35);
-  --bp-radius: 24px;
-  --bp-font: 'Cambria', Georgia, serif;
+  --bp-glass: rgba(11, 15, 25, 0.72);
+  --bp-glass-strong: rgba(15, 23, 42, 0.82);
+  --bp-outline: rgba(6, 182, 212, 0.4);
+  --bp-divider: rgba(8, 145, 178, 0.35);
+  --bp-radius: 12px;
+  --bp-font: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
   position: relative;
   min-height: 100dvh;
   font-family: var(--bp-font);
@@ -32,7 +32,19 @@
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(160deg, #eef2ff 0%, #f5f3ff 40%, #eff6ff 70%, #faf5ff 100%);
+  background:
+    radial-gradient(ellipse at top, #0f172a 0%, #030712 55%, #030712 100%);
+}
+
+.bp-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(6, 182, 212, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 182, 212, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
 }
 
 .bp-blob {
@@ -46,7 +58,7 @@
 .bp-blob--blue {
   width: 560px;
   height: 560px;
-  background: #bfdbfe;
+  background: #164e63;
   top: -140px;
   right: -80px;
 }
@@ -54,7 +66,7 @@
 .bp-blob--purple {
   width: 480px;
   height: 480px;
-  background: #ddd6fe;
+  background: #155e75;
   top: 35%;
   left: -120px;
 }
@@ -62,7 +74,7 @@
 .bp-blob--pink {
   width: 420px;
   height: 420px;
-  background: #e9d5ff;
+  background: #064e3b;
   bottom: 5%;
   right: 15%;
 }
@@ -127,14 +139,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  border-radius: 999px;
+  border: 1px solid rgb(34 211 238 / 0.5);
+  border-radius: 8px;
   font-family: var(--bp-font);
-  font-weight: 700;
+  font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s, color 0.15s;
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
 }
 
 .bp-btn:active {
@@ -142,13 +157,15 @@
 }
 
 .bp-btn--primary {
-  background: var(--bp-grad);
-  color: #fff;
-  box-shadow: 0 10px 28px rgba(13, 148, 136, 0.32);
+  background: rgb(6 182 212 / 0.1);
+  color: #67e8f9;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
 }
 
 .bp-btn--primary:hover {
-  box-shadow: 0 14px 36px rgba(37, 99, 235, 0.35);
+  background: #06b6d4;
+  color: #030712;
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.45);
 }
 
 .bp-btn--nav {
@@ -162,11 +179,11 @@
 }
 
 .bp-btn--outline {
-  background: rgba(255, 255, 255, 0.7);
-  color: var(--bp-teal-dark);
-  border: 2px solid var(--bp-teal);
+  background: rgb(11 15 25 / 0.8);
+  color: #67e8f9;
+  border: 1px solid rgb(34 211 238 / 0.5);
   padding: 12px 28px;
-  font-size: 0.95rem;
+  font-size: 0.75rem;
 }
 
 /* ── Hero ── */
@@ -733,5 +750,5 @@
 .bp-landing h5,
 .bp-landing h6,
 .bp-section-title {
-  font-family: 'Cambria', Georgia, serif !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace !important;
 }

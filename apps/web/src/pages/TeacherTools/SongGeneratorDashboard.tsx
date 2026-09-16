@@ -219,7 +219,7 @@ export default function SongGeneratorDashboard() {
                     setPage(1);
                   }}
                   placeholder="Search songs..."
-                  className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-800 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+                  className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-800 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200"
                 />
               </label>
             </div>
@@ -292,7 +292,7 @@ export default function SongGeneratorDashboard() {
                           <div className="flex justify-end gap-3 text-sm font-medium">
                             <button
                               type="button"
-                              className="text-violet-700 hover:underline"
+                              className="text-cyan-700 hover:underline"
                               onClick={() => void downloadSong(song)}
                             >
                               Download

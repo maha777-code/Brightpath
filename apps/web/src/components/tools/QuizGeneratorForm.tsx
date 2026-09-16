@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { QuizGeneratorPayload } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { CYBER_FONT_STYLE } from '@/lib/theme';
 
 const GRADE_LEVELS = [
   'Kindergarten',
@@ -37,8 +38,8 @@ const TOPIC_PLACEHOLDER = 'Enter topic, standard, or source text...';
 const STANDARDS_PLACEHOLDER = 'Any standards worldwide (CCSS, TEKS, Ontario, Florida)';
 
 const TOOL_TEXTAREA_STYLE: CSSProperties = {
-  fontFamily: 'Cambria, Georgia, serif',
-  WebkitTextFillColor: '#ffffff',
+  fontFamily: CYBER_FONT_STYLE.fontFamily,
+  WebkitTextFillColor: '#ecfeff',
 };
 
 function countWords(value: string): number {
@@ -130,10 +131,9 @@ function SelectField({
       <FieldLabel required={required}>{label}</FieldLabel>
       <div className="relative">
         <select
-          className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 pr-9 text-sm text-slate-800 shadow-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+          className="w-full appearance-none rounded-lg border border-slate-800 bg-[#0b0f19] px-3 py-2.5 pr-9 font-mono text-sm text-cyan-100 shadow-none outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
           style={{
-            fontFamily:
-              'Cambria, Georgia, serif',
+            fontFamily: CYBER_FONT_STYLE.fontFamily,
           }}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -187,10 +187,10 @@ function RichTextArea({
   return (
     <div>
       <FieldLabel required={required}>{label}</FieldLabel>
-      <div className="overflow-hidden rounded-lg border border-slate-700 bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-purple-500">
+      <div className="overflow-hidden rounded-lg border border-slate-700 bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-cyan-500">
         <div className="relative">
           <textarea
-            className="h-32 w-full resize-y rounded-lg border border-slate-700 bg-[#0f172a] p-3 pr-11 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="h-32 w-full resize-y rounded-lg border border-slate-700 bg-[#0f172a] p-3 pr-11 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             style={TOOL_TEXTAREA_STYLE}
             placeholder={placeholder}
             value={value}
@@ -201,8 +201,8 @@ function RichTextArea({
           <button
             type="button"
             className={[
-              'absolute right-2 top-2 rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-purple-300',
-              listening ? 'bg-purple-500/20 text-purple-200' : '',
+              'absolute right-2 top-2 rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-cyan-300',
+              listening ? 'bg-cyan-500/20 text-cyan-200' : '',
             ].join(' ')}
             aria-label={listening ? 'Stop dictation' : 'Dictate with microphone'}
             onClick={toggle}
@@ -386,7 +386,7 @@ export function QuizGeneratorForm({
         </div>
         <button
           type="button"
-          className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-violet-700 shadow-sm hover:bg-violet-50"
+          className="btn-cyber shrink-0 rounded-lg px-3 py-1.5"
           onClick={loadExemplar}
         >
           {showExemplar ? 'Exemplar loaded' : 'Show exemplar'}
@@ -451,13 +451,13 @@ export function QuizGeneratorForm({
       <div className="mt-6 flex flex-col items-end gap-3">
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-violet-700 hover:text-violet-900"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-cyan-700 hover:text-cyan-900"
           onClick={() => setAssistantOpen((v) => !v)}
         >
           <Lightbulb className="h-4 w-4" /> Prompt assistant
         </button>
         {assistantOpen && (
-          <div className="w-full rounded-xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm text-slate-700">
+          <div className="w-full rounded-lg border border-slate-800 bg-[#0b0f19] px-4 py-3 font-mono text-sm text-slate-300">
             Be specific: name the standard, paste a short source excerpt, or list vocabulary. Say
             whether this is diagnostic, formative, or a summative test.
           </div>
@@ -465,7 +465,7 @@ export function QuizGeneratorForm({
         <button
           type="button"
           disabled={busy || !payload.topicDescription || overLimit}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-purple-600 py-3 font-medium text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn-cyber inline-flex w-full items-center justify-center gap-2 rounded-lg py-3 disabled:cursor-not-allowed disabled:opacity-60"
           onClick={() => onGenerate(payload)}
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}

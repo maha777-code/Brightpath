@@ -82,6 +82,10 @@ export default function TeacherDashboard() {
         <div className="td-card rounded-3xl p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
+              <div className="mb-2 flex items-center gap-2">
+                <span className="badge-cyber">[SYS_OK]</span>
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-400">Curriculum studio</p>
+              </div>
               <h1 className="text-4xl font-extrabold tracking-tight text-white">Teacher Dashboard</h1>
               <p className="mt-2 text-base text-cyan-200/80">
                 Upload textbooks, enrich lessons with video & games, and approve AI answers before class.

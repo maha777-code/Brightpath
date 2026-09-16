@@ -10,9 +10,9 @@ type ThemeCtx = {
 };
 
 const ThemeContext = createContext<ThemeCtx>({
-  primary: '#5B46BA',
-  primaryHover: '#4A3799',
-  accent: '#0D9488',
+  primary: '#06B6D4',
+  primaryHover: '#0891B2',
+  accent: '#10B981',
   logoUrl: null,
   orgName: null,
 });
@@ -21,9 +21,9 @@ export function OrgThemeProvider({ children }: { children: ReactNode }) {
   const { organization } = useAuth();
   const value = useMemo<ThemeCtx>(
     () => ({
-      primary: organization?.primaryColor ?? '#5B46BA',
-      primaryHover: organization?.primaryHoverColor ?? '#4A3799',
-      accent: organization?.accentColor ?? '#0D9488',
+      primary: organization?.primaryColor ?? '#06B6D4',
+      primaryHover: organization?.primaryHoverColor ?? '#0891B2',
+      accent: organization?.accentColor ?? '#10B981',
       logoUrl: organization?.logoUrl ?? null,
       orgName: organization?.name ?? null,
     }),

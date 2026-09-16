@@ -23,11 +23,12 @@ import {
   type LessonPlanResponse,
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { CYBER_FONT_STYLE } from '@/lib/theme';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 const WORD_LIMIT = 75_000;
 const FONT: CSSProperties = {
-  fontFamily: 'Cambria, Georgia, serif',
+  fontFamily: CYBER_FONT_STYLE.fontFamily,
   fontSize: 18,
 };
 const LABEL_FONT: CSSProperties = {
@@ -35,17 +36,17 @@ const LABEL_FONT: CSSProperties = {
   fontSize: 20,
 };
 const EDIT_FIELD_STYLE: CSSProperties = {
-  fontFamily: 'Cambria, Georgia, serif',
+  fontFamily: CYBER_FONT_STYLE.fontFamily,
   color: '#f8fafc',
   backgroundColor: '#020617',
   caretColor: '#f8fafc',
 };
 const EDIT_FIELD_CLASS =
-  'lesson-plan-edit-input w-full rounded-xl border border-purple-500/50 bg-slate-950 p-4 text-base font-normal text-slate-100 placeholder:text-slate-500 placeholder:font-normal placeholder:italic placeholder:opacity-60 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400';
+  'lesson-plan-edit-input w-full rounded-xl border border-cyan-500/50 bg-slate-950 p-4 text-base font-normal text-slate-100 placeholder:text-slate-500 placeholder:font-normal placeholder:italic placeholder:opacity-60 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400';
 const MENU_PANEL_CLASS =
   'lesson-plan-menu z-50 rounded-xl border border-slate-700 bg-slate-900 p-1.5 shadow-2xl';
 const MENU_ITEM_CLASS =
-  'lesson-plan-menu-item flex w-full appearance-none items-center justify-start gap-2.5 rounded-lg border-0 bg-slate-900 px-3 py-2.5 text-left text-sm font-medium text-slate-100 shadow-none transition-colors hover:bg-purple-800 hover:text-white';
+  'lesson-plan-menu-item flex w-full appearance-none items-center justify-start gap-2.5 rounded-lg border-0 bg-slate-900 px-3 py-2.5 text-left text-sm font-medium text-slate-100 shadow-none transition-colors hover:bg-cyan-800 hover:text-white';
 const MENU_ITEM_STYLE: CSSProperties = {
   appearance: 'none',
   WebkitAppearance: 'none',
@@ -93,7 +94,7 @@ const STUDIO_CONTRAST_CSS = `
   color: #f8fafc !important;
   background-color: #020617 !important;
   caret-color: #f8fafc !important;
-  font-family: Cambria, Georgia, serif !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace !important;
 }
 .lesson-plan-studio .lesson-plan-edit-input:not(:placeholder-shown),
 .lesson-plan-studio textarea:not(:placeholder-shown),
@@ -517,7 +518,7 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
         <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
-            className="shrink-0 text-slate-400 hover:text-purple-400"
+            className="shrink-0 text-slate-400 hover:text-cyan-400"
             aria-label="Rename lesson plan"
             title="Rename lesson plan"
             onClick={() => setEditingTitle(true)}
@@ -565,7 +566,7 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
             type="button"
             onClick={handlePrint}
             title="Print lesson plan"
-            className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-slate-300 transition-colors hover:border-purple-500 hover:text-white"
+            className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-slate-300 transition-colors hover:border-cyan-500 hover:text-white"
           >
             <Printer className="h-4 w-4" />
           </button>
@@ -573,7 +574,7 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
             type="button"
             onClick={() => void handleCopy()}
             title="Copy text"
-            className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-slate-300 transition-colors hover:border-purple-500 hover:text-white"
+            className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-slate-300 transition-colors hover:border-cyan-500 hover:text-white"
           >
             <Copy className="h-4 w-4" />
           </button>
@@ -581,22 +582,22 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
             <button
               type="button"
               onClick={() => setIsExportOpen((open) => !open)}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm font-medium text-slate-200 transition-colors hover:border-purple-500 hover:text-white"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm font-medium text-slate-200 transition-colors hover:border-cyan-500 hover:text-white"
             >
-              <Download className="h-4 w-4 text-purple-400" />
+              <Download className="h-4 w-4 text-cyan-400" />
               <span>Export</span>
               <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
             </button>
             {isExportOpen ? (
               <div role="menu" className={`${MENU_PANEL_CLASS} absolute right-0 top-full mt-2 w-52`}>
-                <StudioMenuItem icon={<FileText className="h-4 w-4 text-purple-400" />} onClick={handleExportPDF}>
+                <StudioMenuItem icon={<FileText className="h-4 w-4 text-cyan-400" />} onClick={handleExportPDF}>
                   Export as PDF
                 </StudioMenuItem>
-                <StudioMenuItem icon={<FileCode className="h-4 w-4 text-purple-400" />} onClick={handleExportDocx}>
+                <StudioMenuItem icon={<FileCode className="h-4 w-4 text-cyan-400" />} onClick={handleExportDocx}>
                   Export as Word (.docx)
                 </StudioMenuItem>
                 <StudioMenuItem
-                  icon={<Globe className="h-4 w-4 text-purple-400" />}
+                  icon={<Globe className="h-4 w-4 text-cyan-400" />}
                   onClick={() => void handleExportGoogleDocs()}
                 >
                   Export to Google Docs
@@ -609,8 +610,8 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
             onClick={() => setIsEditing((value) => !value)}
             className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
               isEditing
-                ? 'border-purple-500 bg-purple-600 text-white'
-                : 'border-slate-700 bg-slate-950 text-slate-200 hover:border-purple-500 hover:text-white'
+                ? 'border-cyan-500 bg-cyan-600 text-white'
+                : 'border-slate-700 bg-slate-950 text-slate-200 hover:border-cyan-500 hover:text-white'
             }`}
           >
             <Edit3 className="h-4 w-4" />
@@ -681,7 +682,7 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
               {isEditing ? (
                 <input
                   type="text"
-                  className={`${EDIT_FIELD_CLASS} mb-2 p-2 text-[20px] font-semibold text-violet-200`}
+                  className={`${EDIT_FIELD_CLASS} mb-2 p-2 text-[20px] font-semibold text-cyan-200`}
                   style={{ ...EDIT_FIELD_STYLE, ...LABEL_FONT, WebkitTextFillColor: '#ddd6fe' }}
                   value={section.heading}
                   onChange={(e) => {
@@ -692,7 +693,7 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
                   }}
                 />
               ) : (
-                <h3 className="text-[20px] font-semibold text-violet-200" style={LABEL_FONT}>
+                <h3 className="text-[20px] font-semibold text-cyan-200" style={LABEL_FONT}>
                   {section.heading}
                   {section.minutes ? ` (${section.minutes} min)` : ''}
                 </h3>
@@ -756,7 +757,7 @@ function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lesson
       </article>
 
       {toast ? (
-        <div className="border-t border-slate-800 bg-slate-950 px-6 py-2 text-sm text-purple-200">{toast}</div>
+        <div className="border-t border-slate-800 bg-slate-950 px-6 py-2 text-sm text-cyan-200">{toast}</div>
       ) : null}
     </div>
   );
@@ -795,8 +796,8 @@ function StudioComposer({
           type="button"
           title="Voice Input"
           className={[
-            'absolute left-3 top-3 z-10 cursor-pointer rounded-lg border border-slate-700 bg-slate-900 p-2 text-purple-400 shadow-md transition-colors hover:bg-purple-600/40 hover:text-white',
-            listening ? 'border-purple-500 bg-purple-600/40 text-white' : '',
+            'absolute left-3 top-3 z-10 cursor-pointer rounded-lg border border-slate-700 bg-slate-900 p-2 text-cyan-400 shadow-md transition-colors hover:bg-cyan-600/40 hover:text-white',
+            listening ? 'border-cyan-500 bg-cyan-600/40 text-white' : '',
           ].join(' ')}
           aria-label={listening ? 'Stop dictation' : 'Dictate with microphone'}
           onClick={toggle}
@@ -804,7 +805,7 @@ function StudioComposer({
           <Mic className="h-4 w-4" />
         </button>
         <textarea
-          className="w-full resize-y rounded-xl border border-slate-700/80 bg-slate-950 p-3 pl-14 text-base text-slate-100 placeholder:text-slate-500 placeholder:font-normal placeholder:italic placeholder:opacity-60 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+          className="w-full resize-y rounded-xl border border-slate-700/80 bg-slate-950 p-3 pl-14 text-base text-slate-100 placeholder:text-slate-500 placeholder:font-normal placeholder:italic placeholder:opacity-60 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
           style={{ ...FONT, minHeight }}
           placeholder={placeholder}
           value={value}
@@ -829,17 +830,17 @@ function StudioComposer({
         <div className="relative">
           <button
             type="button"
-            className="flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-slate-950 px-3 py-1.5 text-xs font-medium text-purple-300 transition-colors hover:bg-slate-800 hover:text-white"
+            className="flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-slate-950 px-3 py-1.5 text-xs font-medium text-cyan-300 transition-colors hover:bg-slate-800 hover:text-white"
             onClick={() => setMenuOpen((v) => !v)}
           >
-            <FilePlus className="h-3.5 w-3.5 text-purple-400" />
+            <FilePlus className="h-3.5 w-3.5 text-cyan-400" />
             <span>+ Add File</span>
             <ChevronDown className="h-3 w-3" />
           </button>
           {menuOpen ? (
             <div role="menu" className={`${MENU_PANEL_CLASS} absolute bottom-full left-0 mb-2 w-56`}>
               <StudioMenuItem
-                icon={<FileText className="h-4 w-4 text-purple-400" />}
+                icon={<FileText className="h-4 w-4 text-cyan-400" />}
                 onClick={() => {
                   setMenuOpen(false);
                   fileRef.current?.click();
@@ -869,17 +870,17 @@ function StudioComposer({
           {assistantHint ? (
             <button
               type="button"
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-purple-500/30 bg-slate-900 px-3 py-1.5 text-sm font-medium text-purple-300 shadow-sm transition-colors hover:border-purple-500 hover:text-white"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-slate-900 px-3 py-1.5 text-sm font-medium text-cyan-300 shadow-sm transition-colors hover:border-cyan-500 hover:text-white"
               onClick={() => setAssistantOpen((v) => !v)}
             >
-              <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+              <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
               <span>Prompt assistant</span>
             </button>
           ) : null}
         </div>
       </div>
       {assistantHint && assistantOpen ? (
-        <p className="mt-3 rounded-lg border border-purple-500/30 bg-slate-950 px-3 py-2 text-sm text-slate-200">
+        <p className="mt-3 rounded-lg border border-cyan-500/30 bg-slate-950 px-3 py-2 text-sm text-slate-200">
           {assistantHint}
         </p>
       ) : null}
@@ -1008,14 +1009,14 @@ export default function LessonPlanGenerator() {
                   onClick={handleReset}
                   title="Reset form"
                   aria-label="Reset form"
-                  className="rounded-lg border border-slate-700 bg-slate-900 p-2 text-purple-300 transition-colors hover:border-purple-500 hover:text-white"
+                  className="rounded-lg border border-slate-700 bg-slate-900 p-2 text-cyan-300 transition-colors hover:border-cyan-500 hover:text-white"
                 >
                   <RotateCcw className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   onClick={handleShowExemplar}
-                  className="rounded-lg border border-slate-700 bg-slate-900 px-3.5 py-1.5 text-sm font-medium text-purple-300 transition-colors hover:border-purple-500 hover:text-white"
+                  className="rounded-lg border border-slate-700 bg-slate-900 px-3.5 py-1.5 text-sm font-medium text-cyan-300 transition-colors hover:border-cyan-500 hover:text-white"
                 >
                   Show exemplar
                 </button>
@@ -1028,7 +1029,7 @@ export default function LessonPlanGenerator() {
               </span>
               <div className="relative max-w-xl">
                 <select
-                  className="w-full appearance-none rounded-xl border border-white/15 bg-[#151c2b] px-4 py-3 pr-10 text-[18px] text-slate-100 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/40"
+                  className="w-full appearance-none rounded-xl border border-white/15 bg-[#151c2b] px-4 py-3 pr-10 text-[18px] text-slate-100 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40"
                   style={FONT}
                   value={gradeLevel}
                   onChange={(e) => {
@@ -1099,7 +1100,7 @@ export default function LessonPlanGenerator() {
         <div className="relative shrink-0 bg-[#0d131f] px-5 pb-5 pt-3 sm:px-8">
           <button
             type="button"
-            className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-purple-300 shadow-lg transition-colors hover:border-purple-500 hover:text-white"
+            className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-cyan-300 shadow-lg transition-colors hover:border-cyan-500 hover:text-white"
             aria-label="Scroll down"
             onClick={() => {
               const el = scrollRef.current;
@@ -1113,7 +1114,7 @@ export default function LessonPlanGenerator() {
             ref={generateRef}
             type="button"
             disabled={!canGenerate}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-purple-600 py-3.5 text-lg font-medium text-white hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-600 py-3.5 text-lg font-medium text-white hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
             style={{ ...FONT, fontSize: 20 }}
             onClick={() => void generate()}
           >

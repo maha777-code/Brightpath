@@ -3,6 +3,7 @@ import { BookOpen, Home, LayoutGrid, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
+import { CYBER_FONT_STYLE } from '@/lib/theme';
 
 const WORKSPACE_ITEMS = [
   {
@@ -10,7 +11,8 @@ const WORKSPACE_ITEMS = [
     label: 'Home',
     detail: 'Raina & recommended tools',
     icon: Home,
-    match: (pathname: string) => pathname === '/home' || pathname === '/',
+    match: (pathname: string) =>
+      pathname === '/home' || pathname === '/' || pathname.startsWith('/chat/raina'),
   },
   {
     to: '/teacher/dashboard',
@@ -39,21 +41,22 @@ export function TeacherSidebar() {
 
   return (
     <>
-      <div className="fixed inset-x-0 top-0 z-40 flex items-center border-b border-slate-800 bg-slate-950 px-4 py-3 md:hidden">
+      <div className="fixed inset-x-0 top-0 z-40 flex items-center border-b border-slate-800/80 bg-[#030712]/90 px-4 py-3 backdrop-blur-md md:hidden">
         <button
           type="button"
-          className="rounded-xl border border-slate-700 p-2.5 text-slate-200"
+          className="rounded-lg border border-cyan-400/40 p-2.5 text-cyan-300"
           aria-label={open ? 'Close menu' : 'Open menu'}
           onClick={() => setOpen((v) => !v)}
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
+        <span className="ml-3 font-mono text-xs uppercase tracking-[0.28em] text-cyan-400">MindVault</span>
       </div>
 
       {open && (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-slate-950/60 md:hidden"
+          className="fixed inset-0 z-40 bg-[#030712]/70 md:hidden"
           aria-label="Close sidebar"
           onClick={close}
         />
@@ -61,22 +64,26 @@ export function TeacherSidebar() {
 
       <aside
         className={[
-          'z-50 flex w-64 shrink-0 flex-col justify-between border-r border-slate-800 bg-slate-950 px-4 py-5',
+          'z-50 flex w-64 shrink-0 flex-col justify-between border-r border-slate-800/80 bg-[#030712]/90 px-4 py-5 backdrop-blur-md',
           'fixed inset-y-0 left-0 transition-transform duration-200 md:static md:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
         ].join(' ')}
-        style={{ fontFamily: 'Cambria, Georgia, serif' }}
+        style={CYBER_FONT_STYLE}
       >
         <div className="space-y-6">
-          <div className="hidden px-2 py-1 md:block">
-            <BrandLogo variant="full" imgClassName="h-10 w-auto object-contain" />
+          <div className="hidden items-center gap-2 border-b border-cyan-900/50 px-2 pb-4 md:flex">
+            <div className="h-3 w-3 shrink-0 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse" />
+            <div className="min-w-0">
+              <BrandLogo variant="full" imgClassName="h-8 w-auto object-contain" />
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.28em] text-cyan-400">MindVault</p>
+            </div>
           </div>
 
           <div className="mb-2 flex items-center justify-between px-2 md:hidden">
-            <p className="text-sm font-extrabold text-white">Menu</p>
+            <p className="font-mono text-xs font-bold uppercase tracking-widest text-cyan-300">Menu</p>
             <button
               type="button"
-              className="rounded-xl border border-slate-700 p-2 text-slate-200"
+              className="rounded-lg border border-slate-800 p-2 text-cyan-200"
               aria-label="Close menu"
               onClick={close}
             >
@@ -85,8 +92,8 @@ export function TeacherSidebar() {
           </div>
 
           <div className="space-y-2">
-            <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              TEACHER WORKSPACE
+            <p className="px-2 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">
+              Teacher workspace
             </p>
             <nav className="space-y-1" aria-label="Teacher workspace">
               {WORKSPACE_ITEMS.map((item) => {
@@ -98,16 +105,18 @@ export function TeacherSidebar() {
                     to={item.to}
                     onClick={close}
                     className={[
-                      'flex items-start gap-3 rounded-xl px-3 py-3 no-underline transition',
+                      'flex items-start gap-3 rounded-none px-3 py-3 no-underline transition',
                       active
-                        ? 'bg-slate-800 text-white shadow-[inset_0_0_0_1px_rgba(168,85,247,0.45)]'
-                        : 'text-slate-300 hover:bg-slate-900 hover:text-white',
+                        ? 'border-l-2 border-cyan-400 bg-cyan-950/30 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
+                        : 'border-l-2 border-transparent text-slate-400 hover:bg-cyan-950/20 hover:text-cyan-200',
                     ].join(' ')}
                   >
-                    <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${active ? 'text-purple-400' : 'text-slate-400'}`} />
+                    <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${active ? 'text-cyan-300' : 'text-slate-500'}`} />
                     <span className="min-w-0">
-                      <span className="block text-sm font-semibold leading-tight">{item.label}</span>
-                      <span className="mt-0.5 block text-[11px] font-medium leading-snug text-slate-400">
+                      <span className="block font-mono text-sm font-semibold leading-tight uppercase tracking-wide">
+                        {item.label}
+                      </span>
+                      <span className="mt-0.5 block text-[11px] font-medium leading-snug text-slate-500">
                         {item.detail}
                       </span>
                     </span>
@@ -119,8 +128,11 @@ export function TeacherSidebar() {
         </div>
 
         <div className="border-t border-slate-800 pt-4">
-          <p className="truncate px-3 text-sm font-bold text-white">{teacher?.name ?? 'Teacher'}</p>
-          <p className="truncate px-3 text-xs text-slate-400">
+          <div className="mb-2 flex items-center gap-2 px-3">
+            <span className="badge-cyber">[ONLINE]</span>
+          </div>
+          <p className="truncate px-3 text-sm font-bold text-slate-100">{teacher?.name ?? 'Teacher'}</p>
+          <p className="truncate px-3 text-xs text-slate-500">
             {teacher?.schoolName ?? 'School'} · {teacher?.subjectFocus ?? 'Science'}
           </p>
           <button
@@ -129,7 +141,7 @@ export function TeacherSidebar() {
               logout();
               navigate('/login');
             }}
-            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#6D28D9]/80 px-4 py-2.5 text-sm font-medium text-white hover:bg-[#7C3AED]"
+            className="btn-cyber mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5"
           >
             <LogOut className="h-4 w-4" /> Log out
           </button>

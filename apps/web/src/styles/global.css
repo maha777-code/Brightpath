@@ -17,23 +17,20 @@ h6,
 .page-title,
 .font-heading,
 .font-pickwick {
-  font-family: 'Cambria', Georgia, serif;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
 }
 
-/* Prevent global icon fonts or header fonts from breaking input text */
 input,
 textarea,
 select,
 button {
-  font-family: 'Cambria', Georgia, serif !important;
-  font-style: normal !important;
-  letter-spacing: normal !important;
-  text-transform: none !important;
-  -webkit-text-stroke: 0px !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  font-style: normal;
+  -webkit-text-stroke: 0px;
 }
 
 input,
 textarea,
 select {
-  font-weight: 400 !important;
+  font-weight: 400;
 }

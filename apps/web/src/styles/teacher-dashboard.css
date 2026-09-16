@@ -1,8 +1,8 @@
 /* Teacher Dashboard — dark, high-contrast SweetRush theme (scoped) */
 body:has(.td-dash),
 .app:has(.td-dash) {
-  background: #0f172a;
-  color: #ffffff;
+  background: #030712;
+  color: #f8fafc;
   width: 100%;
   max-width: none;
 }
@@ -16,41 +16,56 @@ body:has(.td-dash),
 }
 
 .td-dash {
-  font-family: 'Cambria', Georgia, serif;
-  --td-bg: #0f172a;
-  --td-card: rgba(30, 41, 59, 0.85);
-  --td-card-solid: #1e293b;
-  --td-modal: #312e81;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  --td-bg: #030712;
+  --td-card: rgba(11, 15, 25, 0.8);
+  --td-card-solid: #0f172a;
+  --td-modal: #0b0f19;
   --td-accent: #22d3ee;
   --td-accent-strong: #06b6d4;
-  --td-text: #ffffff;
-  --td-muted: #a5f3fc;
-  --td-purple: #6d28d9;
+  --td-text: #f8fafc;
+  --td-muted: #64748b;
+  --td-purple: #06b6d4;
   --td-track: rgba(8, 145, 178, 0.35);
-  --td-glow: 0 0 24px rgba(34, 211, 238, 0.28);
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(34, 211, 238, 0.12), transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, rgba(109, 40, 217, 0.18), transparent 50%),
-    var(--td-bg);
+  --td-glow: 0 0 24px rgba(6, 182, 212, 0.28);
+  background: transparent;
   color: var(--td-text);
   min-height: 100dvh;
   width: 100%;
 }
 
 .td-card {
+  position: relative;
   background: var(--td-card);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(165, 243, 252, 0.16);
+  border: 1px solid #1e293b;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 12px 40px rgba(2, 6, 23, 0.45);
+    inset 0 1px 0 rgba(34, 211, 238, 0.08),
+    0 0 20px rgba(6, 182, 212, 0.08);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.td-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.7), transparent);
+  pointer-events: none;
+}
+
+.td-card:hover {
+  border-color: rgb(6 182 212 / 0.45);
 }
 
 .td-input {
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(165, 243, 252, 0.28);
-  color: var(--td-text);
+  background: #0b0f19;
+  border: 1px solid #1e293b;
+  color: #cffafe;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
 }
 
 .td-input:focus {
@@ -60,18 +75,18 @@ body:has(.td-dash),
 }
 
 .td-input option {
-  background: #0f172a;
-  color: #fff;
+  background: #0b0f19;
+  color: #cffafe;
 }
 
 .ms-quiz-form {
-  font-family: 'Cambria', Georgia, serif;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
 }
 
 .ms-quiz-form textarea,
 .ms-quiz-form input,
 .ms-quiz-form select {
-  font-family: 'Cambria', Georgia, serif;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
   font-style: normal !important;
   font-weight: 400 !important;
   letter-spacing: normal !important;
@@ -86,7 +101,7 @@ body:has(.td-dash),
 }
 
 .quiz-gen-shell {
-  font-family: 'Cambria', Georgia, serif;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
 }
 
 .quiz-gen-split {
@@ -113,24 +128,22 @@ body:has(.td-dash),
 }
 
 .ws-preview-card {
-  border-radius: 0.75rem;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  background:
-    radial-gradient(800px 280px at 10% 0%, rgba(139, 92, 246, 0.12), transparent 55%),
-    linear-gradient(180deg, #1a2332 0%, #0f172a 100%);
+  border-radius: 0.5rem;
+  border: 1px solid #1e293b;
+  background: rgb(11 15 25 / 0.85);
   padding: 1.5rem;
   min-height: 500px;
   height: 100%;
 }
 
 .ws-doc {
-  font-family: 'Cambria', Georgia, serif;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
   color: #e2e8f0;
 }
 
 .ws-studio {
-  font-family: 'Cambria', Georgia, serif;
-  color: #0f172a;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  color: #f8fafc;
 }
 
 .ws-studio-badge {
@@ -171,9 +184,12 @@ body:has(.td-dash),
 }
 
 .td-btn-cta {
-  background: linear-gradient(135deg, #06b6d4 0%, #6366f1 100%);
-  color: #fff;
-  box-shadow: 0 8px 22px rgba(6, 182, 212, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+  background: rgb(6 182 212 / 0.1);
+  color: #67e8f9;
+  border: 1px solid rgb(34 211 238 / 0.5);
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .td-btn-cta:hover:not(:disabled) {
@@ -192,25 +208,24 @@ body:has(.td-dash),
 }
 
 .td-sidebar {
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.88)),
-    radial-gradient(600px 240px at 0% 0%, rgba(34, 211, 238, 0.12), transparent 70%);
+  background: rgb(3 7 18 / 0.9);
+  backdrop-filter: blur(12px);
 }
 
 .td-tool-card,
 .td-tool-tile {
-  background-color: rgb(30 41 59 / 0.94);
-  border: 1px solid rgb(71 85 105);
-  box-shadow: 0 10px 28px rgba(2, 6, 23, 0.45);
+  background-color: rgb(11 15 25 / 0.8);
+  border: 1px solid #1e293b;
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.06);
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
 .td-tool-card:hover,
 .td-tool-tile:hover {
   transform: translateY(-2px);
-  background-color: rgb(30 41 59);
-  border-color: rgb(6 182 212 / 0.5);
-  box-shadow: 0 16px 36px rgba(2, 6, 23, 0.5), 0 0 24px rgba(34, 211, 238, 0.1);
+  background-color: rgb(15 23 42 / 0.9);
+  border-color: rgb(6 182 212 / 0.6);
+  box-shadow: 0 0 24px rgba(6, 182, 212, 0.18);
 }
 
 .td-tool-tile button {
@@ -225,30 +240,31 @@ body:has(.td-dash),
 }
 
 .td-tool-badge {
-  border-radius: 999px;
-  padding: 0.2rem 0.55rem;
-  font-size: 0.65rem;
+  border-radius: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
 }
 
 .td-tool-badge-new {
-  background: rgba(6, 182, 212, 0.2);
-  color: #67e8f9;
-  border: 1px solid rgba(6, 182, 212, 0.3);
+  background: rgb(6 95 70 / 0.8);
+  color: #34d399;
+  border: 1px solid rgb(16 185 129 / 0.4);
 }
 
 .td-tool-badge-hot {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fcd34d;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgb(6 95 70 / 0.8);
+  color: #34d399;
+  border: 1px solid rgb(16 185 129 / 0.4);
 }
 
 .td-tool-badge-beta {
-  background: rgba(139, 92, 246, 0.2);
-  color: #c4b5fd;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgb(8 47 73 / 0.8);
+  color: #22d3ee;
+  border: 1px solid rgb(6 182 212 / 0.4);
 }
 
 .td-dash,
@@ -256,7 +272,7 @@ body:has(.td-dash),
 .quiz-gen-shell,
 .ws-studio,
 .ws-doc {
-  font-family: 'Cambria', Georgia, serif;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
 }
 
 .td-dash h1,
@@ -277,5 +293,6 @@ body:has(.td-dash),
 .ws-doc h1,
 .ws-doc h2,
 .ws-doc h3 {
-  font-family: 'Cambria', Georgia, serif !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace !important;
+  letter-spacing: 0.02em;
 }

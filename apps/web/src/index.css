@@ -1,4 +1,21 @@
-/* Universal forced font reset to Cambria */
+:root {
+  --bg-primary: #030712;
+  --bg-secondary: #0b0f19;
+  --bg-card: #0f172a;
+  --accent-cyan: #06b6d4;
+  --accent-emerald: #10b981;
+  --accent-neon: #22d3ee;
+  --accent-alert: #f43f5e;
+  --border-cyber: #1e293b;
+  --border-glow: #0891b2;
+  --text-main: #f8fafc;
+  --text-muted: #64748b;
+  --text-code: #00f0ff;
+  --font: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  --font-display: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  --font-pickwick: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+}
+
 *,
 *::before,
 *::after,
@@ -9,44 +26,34 @@ span,
 h1, h2, h3, h4, h5, h6,
 p, a, button, input, textarea, select, label, table, th, td,
 li, ul, ol, nav, header, footer, main, section, article {
-  font-family: 'Cambria', Georgia, serif !important;
+  font-family: var(--font);
 }
 
-:root {
-  --font: 'Cambria', Georgia, serif;
-  --font-display: 'Cambria', Georgia, serif;
-  --font-pickwick: 'Cambria', Georgia, serif;
-}
-
-/* Maintain increased baseline font size (+2px) for improved legibility */
 html,
 body {
-  font-size: 18px !important;
+  font-size: 16px;
   line-height: 1.6;
+  background: var(--bg-primary);
+  color: var(--text-main);
 }
 
-input,
-textarea,
-select,
-button,
-p,
-span,
-li {
-  font-size: 1.125rem; /* 18px */
-}
-
-/* Force muted placeholder text color across dark theme textareas */
 textarea::placeholder,
 input::placeholder {
-  color: #64748b !important; /* Muted Slate 500 */
+  color: #64748b !important;
   -webkit-text-fill-color: #64748b !important;
-  opacity: 0.65 !important;
+  opacity: 1 !important;
   font-weight: 400 !important;
-  font-style: italic;
+  font-style: normal;
 }
 
-/* Ensure typed text is bright white inside the lesson-plan studio */
 .lesson-plan-studio textarea,
 .lesson-plan-studio input {
-  color: #f8fafc !important; /* Slate 50 */
+  color: #f8fafc !important;
+}
+
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgba(6, 182, 212, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 182, 212, 0.05) 1px, transparent 1px);
 }

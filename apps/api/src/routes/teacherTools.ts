@@ -10,10 +10,11 @@ import {
   type WorksheetHistoryItem,
   type WorksheetHistoryResponse,
   type TeacherToolFeedbackResponse,
+  type RainaChatResponse,
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
-import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan } from '../services/llm.js';
+import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, generateRainaChat } from '../services/llm.js';
 import { randomUUID } from 'node:crypto';
 
 const favoriteBody = z.object({
@@ -579,6 +580,42 @@ router.post('/tools/feedback', async (req: AuthRequest, res: Response) => {
       worksheetId: parsed.data.worksheetId,
       rating: parsed.data.rating,
     } satisfies TeacherToolFeedbackResponse);
+  }
+});
+
+const rainaChatBody = z.object({
+  prompt: z.string().min(1).max(8000),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string().max(20000),
+      }),
+    )
+    .max(20)
+    .optional(),
+});
+
+/** POST /teacher/raina/chat */
+router.post('/raina/chat', async (req: AuthRequest, res: Response) => {
+  const teacherId = req.teacherId;
+  if (!teacherId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const parsed = rainaChatBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'A prompt is required' });
+    return;
+  }
+
+  try {
+    const payload: RainaChatResponse = await generateRainaChat(parsed.data);
+    res.json(payload);
+  } catch (err) {
+    console.error('[teacher/raina/chat] failed', err);
+    res.status(500).json({ error: 'Failed to generate Raina response' });
   }
 });
 

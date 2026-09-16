@@ -594,3 +594,206 @@ export function lyricsPreview(lyrics: string, max = 90): string {
 export function getTeacherToolById(id: string): TeacherToolDefinition | undefined {
   return TEACHER_TOOLS_CATALOG.find((t) => t.id === id);
 }
+
+export interface RainaChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface RainaChatRequest {
+  prompt: string;
+  history?: RainaChatMessage[];
+}
+
+export interface RainaChatResponse {
+  title: string;
+  statusLine: string;
+  confirmation: string;
+  markdown: string;
+}
+
+function titleCaseWords(value: string): string {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+export function rainaTitleFromPrompt(prompt: string): string {
+  const raw = prompt.replace(/\s+/g, ' ').trim();
+  if (!raw) return 'New conversation';
+
+  const topicMatch = raw.match(/\btopic\s+([^,.!?]+)/i);
+  if (topicMatch?.[1]) {
+    const topic = titleCaseWords(topicMatch[1].trim());
+    if (/worksheet/i.test(raw)) return `${topic} worksheet`;
+    if (/quiz|assessment/i.test(raw)) return `${topic} quiz`;
+    if (/lesson\s*plan/i.test(raw)) return `${topic} lesson plan`;
+    return topic;
+  }
+
+  const cleaned = raw
+    .replace(/^(please\s+)?(generate|create|make|write|build|draft)\s+(a|an|the)?\s*/i, '')
+    .replace(/\s+for\s+(grade|class)\s+\S+/i, '')
+    .trim();
+  const short = (cleaned || raw).slice(0, 48).trim();
+  return short.charAt(0).toUpperCase() + short.slice(1);
+}
+
+function extractTopic(prompt: string): string {
+  const topicMatch = prompt.match(/\btopic\s+([^,.!?]+)/i);
+  if (topicMatch?.[1]) return titleCaseWords(topicMatch[1].trim());
+  const cleaned = prompt
+    .replace(/^(please\s+)?(generate|create|make|write|build|draft)\s+(a|an|the)?\s*/i, '')
+    .replace(/\b(worksheet|quiz|lesson plan|assessment)\b/gi, '')
+    .replace(/\bfor\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return titleCaseWords(cleaned || 'this topic');
+}
+
+export function fallbackRainaChat(prompt: string): RainaChatResponse {
+  const topic = extractTopic(prompt);
+  const title = rainaTitleFromPrompt(prompt);
+  const isWorksheet = /worksheet|fill in|word bank|homework/i.test(prompt);
+  const isQuiz = /quiz|multiple choice|assessment/i.test(prompt);
+  const photosynthesis = /photosynthesis/i.test(prompt);
+
+  if (photosynthesis || (isWorksheet && /photo/i.test(topic))) {
+    return {
+      title: 'Photosynthesis worksheet',
+      statusLine: "I'll search for the right tool to create your worksheet.",
+      confirmation: "Great! Here's a photosynthesis worksheet you can use right away:",
+      markdown: `# Photosynthesis Worksheet
+
+**Grade:** 6–8  
+**Name:** ________________________  **Date:** ____________
+
+## Learning objective
+Students will identify the ingredients and products of photosynthesis and explain how plants convert light energy into chemical energy.
+
+## Part 1: Fill in the Blanks
+
+Use the **Word Bank** below. Each term is used once.
+
+**Word Bank:** chlorophyll · sunlight · carbon dioxide · oxygen · glucose · water · chloroplast · stomata
+
+1. Plants capture energy from ______.
+2. The green pigment ______ absorbs light energy.
+3. Photosynthesis takes place mainly in the ______ of plant cells.
+4. Plants take in ______ from the air through tiny openings called ______.
+5. Roots absorb ______ from the soil.
+6. The sugar produced during photosynthesis is called ______.
+7. A waste product released into the air is ______.
+
+## Part 2: Multiple Choice
+
+Circle the best answer.
+
+1. The overall equation for photosynthesis is:
+   a) carbon dioxide + water → glucose + oxygen
+   b) glucose + oxygen → carbon dioxide + water
+   c) nitrogen + sunlight → protein
+   d) oxygen + water → carbon dioxide
+
+2. Which organelle is the site of photosynthesis?
+   a) mitochondrion
+   b) nucleus
+   c) chloroplast
+   d) vacuole
+
+3. Why do most leaves look green?
+   a) They reflect green light
+   b) They absorb only green light
+   c) They contain no pigment
+   d) They produce a blue dye
+
+## Teacher answer key
+**Part 1:** 1. sunlight  2. chlorophyll  3. chloroplast  4. carbon dioxide, stomata  5. water  6. glucose  7. oxygen  
+**Part 2:** 1. a  2. c  3. a
+`,
+    };
+  }
+
+  const kind = isQuiz ? 'quiz' : isWorksheet ? 'worksheet' : 'classroom resource';
+  const statusLine = isWorksheet
+    ? "I'll search for the right tool to create your worksheet."
+    : isQuiz
+      ? "I'll search for the right tool to create your quiz."
+      : "I'll search for the right approach for this request.";
+  const confirmation = isWorksheet
+    ? `Great! Here's a ${topic.toLowerCase()} worksheet you can use right away:`
+    : isQuiz
+      ? `Great! Here's a ${topic.toLowerCase()} quiz you can use right away:`
+      : `Great! Here's a ${topic.toLowerCase()} resource you can use right away:`;
+
+  const markdown = isQuiz
+    ? `# ${topic} Quiz
+
+**Name:** ________________________  **Date:** ____________
+
+## Directions
+Circle the best answer for each question.
+
+1. Which statement best describes ${topic}?
+   a) A core idea of ${topic}
+   b) A common misconception about ${topic}
+   c) An unrelated fact
+   d) A definition of a different process
+
+2. Where would students most likely study ${topic}?
+   a) In a classroom investigation
+   b) Only in a dictionary
+   c) Never in science class
+   d) Only during recess
+
+3. Why does ${topic} matter for learners?
+   a) It builds conceptual understanding
+   b) It replaces all other topics
+   c) It cannot be taught
+   d) It has no real-world connection
+
+## Teacher answer key
+1. a  2. a  3. a
+`
+    : `# ${topic} Worksheet
+
+**Name:** ________________________  **Date:** ____________
+
+## Learning objective
+Students will explain key ideas about ${topic} using academic vocabulary.
+
+## Part 1: Fill in the Blanks
+
+Use the **Word Bank** below.
+
+**Word Bank:** evidence · concept · example · process · cause · effect · vocabulary
+
+1. The main ______ of this lesson is ${topic}.
+2. Students should support claims with ______.
+3. One real-world ______ of ${topic} is __________.
+4. A ______ is a series of steps that explains how ${topic} works.
+5. Identifying ______ and ______ helps learners see relationships.
+
+## Part 2: Multiple Choice
+
+1. Which strategy best helps students learn ${topic}?
+   a) Connecting new ideas to prior knowledge
+   b) Memorizing unrelated lists
+   c) Skipping examples
+   d) Avoiding discussion
+
+2. A strong classroom ${kind} should include:
+   a) Clear directions and structured questions
+   b) No instructions
+   c) Only pictures
+   d) Hidden answer keys for students
+
+## Teacher answer key
+**Part 1:** 1. concept  2. evidence  3. example  4. process  5. cause, effect  
+**Part 2:** 1. a  2. a
+`;
+
+  return { title, statusLine, confirmation, markdown };
+}

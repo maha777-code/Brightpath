@@ -22,7 +22,7 @@ import { useAuth } from '@/context/AuthContext';
 import { BirthDatePicker } from '@/components/age/BirthDatePicker';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
-const ACCENT = '#5B46BA';
+const ACCENT = '#06b6d4';
 
 const SEGMENTS: {
   role: SignupRole;
@@ -159,10 +159,10 @@ export default function Register() {
                 key={s.role}
                 type="button"
                 onClick={() => chooseRole(s.role)}
-                className="rounded-2xl border-2 border-slate-200 bg-white p-4 text-left transition hover:border-indigo-300 hover:bg-indigo-50/40"
+                className="card-cyber p-4 text-left hover:border-cyan-500/60"
               >
                 <Icon className="mb-2 h-7 w-7" style={{ color: ACCENT }} />
-                <p className="text-sm font-extrabold text-slate-800">{s.label}</p>
+                <p className="text-sm font-extrabold text-slate-100">{s.label}</p>
                 <p className="mt-1 text-xs leading-relaxed text-slate-500">{s.subtext}</p>
               </button>
             );
@@ -174,12 +174,12 @@ export default function Register() {
         <form onSubmit={submit}>
           <button
             type="button"
-            className="mb-4 text-sm font-semibold text-indigo-600"
+            className="mb-4 text-sm font-semibold text-cyan-300"
             onClick={() => setStep(1)}
           >
             ← Change account type
           </button>
-          <p className="mb-4 text-sm font-bold text-slate-600">
+          <p className="mb-4 text-sm font-bold text-slate-400">
             Signing up as: {SEGMENTS.find((s) => s.role === role)?.label}
           </p>
 
@@ -358,7 +358,6 @@ export default function Register() {
             type="submit"
             className="btn btn-primary"
             disabled={busy}
-            style={{ background: ACCENT }}
           >
             {t('auth.register')}
           </button>

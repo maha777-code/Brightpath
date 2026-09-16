@@ -163,7 +163,7 @@ export default function SongGeneratorCreate() {
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
                     placeholder="e.g. Photosynthesis, The Water Cycle, Fractions..."
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200"
                   />
                 </label>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -174,7 +174,7 @@ export default function SongGeneratorCreate() {
                     <select
                       value={gradeLevel}
                       onChange={(e) => setGradeLevel(e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200"
                     >
                       {SONG_GRADE_LEVELS.map((grade) => (
                         <option key={grade} value={grade}>
@@ -190,7 +190,7 @@ export default function SongGeneratorCreate() {
                     <select
                       value={songStyle}
                       onChange={(e) => setSongStyle(e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200"
                     >
                       {SONG_STYLES.map((style) => (
                         <option key={style} value={style}>
@@ -208,7 +208,7 @@ export default function SongGeneratorCreate() {
                     value={customInstructions}
                     onChange={(e) => setCustomInstructions(e.target.value)}
                     placeholder="Any specific requirements or style preferences for the song?"
-                    className="min-h-[96px] w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+                    className="min-h-[96px] w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200"
                   />
                 </label>
                 <div className="flex justify-end">
@@ -246,7 +246,7 @@ export default function SongGeneratorCreate() {
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200"
                   />
                 </label>
                 <label className="block">
@@ -254,7 +254,7 @@ export default function SongGeneratorCreate() {
                   <textarea
                     value={lyrics}
                     onChange={(e) => setLyrics(e.target.value)}
-                    className="min-h-[220px] w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+                    className="min-h-[220px] w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200"
                   />
                 </label>
                 <label className="block">
@@ -262,7 +262,7 @@ export default function SongGeneratorCreate() {
                   <select
                     value={voiceId}
                     onChange={(e) => setVoiceId(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200"
                   >
                     {SONG_VOICES.map((voice) => (
                       <option key={voice.id} value={voice.id}>
@@ -291,7 +291,7 @@ export default function SongGeneratorCreate() {
               <audio controls src={audio} className="mx-auto w-full max-w-md" />
             ) : (
               <p className="inline-flex items-center gap-2 text-sm">
-                <Sparkles className="h-4 w-4 text-violet-500" />
+                <Sparkles className="h-4 w-4 text-cyan-500" />
                 Your song will generate here when complete!
               </p>
             )}

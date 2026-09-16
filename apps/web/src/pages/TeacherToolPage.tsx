@@ -66,7 +66,7 @@ export function TeacherToolLauncher({
               <ArrowLeft className="h-4 w-4" /> Back to AI Tools Suite
             </Link>
           </div>
-          <div className="rounded-2xl bg-white p-5 shadow-xl sm:p-8">{quiz}</div>
+          <div className="card-cyber p-5 sm:p-8">{quiz}</div>
         </main>
       </TeacherWorkspaceLayout>
     );

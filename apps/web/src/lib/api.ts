@@ -109,6 +109,8 @@ import type {
   WorksheetTranslatePayload,
   LessonPlanPayload,
   LessonPlanResponse,
+  RainaChatRequest,
+  RainaChatResponse,
   SongLyricsPayload,
   SongLyricsDraft,
   SongRenderPayload,
@@ -456,6 +458,12 @@ export const api = {
 
   generateLessonPlan: (body: LessonPlanPayload) =>
     request<LessonPlanResponse>('/teacher/tools/lesson-plan-generator', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  rainaChat: (body: RainaChatRequest) =>
+    request<RainaChatResponse>('/teacher/raina/chat', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

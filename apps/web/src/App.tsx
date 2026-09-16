@@ -4,8 +4,11 @@ import { useProfile } from '@/hooks/useProfile';
 import { isLearnerRole, isParentPortalRole } from '@/lib/api';
 import { homePathForRole, isAppRole, type AppRole } from '@brightpath/shared';
 import Home from '@/pages/Home';
+import RainaChat from '@/pages/RainaChat';
 import Landing from '@/pages/Landing';
 import Login from '@/pages/Auth/Login';
+import { CyberLayout } from '@/components/layout/CyberLayout';
+import { CYBER_FONT_STYLE } from '@/lib/theme';
 import Register from '@/pages/Register';
 import ParentHome from '@/pages/ParentHome';
 import AddChild from '@/pages/AddChild';
@@ -105,14 +108,15 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="app-loading min-h-screen" style={{ fontFamily: 'Cambria, Georgia, serif' }}>
+      <div className="app-loading min-h-screen" style={CYBER_FONT_STYLE}>
         <div className="loader" aria-label="Loading" />
       </div>
     );
   }
 
   return (
-    <div className="app min-h-screen" style={{ fontFamily: 'Cambria, Georgia, serif' }}>
+    <CyberLayout>
+    <div className="app min-h-screen" style={CYBER_FONT_STYLE}>
       <Routes>
         <Route path="/" element={<RootHome />} />
         <Route
@@ -120,6 +124,14 @@ export default function App() {
           element={
             <ProtectedTeacher>
               <Home />
+            </ProtectedTeacher>
+          }
+        />
+        <Route
+          path="/chat/raina"
+          element={
+            <ProtectedTeacher>
+              <RainaChat />
             </ProtectedTeacher>
           }
         />
@@ -230,5 +242,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
+    </CyberLayout>
   );
 }

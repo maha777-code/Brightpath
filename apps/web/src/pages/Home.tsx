@@ -20,7 +20,9 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 
-const FONT = { fontFamily: 'Cambria, Georgia, serif' } as const;
+import { CYBER_FONT_STYLE } from '@/lib/theme';
+
+const FONT = CYBER_FONT_STYLE;
 
 const HOME_TOOL_IDS = [
   'worksheet-generator',
@@ -131,20 +133,28 @@ export function HomePage() {
   const sendPrompt = useCallback(() => {
     const text = prompt.trim();
     if (!text) return;
-    setReply(
-      `Raina: I’ll look that up and suggest classroom-ready resources for “${text.slice(0, 80)}${text.length > 80 ? '…' : ''}”. You can also open a tool below to generate a worksheet, quiz, or lesson plan.`,
-    );
-    setPrompt('');
-  }, [prompt]);
+    navigate('/chat/raina', {
+      state: {
+        prompt: text,
+        initialPrompt: text,
+        topic: text.slice(0, 30),
+        startedAt: Date.now(),
+      },
+    });
+  }, [navigate, prompt]);
 
   return (
     <TeacherWorkspaceLayout>
       <div
-        className="min-h-full bg-[#090d16] px-5 py-8 text-slate-100 sm:px-8 lg:px-10"
+        className="min-h-full bg-transparent px-5 py-8 text-slate-100 sm:px-8 lg:px-10"
         style={FONT}
       >
         <div className="mx-auto max-w-6xl space-y-10">
           <section className="mx-auto max-w-2xl pt-2 text-center">
+            <div className="mb-3 flex items-center justify-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse" />
+              <span className="badge-cyber">[SYS_OK]</span>
+            </div>
             <h1 className="text-center text-3xl font-bold text-slate-100" style={FONT}>
               Hi {displayName}, how can I help today?
             </h1>
@@ -152,7 +162,13 @@ export function HomePage() {
               Chat with Raina, your AI assistant
             </p>
 
-            <div className="mx-auto mt-6 max-w-2xl rounded-2xl border border-slate-700/80 bg-slate-900/90 p-4 text-left shadow-xl">
+            <form
+              className="mx-auto mt-6 max-w-2xl rounded-lg border border-slate-800 bg-[#0b0f19] p-4 text-left shadow-[0_0_20px_rgba(6,182,212,0.12)]"
+              onSubmit={(event) => {
+                event.preventDefault();
+                sendPrompt();
+              }}
+            >
               <textarea
                 rows={2}
                 value={prompt}
@@ -164,7 +180,7 @@ export function HomePage() {
                   }
                 }}
                 placeholder="Recommend 5 accessible video resources for social..."
-                className="w-full resize-none bg-transparent text-base text-slate-100 placeholder-slate-500 outline-none"
+                className="w-full resize-none bg-transparent font-mono text-base text-cyan-100 placeholder-slate-600 outline-none"
                 style={FONT}
               />
               <div className="flex items-center justify-between border-t border-slate-800/60 pt-2">
@@ -189,7 +205,7 @@ export function HomePage() {
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    className="text-slate-400 transition-colors hover:text-purple-400"
+                    className="text-slate-400 transition-colors hover:text-cyan-400"
                     aria-label="Voice input"
                     title="Voice input"
                     onClick={() =>
@@ -200,33 +216,32 @@ export function HomePage() {
                   </button>
                   <button
                     type="button"
-                    className="text-slate-400 transition-colors hover:text-purple-400"
+                    className="text-slate-400 transition-colors hover:text-cyan-400"
                     aria-label="Attach an image"
                     onClick={() => fileRef.current?.click()}
                   >
                     <ImageIcon className="h-4 w-4" />
                   </button>
                   <button
-                    type="button"
-                    className="rounded-lg bg-purple-600 p-1.5 text-white transition-colors hover:bg-purple-500"
+                    type="submit"
+                    className="rounded-lg border border-cyan-400/50 bg-cyan-500/10 p-1.5 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:bg-cyan-500 hover:text-black"
                     aria-label="Send message"
-                    onClick={sendPrompt}
                   >
                     <ArrowUp className="h-4 w-4" />
                   </button>
                 </div>
               </div>
-            </div>
+            </form>
 
             <button
               type="button"
-              className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-1.5 text-xs text-slate-300 transition-colors hover:border-purple-500"
+              className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-800 bg-[#0b0f19] px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-cyan-300 transition-colors hover:border-cyan-500/60"
               onClick={() => {
                 setPrompt('Generate a classroom image of ');
                 setReply(null);
               }}
             >
-              <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+              <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
               New! Ask Raina to generate images
             </button>
 
@@ -239,7 +254,7 @@ export function HomePage() {
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div className="space-y-4 lg:col-span-2">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <p className="mb-1 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-cyan-400">
                 YOUR MAGIC
               </p>
               <div className="flex items-center justify-between gap-3">
@@ -247,7 +262,7 @@ export function HomePage() {
                 <button
                   type="button"
                   onClick={() => navigate('/teacher/tools')}
-                  className="cursor-pointer text-sm font-medium text-purple-400 hover:text-purple-300"
+                  className="cursor-pointer font-mono text-sm font-medium uppercase tracking-wide text-cyan-400 hover:text-cyan-300"
                 >
                   Discover all tools →
                 </button>
@@ -272,13 +287,13 @@ export function HomePage() {
                           navigate(tool.route);
                         }
                       }}
-                      className="cursor-pointer space-y-2 rounded-xl border border-slate-800 bg-slate-900/80 p-4 transition-all hover:border-purple-500/50 hover:bg-slate-800/80"
+                      className="card-cyber cursor-pointer space-y-2 p-4"
                     >
                       <div className="flex items-center justify-between">
-                        <Icon className="h-5 w-5 text-purple-400" />
+                        <Icon className="h-5 w-5 text-cyan-400" />
                         <button
                           type="button"
-                          className={favorited ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}
+                          className={favorited ? 'text-emerald-400' : 'text-slate-600 hover:text-emerald-400'}
                           aria-label={favorited ? `Unpin ${tool.name}` : `Pin ${tool.name}`}
                           onClick={(event) => {
                             event.stopPropagation();
@@ -296,8 +311,11 @@ export function HomePage() {
               </div>
             </div>
 
-            <aside className="h-fit space-y-4 rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5">
-              <h2 className="mb-4 text-lg font-bold text-slate-100">Recent activity</h2>
+            <aside className="card-cyber h-fit space-y-4 p-5">
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-slate-100">Recent activity</h2>
+                <span className="badge-cyber">[INDEXED]</span>
+              </div>
               <div className="space-y-3">
                 {RECENT_ACTIVITY.map((act) => (
                   <div
@@ -313,7 +331,7 @@ export function HomePage() {
                     role="link"
                     tabIndex={0}
                   >
-                    <p className="text-sm font-medium text-slate-200 transition-colors group-hover:text-purple-300">
+                    <p className="text-sm font-medium text-slate-200 transition-colors group-hover:text-cyan-300">
                       {act.title}
                     </p>
                     <span className="text-xs text-slate-500">{act.type}</span>

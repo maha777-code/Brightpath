@@ -46,10 +46,10 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
 
 function badgeClass(badge: TeacherToolBadge): string {
   const base =
-    'rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide border';
-  if (badge === 'New') return `${base} bg-cyan-500/20 text-cyan-300 border-cyan-500/30`;
-  if (badge === 'Hot') return `${base} bg-amber-500/20 text-amber-300 border-amber-500/30`;
-  return `${base} bg-violet-500/20 text-violet-300 border-violet-500/30`;
+    'rounded border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider';
+  if (badge === 'New') return `${base} bg-emerald-950/80 text-emerald-400 border-emerald-500/40`;
+  if (badge === 'Hot') return `${base} bg-emerald-950/80 text-emerald-400 border-emerald-500/40`;
+  return `${base} bg-cyan-950/80 text-cyan-300 border-cyan-500/40`;
 }
 
 export default function TeacherTools() {
@@ -137,7 +137,10 @@ export default function TeacherTools() {
     <TeacherWorkspaceLayout>
       <main className="w-full max-w-full space-y-6 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
         <div className="td-card rounded-3xl p-6 sm:p-8">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-200/70">AI Tools Suite</p>
+          <div className="mb-2 flex items-center gap-2">
+            <span className="badge-cyber">[ONLINE]</span>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-200/70">AI Tools Suite</p>
+          </div>
           <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
             Teacher Tools Suite Hub
           </h1>
@@ -195,7 +198,7 @@ export default function TeacherTools() {
         </div>
 
         {error && (
-          <p className="rounded-2xl border border-amber-400/40 bg-amber-950/40 p-4 text-sm text-amber-100">
+          <p className="rounded-lg border border-rose-500/40 bg-rose-950/40 p-4 font-mono text-sm text-rose-200">
             {error}
           </p>
         )}
@@ -246,8 +249,8 @@ export default function TeacherTools() {
                         className={[
                           'rounded-md border-0 bg-transparent p-1.5 appearance-none transition',
                           favorited
-                            ? 'text-amber-400 hover:text-amber-300'
-                            : 'text-slate-400 hover:text-amber-400',
+                            ? 'text-emerald-400 hover:text-emerald-300'
+                            : 'text-slate-400 hover:text-emerald-400',
                         ].join(' ')}
                         aria-label={favorited ? `Unpin ${tool.title} from favorites` : `Pin ${tool.title} to favorites`}
                         aria-pressed={favorited}
@@ -317,7 +320,7 @@ export default function TeacherTools() {
               type="button"
               className={
                 activeTool.id === 'quiz-generator'
-                  ? 'mt-4 text-sm font-semibold text-violet-700 underline'
+                  ? 'mt-4 text-sm font-semibold text-cyan-300 underline'
                   : 'mt-4 text-sm font-semibold text-cyan-200 underline'
               }
               onClick={() => navigate(activeTool.href)}

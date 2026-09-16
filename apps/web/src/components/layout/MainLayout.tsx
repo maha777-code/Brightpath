@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { TeacherSidebar } from '@/components/teacher/Sidebar';
 import '@/styles/teacher-dashboard.css';
+import { CYBER_FONT_STYLE } from '@/lib/theme';
 
 export function MainLayout({
   children,
@@ -12,15 +13,15 @@ export function MainLayout({
   return (
     <div
       className={[
-        'td-dash flex min-h-screen w-full max-w-full bg-[#080c14] text-slate-100',
+        'td-dash relative flex min-h-screen w-full max-w-full bg-transparent text-slate-100',
         fillViewport ? 'h-screen overflow-hidden' : 'min-h-dvh',
       ].join(' ')}
-      style={{ fontFamily: 'Cambria, Georgia, serif' }}
+      style={CYBER_FONT_STYLE}
     >
       <TeacherSidebar />
       <div
         className={[
-          'min-w-0 flex-1 overflow-y-auto pt-14 md:pt-0',
+          'relative z-10 min-w-0 flex-1 overflow-y-auto pt-14 md:pt-0',
           fillViewport ? 'flex min-h-0 flex-col overflow-hidden' : '',
         ].join(' ')}
       >
