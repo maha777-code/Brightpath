@@ -24,6 +24,8 @@ import {
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { HomeButton } from '@/components/Navigation/HomeButton';
+import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 const WORD_LIMIT = 75_000;
 const FONT: CSSProperties = {
@@ -997,9 +999,13 @@ export default function LessonPlanGenerator() {
         <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-8">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-[18px] text-slate-300" style={FONT}>
-                Generate a lesson plan based on a standard, topic, or objective.
-              </p>
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                <HomeButton />
+                <BrandLogo variant="compact" />
+                <p className="text-[18px] text-slate-300" style={FONT}>
+                  Generate a lesson plan based on a standard, topic, or objective.
+                </p>
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"

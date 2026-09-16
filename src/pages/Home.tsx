@@ -8,7 +8,7 @@ export default function Home() {
     <div className="page">
       <section className="hero">
         <div className="hero-logo" aria-hidden="true">🌟</div>
-        <h1 className="hero-title">BrightPath</h1>
+        <h1 className="hero-title">MindVault</h1>
         <p className="hero-tagline">
           One-on-one tutoring in reading, writing &amp; math — the way a real private tutor would teach.
         </p>

@@ -8,6 +8,8 @@ import SongGeneratorDashboard from '@/pages/TeacherTools/SongGeneratorDashboard'
 import LessonPlanGenerator from '@/pages/TeacherTools/LessonPlanGenerator';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
+import { HomeButton } from '@/components/Navigation/HomeButton';
+import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 function sampleOutput(tool: TeacherToolDefinition, topic: string, grade: string): string {
   const subject = topic.trim() || 'your topic';
@@ -15,7 +17,7 @@ function sampleOutput(tool: TeacherToolDefinition, topic: string, grade: string)
     case 'song-generator':
       return `Verse 1\nLet's explore ${subject} today,\n${grade} scientists leading the way.\nChorus\nAsk, observe, and try again —\n${subject} clicks when we explain.`;
     case 'podcast-generator':
-      return `Host: Welcome to Brightpath Classroom. Today we unpack ${subject} for ${grade}.\nGuest: Start with a real-world hook, then one clear model, then a check-for-understanding question.`;
+      return `Host: Welcome to MindVault Classroom. Today we unpack ${subject} for ${grade}.\nGuest: Start with a real-world hook, then one clear model, then a check-for-understanding question.`;
     case 'worksheet-generator':
       return `Worksheet: ${subject} (${grade})\n1. Define ${subject} in your own words.\n2. Give one classroom example.\n3. Explain a common misconception.\n4. Apply it to a short problem.`;
     case 'text-rewriter':
@@ -58,12 +60,16 @@ export function TeacherToolLauncher({
     return (
       <TeacherWorkspaceLayout>
         <main className="w-full max-w-7xl px-6 py-6 lg:px-10 lg:py-8">
-          <Link
-            to="/teacher/tools"
-            className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-cyan-200 hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back to AI Tools Suite
-          </Link>
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <HomeButton />
+            <BrandLogo variant="compact" />
+            <Link
+              to="/teacher/tools"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-200 hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back to AI Tools Suite
+            </Link>
+          </div>
           <div className="rounded-2xl bg-white p-5 shadow-xl sm:p-8">{quiz}</div>
         </main>
       </TeacherWorkspaceLayout>
@@ -89,12 +95,16 @@ export function TeacherToolLauncher({
   const body = (
     <div className="space-y-5">
       {!embedded && (
-        <Link
-          to="/teacher/tools"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-200 hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to AI Tools Suite
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <HomeButton />
+          <BrandLogo variant="compact" />
+          <Link
+            to="/teacher/tools"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-200 hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to AI Tools Suite
+          </Link>
+        </div>
       )}
       <div>
         <p className="text-xs font-bold uppercase tracking-widest text-cyan-200/70">

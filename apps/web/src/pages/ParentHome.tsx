@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { useProfile } from '@/hooks/useProfile';
 import type { LearnerProfile } from '@/types';
+import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 export default function ParentHome() {
   const { t } = useTranslation();
@@ -39,6 +40,9 @@ export default function ParentHome() {
 
   return (
     <div className="page">
+      <div className="mb-4">
+        <BrandLogo variant="full" to="/parent" imgClassName="h-12 w-auto object-contain" />
+      </div>
       <div className="greeting-banner">
         <h2>{t('parent.welcome', { name: parent.name ?? parent.email })}</h2>
         <p>{t('parent.selectChild')}</p>

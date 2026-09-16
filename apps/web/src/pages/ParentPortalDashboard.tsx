@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, LogOut, RefreshCw, Users } from 'lucide-react';
+import { Copy, LogOut, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { HomeButton } from '@/components/Navigation/HomeButton';
+import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 const ACCENT = '#5B46BA';
 
@@ -53,7 +55,8 @@ export default function ParentPortalDashboard() {
       <header className="border-b border-slate-200 bg-white px-4 py-4 sm:px-8">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Users className="h-7 w-7" style={{ color: ACCENT }} />
+            <HomeButton />
+            <BrandLogo variant="compact" />
             <div>
               <h1 className="text-lg font-extrabold text-slate-800">Parent Portal</h1>
               <p className="text-xs text-slate-500">{user?.email}</p>

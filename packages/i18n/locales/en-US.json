@@ -1,7 +1,7 @@
 {
   "app": {
-    "name": "BrightPath",
-    "tagline": "One-on-one tutoring for every child — at app prices."
+    "name": "MindVault",
+    "tagline": "Personalized AI Learning for Every Learner"
   },
   "auth": {
     "login": "Log in",

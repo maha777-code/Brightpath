@@ -4,7 +4,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { isLearnerRole, isParentPortalRole } from '@/lib/api';
 import { homePathForRole, isAppRole, type AppRole } from '@brightpath/shared';
 import Home from '@/pages/Home';
-import Login from '@/pages/Login';
+import Login from '@/pages/Auth/Login';
 import Register from '@/pages/Register';
 import ParentHome from '@/pages/ParentHome';
 import AddChild from '@/pages/AddChild';

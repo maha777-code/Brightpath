@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { BrandLogo } from '@/components/Navigation/BrandLogo';
+import { Footer } from '@/components/Footer';
 
 const SUBJECTS = [
   { name: 'Mathematics', icon: '%', accent: '#0d9488' },
@@ -9,10 +11,6 @@ const SUBJECTS = [
   { name: 'Test Prep', icon: '⚙', accent: '#f97316' },
   { name: 'Test Prep', icon: '📋', accent: '#8b5cf6' },
 ];
-
-function LogoMark() {
-  return <span className="bp-logo-mark" aria-hidden="true" />;
-}
 
 function HeroArt() {
   return (
@@ -70,10 +68,7 @@ export default function Home() {
 
       {/* 1. Top Navigation */}
       <header className="bp-nav">
-        <Link to="/" className="bp-logo">
-          <LogoMark />
-          <span>Brightpath AI Tutor</span>
-        </Link>
+        <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
 
         <nav className="bp-nav-center" aria-label="Main">
           <a href="#subjects">Subjects</a>
@@ -173,7 +168,7 @@ export default function Home() {
           <div className="bp-testimonial-layout">
             <div className="bp-testimonial-card">
               <p className="bp-quote">
-                &ldquo;Brightpath AI doubled my confidence in just two weeks! The tutor explains
+                &ldquo;MindVault doubled my confidence in just two weeks! The tutor explains
                 concepts until they finally click.&rdquo;
               </p>
               <div className="bp-quote-author">
@@ -213,26 +208,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* 6. Footer */}
-      <footer className="bp-footer">
-        <nav className="bp-footer-links" aria-label="Footer">
-          <a href="#how-it-works">About Us</a>
-          <a href="#schools">Careers</a>
-          <a href="mailto:support@brightpath.ai">Support</a>
-          <a href="#pricing">Privacy Policy</a>
-        </nav>
-        <div className="bp-footer-social">
-          <a href="#" aria-label="Facebook" className="bp-social">
-            f
-          </a>
-          <a href="#" aria-label="Twitter" className="bp-social">
-            𝕏
-          </a>
-          <a href="#" aria-label="Instagram" className="bp-social">
-           ◎
-          </a>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

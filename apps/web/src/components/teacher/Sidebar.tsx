@@ -1,7 +1,9 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, GraduationCap, LayoutGrid, LogOut, Menu, X } from 'lucide-react';
+import { BookOpen, LayoutGrid, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { HomeButton } from '@/components/Navigation/HomeButton';
+import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 const WORKSPACE_ITEMS = [
   {
@@ -74,16 +76,18 @@ export function TeacherSidebar() {
   return (
     <>
       <div className="td-header fixed inset-x-0 top-0 z-40 flex items-center justify-between gap-3 px-4 py-3 md:hidden">
-        <button
-          type="button"
-          className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC]"
-          aria-label={open ? 'Close menu' : 'Open menu'}
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-        <p className="text-sm font-extrabold text-white">Brightpath Teacher</p>
-        <span className="w-10" />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC]"
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+          <HomeButton />
+        </div>
+        <BrandLogo variant="compact" />
       </div>
 
       {open && (
@@ -102,14 +106,10 @@ export function TeacherSidebar() {
           open ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
         ].join(' ')}
       >
-        <div className="mb-6 hidden items-center gap-3 px-2 md:flex">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/40 bg-white/5 text-white shadow-[0_0_16px_rgba(34,211,238,0.25)]">
-            <GraduationCap className="h-6 w-6" />
-          </span>
-          <div>
-            <p className="text-base font-extrabold text-white">Brightpath Teacher</p>
-            <p className="text-xs font-semibold text-cyan-200/80">Curriculum & AI tools</p>
-          </div>
+        <div className="mb-6 hidden flex-col gap-4 px-2 md:flex">
+          <BrandLogo variant="full" imgClassName="h-16 w-auto object-contain" />
+          <p className="px-1 text-xs font-semibold text-cyan-200/80">Curriculum & AI tools</p>
+          <HomeButton />
         </div>
 
         <div className="mb-4 flex items-center justify-between px-2 md:hidden">

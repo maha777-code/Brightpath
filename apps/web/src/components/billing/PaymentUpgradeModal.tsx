@@ -67,7 +67,7 @@ export function PaymentUpgradeModal({
         key: order.keyId,
         amount: order.amount,
         currency: order.currency,
-        name: 'BrightPath',
+        name: 'MindVault',
         description: `${planType} (${interval})`,
         order_id: order.orderId,
         handler: async (response: {

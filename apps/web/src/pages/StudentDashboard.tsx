@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { HomeButton } from '@/components/Navigation/HomeButton';
+import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 /** Student home: join-class strip + existing learning dashboard. */
 export default function StudentDashboard() {
@@ -31,12 +33,16 @@ export default function StudentDashboard() {
     <div>
       <div className="border-b border-indigo-100 bg-indigo-50/60 px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-extrabold text-slate-800">Student workspace</p>
-            <p className="text-xs text-slate-500">
-              Plan: <strong>{planType ?? 'student_free'}</strong>
-              {planType === 'student_free' ? ' · Limited AI doubts/day — upgrade for unlimited' : ''}
-            </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <HomeButton />
+            <BrandLogo variant="compact" to="/dashboard" />
+            <div>
+              <p className="text-sm font-extrabold text-slate-800">Student workspace</p>
+              <p className="text-xs text-slate-500">
+                Plan: <strong>{planType ?? 'student_free'}</strong>
+                {planType === 'student_free' ? ' · Limited AI doubts/day — upgrade for unlimited' : ''}
+              </p>
+            </div>
           </div>
           <form onSubmit={join} className="flex flex-wrap items-center gap-2">
             <input

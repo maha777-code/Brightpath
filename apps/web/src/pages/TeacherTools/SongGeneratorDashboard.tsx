@@ -14,6 +14,8 @@ import {
 import type { TeacherSong, TeacherSongsListResponse } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { HomeButton } from '@/components/Navigation/HomeButton';
+import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import {
   formatCreatedAt,
   formatResetLabel,
@@ -146,7 +148,11 @@ export default function SongGeneratorDashboard() {
         <div className="mx-auto max-w-6xl space-y-5 px-5 py-6 sm:px-8">
           <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <HomeButton />
+                <BrandLogo variant="compact" />
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.7rem]">
                   Educational Song Generator
                 </h1>

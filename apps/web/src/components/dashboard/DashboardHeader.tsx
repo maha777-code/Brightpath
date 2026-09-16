@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { AGE_GROUP_LABELS, type AgeGroup, type CurriculumUpgradeEvent, type ParentUser } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { AgeSettingsModal } from '@/components/age/AgeSettingsModal';
+import { HomeButton } from '@/components/Navigation/HomeButton';
+import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 export type SubjectFilter = 'all' | 'phonics' | 'math' | 'science';
 
@@ -51,12 +53,8 @@ export function DashboardHeader({
     <>
       <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
         <div className="flex h-16 items-center gap-4 px-4 lg:px-6">
-          <Link to="/dashboard" className="flex shrink-0 items-center gap-2.5 no-underline">
-            <span className="h-9 w-9 rounded-full bg-[conic-gradient(from_210deg,#6366f1,#ec4899,#0d9488,#3b82f6,#6366f1)] shadow-md" />
-            <span className="hidden text-sm font-extrabold text-slate-800 sm:inline md:text-base">
-              Brightpath AI Tutor
-            </span>
-          </Link>
+          <HomeButton to="/dashboard" />
+          <BrandLogo variant="full" to="/dashboard" imgClassName="h-10 w-auto object-contain" />
 
           <nav className="mx-auto hidden items-center gap-5 text-sm font-semibold text-slate-500 lg:flex">
             <div className="relative" ref={subjectsRef}>

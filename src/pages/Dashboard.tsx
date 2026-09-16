@@ -72,7 +72,7 @@ export default function Dashboard() {
 
       <div className="card" style={{ marginTop: 20 }}>
         <p style={{ fontSize: '0.9rem', color: 'var(--slate-600)' }}>
-          💡 <strong>Tip:</strong> A real tutor meets you where you are. BrightPath does the same —
+          💡 <strong>Tip:</strong> A real tutor meets you where you are. MindVault does the same —
           one question at a time, with hints when you need them.
         </p>
       </div>

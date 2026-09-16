@@ -6,6 +6,8 @@ import { api } from '@/lib/api';
 import { BulkCsvImportModal } from '@/components/admin/BulkCsvImportModal';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import { useOrgTheme } from '@/context/OrgThemeProvider';
+import { HomeButton } from '@/components/Navigation/HomeButton';
+import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 export default function CenterDashboard() {
   const { user, organization, logout, planType } = useAuth();
@@ -30,7 +32,8 @@ export default function CenterDashboard() {
       <header className="border-b border-slate-200 bg-white px-4 py-4 sm:px-8">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <School className="h-7 w-7" style={{ color: theme.primary }} />
+            <HomeButton />
+            <BrandLogo variant="compact" />
             <div>
               <h1 className="text-lg font-extrabold text-slate-800">Tutor Center Dashboard</h1>
               <p className="text-xs text-slate-500">{organization?.name ?? 'Your academy'}</p>

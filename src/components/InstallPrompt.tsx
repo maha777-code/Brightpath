@@ -36,7 +36,7 @@ export default function InstallPrompt() {
 
   return (
     <div className="install-banner">
-      <p>📱 Install BrightPath on your device — works like a real app, even offline.</p>
+      <p>📱 Install MindVault on your device — works like a real app, even offline.</p>
       <button type="button" onClick={install}>Install</button>
       <button
         type="button"

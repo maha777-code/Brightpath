@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { TeacherSidebar } from '@/components/teacher/Sidebar';
+import { HeaderNav } from '@/components/Navigation/Navbar';
 import '@/styles/teacher-dashboard.css';
 
 export function TeacherWorkspaceLayout({
@@ -26,11 +27,9 @@ export function TeacherWorkspaceLayout({
           fillViewport ? 'min-h-0 overflow-hidden' : '',
         ].join(' ')}
       >
-        {actions ? (
-          <header className="td-header sticky top-0 z-30 hidden h-16 items-center justify-end gap-3 px-6 md:flex lg:px-10">
-            {actions}
-          </header>
-        ) : null}
+        <header className="td-header sticky top-0 z-30 hidden h-16 items-center border-b border-slate-800 bg-slate-950/90 px-6 md:flex lg:px-10">
+          <HeaderNav actions={actions} />
+        </header>
         <div
           className={
             fillViewport

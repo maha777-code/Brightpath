@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/context/AuthContext';
+import { HomeButton } from '@/components/Navigation/HomeButton';
+import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { useAiClassroomSession } from '@/hooks/useAiClassroomSession';
 import { useClassroomVoice } from '@/hooks/useClassroomVoice';
 import { HabitatDragAndDrop } from '@/components/games/HabitatDragAndDrop';
@@ -347,6 +349,8 @@ export default function AiTutorPage() {
     <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-800">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
         <div className="flex flex-wrap items-center gap-3 px-4 py-3 lg:px-6">
+          <HomeButton to="/dashboard" />
+          <BrandLogo variant="compact" to="/dashboard" />
           <button
             type="button"
             onClick={() => navigate('/dashboard')}

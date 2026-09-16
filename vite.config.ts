@@ -8,17 +8,23 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'favicon.ico', 'assets/mindvault-icon.png', 'assets/mindvault-logo.png'],
       manifest: {
-        name: 'BrightPath — AI Tutor for Kids',
-        short_name: 'BrightPath',
-        description: 'One-on-one reading, writing & math tutoring — affordable for every family.',
-        theme_color: '#4F46E5',
-        background_color: '#F8FAFC',
+        name: 'MindVault - Personalized AI Learning for Every Learner',
+        short_name: 'MindVault',
+        description: 'MindVault - Personalized AI Learning for Every Learner',
+        theme_color: '#0a1628',
+        background_color: '#0a0f1d',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
         icons: [
+          {
+            src: 'assets/mindvault-icon.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
           {
             src: 'favicon.svg',
             sizes: 'any',

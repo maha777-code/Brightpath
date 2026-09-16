@@ -20,6 +20,7 @@ import {
 } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { BirthDatePicker } from '@/components/age/BirthDatePicker';
+import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 const ACCENT = '#5B46BA';
 
@@ -142,9 +143,10 @@ export default function Register() {
   return (
     <div className="page">
       <div className="page-header">
+        <BrandLogo variant="full" to="/" imgClassName="mb-4 h-12 w-auto object-contain" />
         <h1 className="page-title">{t('auth.register')}</h1>
         <p className="page-subtitle">
-          {step === 1 ? 'Who is signing up for BrightPath?' : 'Create your account details.'}
+          {step === 1 ? 'Who is signing up for MindVault?' : 'Create your account details.'}
         </p>
       </div>
 

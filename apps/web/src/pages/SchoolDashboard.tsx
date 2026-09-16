@@ -7,6 +7,8 @@ import { api } from '@/lib/api';
 import { BulkCsvImportModal } from '@/components/admin/BulkCsvImportModal';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import { useOrgTheme } from '@/context/OrgThemeProvider';
+import { HomeButton } from '@/components/Navigation/HomeButton';
+import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 export default function SchoolDashboard() {
   const { user, organization, logout, planType } = useAuth();
@@ -35,6 +37,7 @@ export default function SchoolDashboard() {
       <header className="border-b border-slate-200 bg-white px-4 py-4 sm:px-8">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
           <div className="flex items-center gap-3">
+            <HomeButton />
             {theme.logoUrl ? (
               <img
                 src={theme.logoUrl.startsWith('/uploads') ? `/api${theme.logoUrl}` : theme.logoUrl}
@@ -42,7 +45,7 @@ export default function SchoolDashboard() {
                 className="h-9 w-9 rounded-lg object-contain"
               />
             ) : (
-              <Building2 className="h-7 w-7" style={{ color: theme.primary }} />
+              <BrandLogo variant="compact" />
             )}
             <div>
               <h1 className="text-lg font-extrabold text-slate-800">School Dashboard</h1>
