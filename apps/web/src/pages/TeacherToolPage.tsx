@@ -8,8 +8,6 @@ import SongGeneratorDashboard from '@/pages/TeacherTools/SongGeneratorDashboard'
 import LessonPlanGenerator from '@/pages/TeacherTools/LessonPlanGenerator';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
-import { HomeButton } from '@/components/Navigation/HomeButton';
-import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 function sampleOutput(tool: TeacherToolDefinition, topic: string, grade: string): string {
   const subject = topic.trim() || 'your topic';
@@ -61,8 +59,6 @@ export function TeacherToolLauncher({
       <TeacherWorkspaceLayout>
         <main className="w-full max-w-7xl px-6 py-6 lg:px-10 lg:py-8">
           <div className="mb-4 flex flex-wrap items-center gap-3">
-            <HomeButton />
-            <BrandLogo variant="compact" />
             <Link
               to="/teacher/tools"
               className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-200 hover:text-white"
@@ -96,8 +92,6 @@ export function TeacherToolLauncher({
     <div className="space-y-5">
       {!embedded && (
         <div className="flex flex-wrap items-center gap-3">
-          <HomeButton />
-          <BrandLogo variant="compact" />
           <Link
             to="/teacher/tools"
             className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-200 hover:text-white"

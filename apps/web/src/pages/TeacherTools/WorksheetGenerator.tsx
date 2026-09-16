@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
-import { HomeButton } from '@/components/Navigation/HomeButton';
-import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import {
   ArrowDown,
   Bookmark,
@@ -605,7 +603,6 @@ function WorksheetStudio({
     <div className="ws-studio flex h-full min-h-0 flex-col overflow-hidden p-4">
       <header className="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-3">
         <nav className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-slate-500">
-          <BrandLogo variant="compact" />
           <Link to="/teacher/tools" className="font-semibold text-violet-700 hover:text-violet-900">
             Teacher Tools
           </Link>
@@ -1168,8 +1165,6 @@ export function WorksheetGenerator({
       <div className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
         <nav className="mb-5 flex shrink-0 flex-wrap items-center justify-between gap-2 text-sm">
           <div className="flex flex-wrap items-center gap-1.5 text-slate-500">
-            <HomeButton />
-            <BrandLogo variant="compact" />
             <Link to="/teacher/tools" className="font-semibold text-violet-700 hover:text-violet-900">
               Teacher Tools
             </Link>

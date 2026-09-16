@@ -1,45 +1,14 @@
 import type { ReactNode } from 'react';
-import { TeacherSidebar } from '@/components/teacher/Sidebar';
-import { HeaderNav } from '@/components/Navigation/Navbar';
-import '@/styles/teacher-dashboard.css';
+import { MainLayout } from '@/components/layout/MainLayout';
 
 export function TeacherWorkspaceLayout({
-  actions,
   children,
   fillViewport = false,
 }: {
-  actions?: ReactNode;
   children: ReactNode;
   fillViewport?: boolean;
 }) {
-  return (
-    <div
-      className={[
-        'td-dash flex w-full max-w-full text-white',
-        fillViewport ? 'h-screen overflow-hidden' : 'min-h-dvh',
-      ].join(' ')}
-      style={{ fontFamily: 'Cambria, Georgia, serif' }}
-    >
-      <TeacherSidebar />
-      <div
-        className={[
-          'flex min-w-0 flex-1 flex-col pt-14 md:pt-0',
-          fillViewport ? 'min-h-0 overflow-hidden' : '',
-        ].join(' ')}
-      >
-        <header className="td-header sticky top-0 z-30 hidden h-16 items-center border-b border-slate-800 bg-slate-950/90 px-6 md:flex lg:px-10">
-          <HeaderNav actions={actions} />
-        </header>
-        <div
-          className={
-            fillViewport
-              ? 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'
-              : 'min-w-0 flex-1'
-          }
-        >
-          {children}
-        </div>
-      </div>
-    </div>
-  );
+  return <MainLayout fillViewport={fillViewport}>{children}</MainLayout>;
 }
+
+export default TeacherWorkspaceLayout;

@@ -26,8 +26,6 @@ import { TEACHER_TOOLS_CATALOG } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { TeacherToolLauncher } from '@/pages/TeacherToolPage';
-import { HomeButton } from '@/components/Navigation/HomeButton';
-import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 type LibraryFilter = 'all' | 'favorites' | 'custom';
 type SortKey = 'popular' | 'newest' | 'alpha';
@@ -139,11 +137,7 @@ export default function TeacherTools() {
     <TeacherWorkspaceLayout>
       <main className="w-full max-w-full space-y-6 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
         <div className="td-card rounded-3xl p-6 sm:p-8">
-          <div className="flex flex-wrap items-center gap-3">
-            <HomeButton />
-            <BrandLogo variant="compact" />
-          </div>
-          <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-cyan-200/70">AI Tools Suite</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-200/70">AI Tools Suite</p>
           <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
             Teacher Tools Suite Hub
           </h1>

@@ -15,7 +15,7 @@ import { TeacherDoubtAssistant } from '@/components/teacher/TeacherDoubtAssistan
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 
 export default function TeacherDashboard() {
-  const { teacher, role } = useAuth();
+  const { role } = useAuth();
   const [textbook, setTextbook] = useState<Textbook | null>(null);
   const [chapters, setChapters] = useState<TeacherChapter[]>([]);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
@@ -77,41 +77,36 @@ export default function TeacherDashboard() {
   };
 
   return (
-    <TeacherWorkspaceLayout
-      actions={
-        <>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC] hover:bg-cyan-400/10"
-            aria-label="Sync"
-            title="Sync"
-          >
-            <RefreshCw className="h-5 w-5" />
-          </button>
-          <a
-            href="#td-chapters"
-            className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC] hover:bg-cyan-400/10"
-            aria-label="Explore"
-            title="Explore"
-          >
-            <Compass className="h-5 w-5" />
-          </a>
-          <div className="hidden text-right sm:block">
-            <p className="text-base font-bold text-white">{teacher?.name ?? 'Teacher'}</p>
-            <p className="text-sm text-[#A5F3FC]">
-              {teacher?.schoolName ?? 'School'} · {teacher?.subjectFocus ?? 'Science'}
-            </p>
-          </div>
-        </>
-      }
-    >
+    <TeacherWorkspaceLayout>
       <main className="w-full max-w-full space-y-8 px-5 py-6 sm:px-8 lg:px-12 lg:py-8">
         <div className="td-card rounded-3xl p-8">
-          <h1 className="text-4xl font-extrabold tracking-tight text-white">Teacher Dashboard</h1>
-          <p className="mt-2 text-base text-cyan-200/80">
-            Upload textbooks, enrich lessons with video & games, and approve AI answers before class.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-extrabold tracking-tight text-white">Teacher Dashboard</h1>
+              <p className="mt-2 text-base text-cyan-200/80">
+                Upload textbooks, enrich lessons with video & games, and approve AI answers before class.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void load()}
+                className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC] hover:bg-cyan-400/10"
+                aria-label="Sync"
+                title="Sync"
+              >
+                <RefreshCw className="h-5 w-5" />
+              </button>
+              <a
+                href="#td-chapters"
+                className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC] hover:bg-cyan-400/10"
+                aria-label="Explore"
+                title="Explore"
+              >
+                <Compass className="h-5 w-5" />
+              </a>
+            </div>
+          </div>
         </div>
 
         {loading && (

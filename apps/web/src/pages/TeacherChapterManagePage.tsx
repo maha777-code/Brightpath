@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Eye } from 'lucide-react';
 import type { TeacherChapter, TeacherSubtopic } from '@brightpath/shared';
-import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { SubtopicManager } from '@/components/teacher/SubtopicManager';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
@@ -10,7 +9,6 @@ import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLay
 /** Teacher admin view for a single chapter — not the student tutor stage. */
 export default function TeacherChapterManagePage() {
   const { id = '' } = useParams<{ id: string }>();
-  const { teacher } = useAuth();
   const [chapter, setChapter] = useState<TeacherChapter | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,11 +34,7 @@ export default function TeacherChapterManagePage() {
   }, [load]);
 
   return (
-    <TeacherWorkspaceLayout
-      actions={
-        <p className="hidden text-base font-bold text-white sm:block">{teacher?.name ?? 'Teacher'}</p>
-      }
-    >
+    <TeacherWorkspaceLayout>
       <main className="w-full max-w-full space-y-8 px-5 py-6 sm:px-8 lg:px-12 lg:py-8">
         <Link
           to="/teacher/dashboard"

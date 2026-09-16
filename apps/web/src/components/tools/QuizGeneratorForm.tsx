@@ -10,8 +10,6 @@ import {
 } from 'lucide-react';
 import type { QuizGeneratorPayload } from '@brightpath/shared';
 import { api } from '@/lib/api';
-import { HomeButton } from '@/components/Navigation/HomeButton';
-import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 const GRADE_LEVELS = [
   'Kindergarten',
@@ -365,11 +363,7 @@ export function QuizGeneratorForm({
     <div className="ms-quiz-form font-sans text-slate-800">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
-            <HomeButton />
-            <BrandLogo variant="compact" />
-          </div>
-          <div className="mt-3 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
               Multiple Choice Quiz / Assessment
             </h2>
