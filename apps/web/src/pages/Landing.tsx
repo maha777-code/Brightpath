@@ -83,39 +83,16 @@ function HeroAITutorCard() {
   return (
     <div className="group relative mx-auto w-full max-w-[540px] lg:ml-auto">
       <div className="absolute -inset-1 -z-10 animate-pulse rounded-2xl bg-cyan-500/10 blur-xl" />
-      <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/80 shadow-[0_0_40px_rgba(6,182,212,0.15)]">
+      <motion.div
+        animate={{ y: [0, -6, 0] }}
+        transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+        className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/80 shadow-[0_0_40px_rgba(6,182,212,0.15)]"
+      >
         <img
-          src="/ai-tutor.png"
+          src="/ai-tutor.png?v=2"
           alt="AI Tutor Dynamic Knowledge Model"
-          className="h-full w-full rounded-2xl object-cover transition-transform duration-700 group-hover:scale-105"
+          className="h-auto w-full rounded-2xl object-cover transition-transform duration-700 group-hover:scale-105"
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
-      </div>
-
-      <motion.div
-        initial={{ y: -10, opacity: 0 }}
-        animate={{ y: [0, -6, 0], opacity: 1 }}
-        transition={{
-          y: { repeat: Infinity, duration: 4, ease: 'easeInOut' },
-          opacity: { duration: 0.6 },
-        }}
-        className="absolute right-4 top-4 z-10 flex items-center gap-2 rounded-full border border-cyan-500/40 bg-slate-950/80 px-3.5 py-1.5 text-xs font-medium text-cyan-200 shadow-lg backdrop-blur-md"
-      >
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-400" />
-        </span>
-        A dynamic knowledge model
-      </motion.div>
-
-      <motion.div
-        animate={{ y: [0, 8, 0] }}
-        transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}
-        className="absolute bottom-6 right-6 z-10 space-y-1 rounded-xl border border-slate-700/60 bg-slate-900/90 p-3 font-mono text-xs text-cyan-300 shadow-xl backdrop-blur-md"
-      >
-        <p className="font-semibold text-white">x² + 5x + 6</p>
-        <p className="text-slate-400">(x+2)(x+3)</p>
-        <p className="text-cyan-400">y = mx + b</p>
       </motion.div>
     </div>
   );
