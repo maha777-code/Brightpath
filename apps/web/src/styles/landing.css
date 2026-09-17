@@ -115,15 +115,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 .bp-nav-center a {
   color: #ffffff;
   text-decoration: none;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-weight: 500;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 600;
   letter-spacing: -0.015em;
   white-space: nowrap;
   transition: color 0.2s ease;
@@ -446,9 +446,10 @@
 
 .bp-feature span {
   display: block;
-  font-size: 0.8rem;
-  color: var(--bp-muted);
-  line-height: 1.4;
+  font-size: 1rem;
+  font-weight: 400;
+  color: #cbd5e1;
+  line-height: 1.5;
 }
 
 .bp-feature-divider {
@@ -530,6 +531,31 @@
 
 .bp-subject-line {
   display: none;
+}
+
+.bp-subject-card p {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.625;
+  color: #cbd5e1;
+}
+
+/* Feature banner + subject grid descriptions: 16px (text-base) */
+.bp-landing [aria-label="Key features"] p {
+  margin-top: 0.25rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+
+.bp-landing #subjects article p {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.625;
+  color: #cbd5e1;
 }
 
 /* ── Testimonials ── */
