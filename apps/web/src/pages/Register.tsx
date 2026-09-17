@@ -91,7 +91,7 @@ export default function Register() {
       : null;
 
   const handleGoBack = () => {
-    navigate(-1);
+    navigate('/');
   };
 
   const chooseRole = (r: SignupRole) => {

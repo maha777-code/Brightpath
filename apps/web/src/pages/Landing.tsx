@@ -4,12 +4,36 @@ import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { Footer } from '@/components/Footer';
 
 const SUBJECTS = [
-  { name: 'Mathematics', icon: '%', accent: '#0d9488' },
-  { name: 'Computer Science', icon: '🖥', accent: '#5eead4' },
-  { name: 'Languages', icon: '💬', accent: '#a78bfa' },
-  { name: 'Sciences', icon: '⚗', accent: '#22c55e' },
-  { name: 'Test Prep', icon: '⚙', accent: '#f97316' },
-  { name: 'Test Prep', icon: '📋', accent: '#8b5cf6' },
+  {
+    name: 'Mathematics',
+    icon: '%',
+    description: 'Algebra, geometry, and problem-solving at every grade.',
+  },
+  {
+    name: 'Computer Science',
+    icon: '🖥',
+    description: 'Coding, logic, and computational thinking.',
+  },
+  {
+    name: 'Languages',
+    icon: '💬',
+    description: 'Reading, writing, and conversation practice.',
+  },
+  {
+    name: 'Sciences',
+    icon: '⚗',
+    description: 'Physics, chemistry, and biology made visual.',
+  },
+  {
+    name: 'Test Prep',
+    icon: '⚙',
+    description: 'Exam strategies and targeted practice sets.',
+  },
+  {
+    name: 'Study Skills',
+    icon: '📋',
+    description: 'Notes, revision, and exam-day confidence.',
+  },
 ];
 
 function HeroArt() {
@@ -83,8 +107,8 @@ export default function Landing() {
       </header>
 
       <main>
-        <section className="bp-hero">
-          <div className="bp-hero-copy">
+        <section className="bp-hero grid w-full grid-cols-1 items-center gap-8 lg:grid-cols-12">
+          <div className="bp-hero-copy lg:col-span-7">
             <h1>Unlock Your Full Potential with Your Personal AI Tutor</h1>
             <p>
               Adaptive, 24/7 learning that evolves with you. Master any subject, from Math to
@@ -94,7 +118,9 @@ export default function Landing() {
               Start Your Personalized Journey
             </Link>
           </div>
-          <HeroArt />
+          <div className="w-full lg:col-span-5">
+            <HeroArt />
+          </div>
         </section>
 
         <section className="bp-features" aria-label="Key features">
@@ -144,16 +170,23 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="subjects" className="bp-section">
-          <h2 className="bp-section-title">Subjects</h2>
-          <div className="bp-subjects">
-            {SUBJECTS.map((s, i) => (
-              <article key={`${s.name}-${i}`} className="bp-subject-card">
-                <div className="bp-subject-icon" style={{ color: s.accent }}>
-                  {s.icon}
+        <section id="subjects" className="w-full max-w-7xl mx-auto px-6 py-12 lg:px-12">
+          <h2 className="mb-6 text-2xl font-bold tracking-tight text-slate-100">Subjects</h2>
+          <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {SUBJECTS.map((s) => (
+              <article
+                key={s.name}
+                className="group relative flex cursor-pointer flex-col justify-between rounded-2xl border border-slate-800 bg-slate-900/90 p-6 transition-all duration-300 hover:border-cyan-500/60 hover:bg-slate-900 hover:shadow-[0_0_25px_rgba(6,182,212,0.15)]"
+              >
+                <div>
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-950/80 text-lg font-bold text-cyan-400">
+                    {s.icon}
+                  </div>
+                  <h3 className="text-lg font-bold tracking-tight text-slate-100 transition-colors group-hover:text-cyan-300">
+                    {s.name}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-400">{s.description}</p>
                 </div>
-                <h3>{s.name}</h3>
-                <div className="bp-subject-line" style={{ background: s.accent }} />
               </article>
             ))}
           </div>

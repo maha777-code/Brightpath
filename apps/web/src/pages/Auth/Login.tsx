@@ -27,7 +27,7 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
 
   const handleGoBack = () => {
-    navigate(-1);
+    navigate('/');
   };
 
   const submit = async (e: React.FormEvent) => {
