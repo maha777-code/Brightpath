@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Clock, GitFork, TrendingUp, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { Footer } from '@/components/Footer';
@@ -35,6 +36,47 @@ const SUBJECTS = [
     description: 'Notes, revision, and exam-day confidence.',
   },
 ];
+
+const FEATURES: { icon: LucideIcon; title: string; description: string }[] = [
+  {
+    icon: TrendingUp,
+    title: 'Adaptive Learning',
+    description: 'Graphs learning and points',
+  },
+  {
+    icon: Clock,
+    title: '24/7 Support',
+    description: 'Checkout 24/7 support',
+  },
+  {
+    icon: GitFork,
+    title: 'Personalized Path',
+    description: 'Uniquely branching roadmap',
+  },
+];
+
+function FeatureBanner() {
+  return (
+    <div className="w-full rounded-2xl border border-cyan-500/30 bg-[#0b0f19]/80 p-6 shadow-[0_0_20px_rgba(6,182,212,0.1)] backdrop-blur-md">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-0 md:divide-x md:divide-slate-800">
+        {FEATURES.map((feature) => {
+          const Icon = feature.icon;
+          return (
+            <div key={feature.title} className="flex items-center gap-4 px-4 first:pl-0 last:pr-0 md:px-6 md:first:pl-0 md:last:pr-0">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-950/60 text-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.2)]">
+                <Icon className="h-6 w-6 stroke-[2.2]" />
+              </div>
+              <div>
+                <h4 className="text-base font-bold tracking-tight text-slate-100">{feature.title}</h4>
+                <p className="mt-0.5 text-xs text-slate-400">{feature.description}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function HeroArt() {
   return (
@@ -90,24 +132,26 @@ export default function Landing() {
         <div className="bp-blob bp-blob--pink" />
       </div>
 
-      <header className="bp-nav">
-        <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
+      <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-[#030712]/80 px-6 backdrop-blur-md lg:px-12">
+        <div className="bp-nav mx-auto w-full max-w-[96rem]">
+          <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
 
-        <nav className="bp-nav-center" aria-label="Main">
-          <a href="#subjects">Subjects</a>
-          <a href="#how-it-works">How It Works</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#schools">For Schools</a>
-          <Link to={loginHref}>Log In</Link>
-        </nav>
+          <nav className="bp-nav-center" aria-label="Main">
+            <a href="#subjects">Subjects</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#schools">For Schools</a>
+            <Link to={loginHref}>Log In</Link>
+          </nav>
 
-        <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--nav">
-          Get Started For Free
-        </Link>
+          <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--nav">
+            Get Started For Free
+          </Link>
+        </div>
       </header>
 
       <main>
-        <section className="bp-hero grid w-full grid-cols-1 items-center gap-8 lg:grid-cols-12">
+        <section className="mx-auto grid w-full max-w-[96rem] grid-cols-1 items-center gap-8 px-6 py-10 lg:grid-cols-12 lg:px-12">
           <div className="bp-hero-copy lg:col-span-7">
             <h1>Unlock Your Full Potential with Your Personal AI Tutor</h1>
             <p>
@@ -123,54 +167,11 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="bp-features" aria-label="Key features">
-          <div className="bp-features-glass">
-            <div className="bp-feature">
-              <span className="bp-feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 17l6-6 4 4 8-8" />
-                  <path d="M14 7h7v7" />
-                </svg>
-              </span>
-              <div>
-                <strong>Adaptive Learning</strong>
-                <span>Grapho learning and points</span>
-              </div>
-            </div>
-            <div className="bp-feature-divider" aria-hidden="true" />
-            <div className="bp-feature">
-              <span className="bp-feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7v5l3 2" />
-                </svg>
-              </span>
-              <div>
-                <strong>24/7 Support</strong>
-                <span>Chekwsout 24/7 support</span>
-              </div>
-            </div>
-            <div className="bp-feature-divider" aria-hidden="true" />
-            <div className="bp-feature">
-              <span className="bp-feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 3v6" />
-                  <path d="M12 9l-5 8" />
-                  <path d="M12 9l5 8" />
-                  <circle cx="7" cy="19" r="1.5" fill="currentColor" stroke="none" />
-                  <circle cx="17" cy="19" r="1.5" fill="currentColor" stroke="none" />
-                  <circle cx="12" cy="3" r="1.5" fill="currentColor" stroke="none" />
-                </svg>
-              </span>
-              <div>
-                <strong>Personalized Path</strong>
-                <span>Unickly branching roadmap</span>
-              </div>
-            </div>
-          </div>
+        <section className="mx-auto mt-2 w-full max-w-[96rem] px-6 lg:px-12" aria-label="Key features">
+          <FeatureBanner />
         </section>
 
-        <section id="subjects" className="w-full max-w-7xl mx-auto px-6 py-12 lg:px-12">
+        <section id="subjects" className="mx-auto w-full max-w-[96rem] px-6 py-12 lg:px-12">
           <h2 className="mb-6 text-2xl font-bold tracking-tight text-slate-100">Subjects</h2>
           <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {SUBJECTS.map((s) => (
@@ -192,7 +193,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="how-it-works" className="bp-section bp-testimonial-section">
+        <section id="how-it-works" className="bp-section bp-testimonial-section mx-auto w-full max-w-[96rem] px-6 lg:px-12">
           <div className="bp-testimonial-layout">
             <div className="bp-testimonial-card">
               <p className="bp-quote">
@@ -211,7 +212,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="pricing" className="bp-section bp-cta-wrap">
+        <section id="pricing" className="bp-section bp-cta-wrap mx-auto w-full max-w-[96rem] px-6 lg:px-12">
           <div className="bp-cta-glass">
             <h2>Ready to unlock your potential?</h2>
             <p>Private tutoring quality at app-store prices. Start free today.</p>
@@ -221,7 +222,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="schools" className="bp-section bp-cta-wrap">
+        <section id="schools" className="bp-section bp-cta-wrap mx-auto w-full max-w-[96rem] px-6 lg:px-12">
           <div className="bp-cta-glass bp-cta-glass--soft">
             <h2>For Schools</h2>
             <p>

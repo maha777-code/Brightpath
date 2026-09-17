@@ -86,9 +86,9 @@
   align-items: center;
   gap: 24px;
   width: 100%;
-  max-width: 80rem;
+  max-width: none;
   margin: 0 auto;
-  padding: 22px 1.5rem;
+  padding: 18px 0;
 }
 
 .bp-logo {
@@ -192,9 +192,9 @@
   display: grid;
   align-items: center;
   width: 100%;
-  max-width: 80rem;
+  max-width: 96rem;
   margin: 0 auto;
-  padding: 40px 1.5rem 28px;
+  padding: 40px 0 28px;
 }
 
 .bp-hero-copy h1 {
@@ -392,9 +392,9 @@
 /* ── Features row ── */
 .bp-features {
   width: 100%;
-  max-width: 80rem;
+  max-width: 96rem;
   margin: 12px auto 0;
-  padding: 0 1.5rem;
+  padding: 0;
 }
 
 .bp-features-glass {
@@ -458,9 +458,9 @@
 /* ── Sections / Subjects ── */
 .bp-section {
   width: 100%;
-  max-width: 80rem;
+  max-width: 96rem;
   margin: 0 auto;
-  padding: 64px 1.5rem 0;
+  padding: 64px 0 0;
 }
 
 .bp-section-title {
@@ -632,9 +632,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  max-width: 80rem;
+  max-width: 96rem;
   margin: 72px auto 0;
-  padding: 28px 1.5rem 40px;
+  padding: 28px 0 40px;
   border-top: 1px solid rgba(148, 163, 184, 0.35);
 }
 
@@ -696,15 +696,6 @@
 }
 
 @media (min-width: 1024px) {
-  .bp-nav,
-  .bp-hero,
-  .bp-features,
-  .bp-section,
-  .bp-footer {
-    padding-left: 3rem;
-    padding-right: 3rem;
-  }
-
   .bp-subjects {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -766,15 +757,6 @@
 }
 
 @media (max-width: 480px) {
-  .bp-nav,
-  .bp-hero,
-  .bp-features,
-  .bp-section,
-  .bp-footer {
-    padding-left: 20px;
-    padding-right: 20px;
-  }
-
   .bp-btn--nav {
     padding: 10px 14px;
     font-size: 0.8rem;
