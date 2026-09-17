@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Clock, GitFork, TrendingUp, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
@@ -78,22 +79,44 @@ function FeatureBanner() {
   );
 }
 
-function HeroArt() {
+function HeroAITutorCard() {
   return (
-    <div className="bp-art bp-art--hero" aria-hidden="true">
-      <div className="bp-art-glass">
-        <div className="bp-holo">
-          <span className="bp-holo-eq">x² + 5x + 6</span>
-          <span className="bp-holo-eq bp-holo-eq--sm">(x+2)(x+3)</span>
-          <span className="bp-holo-eq bp-holo-eq--sm">y = mx + b</span>
-        </div>
-        <div className="bp-student">
-          <div className="bp-student-head" />
-          <div className="bp-student-headphones" />
-          <div className="bp-student-body" />
-        </div>
-        <div className="bp-glow-orb" />
+    <div className="group relative mx-auto w-full max-w-[540px] lg:ml-auto">
+      <div className="absolute -inset-1 -z-10 animate-pulse rounded-2xl bg-cyan-500/10 blur-xl" />
+      <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/80 shadow-[0_0_40px_rgba(6,182,212,0.15)]">
+        <img
+          src="/ai-tutor.png"
+          alt="AI Tutor Dynamic Knowledge Model"
+          className="h-full w-full rounded-2xl object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
       </div>
+
+      <motion.div
+        initial={{ y: -10, opacity: 0 }}
+        animate={{ y: [0, -6, 0], opacity: 1 }}
+        transition={{
+          y: { repeat: Infinity, duration: 4, ease: 'easeInOut' },
+          opacity: { duration: 0.6 },
+        }}
+        className="absolute right-4 top-4 z-10 flex items-center gap-2 rounded-full border border-cyan-500/40 bg-slate-950/80 px-3.5 py-1.5 text-xs font-medium text-cyan-200 shadow-lg backdrop-blur-md"
+      >
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-400" />
+        </span>
+        A dynamic knowledge model
+      </motion.div>
+
+      <motion.div
+        animate={{ y: [0, 8, 0] }}
+        transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}
+        className="absolute bottom-6 right-6 z-10 space-y-1 rounded-xl border border-slate-700/60 bg-slate-900/90 p-3 font-mono text-xs text-cyan-300 shadow-xl backdrop-blur-md"
+      >
+        <p className="font-semibold text-white">x² + 5x + 6</p>
+        <p className="text-slate-400">(x+2)(x+3)</p>
+        <p className="text-cyan-400">y = mx + b</p>
+      </motion.div>
     </div>
   );
 }
@@ -179,7 +202,7 @@ export default function Landing() {
         <section className="mx-auto grid w-full max-w-[96rem] grid-cols-1 items-center gap-8 px-6 py-10 lg:grid-cols-12 lg:px-12">
           <div className="bp-hero-copy lg:col-span-7">
             <h1>Unlock Your Full Potential with Your Personal AI Tutor</h1>
-            <p>
+            <p className="text-base font-normal leading-relaxed text-slate-100 md:text-lg">
               Adaptive, 24/7 learning that evolves with you. Master any subject, from Math to
               Mandarin.
             </p>
@@ -188,7 +211,7 @@ export default function Landing() {
             </Link>
           </div>
           <div className="w-full lg:col-span-5">
-            <HeroArt />
+            <HeroAITutorCard />
           </div>
         </section>
 
@@ -240,7 +263,9 @@ export default function Landing() {
         <section id="pricing" className="bp-section bp-cta-wrap mx-auto w-full max-w-[96rem] px-6 lg:px-12">
           <div className="bp-cta-glass">
             <h2>Ready to unlock your potential?</h2>
-            <p>Private tutoring quality at app-store prices. Start free today.</p>
+            <p className="mt-2 text-sm font-normal text-slate-100 md:text-base">
+              Private tutoring quality at app-store prices. Start free today.
+            </p>
             <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--lg">
               Get Started For Free
             </Link>
@@ -250,7 +275,7 @@ export default function Landing() {
         <section id="schools" className="bp-section bp-cta-wrap mx-auto w-full max-w-[96rem] px-6 lg:px-12">
           <div className="bp-cta-glass bp-cta-glass--soft">
             <h2>For Schools</h2>
-            <p>
+            <p className="mt-2 text-sm font-normal leading-relaxed text-slate-100 md:text-base">
               Bring adaptive AI tutoring to your classroom. Parent-managed, COPPA-ready accounts
               with progress tracking built in.
             </p>

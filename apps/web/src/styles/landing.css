@@ -209,9 +209,10 @@
 }
 
 .bp-hero-copy p {
-  font-size: 1.1rem;
-  line-height: 1.65;
-  color: var(--bp-muted);
+  font-size: 1.125rem;
+  line-height: 1.625;
+  font-weight: 400;
+  color: #f1f5f9;
   max-width: 42rem;
   margin: 0 0 28px;
 }
@@ -645,9 +646,11 @@
 }
 
 .bp-cta-glass p {
-  margin: 0 0 24px;
-  color: var(--bp-muted);
-  line-height: 1.6;
+  margin: 0.5rem 0 24px;
+  font-size: 1rem;
+  font-weight: 400;
+  color: #f1f5f9;
+  line-height: 1.625;
 }
 
 .bp-cta-glass--soft {
