@@ -36,8 +36,8 @@
   --radius-sm: 8px;
   --shadow: 0 0 20px rgba(6, 182, 212, 0.12);
   --shadow-lg: 0 0 24px rgba(6, 182, 212, 0.28);
-  --font: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
-  --font-display: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -52,9 +52,12 @@ body {
   font-size: 16px;
   background: var(--bg-primary);
   color: var(--text-main);
-  line-height: 1.6;
+  line-height: 1.5;
   min-height: 100dvh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.015em;
 }
 
 #root {
@@ -105,16 +108,18 @@ body {
 .page-title {
   font-family: var(--font-display);
   font-size: 1.75rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-main);
   line-height: 1.2;
-  letter-spacing: 0.04em;
+  letter-spacing: -0.02em;
 }
 
 .page-subtitle {
-  color: var(--text-muted);
+  color: #94a3b8;
   font-size: 0.95rem;
   margin-top: 6px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 /* ── Buttons ── */
@@ -144,9 +149,9 @@ body {
   color: #67e8f9;
   border: 1px solid rgb(34 211 238 / 0.5);
   box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.75rem;
+  letter-spacing: -0.015em;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .btn-primary:hover {
@@ -323,11 +328,10 @@ body {
 
 .form-label {
   display: block;
-  font-weight: 700;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-neon);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: -0.015em;
+  color: #f8fafc;
   margin-bottom: 8px;
 }
 

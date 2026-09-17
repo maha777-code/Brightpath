@@ -109,8 +109,8 @@ import type {
   WorksheetTranslatePayload,
   LessonPlanPayload,
   LessonPlanResponse,
-  RainaChatRequest,
-  RainaChatResponse,
+  SharadaChatRequest,
+  SharadaChatResponse,
   SongLyricsPayload,
   SongLyricsDraft,
   SongRenderPayload,
@@ -462,8 +462,8 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  rainaChat: (body: RainaChatRequest) =>
-    request<RainaChatResponse>('/teacher/raina/chat', {
+  sharadaChat: (body: SharadaChatRequest) =>
+    request<SharadaChatResponse>('/teacher/sharada/chat', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
@@ -641,6 +641,18 @@ export function saveSession(input: {
   if (input.organization) {
     localStorage.setItem('brightpath_org', JSON.stringify(input.organization));
   } else localStorage.removeItem('brightpath_org');
+
+  const displayName =
+    input.user?.name?.trim() ||
+    input.teacher?.name?.trim() ||
+    input.parent?.name?.trim() ||
+    '';
+  if (displayName) localStorage.setItem('user_name', displayName);
+  else localStorage.removeItem('user_name');
+
+  const schoolName = input.organization?.name?.trim() || input.teacher?.schoolName?.trim() || '';
+  if (schoolName) localStorage.setItem('user_school', schoolName);
+  else localStorage.removeItem('user_school');
 }
 
 /** @deprecated prefer saveSession */
@@ -669,6 +681,8 @@ export function clearAuth() {
   localStorage.removeItem('brightpath_plan');
   localStorage.removeItem('brightpath_user');
   localStorage.removeItem('brightpath_org');
+  localStorage.removeItem('user_name');
+  localStorage.removeItem('user_school');
 }
 
 const ALL_ROLES: UserRole[] = [

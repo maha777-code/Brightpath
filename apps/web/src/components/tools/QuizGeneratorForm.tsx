@@ -131,7 +131,7 @@ function SelectField({
       <FieldLabel required={required}>{label}</FieldLabel>
       <div className="relative">
         <select
-          className="w-full appearance-none rounded-lg border border-slate-800 bg-[#0b0f19] px-3 py-2.5 pr-9 font-mono text-sm text-cyan-100 shadow-none outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+          className="w-full appearance-none rounded-lg border border-slate-800 bg-[#0b0f19] px-3 py-2.5 pr-9 text-sm tracking-tight text-slate-100 shadow-none outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
           style={{
             fontFamily: CYBER_FONT_STYLE.fontFamily,
           }}
@@ -457,7 +457,7 @@ export function QuizGeneratorForm({
           <Lightbulb className="h-4 w-4" /> Prompt assistant
         </button>
         {assistantOpen && (
-          <div className="w-full rounded-lg border border-slate-800 bg-[#0b0f19] px-4 py-3 font-mono text-sm text-slate-300">
+          <div className="w-full rounded-lg border border-slate-800 bg-[#0b0f19] px-4 py-3 text-sm tracking-tight text-slate-300">
             Be specific: name the standard, paste a short source excerpt, or list vocabulary. Say
             whether this is diagnostic, formative, or a summative test.
           </div>

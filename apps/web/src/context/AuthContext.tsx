@@ -45,7 +45,15 @@ interface AuthContextValue {
   pendingUpgrade: CurriculumUpgradeEvent | null;
   clearPendingUpgrade: () => void;
   homePath: string;
-  login: (email: string, password: string) => Promise<{ role: UserRole; path: string }>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{
+    role: UserRole;
+    path: string;
+    user: PlatformUserPublic | null;
+    teacher: TeacherUser | null;
+  }>;
   loginTeacher: (email: string, password: string) => Promise<{ path: string }>;
   register: (
     data: Omit<RegisterRequest, 'email' | 'password' | 'role'> & {
@@ -195,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (res.curriculum?.upgraded) setPendingUpgrade(res.curriculum);
     const r = res.role;
     const path = isAppRole(r) ? homePathForRole(r) : homePathForRole('student');
-    return { role: r, path };
+    return { role: r, path, user: res.user ?? null, teacher: res.teacher ?? null };
   }, []);
 
   const loginTeacher = useCallback(async (email: string, password: string) => {

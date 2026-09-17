@@ -595,17 +595,17 @@ export function getTeacherToolById(id: string): TeacherToolDefinition | undefine
   return TEACHER_TOOLS_CATALOG.find((t) => t.id === id);
 }
 
-export interface RainaChatMessage {
+export interface SharadaChatMessage {
   role: 'user' | 'assistant';
   content: string;
 }
 
-export interface RainaChatRequest {
+export interface SharadaChatRequest {
   prompt: string;
-  history?: RainaChatMessage[];
+  history?: SharadaChatMessage[];
 }
 
-export interface RainaChatResponse {
+export interface SharadaChatResponse {
   title: string;
   statusLine: string;
   confirmation: string;
@@ -620,7 +620,7 @@ function titleCaseWords(value: string): string {
     .join(' ');
 }
 
-export function rainaTitleFromPrompt(prompt: string): string {
+export function sharadaTitleFromPrompt(prompt: string): string {
   const raw = prompt.replace(/\s+/g, ' ').trim();
   if (!raw) return 'New conversation';
 
@@ -653,9 +653,9 @@ function extractTopic(prompt: string): string {
   return titleCaseWords(cleaned || 'this topic');
 }
 
-export function fallbackRainaChat(prompt: string): RainaChatResponse {
+export function fallbackSharadaChat(prompt: string): SharadaChatResponse {
   const topic = extractTopic(prompt);
-  const title = rainaTitleFromPrompt(prompt);
+  const title = sharadaTitleFromPrompt(prompt);
   const isWorksheet = /worksheet|fill in|word bank|homework/i.test(prompt);
   const isQuiz = /quiz|multiple choice|assessment/i.test(prompt);
   const photosynthesis = /photosynthesis/i.test(prompt);

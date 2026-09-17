@@ -429,17 +429,17 @@ export type {
   TeacherSong,
   TeacherSongsListResponse,
   SongDeleteResponse,
-  RainaChatMessage,
-  RainaChatRequest,
-  RainaChatResponse,
+  SharadaChatMessage,
+  SharadaChatRequest,
+  SharadaChatResponse,
 } from './teacherTools.js';
 
 export {
   TEACHER_TOOL_FOCUS_LABELS,
   TEACHER_TOOLS_CATALOG,
   getTeacherToolById,
-  rainaTitleFromPrompt,
-  fallbackRainaChat,
+  sharadaTitleFromPrompt,
+  fallbackSharadaChat,
   applyWorksheetFollowUp,
   applyWorksheetTranslation,
   LESSON_PLAN_GRADE_LEVELS,

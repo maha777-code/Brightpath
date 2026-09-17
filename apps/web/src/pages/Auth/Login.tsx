@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
@@ -15,7 +15,7 @@ const FIELD_STYLE: CSSProperties = {
 };
 
 const fieldClass =
-  'mt-1.5 w-full rounded-lg border border-slate-800 bg-[#0b0f19] px-4 py-3 font-mono text-base text-cyan-100 placeholder-slate-600 outline-none transition-colors focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400';
+  'mt-1.5 w-full rounded-lg border border-slate-800 bg-[#0b0f19] px-4 py-3 text-base tracking-tight text-slate-100 placeholder-slate-600 outline-none transition-colors focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400';
 
 export default function Login() {
   const { t } = useTranslation();
@@ -26,12 +26,20 @@ export default function Login() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
+  const handleGoBack = () => {
+    navigate(-1);
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setBusy(true);
     try {
       const result = await login(email, password);
+      const savedName = result.user?.name?.trim() || result.teacher?.name?.trim();
+      if (savedName) localStorage.setItem('user_name', savedName);
+      const savedSchool = result.teacher?.schoolName?.trim();
+      if (savedSchool) localStorage.setItem('user_school', savedSchool);
       navigate(result.path);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
@@ -45,6 +53,16 @@ export default function Login() {
       className="fixed inset-0 flex items-center justify-center overflow-y-auto bg-transparent px-4 py-10"
       style={FONT}
     >
+      <button
+        onClick={handleGoBack}
+        type="button"
+        className="absolute top-6 left-6 z-50 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-3.5 py-2 text-sm font-medium text-slate-300 shadow-lg backdrop-blur-md transition-all hover:border-cyan-500/50 hover:bg-slate-800 hover:text-white"
+        aria-label="Go back to previous page"
+      >
+        <ArrowLeft className="h-4 w-4 text-cyan-400" />
+        <span>Back</span>
+      </button>
+
       <div className="w-full max-w-md rounded-lg border border-slate-800 bg-[#0b0f19]/80 p-8 shadow-[0_0_40px_rgba(6,182,212,0.12)] backdrop-blur-md">
         <div className="mb-2 flex items-center justify-center gap-2">
           <div className="h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse" />
@@ -60,7 +78,7 @@ export default function Login() {
 
         <form onSubmit={(event) => void submit(event)} className="space-y-5">
           <div>
-            <label htmlFor="email" className="block font-mono text-xs font-semibold uppercase tracking-wider text-cyan-300" style={FONT}>
+            <label htmlFor="email" className="block text-sm font-semibold tracking-tight text-slate-100" style={FONT}>
               {t('auth.email')}
             </label>
             <input
@@ -77,7 +95,7 @@ export default function Login() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block font-mono text-xs font-semibold uppercase tracking-wider text-cyan-300" style={FONT}>
+            <label htmlFor="password" className="block text-sm font-semibold tracking-tight text-slate-100" style={FONT}>
               {t('auth.password')}
             </label>
             <input
@@ -94,7 +112,7 @@ export default function Login() {
             />
           </div>
 
-          <p className="font-mono text-xs text-slate-500">
+          <p className="text-xs tracking-tight text-slate-400">
             Demo teacher: <span className="text-cyan-300">teacher@brightpath.ai</span> /{' '}
             <span className="text-cyan-300">teacher123</span>
           </p>

@@ -13,7 +13,7 @@
   --bp-outline: rgba(6, 182, 212, 0.4);
   --bp-divider: rgba(8, 145, 178, 0.35);
   --bp-radius: 12px;
-  --bp-font: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  --bp-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
   position: relative;
   min-height: 100dvh;
   font-family: var(--bp-font);
@@ -750,5 +750,5 @@
 .bp-landing h5,
 .bp-landing h6,
 .bp-section-title {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif !important;
 }

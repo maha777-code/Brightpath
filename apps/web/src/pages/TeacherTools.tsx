@@ -46,7 +46,7 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
 
 function badgeClass(badge: TeacherToolBadge): string {
   const base =
-    'rounded border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider';
+    'rounded border px-2 py-0.5 text-[10px] font-semibold tracking-tight';
   if (badge === 'New') return `${base} bg-emerald-950/80 text-emerald-400 border-emerald-500/40`;
   if (badge === 'Hot') return `${base} bg-emerald-950/80 text-emerald-400 border-emerald-500/40`;
   return `${base} bg-cyan-950/80 text-cyan-300 border-cyan-500/40`;
@@ -137,17 +137,12 @@ export default function TeacherTools() {
     <TeacherWorkspaceLayout>
       <main className="w-full max-w-full space-y-6 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
         <div className="td-card rounded-3xl p-6 sm:p-8">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="badge-cyber">[ONLINE]</span>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-200/70">AI Tools Suite</p>
+          <div className="text-3xl tracking-tight sm:text-4xl">
+            <span className="font-bold text-slate-100">Teacher tools. </span>
+            <span className="font-normal text-slate-400">
+              Search, filter, and launch classroom generators.
+            </span>
           </div>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-            Teacher Tools Suite Hub
-          </h1>
-          <p className="mt-2 max-w-3xl text-base text-cyan-200/80">
-            Search, filter, and launch classroom generators. Curriculum Studio opens the textbook
-            upload and video pipeline; every other card launches from this hub.
-          </p>
         </div>
 
         <div className="td-card flex flex-col gap-3 rounded-3xl p-4 sm:p-5">
@@ -198,7 +193,7 @@ export default function TeacherTools() {
         </div>
 
         {error && (
-          <p className="rounded-lg border border-rose-500/40 bg-rose-950/40 p-4 font-mono text-sm text-rose-200">
+          <p className="rounded-lg border border-rose-500/40 bg-rose-950/40 p-4 text-sm tracking-tight text-rose-200">
             {error}
           </p>
         )}
@@ -263,9 +258,11 @@ export default function TeacherTools() {
                       </button>
                     </div>
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-white">{tool.title}</h3>
-                  <p className="mt-1 flex-1 text-sm text-slate-300 line-clamp-2">{tool.description}</p>
-                  <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-cyan-400">
+                  <div className="mt-4 text-lg tracking-tight">
+                    <span className="font-bold text-slate-100">{tool.title}. </span>
+                    <span className="font-normal text-slate-400">{tool.description}</span>
+                  </div>
+                  <p className="mt-4 text-sm font-medium tracking-tight text-cyan-400">
                     {tool.highlighted ? 'Open Curriculum Studio' : 'Launch tool'}
                   </p>
                 </article>

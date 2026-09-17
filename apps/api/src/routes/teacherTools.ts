@@ -10,11 +10,11 @@ import {
   type WorksheetHistoryItem,
   type WorksheetHistoryResponse,
   type TeacherToolFeedbackResponse,
-  type RainaChatResponse,
+  type SharadaChatResponse,
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
-import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, generateRainaChat } from '../services/llm.js';
+import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, generateSharadaChat } from '../services/llm.js';
 import { randomUUID } from 'node:crypto';
 
 const favoriteBody = z.object({
@@ -583,7 +583,7 @@ router.post('/tools/feedback', async (req: AuthRequest, res: Response) => {
   }
 });
 
-const rainaChatBody = z.object({
+const sharadaChatBody = z.object({
   prompt: z.string().min(1).max(8000),
   history: z
     .array(
@@ -596,27 +596,29 @@ const rainaChatBody = z.object({
     .optional(),
 });
 
-/** POST /teacher/raina/chat */
-router.post('/raina/chat', async (req: AuthRequest, res: Response) => {
+async function handleSharadaChat(req: AuthRequest, res: Response) {
   const teacherId = req.teacherId;
   if (!teacherId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
 
-  const parsed = rainaChatBody.safeParse(req.body);
+  const parsed = sharadaChatBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'A prompt is required' });
     return;
   }
 
   try {
-    const payload: RainaChatResponse = await generateRainaChat(parsed.data);
+    const payload: SharadaChatResponse = await generateSharadaChat(parsed.data);
     res.json(payload);
   } catch (err) {
-    console.error('[teacher/raina/chat] failed', err);
-    res.status(500).json({ error: 'Failed to generate Raina response' });
+    console.error('[teacher/sharada/chat] failed', err);
+    res.status(500).json({ error: 'Failed to generate Sharada response' });
   }
-});
+}
+
+/** POST /teacher/sharada/chat */
+router.post('/sharada/chat', handleSharadaChat);
 
 export default router;

@@ -7,10 +7,10 @@ import type {
   SongLyricsDraft,
   LessonPlanPayload,
   LessonPlanResponse,
-  RainaChatRequest,
-  RainaChatResponse,
+  SharadaChatRequest,
+  SharadaChatResponse,
 } from '@brightpath/shared';
-import { fallbackRainaChat } from '@brightpath/shared';
+import { fallbackSharadaChat } from '@brightpath/shared';
 import { applyWorksheetFollowUp, applyWorksheetTranslation } from '@brightpath/shared';
 import { getActiveProvider } from '../lib/llm/provider.js';
 
@@ -617,7 +617,7 @@ export async function generateLessonPlan(input: LessonPlanPayload): Promise<Less
   }
 }
 
-const RAINA_SYSTEM = `You are Raina, an expert AI pedagogical assistant. When requested to generate educational material (worksheets, quizzes, lesson plans), produce a complete, classroom-ready document formatted cleanly in Markdown. Include headers, clear instructions, word banks, and structured question parts.
+const SHARADA_SYSTEM = `You are Sharada, an expert AI pedagogical assistant. When requested to generate educational material (worksheets, quizzes, lesson plans), produce a complete, classroom-ready document formatted cleanly in Markdown. Include headers, clear instructions, word banks, and structured question parts.
 
 Return JSON only in this exact shape:
 {
@@ -634,7 +634,7 @@ Rules:
 - Do not wrap markdown in code fences.
 - Match the teacher's requested topic, grade, and format.`;
 
-function normalizeRainaChat(raw: Record<string, unknown>, fallback: RainaChatResponse): RainaChatResponse {
+function normalizeSharadaChat(raw: Record<string, unknown>, fallback: SharadaChatResponse): SharadaChatResponse {
   const markdown = String(raw.markdown ?? '').trim();
   return {
     title: String(raw.title ?? '').trim() || fallback.title,
@@ -644,26 +644,26 @@ function normalizeRainaChat(raw: Record<string, unknown>, fallback: RainaChatRes
   };
 }
 
-export async function generateRainaChat(input: RainaChatRequest): Promise<RainaChatResponse> {
-  const fallback = fallbackRainaChat(input.prompt);
+export async function generateSharadaChat(input: SharadaChatRequest): Promise<SharadaChatResponse> {
+  const fallback = fallbackSharadaChat(input.prompt);
   const llm = getActiveProvider();
   if (!llm) return fallback;
 
   const historyBlock = (input.history ?? [])
     .slice(-12)
-    .map((msg) => `${msg.role === 'user' ? 'Teacher' : 'Raina'}: ${msg.content}`)
+    .map((msg) => `${msg.role === 'user' ? 'Teacher' : 'Sharada'}: ${msg.content}`)
     .join('\n\n');
 
   try {
     const raw = await llm.completeJson<Record<string, unknown>>({
-      system: RAINA_SYSTEM,
+      system: SHARADA_SYSTEM,
       user: [historyBlock ? `Conversation so far:\n${historyBlock}` : '', `New request:\n${input.prompt.trim()}`]
         .filter(Boolean)
         .join('\n\n'),
     });
-    return normalizeRainaChat(raw, fallback);
+    return normalizeSharadaChat(raw, fallback);
   } catch (err) {
-    console.error('[llm] raina chat generation failed', err);
+    console.error('[llm] sharada chat generation failed', err);
     return fallback;
   }
 }

@@ -4,7 +4,7 @@ import { CYBER_FONT_STYLE } from '@/lib/theme';
 export function CyberLayout({ children }: { children: ReactNode }) {
   return (
     <div
-      className="relative min-h-screen bg-[#030712] text-slate-100 font-mono bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#030712] to-[#030712]"
+      className="relative min-h-screen bg-[#030712] font-sans text-slate-100 tracking-tight bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#030712] to-[#030712]"
       style={CYBER_FONT_STYLE}
     >
       <div

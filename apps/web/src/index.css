@@ -9,11 +9,11 @@
   --border-cyber: #1e293b;
   --border-glow: #0891b2;
   --text-main: #f8fafc;
-  --text-muted: #64748b;
+  --text-muted: #94a3b8;
   --text-code: #00f0ff;
-  --font: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
-  --font-display: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
-  --font-pickwick: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
+  --font-pickwick: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, system-ui, sans-serif;
 }
 
 *,
@@ -32,9 +32,12 @@ li, ul, ol, nav, header, footer, main, section, article {
 html,
 body {
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.5;
   background: var(--bg-primary);
   color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.015em;
 }
 
 textarea::placeholder,
@@ -56,4 +59,16 @@ input::placeholder {
   background-image:
     linear-gradient(to right, rgba(6, 182, 212, 0.05) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(6, 182, 212, 0.05) 1px, transparent 1px);
+}
+
+.section-heading-title {
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: -0.02em;
+}
+
+.section-heading-subtext {
+  font-weight: 400;
+  color: #94a3b8;
+  letter-spacing: -0.01em;
 }

@@ -1328,8 +1328,8 @@ export function WorksheetGenerator({
                     <p
                       className={
                         overLimit
-                          ? 'font-mono text-xs font-medium text-rose-400'
-                          : 'font-mono text-xs text-slate-400'
+                          ? 'text-xs font-medium tracking-tight text-rose-400'
+                          : 'text-xs tracking-tight text-slate-400'
                       }
                     >
                       Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}

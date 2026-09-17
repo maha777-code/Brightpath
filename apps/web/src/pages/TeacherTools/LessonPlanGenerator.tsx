@@ -94,7 +94,7 @@ const STUDIO_CONTRAST_CSS = `
   color: #f8fafc !important;
   background-color: #020617 !important;
   caret-color: #f8fafc !important;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif !important;
 }
 .lesson-plan-studio .lesson-plan-edit-input:not(:placeholder-shown),
 .lesson-plan-studio textarea:not(:placeholder-shown),

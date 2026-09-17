@@ -2,6 +2,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, Home, LayoutGrid, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useDisplayUser } from '@/lib/displayUser';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 
@@ -9,10 +10,10 @@ const WORKSPACE_ITEMS = [
   {
     to: '/home',
     label: 'Home',
-    detail: 'Raina & recommended tools',
+    detail: 'Sharada & recommended tools',
     icon: Home,
     match: (pathname: string) =>
-      pathname === '/home' || pathname === '/' || pathname.startsWith('/chat/raina'),
+      pathname === '/home' || pathname === '/' || pathname.startsWith('/chat/sharada') || pathname.startsWith('/chat/raina'),
   },
   {
     to: '/teacher/dashboard',
@@ -34,7 +35,8 @@ const WORKSPACE_ITEMS = [
 export function TeacherSidebar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { logout, teacher } = useAuth();
+  const { logout } = useAuth();
+  const { userName, userMeta } = useDisplayUser();
   const [open, setOpen] = useState(false);
 
   const close = () => setOpen(false);
@@ -50,7 +52,7 @@ export function TeacherSidebar() {
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
-        <span className="ml-3 font-mono text-xs uppercase tracking-[0.28em] text-cyan-400">MindVault</span>
+        <span className="ml-3 text-sm font-semibold tracking-tight text-slate-100">MindVault</span>
       </div>
 
       {open && (
@@ -75,12 +77,12 @@ export function TeacherSidebar() {
             <div className="h-3 w-3 shrink-0 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse" />
             <div className="min-w-0">
               <BrandLogo variant="full" imgClassName="h-8 w-auto object-contain" />
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.28em] text-cyan-400">MindVault</p>
+              <p className="mt-1 text-xs font-normal tracking-tight text-slate-400">Teacher workspace</p>
             </div>
           </div>
 
           <div className="mb-2 flex items-center justify-between px-2 md:hidden">
-            <p className="font-mono text-xs font-bold uppercase tracking-widest text-cyan-300">Menu</p>
+            <p className="text-sm font-semibold tracking-tight text-slate-100">Menu</p>
             <button
               type="button"
               className="rounded-lg border border-slate-800 p-2 text-cyan-200"
@@ -92,7 +94,7 @@ export function TeacherSidebar() {
           </div>
 
           <div className="space-y-2">
-            <p className="px-2 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">
+            <p className="px-2 text-[11px] font-medium tracking-tight text-slate-500">
               Teacher workspace
             </p>
             <nav className="space-y-1" aria-label="Teacher workspace">
@@ -113,10 +115,10 @@ export function TeacherSidebar() {
                   >
                     <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${active ? 'text-cyan-300' : 'text-slate-500'}`} />
                     <span className="min-w-0">
-                      <span className="block font-mono text-sm font-semibold leading-tight uppercase tracking-wide">
+                      <span className="block text-sm font-semibold leading-tight tracking-tight">
                         {item.label}
                       </span>
-                      <span className="mt-0.5 block text-[11px] font-medium leading-snug text-slate-500">
+                      <span className="mt-0.5 block text-[13px] font-normal leading-snug tracking-tight text-slate-400">
                         {item.detail}
                       </span>
                     </span>
@@ -131,10 +133,8 @@ export function TeacherSidebar() {
           <div className="mb-2 flex items-center gap-2 px-3">
             <span className="badge-cyber">[ONLINE]</span>
           </div>
-          <p className="truncate px-3 text-sm font-bold text-slate-100">{teacher?.name ?? 'Teacher'}</p>
-          <p className="truncate px-3 text-xs text-slate-500">
-            {teacher?.schoolName ?? 'School'} · {teacher?.subjectFocus ?? 'Science'}
-          </p>
+          <p className="truncate px-3 text-sm font-semibold tracking-tight text-slate-100">{userName}</p>
+          <p className="truncate px-3 text-xs font-normal tracking-tight text-slate-400">{userMeta}</p>
           <button
             type="button"
             onClick={() => {

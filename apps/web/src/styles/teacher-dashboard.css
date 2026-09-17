@@ -16,7 +16,7 @@ body:has(.td-dash),
 }
 
 .td-dash {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
   --td-bg: #030712;
   --td-card: rgba(11, 15, 25, 0.8);
   --td-card-solid: #0f172a;
@@ -65,7 +65,7 @@ body:has(.td-dash),
   background: #0b0f19;
   border: 1px solid #1e293b;
   color: #cffafe;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
 }
 
 .td-input:focus {
@@ -80,13 +80,13 @@ body:has(.td-dash),
 }
 
 .ms-quiz-form {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
 }
 
 .ms-quiz-form textarea,
 .ms-quiz-form input,
 .ms-quiz-form select {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
   font-style: normal !important;
   font-weight: 400 !important;
   letter-spacing: normal !important;
@@ -101,7 +101,7 @@ body:has(.td-dash),
 }
 
 .quiz-gen-shell {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
 }
 
 .quiz-gen-split {
@@ -137,12 +137,12 @@ body:has(.td-dash),
 }
 
 .ws-doc {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
   color: #e2e8f0;
 }
 
 .ws-studio {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
   color: #f8fafc;
 }
 
@@ -188,8 +188,8 @@ body:has(.td-dash),
   color: #67e8f9;
   border: 1px solid rgb(34 211 238 / 0.5);
   box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: -0.015em;
+  font-weight: 600;
 }
 
 .td-btn-cta:hover:not(:disabled) {
@@ -244,9 +244,9 @@ body:has(.td-dash),
   padding: 0.2rem 0.5rem;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: -0.01em;
   text-transform: uppercase;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
 }
 
 .td-tool-badge-new {
@@ -272,7 +272,7 @@ body:has(.td-dash),
 .quiz-gen-shell,
 .ws-studio,
 .ws-doc {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
 }
 
 .td-dash h1,
@@ -293,6 +293,6 @@ body:has(.td-dash),
 .ws-doc h1,
 .ws-doc h2,
 .ws-doc h3 {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, monospace !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif !important;
   letter-spacing: 0.02em;
 }

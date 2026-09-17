@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  ArrowLeft,
   Building2,
   GraduationCap,
   Presentation,
@@ -89,6 +90,10 @@ export default function Register() {
         })()
       : null;
 
+  const handleGoBack = () => {
+    navigate(-1);
+  };
+
   const chooseRole = (r: SignupRole) => {
     setRole(r);
     setStep(2);
@@ -141,7 +146,18 @@ export default function Register() {
   };
 
   return (
-    <div className="page">
+    <div className="relative min-h-screen">
+      <button
+        onClick={handleGoBack}
+        type="button"
+        className="absolute top-6 left-6 z-50 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-3.5 py-2 text-sm font-medium text-slate-300 shadow-lg backdrop-blur-md transition-all hover:border-cyan-500/50 hover:bg-slate-800 hover:text-white"
+        aria-label="Go back to previous page"
+      >
+        <ArrowLeft className="h-4 w-4 text-cyan-400" />
+        <span>Back</span>
+      </button>
+
+      <div className="page">
       <div className="page-header">
         <BrandLogo variant="full" to="/" imgClassName="mb-4 h-12 w-auto object-contain" />
         <h1 className="page-title">{t('auth.register')}</h1>
@@ -367,6 +383,7 @@ export default function Register() {
       <p style={{ textAlign: 'center', marginTop: 20, fontSize: '0.9rem' }}>
         {t('auth.hasAccount')} <Link to="/login">{t('auth.login')}</Link>
       </p>
+      </div>
     </div>
   );
 }

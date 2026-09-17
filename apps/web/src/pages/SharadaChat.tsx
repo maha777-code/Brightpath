@@ -10,7 +10,7 @@ import {
   Plus,
   Share2,
 } from 'lucide-react';
-import { fallbackRainaChat, rainaTitleFromPrompt, type RainaChatMessage, type RainaChatResponse } from '@brightpath/shared';
+import { fallbackSharadaChat, sharadaTitleFromPrompt, type SharadaChatMessage, type SharadaChatResponse } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { MarkdownContent } from '@/components/teacher/MarkdownContent';
@@ -41,7 +41,7 @@ function nextId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function historyFromThread(messages: ThreadMessage[]): RainaChatMessage[] {
+function historyFromThread(messages: ThreadMessage[]): SharadaChatMessage[] {
   return messages.flatMap((msg) => {
     if (msg.role === 'user') return [{ role: 'user' as const, content: msg.text }];
     if (msg.pending) return [];
@@ -49,7 +49,7 @@ function historyFromThread(messages: ThreadMessage[]): RainaChatMessage[] {
   });
 }
 
-export function RainaChat() {
+export function SharadaChat() {
   const location = useLocation();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -60,7 +60,7 @@ export function RainaChat() {
   const incomingPrompt = (state.prompt ?? state.initialPrompt ?? '').trim();
 
   const [title, setTitle] = useState(() =>
-    state.topic?.trim() || (incomingPrompt ? rainaTitleFromPrompt(incomingPrompt) : 'New conversation'),
+    state.topic?.trim() || (incomingPrompt ? sharadaTitleFromPrompt(incomingPrompt) : 'New conversation'),
   );
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [draft, setDraft] = useState('');
@@ -92,20 +92,20 @@ export function RainaChat() {
       const next = [...prior, userMsg, pending];
       setMessages(next);
       setBusy(true);
-      setTitle(rainaTitleFromPrompt(prompt));
+      setTitle(sharadaTitleFromPrompt(prompt));
       scrollToEnd();
 
-      let reply: RainaChatResponse;
+      let reply: SharadaChatResponse;
       try {
-        reply = await api.rainaChat({
+        reply = await api.sharadaChat({
           prompt,
           history: historyFromThread(prior),
         });
       } catch {
-        reply = fallbackRainaChat(prompt);
+        reply = fallbackSharadaChat(prompt);
       }
 
-      setTitle(reply.title || rainaTitleFromPrompt(prompt));
+      setTitle(reply.title || sharadaTitleFromPrompt(prompt));
       setMessages((current) =>
         current.map((msg) =>
           msg.id === pending.id
@@ -159,7 +159,7 @@ export function RainaChat() {
     const url = window.location.href;
     try {
       if (navigator.share) {
-        await navigator.share({ title: `Raina › ${title}`, url });
+        await navigator.share({ title: `Sharada › ${title}`, url });
         return;
       }
       await navigator.clipboard.writeText(url);
@@ -184,7 +184,7 @@ export function RainaChat() {
               style={{ appearance: 'none' }}
               onClick={() => navigate('/home')}
             >
-              Raina
+              Sharada
             </button>
             <span aria-hidden>›</span>
             <span className="truncate font-semibold text-slate-200">{activeTitle}</span>
@@ -227,7 +227,7 @@ export function RainaChat() {
           <div className="mx-auto flex w-full max-w-4xl flex-col space-y-6">
             {empty && !busy ? (
               <p className="pt-16 text-center text-sm text-slate-400">
-                Ask Raina to generate a worksheet, quiz, or lesson plan.
+                Ask Sharada to generate a worksheet, quiz, or lesson plan.
               </p>
             ) : null}
 
@@ -299,7 +299,7 @@ export function RainaChat() {
                     }
                   }}
                   placeholder="Continue the conversation..."
-                  className="min-h-[2.25rem] w-full bg-transparent px-2 py-1.5 font-mono text-cyan-100 placeholder-slate-600 outline-none"
+                  className="min-h-[2.25rem] w-full bg-transparent px-2 py-1.5 text-slate-100 placeholder-slate-600 outline-none tracking-tight"
                   style={FONT}
                   disabled={busy}
                 />
@@ -338,11 +338,11 @@ export function RainaChat() {
               type="file"
               className="hidden"
               accept="image/*,.pdf,.doc,.docx,.txt"
-              onChange={() => setBarNote('Attachment added. Tell Raina how to use this file.')}
+              onChange={() => setBarNote('Attachment added. Tell Sharada how to use this file.')}
             />
             {barNote ? <p className="mt-2 text-center text-xs text-slate-400">{barNote}</p> : null}
             <p className="mt-2 text-center text-xs text-slate-500">
-              Raina can make mistakes. Always review content for accuracy and follow school policies.
+              Sharada can make mistakes. Always review content for accuracy and follow school policies.
             </p>
           </div>
         </div>
@@ -351,4 +351,4 @@ export function RainaChat() {
   );
 }
 
-export default RainaChat;
+export default SharadaChat;

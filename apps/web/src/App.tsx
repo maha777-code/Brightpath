@@ -1,10 +1,10 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { isLearnerRole, isParentPortalRole } from '@/lib/api';
 import { homePathForRole, isAppRole, type AppRole } from '@brightpath/shared';
 import Home from '@/pages/Home';
-import RainaChat from '@/pages/RainaChat';
+import SharadaChat from '@/pages/SharadaChat';
 import Landing from '@/pages/Landing';
 import Login from '@/pages/Auth/Login';
 import { CyberLayout } from '@/components/layout/CyberLayout';
@@ -89,6 +89,17 @@ function ProtectedLearner({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RedirectSharadaChat() {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={{ pathname: '/chat/sharada', search: location.search, hash: location.hash }}
+      replace
+      state={location.state}
+    />
+  );
+}
+
 function LoginGate() {
   const { role, parent, teacher, user } = useAuth();
   if (role && isAppRole(role) && (user || parent || teacher)) {
@@ -128,13 +139,14 @@ export default function App() {
           }
         />
         <Route
-          path="/chat/raina"
+          path="/chat/sharada"
           element={
             <ProtectedTeacher>
-              <RainaChat />
+              <SharadaChat />
             </ProtectedTeacher>
           }
         />
+        <Route path="/chat/raina" element={<RedirectSharadaChat />} />
         <Route path="/login" element={<LoginGate />} />
         <Route path="/register" element={<Register />} />
         <Route path="/signup" element={<Navigate to="/register" replace />} />

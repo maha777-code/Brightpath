@@ -16,8 +16,8 @@ import {
   Star,
 } from 'lucide-react';
 import { getTeacherToolById } from '@brightpath/shared';
-import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { useDisplayUser } from '@/lib/displayUser';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 
 import { CYBER_FONT_STYLE } from '@/lib/theme';
@@ -81,21 +81,13 @@ const RECENT_ACTIVITY = [
   },
 ] as const;
 
-function firstName(name?: string | null): string {
-  if (!name?.trim()) return 'Teacher';
-  const cleaned = name.replace(/^(prof\.?|dr\.?)\s+/i, '').trim();
-  return cleaned.split(/\s+/)[0] || 'Teacher';
-}
-
 export function HomePage() {
-  const { user, teacher } = useAuth();
+  const { firstName } = useDisplayUser();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [prompt, setPrompt] = useState('');
   const [reply, setReply] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-
-  const displayName = firstName(teacher?.name ?? user?.name);
 
   const recommendedTools = useMemo(
     () =>
@@ -133,7 +125,7 @@ export function HomePage() {
   const sendPrompt = useCallback(() => {
     const text = prompt.trim();
     if (!text) return;
-    navigate('/chat/raina', {
+    navigate('/chat/sharada', {
       state: {
         prompt: text,
         initialPrompt: text,
@@ -155,11 +147,12 @@ export function HomePage() {
               <div className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse" />
               <span className="badge-cyber">[SYS_OK]</span>
             </div>
-            <h1 className="text-center text-3xl font-bold text-slate-100" style={FONT}>
-              Hi {displayName}, how can I help today?
+            <h1 className="text-center text-3xl tracking-tight sm:text-4xl">
+              <span className="font-bold text-slate-100">Hi {firstName}. </span>
+              <span className="font-normal text-slate-400">How can I help today?</span>
             </h1>
-            <p className="mt-1 text-center text-sm text-slate-400">
-              Chat with Raina, your AI assistant
+            <p className="section-heading-subtext mt-2 text-center text-sm">
+              Chat with Sharada, your AI assistant
             </p>
 
             <form
@@ -180,7 +173,7 @@ export function HomePage() {
                   }
                 }}
                 placeholder="Recommend 5 accessible video resources for social..."
-                className="w-full resize-none bg-transparent font-mono text-base text-cyan-100 placeholder-slate-600 outline-none"
+                className="w-full resize-none bg-transparent text-base tracking-tight text-slate-100 placeholder-slate-600 outline-none"
                 style={FONT}
               />
               <div className="flex items-center justify-between border-t border-slate-800/60 pt-2">
@@ -199,7 +192,7 @@ export function HomePage() {
                   className="hidden"
                   accept="image/*,.pdf,.doc,.docx,.txt"
                   onChange={() => {
-                    setReply('Raina: Attachment added. Tell me how you’d like to use this file.');
+                    setReply('Sharada: Attachment added. Tell me how you’d like to use this file.');
                   }}
                 />
                 <div className="flex items-center gap-3">
@@ -209,7 +202,7 @@ export function HomePage() {
                     aria-label="Voice input"
                     title="Voice input"
                     onClick={() =>
-                      setReply('Raina: Voice input is ready in your next session. Type your request for now.')
+                      setReply('Sharada: Voice input is ready in your next session. Type your request for now.')
                     }
                   >
                     <Mic className="h-4 w-4" />
@@ -235,14 +228,14 @@ export function HomePage() {
 
             <button
               type="button"
-              className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-800 bg-[#0b0f19] px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-cyan-300 transition-colors hover:border-cyan-500/60"
+              className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-800 bg-[#0b0f19] px-3 py-1.5 text-xs font-medium tracking-tight text-cyan-300 transition-colors hover:border-cyan-500/60"
               onClick={() => {
                 setPrompt('Generate a classroom image of ');
                 setReply(null);
               }}
             >
               <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-              New! Ask Raina to generate images
+              New! Ask Sharada to generate images
             </button>
 
             {reply ? (
@@ -254,22 +247,21 @@ export function HomePage() {
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div className="space-y-4 lg:col-span-2">
-              <p className="mb-1 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-cyan-400">
-                YOUR MAGIC
-              </p>
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-xl font-bold text-slate-100">Recommended teacher tools</h2>
+              <div className="flex items-start justify-between gap-3">
+                <div className="text-xl tracking-tight">
+                  <span className="font-bold text-slate-100">Recommended tools. </span>
+                  <span className="font-normal text-slate-400">
+                    Curated for you, based on your profile and MindVault activity.
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => navigate('/teacher/tools')}
-                  className="cursor-pointer font-mono text-sm font-medium uppercase tracking-wide text-cyan-400 hover:text-cyan-300"
+                  className="shrink-0 cursor-pointer text-sm font-medium tracking-tight text-cyan-400 hover:text-cyan-300"
                 >
                   Discover all tools →
                 </button>
               </div>
-              <p className="mb-4 text-xs text-slate-400">
-                Curated for you, based on your profile &amp; MindVault activity.
-              </p>
 
               <div className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-3">
                 {recommendedTools.map((tool) => {
@@ -303,8 +295,8 @@ export function HomePage() {
                           <Star className="h-4 w-4" fill={favorited ? 'currentColor' : 'none'} />
                         </button>
                       </div>
-                      <h3 className="text-sm font-semibold text-slate-100">{tool.name}</h3>
-                      <p className="line-clamp-2 text-xs text-slate-400">{tool.description}</p>
+                      <h3 className="text-sm font-semibold tracking-tight text-slate-100">{tool.name}</h3>
+                      <p className="line-clamp-2 text-xs font-normal tracking-tight text-slate-400">{tool.description}</p>
                     </div>
                   );
                 })}
@@ -312,9 +304,11 @@ export function HomePage() {
             </div>
 
             <aside className="card-cyber h-fit space-y-4 p-5">
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-100">Recent activity</h2>
-                <span className="badge-cyber">[INDEXED]</span>
+              <div className="mb-2">
+                <div className="text-lg tracking-tight">
+                  <span className="font-bold text-slate-100">Recent activity. </span>
+                  <span className="font-normal text-slate-400">Latest classroom work.</span>
+                </div>
               </div>
               <div className="space-y-3">
                 {RECENT_ACTIVITY.map((act) => (
@@ -331,9 +325,10 @@ export function HomePage() {
                     role="link"
                     tabIndex={0}
                   >
-                    <p className="text-sm font-medium text-slate-200 transition-colors group-hover:text-cyan-300">
+                    <p className="text-sm font-semibold tracking-tight text-slate-100 transition-colors group-hover:text-cyan-300">
                       {act.title}
                     </p>
+                    <span className="text-xs font-normal tracking-tight text-slate-400">{act.type}</span>
                     <span className="text-xs text-slate-500">{act.type}</span>
                   </div>
                 ))}
