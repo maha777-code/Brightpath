@@ -68,7 +68,7 @@ function FeatureBanner() {
               </div>
               <div>
                 <h4 className="text-base font-bold tracking-tight text-slate-100">{feature.title}</h4>
-                <p className="mt-0.5 text-xs text-slate-400">{feature.description}</p>
+                <p className="mt-0.5 text-xs font-normal text-slate-400">{feature.description}</p>
               </div>
             </div>
           );
@@ -136,12 +136,37 @@ export default function Landing() {
         <div className="bp-nav mx-auto w-full max-w-[96rem]">
           <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
 
-          <nav className="bp-nav-center" aria-label="Main">
-            <a href="#subjects">Subjects</a>
-            <a href="#how-it-works">How It Works</a>
-            <a href="#pricing">Pricing</a>
-            <a href="#schools">For Schools</a>
-            <Link to={loginHref}>Log In</Link>
+          <nav className="bp-nav-center flex items-center space-x-6" aria-label="Main">
+            <a
+              href="#subjects"
+              className="text-sm font-medium tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+            >
+              Subjects
+            </a>
+            <a
+              href="#how-it-works"
+              className="text-sm font-medium tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+            >
+              How It Works
+            </a>
+            <a
+              href="#pricing"
+              className="text-sm font-medium tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+            >
+              Pricing
+            </a>
+            <a
+              href="#schools"
+              className="text-sm font-medium tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+            >
+              For Schools
+            </a>
+            <Link
+              to={loginHref}
+              className="text-sm font-medium tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+            >
+              Log In
+            </Link>
           </nav>
 
           <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--nav">
@@ -186,7 +211,7 @@ export default function Landing() {
                   <h3 className="text-lg font-bold tracking-tight text-slate-100 transition-colors group-hover:text-cyan-300">
                     {s.name}
                   </h3>
-                  <p className="mt-1 text-sm text-slate-400">{s.description}</p>
+                  <p className="mt-1.5 text-xs font-normal leading-relaxed text-slate-400">{s.description}</p>
                 </div>
               </article>
             ))}
