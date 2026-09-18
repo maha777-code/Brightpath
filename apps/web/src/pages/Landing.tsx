@@ -81,7 +81,7 @@ function FeatureBanner() {
 
 function HeroAITutorCard() {
   return (
-    <div className="group relative mx-auto w-full max-w-[540px] lg:mx-0">
+    <div className="group relative w-full">
       <div className="absolute -inset-1 -z-10 animate-pulse rounded-2xl bg-cyan-500/10 blur-xl" />
       <motion.div
         animate={{ y: [0, -6, 0] }}
@@ -110,6 +110,13 @@ const TEACHER_FEATURES = [
   'Tool exemplars',
   'Student learning insights',
   'AI instructional coach',
+];
+
+const STUDENT_FEATURES = [
+  'Teacher-led activities',
+  'Safe settings for students',
+  '50+ student tools',
+  'Designed to build AI skills',
 ];
 
 export default function Landing() {
@@ -169,47 +176,49 @@ export default function Landing() {
       </header>
 
       <main>
-        <section className="mx-auto grid w-full max-w-[96rem] grid-cols-1 items-center gap-12 px-6 py-10 md:grid-cols-12 lg:px-12">
-          <div className="order-2 flex justify-center md:col-span-5 md:order-1 lg:justify-start">
-            <HeroAITutorCard />
+        <section className="w-full space-y-12 px-4 py-8 sm:px-8 md:px-12 md:py-12 lg:px-16">
+          <div className="grid w-full grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-16">
+            <div className="order-2 flex w-full justify-center lg:col-span-5 lg:order-1 lg:justify-start">
+              <HeroAITutorCard />
+            </div>
+            <div className="bp-hero-copy order-1 flex w-full flex-col items-start space-y-6 text-left lg:col-span-7 lg:order-2">
+              <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl lg:text-6xl">
+                Unlock Your Full Potential with Your Personal AI Tutor
+              </h1>
+              <p className="max-w-3xl text-xl font-normal leading-relaxed text-slate-200 md:text-2xl">
+                Adaptive, 24/7 learning that evolves with you. Master any subject, from Math to
+                Mandarin.
+              </p>
+              <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--lg">
+                Start Your Personalized Journey
+              </Link>
+            </div>
           </div>
-          <div className="bp-hero-copy order-1 flex flex-col items-start text-left md:col-span-7 md:order-2">
-            <h1 className="mb-4 text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
-              Unlock Your Full Potential with Your Personal AI Tutor
-            </h1>
-            <p className="mb-8 max-w-xl text-xl font-normal leading-relaxed text-slate-100 md:text-2xl">
-              Adaptive, 24/7 learning that evolves with you. Master any subject, from Math to
-              Mandarin.
-            </p>
-            <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--lg">
-              Start Your Personalized Journey
-            </Link>
+
+          <div aria-label="Key features">
+            <FeatureBanner />
           </div>
-        </section>
 
-        <section className="mx-auto mt-2 w-full max-w-[96rem] px-6 lg:px-12" aria-label="Key features">
-          <FeatureBanner />
-        </section>
-
-        <section id="subjects" className="mx-auto w-full max-w-[96rem] px-6 py-12 lg:px-12">
-          <h2 className="mb-6 text-3xl font-bold tracking-tight text-slate-100 md:text-4xl">Subjects</h2>
-          <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {SUBJECTS.map((s) => (
-              <article
-                key={s.name}
-                className="group relative flex cursor-pointer flex-col justify-between rounded-2xl border border-slate-800 bg-slate-900/90 p-6 transition-all duration-300 hover:border-cyan-500/60 hover:bg-slate-900 hover:shadow-[0_0_25px_rgba(6,182,212,0.15)]"
-              >
-                <div>
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-950/80 text-xl font-bold text-cyan-400">
-                    {s.icon}
+          <div id="subjects" className="w-full space-y-6">
+            <h2 className="text-4xl font-extrabold tracking-tight text-white">Subjects</h2>
+            <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {SUBJECTS.map((s) => (
+                <article
+                  key={s.name}
+                  className="group relative flex cursor-pointer flex-col justify-between rounded-2xl border border-slate-800 bg-slate-950/60 p-6 backdrop-blur-md transition-all duration-300 hover:border-cyan-500/40 hover:bg-slate-900 hover:shadow-[0_0_25px_rgba(6,182,212,0.15)]"
+                >
+                  <div>
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-950/60 text-xl font-bold text-cyan-400">
+                      {s.icon}
+                    </div>
+                    <h3 className="text-2xl font-bold tracking-tight text-white transition-colors group-hover:text-cyan-300">
+                      {s.name}
+                    </h3>
+                    <p className="mt-2 text-xl font-normal leading-relaxed text-slate-300">{s.description}</p>
                   </div>
-                  <h3 className="text-xl font-bold tracking-tight text-slate-100 transition-colors group-hover:text-cyan-300">
-                    {s.name}
-                  </h3>
-                  <p className="mt-2 text-xl font-normal leading-relaxed text-slate-300">{s.description}</p>
-                </div>
-              </article>
-            ))}
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -292,6 +301,50 @@ export default function Landing() {
                       {feature}
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="w-full px-6 py-12 lg:px-12">
+          <div className="w-full rounded-3xl border border-slate-800 bg-slate-950/60 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12 lg:p-16">
+            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-16">
+              <div className="space-y-6 lg:col-span-6">
+                <span className="text-sm font-bold uppercase tracking-widest text-cyan-400">
+                  AI FOR STUDENTS
+                </span>
+
+                <h3 className="text-3xl font-extrabold leading-tight text-white md:text-4xl lg:text-5xl">
+                  Learn confidently. <br />
+                  Think critically. <br />
+                  Build the future.
+                </h3>
+
+                <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
+                  {STUDENT_FEATURES.map((feature) => (
+                    <div
+                      key={feature}
+                      className="flex items-center gap-2.5 text-lg font-medium text-slate-200"
+                    >
+                      <span className="font-bold text-cyan-400">✓</span>
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="group relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/60 shadow-[0_0_30px_rgba(6,182,212,0.15)] lg:col-span-6">
+                <img
+                  src="/student-hologram.png"
+                  alt="Holographic AI assisting students with interactive learning"
+                  className="aspect-[16/10] h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-cyan-500/40 bg-slate-900/90 p-4 shadow-xl backdrop-blur-md sm:right-auto sm:max-w-xs">
+                  <p className="text-2xl font-extrabold text-cyan-400">88%</p>
+                  <p className="text-base font-medium leading-snug text-slate-200">
+                    of teachers say it helps them reach every learner
+                  </p>
                 </div>
               </div>
             </div>

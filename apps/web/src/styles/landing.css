@@ -194,27 +194,27 @@
   display: grid;
   align-items: center;
   width: 100%;
-  max-width: 96rem;
+  max-width: none;
   margin: 0 auto;
   padding: 40px 0 28px;
 }
 
 .bp-hero-copy h1 {
-  font-size: clamp(2.1rem, 4.2vw, 3.35rem);
+  font-size: clamp(2.25rem, 5vw, 3.75rem);
   font-weight: 800;
   line-height: 1.12;
   letter-spacing: -0.025em;
   color: var(--bp-heading);
-  margin: 0 0 18px;
+  margin: 0;
 }
 
 .bp-hero-copy p {
   font-size: 1.25rem;
   line-height: 1.625;
   font-weight: 400;
-  color: #f1f5f9;
-  max-width: 42rem;
-  margin: 0 0 28px;
+  color: #e2e8f0;
+  max-width: 48rem;
+  margin: 0;
 }
 
 @media (min-width: 768px) {
@@ -570,13 +570,7 @@
 }
 
 .bp-landing #subjects > h2 {
-  font-size: 1.875rem;
-}
-
-@media (min-width: 768px) {
-  .bp-landing #subjects > h2 {
-    font-size: 2.25rem;
-  }
+  font-size: 2.25rem;
 }
 
 /* ── Testimonials ── */
