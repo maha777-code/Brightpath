@@ -230,7 +230,7 @@ export default function Landing() {
           <div className="w-full rounded-3xl border border-slate-800 bg-slate-950/60 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12">
             <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12">
               <div className="space-y-6 lg:col-span-6">
-                <span className="text-base font-bold uppercase tracking-widest text-cyan-400">
+                <span className="bp-audience-badge text-lg font-bold uppercase tracking-widest text-cyan-400">
                   AI FOR SCHOOLS
                 </span>
 
@@ -243,20 +243,24 @@ export default function Landing() {
                   {SCHOOL_FEATURES.map((feature) => (
                     <div
                       key={feature}
-                      className="flex items-center gap-2.5 text-lg font-medium text-slate-300"
+                      className="bp-audience-item flex items-center gap-3 text-xl font-medium text-slate-200 md:text-2xl"
                     >
-                      <span className="font-bold text-cyan-400">✓</span>
+                      <span className="bp-audience-check text-2xl font-bold text-cyan-400">✓</span>
                       {feature}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-2xl border border-slate-800 lg:col-span-6">
+              <div className="group relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/60 shadow-[0_0_30px_rgba(6,182,212,0.15)] lg:col-span-6">
                 <img
-                  src="/safe-ai-tutor.png"
-                  alt="Safe AI Tutor"
-                  className="aspect-[4/3] h-full w-full object-cover"
+                  src="/safe-ai-tutor-hd.png?v=1"
+                  alt="Safe and secure AI tutor in classroom"
+                  width={1920}
+                  height={1080}
+                  loading="eager"
+                  decoding="async"
+                  className="bp-hd-img aspect-[16/10] h-full w-full object-cover brightness-[1.02] contrast-[1.05] transition-transform duration-700 group-hover:scale-105 [image-rendering:-webkit-optimize-contrast]"
                 />
               </div>
             </div>
@@ -281,7 +285,7 @@ export default function Landing() {
               </div>
 
               <div className="space-y-6 lg:col-span-6">
-                <span className="text-sm font-bold uppercase tracking-widest text-cyan-400">
+                <span className="bp-audience-badge text-lg font-bold uppercase tracking-widest text-cyan-400">
                   AI FOR TEACHERS
                 </span>
 
@@ -295,9 +299,9 @@ export default function Landing() {
                   {TEACHER_FEATURES.map((feature) => (
                     <div
                       key={feature}
-                      className="flex items-center gap-2.5 text-lg font-medium text-slate-200"
+                      className="bp-audience-item flex items-center gap-3 text-xl font-medium text-slate-200 md:text-2xl"
                     >
-                      <span className="font-bold text-cyan-400">✓</span>
+                      <span className="bp-audience-check text-2xl font-bold text-cyan-400">✓</span>
                       {feature}
                     </div>
                   ))}
@@ -311,7 +315,7 @@ export default function Landing() {
           <div className="w-full rounded-3xl border border-slate-800 bg-slate-950/60 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12 lg:p-16">
             <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-16">
               <div className="space-y-6 lg:col-span-6">
-                <span className="text-sm font-bold uppercase tracking-widest text-cyan-400">
+                <span className="bp-audience-badge text-lg font-bold uppercase tracking-widest text-cyan-400">
                   AI FOR STUDENTS
                 </span>
 
@@ -325,9 +329,9 @@ export default function Landing() {
                   {STUDENT_FEATURES.map((feature) => (
                     <div
                       key={feature}
-                      className="flex items-center gap-2.5 text-lg font-medium text-slate-200"
+                      className="bp-audience-item flex items-center gap-3 text-xl font-medium text-slate-200 md:text-2xl"
                     >
-                      <span className="font-bold text-cyan-400">✓</span>
+                      <span className="bp-audience-check text-2xl font-bold text-cyan-400">✓</span>
                       {feature}
                     </div>
                   ))}

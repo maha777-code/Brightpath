@@ -223,6 +223,34 @@
   }
 }
 
+/* High-DPI / Retina image sharpening for photographic illustrations */
+.bp-landing .bp-hd-img {
+  filter: contrast(1.05) brightness(1.02);
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
+  -ms-interpolation-mode: bicubic;
+}
+
+.bp-landing .bp-audience-badge {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.bp-landing .bp-audience-item {
+  font-size: 1.25rem;
+}
+
+.bp-landing .bp-audience-check {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+@media (min-width: 768px) {
+  .bp-landing .bp-audience-item {
+    font-size: 1.5rem;
+  }
+}
+
 /* ── Art / glass illustrations ── */
 .bp-art {
   display: flex;
