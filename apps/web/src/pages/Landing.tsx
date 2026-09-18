@@ -247,17 +247,15 @@ export default function Landing() {
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-2xl border border-slate-800 lg:col-span-6">
-                <img
-                  src="/ai-tutor.png?v=3"
-                  alt="AI Tutor Model"
-                  className="aspect-[4/3] h-full w-full object-cover"
-                />
-                <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-cyan-500/30 bg-slate-900/90 p-4 shadow-lg backdrop-blur-md sm:right-auto sm:max-w-xs">
-                  <p className="text-2xl font-extrabold text-cyan-400">28%</p>
-                  <p className="text-xs font-medium leading-snug text-slate-300">
-                    improvement in students meeting literacy grade-level expectations
-                  </p>
+              <div className="group relative lg:col-span-6">
+                <div className="absolute -inset-1 -z-10 animate-pulse rounded-2xl bg-cyan-500/10 blur-xl" />
+                <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/60 shadow-[0_0_30px_rgba(6,182,212,0.15)]">
+                  <img
+                    src="/safe-ai-tutor.png"
+                    alt="Safe Holographic AI Tutor guiding student"
+                    className="aspect-[16/10] h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent" />
                 </div>
               </div>
             </div>
