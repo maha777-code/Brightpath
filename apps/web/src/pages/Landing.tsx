@@ -119,6 +119,131 @@ const STUDENT_FEATURES = [
   'Designed to build AI skills',
 ];
 
+type TeacherReview = {
+  isPhotoCard: boolean;
+  author: string;
+  role: string;
+  quote?: string;
+  handle?: string;
+  avatar?: string;
+  image?: string;
+};
+
+const reviewsData: TeacherReview[] = [
+  {
+    isPhotoCard: false,
+    quote:
+      "MindVault was responsive to what teachers needed, not just in features but in how easy it was to use. We're focused on its utility and impact.",
+    author: 'Susan U.',
+    role: 'Director of Educational Technology',
+    avatar: '/reviews/susan-u.jpg',
+  },
+  {
+    isPhotoCard: true,
+    author: 'Sarah Jenkins',
+    role: 'High School Science Educator',
+    image: '/reviews/sarah-jenkins.jpg',
+  },
+  {
+    isPhotoCard: false,
+    quote:
+      "Tonight was Magical 🪄 @MindVault thank you for a fantastic tool!! It's amazing to see how much time it saves teachers! #TeachersAreMagic",
+    author: 'Miss Jami Shields',
+    role: 'Middle School Teacher',
+    handle: '@MissJShields1',
+    avatar: '/reviews/jami-shields.jpg',
+  },
+  {
+    isPhotoCard: false,
+    quote:
+      "Teachers brought the platform to us and demonstrated a willingness to share their learning with colleagues. We used MindVault because it's built for education.",
+    author: 'Teneika B.',
+    role: 'Founding Principal',
+    avatar: '/reviews/teneika-b.jpg',
+  },
+  {
+    isPhotoCard: true,
+    author: 'Marcus Vance',
+    role: 'District Tech Coordinator',
+    image: '/reviews/marcus-vance.jpg',
+  },
+];
+
+function TeacherReviewsCarousel() {
+  const loopedReviews = [...reviewsData, ...reviewsData];
+
+  return (
+    <section
+      aria-label="Teacher reviews"
+      className="w-full overflow-hidden border-t border-slate-800/60 bg-[#030712] py-16"
+    >
+      <div className="mb-12 space-y-3 px-4 text-center">
+        <h2 className="text-4xl font-extrabold tracking-tight text-white md:text-5xl">
+          Why teachers love MindVault
+        </h2>
+        <p className="text-lg text-slate-300">
+          Hear from the educators who inspire everything we build.
+        </p>
+      </div>
+
+      <div className="bp-reviews-mask relative w-full overflow-hidden">
+        <div className="bp-reviews-track animate-marquee-reverse flex w-max gap-6 hover:[animation-play-state:paused]">
+          {loopedReviews.map((review, idx) => (
+            <div
+              key={`${review.author}-${idx}`}
+              className="flex w-[340px] shrink-0 flex-col justify-between space-y-4 rounded-2xl border border-cyan-500/30 bg-slate-950/70 p-6 shadow-[0_0_25px_rgba(6,182,212,0.1)] backdrop-blur-md transition-colors hover:border-cyan-400 md:w-[380px]"
+            >
+              {review.isPhotoCard ? (
+                <div className="relative h-[280px] w-full overflow-hidden rounded-xl border border-slate-800">
+                  <img
+                    src={review.image}
+                    alt={review.author}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent p-4">
+                    <p className="text-lg font-bold text-white">{review.author}</p>
+                    <p className="text-sm font-medium text-cyan-400">{review.role}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex h-full flex-col justify-between space-y-6">
+                  <div className="space-y-3">
+                    <span className="font-serif text-3xl text-cyan-400">“</span>
+                    <p className="text-base font-normal leading-relaxed text-slate-200">
+                      {review.quote}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 border-t border-slate-800/80 pt-4">
+                    {review.avatar ? (
+                      <img
+                        src={review.avatar}
+                        alt={review.author}
+                        className="h-10 w-10 rounded-full border border-cyan-500/40 object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : null}
+                    <div>
+                      <h4 className="text-sm font-bold text-white">{review.author}</h4>
+                      <p className="text-xs text-slate-400">{review.role}</p>
+                      {review.handle ? (
+                        <p className="font-mono text-xs text-cyan-400">{review.handle}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Landing() {
   const { parent } = useAuth();
   const startHref = parent ? '/dashboard' : '/register';
@@ -354,6 +479,8 @@ export default function Landing() {
             </div>
           </div>
         </section>
+
+        <TeacherReviewsCarousel />
 
         <section id="pricing" className="bp-cta-wrap w-full px-6 py-16 lg:px-12">
           <div className="bp-cta-glass">

@@ -88,6 +88,15 @@ export default {
         cyber: '0 0 20px rgba(6, 182, 212, 0.3)',
         'cyber-sm': '0 0 15px rgba(6, 182, 212, 0.15)',
       },
+      keyframes: {
+        'scroll-left-to-right': {
+          '0%': { transform: 'translateX(-50%)' },
+          '100%': { transform: 'translateX(0%)' },
+        },
+      },
+      animation: {
+        'marquee-reverse': 'scroll-left-to-right 35s linear infinite',
+      },
     },
   },
   plugins: [],
