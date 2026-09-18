@@ -234,15 +234,6 @@ export default function Landing() {
                     </div>
                   ))}
                 </div>
-
-                <div>
-                  <a
-                    href="#schools"
-                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 px-6 py-3 text-lg font-semibold text-cyan-300 transition-all hover:border-cyan-400 hover:bg-cyan-500/10"
-                  >
-                    District solutions →
-                  </a>
-                </div>
               </div>
 
               <div className="relative overflow-hidden rounded-2xl border border-slate-800 lg:col-span-6">
