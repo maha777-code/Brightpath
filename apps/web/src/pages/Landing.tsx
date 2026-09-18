@@ -206,22 +206,22 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="how-it-works" className="mx-auto w-full max-w-[96rem] bg-[#030712] px-6 py-16 lg:px-12">
+        <section id="how-it-works" className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <h2 className="mx-auto mb-12 max-w-4xl text-center text-3xl font-extrabold leading-tight tracking-tight text-white md:text-4xl">
             Transforming education for every student and classroom through AI
           </h2>
 
-          <div className="mx-auto max-w-6xl rounded-3xl border border-slate-800 bg-slate-950/80 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12">
+          <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12">
             <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12">
               <div className="space-y-6 lg:col-span-6">
                 <span className="text-xs font-bold uppercase tracking-widest text-cyan-400">
                   AI FOR SCHOOLS
                 </span>
 
-                <h2 className="mb-4 text-2xl font-extrabold leading-tight text-white md:text-3xl lg:text-4xl">
+                <h3 className="text-2xl font-extrabold leading-tight text-white md:text-3xl lg:text-4xl">
                   Bring safe, personalized AI to your school with zero hassle, total privacy, and
                   complete teacher support.
-                </h2>
+                </h3>
 
                 <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
                   {SCHOOL_FEATURES.map((feature) => (
@@ -229,10 +229,8 @@ export default function Landing() {
                       key={feature}
                       className="flex items-center gap-2.5 text-sm font-medium text-slate-300"
                     >
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full border border-cyan-400/50 bg-cyan-500/20 text-xs font-bold text-cyan-300">
-                        ✓
-                      </div>
-                      <span>{feature}</span>
+                      <span className="font-bold text-cyan-400">✓</span>
+                      {feature}
                     </div>
                   ))}
                 </div>
@@ -247,16 +245,12 @@ export default function Landing() {
                 </div>
               </div>
 
-              <div className="group relative lg:col-span-6">
-                <div className="absolute -inset-1 -z-10 animate-pulse rounded-2xl bg-cyan-500/10 blur-xl" />
-                <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/60 shadow-[0_0_30px_rgba(6,182,212,0.15)]">
-                  <img
-                    src="/safe-ai-tutor.png"
-                    alt="Safe Holographic AI Tutor guiding student"
-                    className="aspect-[16/10] h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent" />
-                </div>
+              <div className="relative overflow-hidden rounded-2xl border border-slate-800 lg:col-span-6">
+                <img
+                  src="/safe-ai-tutor.png"
+                  alt="Safe AI Tutor"
+                  className="aspect-[4/3] h-full w-full object-cover"
+                />
               </div>
             </div>
           </div>
