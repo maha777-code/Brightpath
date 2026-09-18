@@ -81,7 +81,7 @@ function FeatureBanner() {
 
 function HeroAITutorCard() {
   return (
-    <div className="group relative mx-auto w-full max-w-[540px] lg:ml-auto">
+    <div className="group relative mx-auto w-full max-w-[540px] lg:mx-0">
       <div className="absolute -inset-1 -z-10 animate-pulse rounded-2xl bg-cyan-500/10 blur-xl" />
       <motion.div
         animate={{ y: [0, -6, 0] }}
@@ -89,7 +89,7 @@ function HeroAITutorCard() {
         className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/80 shadow-[0_0_40px_rgba(6,182,212,0.15)]"
       >
         <img
-          src="/ai-tutor.png?v=2"
+          src="/ai-tutor.png?v=3"
           alt="AI Tutor Dynamic Knowledge Model"
           className="h-auto w-full rounded-2xl object-cover transition-transform duration-700 group-hover:scale-105"
         />
@@ -100,20 +100,14 @@ function HeroAITutorCard() {
 
 function TestimonialArt() {
   return (
-    <div className="bp-art bp-art--testimonial" aria-hidden="true">
-      <div className="bp-art-glass">
-        <div className="bp-robot">
-          <div className="bp-robot-glow" />
-          <div className="bp-robot-head">
-            <span className="bp-robot-eye" />
-            <span className="bp-robot-eye" />
-          </div>
-          <div className="bp-robot-body" />
-        </div>
-        <div className="bp-student bp-student--small">
-          <div className="bp-student-head" />
-          <div className="bp-student-body" />
-        </div>
+    <div className="group relative w-full">
+      <div className="absolute -inset-1 -z-10 animate-pulse rounded-2xl bg-cyan-500/10 blur-xl" />
+      <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/80 shadow-[0_0_40px_rgba(6,182,212,0.15)]">
+        <img
+          src="/ai-tutor.png?v=3"
+          alt="AI Tutor Dynamic Knowledge Model"
+          className="h-auto w-full rounded-2xl object-cover transition-transform duration-700 group-hover:scale-105"
+        />
       </div>
     </div>
   );
@@ -176,19 +170,21 @@ export default function Landing() {
       </header>
 
       <main>
-        <section className="mx-auto grid w-full max-w-[96rem] grid-cols-1 items-center gap-8 px-6 py-10 lg:grid-cols-12 lg:px-12">
-          <div className="bp-hero-copy lg:col-span-7">
-            <h1>Unlock Your Full Potential with Your Personal AI Tutor</h1>
-            <p className="text-base font-normal leading-relaxed text-slate-100 md:text-lg">
+        <section className="mx-auto grid w-full max-w-[96rem] grid-cols-1 items-center gap-12 px-6 py-10 md:grid-cols-12 lg:px-12">
+          <div className="order-2 flex justify-center md:col-span-5 md:order-1 lg:justify-start">
+            <HeroAITutorCard />
+          </div>
+          <div className="bp-hero-copy order-1 flex flex-col items-start text-left md:col-span-7 md:order-2">
+            <h1 className="mb-4 text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
+              Unlock Your Full Potential with Your Personal AI Tutor
+            </h1>
+            <p className="mb-8 max-w-xl text-base font-normal leading-relaxed text-slate-100 md:text-lg">
               Adaptive, 24/7 learning that evolves with you. Master any subject, from Math to
               Mandarin.
             </p>
             <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--lg">
               Start Your Personalized Journey
             </Link>
-          </div>
-          <div className="w-full lg:col-span-5">
-            <HeroAITutorCard />
           </div>
         </section>
 

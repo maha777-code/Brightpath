@@ -746,15 +746,7 @@
   }
 
   .bp-hero-copy {
-    text-align: center;
-  }
-
-  .bp-hero-copy p {
-    margin-inline: auto;
-  }
-
-  .bp-hero-copy .bp-btn {
-    margin-inline: auto;
+    text-align: left;
   }
 
   .bp-testimonial-layout {
