@@ -98,20 +98,12 @@ function HeroAITutorCard() {
   );
 }
 
-function TestimonialArt() {
-  return (
-    <div className="group relative w-full">
-      <div className="absolute -inset-1 -z-10 animate-pulse rounded-2xl bg-cyan-500/10 blur-xl" />
-      <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/80 shadow-[0_0_40px_rgba(6,182,212,0.15)]">
-        <img
-          src="/ai-tutor.png?v=3"
-          alt="AI Tutor Dynamic Knowledge Model"
-          className="h-auto w-full rounded-2xl object-cover transition-transform duration-700 group-hover:scale-105"
-        />
-      </div>
-    </div>
-  );
-}
+const SCHOOL_FEATURES = [
+  'Enterprise-grade security',
+  'District-customized tools',
+  'Advanced data dashboards',
+  'Structured rollout and PD',
+];
 
 export default function Landing() {
   const { parent } = useAuth();
@@ -214,22 +206,62 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="how-it-works" className="bp-section bp-testimonial-section mx-auto w-full max-w-[96rem] px-6 lg:px-12">
-          <div className="bp-testimonial-layout">
-            <div className="bp-testimonial-card">
-              <p className="bp-quote">
-                &ldquo;MindVault doubled my confidence in just two weeks! The tutor explains
-                concepts until they finally click.&rdquo;
-              </p>
-              <div className="bp-quote-author">
-                <div className="bp-quote-avatar">E</div>
+        <section id="how-it-works" className="mx-auto w-full max-w-[96rem] bg-[#030712] px-6 py-16 lg:px-12">
+          <h2 className="mb-12 text-center text-3xl font-extrabold tracking-tight text-white md:text-4xl">
+            An AI education platform for every classroom and learner
+          </h2>
+
+          <div className="mx-auto max-w-6xl rounded-3xl border border-slate-800 bg-slate-950/80 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12">
+            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12">
+              <div className="space-y-6 lg:col-span-6">
+                <span className="text-xs font-bold uppercase tracking-widest text-cyan-400">
+                  AI FOR SCHOOLS
+                </span>
+
+                <h3 className="text-3xl font-extrabold leading-tight text-white md:text-4xl">
+                  Lead with vision. <br />
+                  Adopt AI safely. <br />
+                  Scale responsibly.
+                </h3>
+
+                <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
+                  {SCHOOL_FEATURES.map((feature) => (
+                    <div
+                      key={feature}
+                      className="flex items-center gap-2.5 text-sm font-medium text-slate-300"
+                    >
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full border border-cyan-400/50 bg-cyan-500/20 text-xs font-bold text-cyan-300">
+                        ✓
+                      </div>
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
                 <div>
-                  <strong>Emily</strong>
-                  <span>11th Grade</span>
+                  <a
+                    href="#schools"
+                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 px-6 py-3 text-sm font-semibold text-cyan-300 transition-all hover:border-cyan-400 hover:bg-cyan-500/10"
+                  >
+                    District solutions →
+                  </a>
+                </div>
+              </div>
+
+              <div className="relative overflow-hidden rounded-2xl border border-slate-800 lg:col-span-6">
+                <img
+                  src="/ai-tutor.png?v=3"
+                  alt="AI Tutor Model"
+                  className="aspect-[4/3] h-full w-full object-cover"
+                />
+                <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-cyan-500/30 bg-slate-900/90 p-4 shadow-lg backdrop-blur-md sm:right-auto sm:max-w-xs">
+                  <p className="text-2xl font-extrabold text-cyan-400">28%</p>
+                  <p className="text-xs font-medium leading-snug text-slate-300">
+                    improvement in students meeting literacy grade-level expectations
+                  </p>
                 </div>
               </div>
             </div>
-            <TestimonialArt />
           </div>
         </section>
 
