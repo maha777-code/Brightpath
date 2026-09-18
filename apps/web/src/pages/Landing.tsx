@@ -99,10 +99,10 @@ function HeroAITutorCard() {
 }
 
 const SCHOOL_FEATURES = [
-  'Enterprise-grade security',
-  'District-customized tools',
-  'Advanced data dashboards',
-  'Structured rollout and PD',
+  'Safe & secure from day one',
+  'Built to fit your school',
+  'Clear progress at a glance',
+  'Easy setup & hands-on teacher support',
 ];
 
 export default function Landing() {
@@ -207,8 +207,8 @@ export default function Landing() {
         </section>
 
         <section id="how-it-works" className="mx-auto w-full max-w-[96rem] bg-[#030712] px-6 py-16 lg:px-12">
-          <h2 className="mb-12 text-center text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-            An AI education platform for every classroom and learner
+          <h2 className="mx-auto mb-12 max-w-4xl text-center text-3xl font-extrabold leading-tight tracking-tight text-white md:text-4xl">
+            Transforming education for every student and classroom through AI
           </h2>
 
           <div className="mx-auto max-w-6xl rounded-3xl border border-slate-800 bg-slate-950/80 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12">
@@ -218,11 +218,10 @@ export default function Landing() {
                   AI FOR SCHOOLS
                 </span>
 
-                <h3 className="text-3xl font-extrabold leading-tight text-white md:text-4xl">
-                  Lead with vision. <br />
-                  Adopt AI safely. <br />
-                  Scale responsibly.
-                </h3>
+                <h2 className="mb-4 text-2xl font-extrabold leading-tight text-white md:text-3xl lg:text-4xl">
+                  Bring safe, personalized AI to your school with zero hassle, total privacy, and
+                  complete teacher support.
+                </h2>
 
                 <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
                   {SCHOOL_FEATURES.map((feature) => (
@@ -281,8 +280,8 @@ export default function Landing() {
           <div className="bp-cta-glass bp-cta-glass--soft">
             <h2>For Schools</h2>
             <p className="mt-2 text-sm font-normal leading-relaxed text-slate-100 md:text-base">
-              Bring adaptive AI tutoring to your classroom. Parent-managed, COPPA-ready accounts
-              with progress tracking built in.
+              Bring AI tutoring to your classroom. Safe for students, private by design, and easy
+              for teachers to use.
             </p>
             <a href="mailto:hello@brightpath.ai" className="bp-btn bp-btn--outline">
               Contact Us
