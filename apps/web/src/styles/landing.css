@@ -121,7 +121,7 @@
 .bp-nav-center a {
   color: #ffffff;
   text-decoration: none;
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   line-height: 1.75rem;
   font-weight: 600;
   letter-spacing: -0.015em;
@@ -152,7 +152,7 @@
   white-space: nowrap;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.75rem;
+  font-size: 1.125rem;
 }
 
 .bp-btn:active {
@@ -173,12 +173,12 @@
 
 .bp-btn--nav {
   padding: 11px 22px;
-  font-size: 0.875rem;
+  font-size: 1.125rem;
 }
 
 .bp-btn--lg {
   padding: 16px 30px;
-  font-size: 1rem;
+  font-size: 1.25rem;
 }
 
 .bp-btn--outline {
@@ -186,7 +186,7 @@
   color: #67e8f9;
   border: 1px solid rgb(34 211 238 / 0.5);
   padding: 12px 28px;
-  font-size: 0.75rem;
+  font-size: 1.125rem;
 }
 
 /* ── Hero ── */
@@ -209,12 +209,18 @@
 }
 
 .bp-hero-copy p {
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   line-height: 1.625;
   font-weight: 400;
   color: #f1f5f9;
   max-width: 42rem;
   margin: 0 0 28px;
+}
+
+@media (min-width: 768px) {
+  .bp-hero-copy p {
+    font-size: 1.5rem;
+  }
 }
 
 /* ── Art / glass illustrations ── */
@@ -440,14 +446,14 @@
 
 .bp-feature strong {
   display: block;
-  font-size: 0.95rem;
+  font-size: 1.25rem;
   color: var(--bp-heading);
   margin-bottom: 4px;
 }
 
 .bp-feature span {
   display: block;
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 400;
   color: #cbd5e1;
   line-height: 1.5;
@@ -468,7 +474,7 @@
 }
 
 .bp-section-title {
-  font-size: 1.75rem;
+  font-size: 2.25rem;
   font-weight: 800;
   color: var(--bp-heading);
   margin: 0 0 28px;
@@ -520,7 +526,7 @@
 
 .bp-subject-card h3 {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.015em;
   color: #f1f5f9;
@@ -536,27 +542,41 @@
 
 .bp-subject-card p {
   margin-top: 0.5rem;
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 400;
   line-height: 1.625;
   color: #cbd5e1;
 }
 
-/* Feature banner + subject grid descriptions: 16px (text-base) */
+/* Feature banner + subject grid descriptions: 20px (text-xl) */
 .bp-landing [aria-label="Key features"] p {
   margin-top: 0.25rem;
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 400;
   line-height: 1.5;
   color: #cbd5e1;
 }
 
+.bp-landing [aria-label="Key features"] h4 {
+  font-size: 1.25rem;
+}
+
 .bp-landing #subjects article p {
   margin-top: 0.5rem;
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 400;
   line-height: 1.625;
   color: #cbd5e1;
+}
+
+.bp-landing #subjects > h2 {
+  font-size: 1.875rem;
+}
+
+@media (min-width: 768px) {
+  .bp-landing #subjects > h2 {
+    font-size: 2.25rem;
+  }
 }
 
 /* ── Testimonials ── */
@@ -640,14 +660,14 @@
 
 .bp-cta-glass h2 {
   margin: 0 0 10px;
-  font-size: 1.5rem;
+  font-size: 2.25rem;
   font-weight: 800;
   color: var(--bp-heading);
 }
 
 .bp-cta-glass p {
   margin: 0.5rem 0 24px;
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 400;
   color: #f1f5f9;
   line-height: 1.625;
@@ -678,7 +698,7 @@
 .bp-footer-links a {
   color: var(--bp-heading);
   text-decoration: none;
-  font-size: 0.875rem;
+  font-size: 1.125rem;
   font-weight: 600;
 }
 
@@ -782,7 +802,7 @@
 @media (max-width: 480px) {
   .bp-btn--nav {
     padding: 10px 14px;
-    font-size: 0.8rem;
+    font-size: 1rem;
   }
 }
 

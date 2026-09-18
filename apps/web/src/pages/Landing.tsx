@@ -68,8 +68,8 @@ function FeatureBanner() {
                 <Icon className="h-6 w-6 stroke-[2.2]" />
               </div>
               <div>
-                <h4 className="text-base font-bold tracking-tight text-slate-100">{feature.title}</h4>
-                <p className="mt-1 text-base font-normal leading-normal text-slate-300">{feature.description}</p>
+                <h4 className="text-xl font-bold tracking-tight text-slate-100">{feature.title}</h4>
+                <p className="mt-1 text-xl font-normal leading-normal text-slate-300">{feature.description}</p>
               </div>
             </div>
           );
@@ -125,31 +125,31 @@ export default function Landing() {
           <nav className="bp-nav-center flex items-center space-x-8" aria-label="Main">
             <a
               href="#subjects"
-              className="text-lg font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
             >
               Subjects
             </a>
             <a
               href="#how-it-works"
-              className="text-lg font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
             >
               How It Works
             </a>
             <a
               href="#pricing"
-              className="text-lg font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
             >
               Pricing
             </a>
             <a
               href="#schools"
-              className="text-lg font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
             >
               For Schools
             </a>
             <Link
               to={loginHref}
-              className="text-lg font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
             >
               Log In
             </Link>
@@ -170,7 +170,7 @@ export default function Landing() {
             <h1 className="mb-4 text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
               Unlock Your Full Potential with Your Personal AI Tutor
             </h1>
-            <p className="mb-8 max-w-xl text-base font-normal leading-relaxed text-slate-100 md:text-lg">
+            <p className="mb-8 max-w-xl text-xl font-normal leading-relaxed text-slate-100 md:text-2xl">
               Adaptive, 24/7 learning that evolves with you. Master any subject, from Math to
               Mandarin.
             </p>
@@ -185,7 +185,7 @@ export default function Landing() {
         </section>
 
         <section id="subjects" className="mx-auto w-full max-w-[96rem] px-6 py-12 lg:px-12">
-          <h2 className="mb-6 text-2xl font-bold tracking-tight text-slate-100">Subjects</h2>
+          <h2 className="mb-6 text-3xl font-bold tracking-tight text-slate-100 md:text-4xl">Subjects</h2>
           <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {SUBJECTS.map((s) => (
               <article
@@ -193,32 +193,32 @@ export default function Landing() {
                 className="group relative flex cursor-pointer flex-col justify-between rounded-2xl border border-slate-800 bg-slate-900/90 p-6 transition-all duration-300 hover:border-cyan-500/60 hover:bg-slate-900 hover:shadow-[0_0_25px_rgba(6,182,212,0.15)]"
               >
                 <div>
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-950/80 text-lg font-bold text-cyan-400">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-950/80 text-xl font-bold text-cyan-400">
                     {s.icon}
                   </div>
-                  <h3 className="text-lg font-bold tracking-tight text-slate-100 transition-colors group-hover:text-cyan-300">
+                  <h3 className="text-xl font-bold tracking-tight text-slate-100 transition-colors group-hover:text-cyan-300">
                     {s.name}
                   </h3>
-                  <p className="mt-2 text-base font-normal leading-relaxed text-slate-300">{s.description}</p>
+                  <p className="mt-2 text-xl font-normal leading-relaxed text-slate-300">{s.description}</p>
                 </div>
               </article>
             ))}
           </div>
         </section>
 
-        <section id="how-it-works" className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-          <h2 className="mx-auto mb-12 max-w-4xl text-center text-3xl font-extrabold leading-tight tracking-tight text-white md:text-4xl">
+        <section id="how-it-works" className="mx-auto w-full max-w-[96rem] px-6 py-20 lg:px-12">
+          <h2 className="mx-auto mb-12 max-w-4xl text-center text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
             Transforming education for every student and classroom through AI
           </h2>
 
-          <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12">
+          <div className="w-full rounded-3xl border border-slate-800 bg-slate-950/60 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12">
             <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12">
               <div className="space-y-6 lg:col-span-6">
-                <span className="text-xs font-bold uppercase tracking-widest text-cyan-400">
+                <span className="text-base font-bold uppercase tracking-widest text-cyan-400">
                   AI FOR SCHOOLS
                 </span>
 
-                <h3 className="text-2xl font-extrabold leading-tight text-white md:text-3xl lg:text-4xl">
+                <h3 className="text-3xl font-extrabold leading-tight text-white md:text-4xl lg:text-5xl">
                   Bring safe, personalized AI to your school with zero hassle, total privacy, and
                   complete teacher support.
                 </h3>
@@ -227,7 +227,7 @@ export default function Landing() {
                   {SCHOOL_FEATURES.map((feature) => (
                     <div
                       key={feature}
-                      className="flex items-center gap-2.5 text-sm font-medium text-slate-300"
+                      className="flex items-center gap-2.5 text-lg font-medium text-slate-300"
                     >
                       <span className="font-bold text-cyan-400">✓</span>
                       {feature}
@@ -238,7 +238,7 @@ export default function Landing() {
                 <div>
                   <a
                     href="#schools"
-                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 px-6 py-3 text-sm font-semibold text-cyan-300 transition-all hover:border-cyan-400 hover:bg-cyan-500/10"
+                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 px-6 py-3 text-lg font-semibold text-cyan-300 transition-all hover:border-cyan-400 hover:bg-cyan-500/10"
                   >
                     District solutions →
                   </a>
@@ -258,8 +258,8 @@ export default function Landing() {
 
         <section id="pricing" className="bp-section bp-cta-wrap mx-auto w-full max-w-[96rem] px-6 lg:px-12">
           <div className="bp-cta-glass">
-            <h2>Ready to unlock your potential?</h2>
-            <p className="mt-2 text-sm font-normal text-slate-100 md:text-base">
+            <h2 className="text-4xl font-extrabold text-white md:text-5xl">Ready to unlock your potential?</h2>
+            <p className="mt-2 text-lg font-normal text-slate-100 md:text-xl">
               Private tutoring quality at app-store prices. Start free today.
             </p>
             <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--lg">
@@ -270,8 +270,8 @@ export default function Landing() {
 
         <section id="schools" className="bp-section bp-cta-wrap mx-auto w-full max-w-[96rem] px-6 lg:px-12">
           <div className="bp-cta-glass bp-cta-glass--soft">
-            <h2>For Schools</h2>
-            <p className="mt-2 text-sm font-normal leading-relaxed text-slate-100 md:text-base">
+            <h2 className="text-4xl font-extrabold text-white md:text-5xl">For Schools</h2>
+            <p className="mt-2 text-lg font-normal leading-relaxed text-slate-100 md:text-xl">
               Bring AI tutoring to your classroom. Safe for students, private by design, and easy
               for teachers to use.
             </p>
