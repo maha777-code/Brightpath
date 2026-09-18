@@ -105,6 +105,13 @@ const SCHOOL_FEATURES = [
   'Easy setup & hands-on teacher support',
 ];
 
+const TEACHER_FEATURES = [
+  '80+ teacher tools',
+  'Tool exemplars',
+  'Student learning insights',
+  'AI instructional coach',
+];
+
 export default function Landing() {
   const { parent } = useAuth();
   const startHref = parent ? '/dashboard' : '/register';
@@ -206,8 +213,8 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="how-it-works" className="mx-auto w-full max-w-[96rem] px-6 py-20 lg:px-12">
-          <h2 className="mx-auto mb-12 max-w-4xl text-center text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
+        <section id="how-it-works" className="w-full px-6 py-20 lg:px-12">
+          <h2 className="mb-12 w-full text-center text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
             Transforming education for every student and classroom through AI
           </h2>
 
@@ -247,7 +254,51 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="pricing" className="bp-section bp-cta-wrap mx-auto w-full max-w-[96rem] px-6 lg:px-12">
+        <section className="w-full px-6 py-12 lg:px-12">
+          <div className="w-full rounded-3xl border border-slate-800 bg-slate-950/60 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12">
+            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-12">
+              <div className="group relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/60 shadow-[0_0_30px_rgba(6,182,212,0.15)] lg:col-span-6">
+                <img
+                  src="/teacher-hologram.png"
+                  alt="Holographic AI Assistant supporting a teacher in classroom"
+                  className="aspect-[4/3] h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-cyan-500/40 bg-slate-900/90 p-4 shadow-xl backdrop-blur-md sm:right-auto sm:max-w-xs">
+                  <p className="text-2xl font-extrabold text-cyan-400">7–10 hrs</p>
+                  <p className="text-base font-medium leading-snug text-slate-200">
+                    time saved per week on average
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-6 lg:col-span-6">
+                <span className="text-sm font-bold uppercase tracking-widest text-cyan-400">
+                  AI FOR TEACHERS
+                </span>
+
+                <h3 className="text-3xl font-extrabold leading-tight text-white md:text-4xl lg:text-5xl">
+                  Save time. <br />
+                  Spark creativity. <br />
+                  Personalize learning.
+                </h3>
+
+                <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
+                  {TEACHER_FEATURES.map((feature) => (
+                    <div
+                      key={feature}
+                      className="flex items-center gap-2.5 text-lg font-medium text-slate-200"
+                    >
+                      <span className="font-bold text-cyan-400">✓</span>
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="pricing" className="bp-cta-wrap w-full px-6 py-16 lg:px-12">
           <div className="bp-cta-glass">
             <h2 className="text-4xl font-extrabold text-white md:text-5xl">Ready to unlock your potential?</h2>
             <p className="mt-2 text-lg font-normal text-slate-100 md:text-xl">
@@ -259,7 +310,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="schools" className="bp-section bp-cta-wrap mx-auto w-full max-w-[96rem] px-6 lg:px-12">
+        <section id="schools" className="bp-cta-wrap w-full px-6 py-16 lg:px-12">
           <div className="bp-cta-glass bp-cta-glass--soft">
             <h2 className="text-4xl font-extrabold text-white md:text-5xl">For Schools</h2>
             <p className="mt-2 text-lg font-normal leading-relaxed text-slate-100 md:text-xl">

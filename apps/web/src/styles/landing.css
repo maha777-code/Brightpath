@@ -647,7 +647,7 @@
 
 .bp-cta-glass {
   width: 100%;
-  max-width: 640px;
+  max-width: none;
   text-align: center;
   background: var(--bp-glass-strong);
   backdrop-filter: blur(16px);
@@ -683,7 +683,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  max-width: 96rem;
+  max-width: none;
+  width: 100%;
   margin: 72px auto 0;
   padding: 28px 0 40px;
   border-top: 1px solid rgba(148, 163, 184, 0.35);
