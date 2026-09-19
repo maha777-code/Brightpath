@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Clock, GitFork, TrendingUp, type LucideIcon } from 'lucide-react';
+import { Clock, GitFork, TrendingUp, ChevronDown, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { Footer } from '@/components/Footer';
@@ -364,6 +364,147 @@ function ToolsMarqueeRow({
   );
 }
 
+function AiSolutionsMenu() {
+  return (
+    <div className="bp-mega group relative">
+      <button type="button" className="bp-mega-trigger" aria-haspopup="true">
+        AI Solutions
+        <ChevronDown className="bp-mega-chevron h-4 w-4" aria-hidden="true" />
+      </button>
+
+      <div className="bp-mega-panel">
+        <div className="w-[min(880px,calc(100vw-2rem))] rounded-2xl border border-cyan-500/30 bg-slate-950/95 p-8 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl">
+          <div className="mb-8 grid grid-cols-12 gap-8">
+            <div className="col-span-4 space-y-3">
+              <div className="flex items-center gap-2 text-lg font-bold text-cyan-400">
+                <span className="text-xl">🏛️</span> For Schools
+              </div>
+              <ul className="space-y-2 pl-7 text-sm text-slate-300">
+                <li>
+                  <a href="#schools" className="block py-0.5 transition-colors hover:text-cyan-400">
+                    Superintendents →
+                  </a>
+                </li>
+                <li>
+                  <a href="#schools" className="block py-0.5 transition-colors hover:text-cyan-400">
+                    Chief Academic Officers →
+                  </a>
+                </li>
+                <li>
+                  <a href="#schools" className="block py-0.5 transition-colors hover:text-cyan-400">
+                    Chief Technology Officers →
+                  </a>
+                </li>
+                <li>
+                  <a href="#schools" className="block py-0.5 transition-colors hover:text-cyan-400">
+                    Principals →
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div className="col-span-4 space-y-6">
+              <a href="#for-teachers" className="block space-y-1">
+                <div className="flex items-center gap-2 text-lg font-bold text-cyan-400">
+                  <span className="text-xl">📖</span> For Teachers
+                </div>
+                <p className="pl-7 text-xs text-slate-400">
+                  Save time, spark creativity, and support every learner.
+                </p>
+              </a>
+
+              <a href="#for-students" className="block space-y-1">
+                <div className="flex items-center gap-2 text-lg font-bold text-cyan-400">
+                  <span className="text-xl">🎓</span> For Students
+                </div>
+                <p className="pl-7 text-xs text-slate-400">
+                  Give students the tools to explore, create, and grow with AI.
+                </p>
+              </a>
+            </div>
+
+            <div className="col-span-4 flex flex-col justify-between rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/60 to-slate-900 p-4">
+              <div>
+                <span className="rounded-full border border-cyan-500/30 bg-cyan-950/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-cyan-400">
+                  NEW THIS MONTH
+                </span>
+                <div className="mt-3 flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-cyan-500/20 bg-cyan-900/30">
+                  <span className="text-4xl">🚀</span>
+                </div>
+              </div>
+              <a
+                href="#how-it-works"
+                className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-cyan-300 hover:text-white"
+              >
+                Explore updates →
+              </a>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-800/80 pt-6">
+            <p className="mb-4 font-mono text-[11px] uppercase tracking-wider text-slate-400">
+              WHY MINDVAULT
+            </p>
+            <div className="grid grid-cols-3 gap-x-6 gap-y-3">
+              <a
+                href="#how-it-works"
+                className="flex items-center gap-2 text-sm text-slate-200 transition-colors hover:text-cyan-400"
+              >
+                <span className="text-cyan-400">🛡️</span> Protect Privacy & Security
+              </a>
+              <a
+                href="#how-it-works"
+                className="flex items-center gap-2 text-sm text-slate-200 transition-colors hover:text-cyan-400"
+              >
+                <span className="text-cyan-400">💡</span> Build AI Literacy
+              </a>
+              <a
+                href="#how-it-works"
+                className="flex items-center gap-2 text-sm text-slate-200 transition-colors hover:text-cyan-400"
+              >
+                <span className="text-cyan-400">📈</span> Develop AI Readiness
+              </a>
+              <a
+                href="#for-students"
+                className="flex items-center gap-2 text-sm text-slate-200 transition-colors hover:text-cyan-400"
+              >
+                <span className="text-cyan-400">🎯</span> Support Student Success
+              </a>
+              <a
+                href="#how-it-works"
+                className="flex items-center gap-2 text-sm text-slate-200 transition-colors hover:text-cyan-400"
+              >
+                <span className="text-cyan-400">⚙️</span> Integrate Quickly
+              </a>
+              <a
+                href="#how-it-works"
+                className="flex items-center gap-2 text-sm text-slate-200 transition-colors hover:text-cyan-400"
+              >
+                <span className="text-cyan-400">🔗</span> Connect AI Workflows
+              </a>
+            </div>
+          </div>
+
+          <div className="bp-mega-foot mt-6 flex items-center justify-between border-t border-slate-800/80 pt-4 text-xs font-medium text-cyan-400">
+            <a href="mailto:hello@brightpath.ai" className="transition-colors hover:text-white">
+              Support →
+            </a>
+            <a href="#how-it-works" className="transition-colors hover:text-white">
+              App Status →
+            </a>
+            <a href="#how-it-works" className="transition-colors hover:text-white">
+              What's New →
+            </a>
+            <a href="#pricing" className="transition-colors hover:text-white">
+              Get Pricing →
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AiToolsShowcase() {
   return (
     <section
@@ -402,7 +543,7 @@ export default function Landing() {
         <div className="bp-blob bp-blob--pink" />
       </div>
 
-      <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-[#030712]/80 px-6 backdrop-blur-md lg:px-12">
+      <header className="sticky top-0 z-50 w-full overflow-visible border-b border-slate-800/80 bg-[#030712]/80 px-6 backdrop-blur-md lg:px-12">
         <div className="bp-nav mx-auto w-full max-w-[96rem]">
           <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
 
@@ -419,6 +560,7 @@ export default function Landing() {
             >
               How It Works
             </a>
+            <AiSolutionsMenu />
             <a
               href="#pricing"
               className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
@@ -539,7 +681,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="w-full px-6 py-12 lg:px-12">
+        <section id="for-teachers" className="w-full px-6 py-12 lg:px-12">
           <div className="w-full rounded-3xl border border-slate-800 bg-slate-950/60 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12">
             <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-12">
               <div className="group relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/60 shadow-[0_0_30px_rgba(6,182,212,0.15)] lg:col-span-6">
@@ -583,7 +725,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="w-full px-6 py-12 lg:px-12">
+        <section id="for-students" className="w-full px-6 py-12 lg:px-12">
           <div className="w-full rounded-3xl border border-slate-800 bg-slate-950/60 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12 lg:p-16">
             <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-16">
               <div className="space-y-6 lg:col-span-6">
@@ -629,8 +771,8 @@ export default function Landing() {
 
         <TeacherReviewsCarousel />
 
-        <section id="pricing" className="bp-cta-wrap w-full px-6 py-16 lg:px-12">
-          <div className="bp-cta-glass">
+        <section id="pricing" className="bp-cta-wrap w-full px-4 py-16 sm:px-6 lg:px-12">
+          <div className="bp-cta-glass mx-auto w-full max-w-5xl">
             <h2 className="text-4xl font-extrabold text-white md:text-5xl">Ready to unlock your potential?</h2>
             <p className="mt-2 text-lg font-normal text-slate-100 md:text-xl">
               Private tutoring quality at app-store prices. Start free today.
@@ -641,8 +783,8 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="schools" className="bp-cta-wrap w-full px-6 py-16 lg:px-12">
-          <div className="bp-cta-glass bp-cta-glass--soft">
+        <section id="schools" className="bp-cta-wrap w-full px-4 py-16 sm:px-6 lg:px-12">
+          <div className="bp-cta-glass bp-cta-glass--soft mx-auto w-full max-w-5xl">
             <h2 className="text-4xl font-extrabold text-white md:text-5xl">For Schools</h2>
             <p className="mt-2 text-lg font-normal leading-relaxed text-slate-100 md:text-xl">
               Bring AI tutoring to your classroom. Safe for students, private by design, and easy
