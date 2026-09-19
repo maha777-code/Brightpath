@@ -329,25 +329,32 @@ function ToolsMarqueeRow({
   return (
     <div className="bp-reviews-mask relative w-full overflow-hidden">
       <div
-        className={`${trackClass} ${animationClass} flex w-max items-center gap-6 hover:[animation-play-state:paused]`}
+        className={`${trackClass} ${animationClass} flex w-max items-center gap-7 hover:[animation-play-state:paused]`}
       >
         {looped.map((tool, idx) => (
           <Fragment key={`${tool.title}-${idx}`}>
-            <div className="flex w-[320px] shrink-0 items-center gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-[0_0_20px_rgba(6,182,212,0.1)] backdrop-blur-md transition-colors hover:border-cyan-500/50">
-              <div className={`rounded-xl border p-3 text-2xl ${tool.bgColor} ${tool.borderColor}`}>
+            <div className="flex w-[360px] shrink-0 items-center gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-[0_0_20px_rgba(6,182,212,0.1)] backdrop-blur-md transition-colors hover:border-cyan-500/50">
+              <div
+                className={`shrink-0 rounded-xl border p-4 text-3xl ${tool.bgColor} ${tool.borderColor}`}
+              >
                 {tool.icon}
               </div>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex items-center justify-between gap-2">
-                  <h4 className="truncate text-base font-bold text-white">{tool.title}</h4>
-                  <span aria-hidden="true" className="cursor-pointer text-sm text-slate-500 hover:text-amber-400">
+                  <h4 className="bp-tool-title truncate text-xl font-bold text-white">{tool.title}</h4>
+                  <span
+                    aria-hidden="true"
+                    className="cursor-pointer text-lg text-slate-500 hover:text-amber-400"
+                  >
                     ☆
                   </span>
                 </div>
-                <p className="mt-0.5 line-clamp-2 text-xs text-slate-400">{tool.description}</p>
+                <p className="bp-tool-desc line-clamp-2 text-base leading-snug text-slate-300">
+                  {tool.description}
+                </p>
               </div>
             </div>
-            <span aria-hidden="true" className="shrink-0 text-xl font-bold text-cyan-400/60">
+            <span aria-hidden="true" className="shrink-0 text-2xl font-bold text-cyan-400/60">
               ✦
             </span>
           </Fragment>
@@ -360,9 +367,14 @@ function ToolsMarqueeRow({
 function AiToolsShowcase() {
   return (
     <section
-      aria-label="AI tools"
-      className="w-full space-y-6 overflow-hidden bg-slate-950 py-12"
+      aria-label="MindVault AI Solutions"
+      className="w-full space-y-8 overflow-hidden border-y border-slate-800/60 bg-slate-950 py-16"
     >
+      <div className="mb-4 px-4 text-center">
+        <h2 className="bp-tools-heading text-4xl font-extrabold tracking-tight text-white md:text-5xl">
+          MindVault AI Solutions
+        </h2>
+      </div>
       <ToolsMarqueeRow
         tools={toolsRow1}
         trackClass="bp-tools-track"

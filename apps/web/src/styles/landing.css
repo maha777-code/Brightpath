@@ -697,6 +697,26 @@
   }
 }
 
+.bp-landing .bp-tools-heading {
+  font-size: 2.25rem;
+}
+
+@media (min-width: 768px) {
+  .bp-landing .bp-tools-heading {
+    font-size: 3rem;
+  }
+}
+
+.bp-landing .bp-tool-title {
+  font-size: 1.25rem;
+}
+
+.bp-landing .bp-tool-desc {
+  font-size: 1rem;
+  line-height: 1.375;
+  color: #cbd5e1;
+}
+
 .bp-landing .bp-tools-track {
   animation: bp-marquee-left 40s linear infinite;
 }
