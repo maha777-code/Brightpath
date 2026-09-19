@@ -375,57 +375,39 @@ function AiSolutionsMenu() {
       <div className="bp-mega-panel">
         <div className="w-[min(880px,calc(100vw-2rem))] rounded-2xl border border-cyan-500/30 bg-slate-950/95 p-8 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl">
           <div className="mb-8 grid grid-cols-12 gap-8">
-            <div className="col-span-4 space-y-3">
-              <div className="flex items-center gap-2 text-lg font-bold text-cyan-400">
-                <span className="text-xl">🏛️</span> For Schools
+            <div className="col-span-8 grid grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-lg font-bold text-cyan-400">
+                  <span className="text-xl">🏛️</span> For Schools
+                </div>
+                <p className="bp-mega-desc pl-7 text-base leading-relaxed text-slate-300">
+                  Empower entire districts with administrative AI, enterprise security, and seamless
+                  integration.
+                </p>
               </div>
-              <ul className="space-y-2 pl-7 text-sm text-slate-300">
-                <li>
-                  <a href="#schools" className="block py-0.5 transition-colors hover:text-cyan-400">
-                    Superintendents →
-                  </a>
-                </li>
-                <li>
-                  <a href="#schools" className="block py-0.5 transition-colors hover:text-cyan-400">
-                    Chief Academic Officers →
-                  </a>
-                </li>
-                <li>
-                  <a href="#schools" className="block py-0.5 transition-colors hover:text-cyan-400">
-                    Chief Technology Officers →
-                  </a>
-                </li>
-                <li>
-                  <a href="#schools" className="block py-0.5 transition-colors hover:text-cyan-400">
-                    Principals →
-                  </a>
-                </li>
-              </ul>
-            </div>
 
-            <div className="col-span-4 space-y-6">
-              <a href="#for-teachers" className="block space-y-1">
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-2 text-lg font-bold text-cyan-400">
                   <span className="text-xl">📖</span> For Teachers
                 </div>
-                <p className="pl-7 text-xs text-slate-400">
+                <p className="bp-mega-desc pl-7 text-base leading-relaxed text-slate-300">
                   Save time, spark creativity, and support every learner.
                 </p>
-              </a>
+              </div>
 
-              <a href="#for-students" className="block space-y-1">
+              <div className="col-span-2 mt-2 space-y-1.5">
                 <div className="flex items-center gap-2 text-lg font-bold text-cyan-400">
                   <span className="text-xl">🎓</span> For Students
                 </div>
-                <p className="pl-7 text-xs text-slate-400">
+                <p className="bp-mega-desc pl-7 text-base leading-relaxed text-slate-300">
                   Give students the tools to explore, create, and grow with AI.
                 </p>
-              </a>
+              </div>
             </div>
 
             <div className="col-span-4 flex flex-col justify-between rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/60 to-slate-900 p-4">
               <div>
-                <span className="rounded-full border border-cyan-500/30 bg-cyan-950/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-cyan-400">
+                <span className="rounded-full border border-cyan-500/30 bg-cyan-950/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-cyan-400">
                   NEW THIS MONTH
                 </span>
                 <div className="mt-3 flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-cyan-500/20 bg-cyan-900/30">
@@ -434,7 +416,7 @@ function AiSolutionsMenu() {
               </div>
               <a
                 href="#how-it-works"
-                className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-cyan-300 hover:text-white"
+                className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-cyan-300 hover:text-white"
               >
                 Explore updates →
               </a>
@@ -442,50 +424,32 @@ function AiSolutionsMenu() {
           </div>
 
           <div className="border-t border-slate-800/80 pt-6">
-            <p className="mb-4 font-mono text-[11px] uppercase tracking-wider text-slate-400">
+            <p className="bp-mega-why-label mb-4 font-mono text-sm uppercase tracking-wider text-slate-400">
               WHY MINDVAULT
             </p>
-            <div className="grid grid-cols-3 gap-x-6 gap-y-3">
-              <a
-                href="#how-it-works"
-                className="flex items-center gap-2 text-sm text-slate-200 transition-colors hover:text-cyan-400"
-              >
-                <span className="text-cyan-400">🛡️</span> Protect Privacy & Security
-              </a>
-              <a
-                href="#how-it-works"
-                className="flex items-center gap-2 text-sm text-slate-200 transition-colors hover:text-cyan-400"
-              >
-                <span className="text-cyan-400">💡</span> Build AI Literacy
-              </a>
-              <a
-                href="#how-it-works"
-                className="flex items-center gap-2 text-sm text-slate-200 transition-colors hover:text-cyan-400"
-              >
-                <span className="text-cyan-400">📈</span> Develop AI Readiness
-              </a>
-              <a
-                href="#for-students"
-                className="flex items-center gap-2 text-sm text-slate-200 transition-colors hover:text-cyan-400"
-              >
-                <span className="text-cyan-400">🎯</span> Support Student Success
-              </a>
-              <a
-                href="#how-it-works"
-                className="flex items-center gap-2 text-sm text-slate-200 transition-colors hover:text-cyan-400"
-              >
-                <span className="text-cyan-400">⚙️</span> Integrate Quickly
-              </a>
-              <a
-                href="#how-it-works"
-                className="flex items-center gap-2 text-sm text-slate-200 transition-colors hover:text-cyan-400"
-              >
-                <span className="text-cyan-400">🔗</span> Connect AI Workflows
-              </a>
+            <div className="grid grid-cols-3 gap-x-6 gap-y-3.5">
+              <div className="flex items-center gap-2 text-base font-medium text-slate-100">
+                <span>🛡️</span> Protect Privacy & Security
+              </div>
+              <div className="flex items-center gap-2 text-base font-medium text-slate-100">
+                <span>💡</span> Build AI Literacy
+              </div>
+              <div className="flex items-center gap-2 text-base font-medium text-slate-100">
+                <span>📈</span> Develop AI Readiness
+              </div>
+              <div className="flex items-center gap-2 text-base font-medium text-slate-100">
+                <span>🎯</span> Support Student Success
+              </div>
+              <div className="flex items-center gap-2 text-base font-medium text-slate-100">
+                <span>⚙️</span> Integrate Quickly
+              </div>
+              <div className="flex items-center gap-2 text-base font-medium text-slate-100">
+                <span>🔗</span> Connect AI Workflows
+              </div>
             </div>
           </div>
 
-          <div className="bp-mega-foot mt-6 flex items-center justify-between border-t border-slate-800/80 pt-4 text-xs font-medium text-cyan-400">
+          <div className="bp-mega-foot mt-6 flex items-center justify-between border-t border-slate-800/80 pt-4 text-sm font-medium text-cyan-400">
             <a href="mailto:hello@brightpath.ai" className="transition-colors hover:text-white">
               Support →
             </a>
@@ -508,6 +472,7 @@ function AiSolutionsMenu() {
 function AiToolsShowcase() {
   return (
     <section
+      id="ai-solutions"
       aria-label="MindVault AI Solutions"
       className="w-full space-y-8 overflow-hidden border-y border-slate-800/60 bg-slate-950 py-16"
     >
@@ -548,18 +513,6 @@ export default function Landing() {
           <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
 
           <nav className="bp-nav-center flex items-center space-x-8" aria-label="Main">
-            <a
-              href="#subjects"
-              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
-            >
-              Subjects
-            </a>
-            <a
-              href="#how-it-works"
-              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
-            >
-              How It Works
-            </a>
             <AiSolutionsMenu />
             <a
               href="#pricing"

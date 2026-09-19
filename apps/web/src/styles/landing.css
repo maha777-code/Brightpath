@@ -207,8 +207,19 @@
   text-transform: none;
 }
 
+.bp-landing .bp-mega-desc {
+  font-size: 1rem;
+  line-height: 1.625;
+  color: #cbd5e1;
+}
+
+.bp-landing .bp-mega-why-label {
+  font-size: 0.9375rem;
+  color: #94a3b8;
+}
+
 .bp-landing .bp-nav-center .bp-mega-foot a {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #22d3ee;
 }
@@ -870,61 +881,25 @@
   border-color: rgba(148, 163, 184, 0.35);
 }
 
-/* ── Footer ── */
-.bp-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  max-width: none;
-  width: 100%;
-  margin: 72px auto 0;
-  padding: 28px 0 40px;
-  border-top: 1px solid rgba(148, 163, 184, 0.35);
-}
-
-.bp-footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 28px;
-}
-
-.bp-footer-links a {
-  color: var(--bp-heading);
+/* ── Site footer ── */
+.bp-landing .bp-site-footer a {
+  color: inherit;
   text-decoration: none;
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: normal;
 }
 
-.bp-footer-links a:hover {
-  color: var(--bp-teal);
+.bp-landing .bp-site-footer button {
+  text-transform: none;
+  letter-spacing: normal;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
 }
 
-.bp-footer-social {
-  display: flex;
-  gap: 10px;
-}
-
-.bp-social {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  color: var(--bp-heading);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 0.85rem;
-  transition: background 0.15s, color 0.15s;
-}
-
-.bp-social:hover {
-  background: var(--bp-grad);
-  color: #fff;
-  border-color: transparent;
+.bp-landing .bp-site-footer input[type='email'] {
+  font-family: var(--bp-font);
 }
 
 /* ── Responsive ── */
@@ -977,15 +952,6 @@
     width: auto;
     height: 1px;
     margin: 0 24px;
-  }
-
-  .bp-footer {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .bp-footer-links {
-    justify-content: center;
   }
 
   .bp-cta-glass {
