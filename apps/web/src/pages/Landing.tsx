@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Clock, GitFork, TrendingUp, type LucideIcon } from 'lucide-react';
@@ -244,6 +245,138 @@ function TeacherReviewsCarousel() {
   );
 }
 
+type ToolCard = {
+  title: string;
+  description: string;
+  icon: string;
+  bgColor: string;
+  borderColor: string;
+};
+
+const toolsRow1: ToolCard[] = [
+  {
+    title: 'Multiple Choice Quiz',
+    description: 'Generate a custom multiple choice quiz for any assignment.',
+    icon: '📋',
+    bgColor: 'bg-amber-500/10',
+    borderColor: 'border-amber-500/30',
+  },
+  {
+    title: 'Presentation Generator',
+    description: 'Generate exportable slides based on any topic, video or text.',
+    icon: '📊',
+    bgColor: 'bg-fuchsia-500/10',
+    borderColor: 'border-fuchsia-500/30',
+  },
+  {
+    title: 'Lesson Plan',
+    description: "Generate a lesson plan for a topic or objective you're teaching.",
+    icon: '📐',
+    bgColor: 'bg-sky-500/10',
+    borderColor: 'border-sky-500/30',
+  },
+  {
+    title: 'Writing Feedback',
+    description: 'Generate feedback on writing based on custom rubrics.',
+    icon: '🪶',
+    bgColor: 'bg-purple-500/10',
+    borderColor: 'border-purple-500/30',
+  },
+];
+
+const toolsRow2: ToolCard[] = [
+  {
+    title: 'AI Tutor',
+    description: 'Ask questions and get tutored on any topic you are learning.',
+    icon: '🍏',
+    bgColor: 'bg-emerald-500/10',
+    borderColor: 'border-emerald-500/30',
+  },
+  {
+    title: 'Text Rewriter',
+    description: 'Take any text and rewrite it with custom criteria.',
+    icon: '✏️',
+    bgColor: 'bg-amber-500/10',
+    borderColor: 'border-amber-500/30',
+  },
+  {
+    title: 'Rubric Generator',
+    description: 'Generate a custom rubric for any assignment.',
+    icon: '📙',
+    bgColor: 'bg-orange-500/10',
+    borderColor: 'border-orange-500/30',
+  },
+  {
+    title: 'Professional Email',
+    description: 'Write clear, professional emails to parents and staff.',
+    icon: '✉️',
+    bgColor: 'bg-blue-500/10',
+    borderColor: 'border-blue-500/30',
+  },
+];
+
+function ToolsMarqueeRow({
+  tools,
+  trackClass,
+  animationClass,
+}: {
+  tools: ToolCard[];
+  trackClass: string;
+  animationClass: string;
+}) {
+  const looped = [...tools, ...tools];
+
+  return (
+    <div className="bp-reviews-mask relative w-full overflow-hidden">
+      <div
+        className={`${trackClass} ${animationClass} flex w-max items-center gap-6 hover:[animation-play-state:paused]`}
+      >
+        {looped.map((tool, idx) => (
+          <Fragment key={`${tool.title}-${idx}`}>
+            <div className="flex w-[320px] shrink-0 items-center gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-[0_0_20px_rgba(6,182,212,0.1)] backdrop-blur-md transition-colors hover:border-cyan-500/50">
+              <div className={`rounded-xl border p-3 text-2xl ${tool.bgColor} ${tool.borderColor}`}>
+                {tool.icon}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="truncate text-base font-bold text-white">{tool.title}</h4>
+                  <span aria-hidden="true" className="cursor-pointer text-sm text-slate-500 hover:text-amber-400">
+                    ☆
+                  </span>
+                </div>
+                <p className="mt-0.5 line-clamp-2 text-xs text-slate-400">{tool.description}</p>
+              </div>
+            </div>
+            <span aria-hidden="true" className="shrink-0 text-xl font-bold text-cyan-400/60">
+              ✦
+            </span>
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AiToolsShowcase() {
+  return (
+    <section
+      aria-label="AI tools"
+      className="w-full space-y-6 overflow-hidden bg-slate-950 py-12"
+    >
+      <ToolsMarqueeRow
+        tools={toolsRow1}
+        trackClass="bp-tools-track"
+        animationClass="animate-marquee-left"
+      />
+      <ToolsMarqueeRow
+        tools={toolsRow2}
+        trackClass="bp-tools-track-fast"
+        animationClass="animate-marquee-left-fast"
+      />
+    </section>
+  );
+}
+
 export default function Landing() {
   const { parent } = useAuth();
   const startHref = parent ? '/dashboard' : '/register';
@@ -346,6 +479,8 @@ export default function Landing() {
             </div>
           </div>
         </section>
+
+        <AiToolsShowcase />
 
         <section id="how-it-works" className="w-full px-6 py-20 lg:px-12">
           <h2 className="mb-12 w-full text-center text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">

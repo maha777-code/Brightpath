@@ -93,9 +93,15 @@ export default {
           '0%': { transform: 'translateX(-50%)' },
           '100%': { transform: 'translateX(0%)' },
         },
+        'scroll-right-to-left': {
+          '0%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
       },
       animation: {
         'marquee-reverse': 'scroll-left-to-right 35s linear infinite',
+        'marquee-left': 'scroll-right-to-left 40s linear infinite',
+        'marquee-left-fast': 'scroll-right-to-left 32s linear infinite',
       },
     },
   },

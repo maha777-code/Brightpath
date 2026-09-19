@@ -697,8 +697,34 @@
   }
 }
 
+.bp-landing .bp-tools-track {
+  animation: bp-marquee-left 40s linear infinite;
+}
+
+.bp-landing .bp-tools-track-fast {
+  animation: bp-marquee-left 32s linear infinite;
+}
+
+.bp-landing .bp-tools-track:hover,
+.bp-landing .bp-tools-track:focus-within,
+.bp-landing .bp-tools-track-fast:hover,
+.bp-landing .bp-tools-track-fast:focus-within {
+  animation-play-state: paused;
+}
+
+@keyframes bp-marquee-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .bp-landing .bp-reviews-track {
+  .bp-landing .bp-reviews-track,
+  .bp-landing .bp-tools-track,
+  .bp-landing .bp-tools-track-fast {
     animation: none;
     transform: none;
   }
