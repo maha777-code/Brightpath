@@ -15,7 +15,10 @@ const FIELD_STYLE: CSSProperties = {
 };
 
 const fieldClass =
-  'mt-1.5 w-full rounded-lg border border-slate-800 bg-[#0b0f19] px-4 py-3 text-base tracking-tight text-slate-100 placeholder-slate-600 outline-none transition-colors focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400';
+  'bp-auth-input mt-1.5 w-full rounded-2xl border border-slate-800 bg-slate-950/80 px-5 py-3.5 text-lg tracking-tight text-white placeholder-slate-500 outline-none transition-all focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500';
+
+const AUTH_BACK_CLASS =
+  'bp-auth-back inline-flex cursor-pointer items-center gap-2.5 rounded-xl border border-cyan-500/30 bg-slate-800/60 px-4 py-2 text-lg font-bold text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all duration-200 hover:-translate-x-1 hover:border-cyan-400 hover:bg-slate-800 hover:text-cyan-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]';
 
 export default function Login() {
   const { t } = useTranslation();
@@ -50,20 +53,20 @@ export default function Login() {
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center overflow-y-auto bg-transparent px-4 py-10"
+      className="bp-login fixed inset-0 flex items-center justify-center overflow-y-auto bg-transparent px-4 py-10"
       style={FONT}
     >
       <button
         onClick={handleGoBack}
         type="button"
-        className="absolute top-6 left-6 z-50 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-3.5 py-2 text-sm font-medium text-slate-300 shadow-lg backdrop-blur-md transition-all hover:border-cyan-500/50 hover:bg-slate-800 hover:text-white"
+        className={`${AUTH_BACK_CLASS} absolute left-6 top-6 z-50`}
         aria-label="Go back to previous page"
       >
-        <ArrowLeft className="h-4 w-4 text-cyan-400" />
+        <ArrowLeft className="h-5 w-5 text-cyan-400" />
         <span>Back</span>
       </button>
 
-      <div className="w-full max-w-md rounded-lg border border-slate-800 bg-[#0b0f19]/80 p-8 shadow-[0_0_40px_rgba(6,182,212,0.12)] backdrop-blur-md">
+      <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-[0_0_50px_rgba(0,0,0,0.6)] backdrop-blur-xl">
         <div className="mb-2 flex items-center justify-center gap-2">
           <div className="h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse" />
           <span className="badge-cyber">[SYS_OK]</span>
@@ -78,7 +81,7 @@ export default function Login() {
 
         <form onSubmit={(event) => void submit(event)} className="space-y-5">
           <div>
-            <label htmlFor="email" className="block text-sm font-semibold tracking-tight text-slate-100" style={FONT}>
+            <label htmlFor="email" className="bp-auth-label block text-lg font-semibold tracking-tight text-white" style={FONT}>
               {t('auth.email')}
             </label>
             <input
@@ -95,7 +98,7 @@ export default function Login() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-semibold tracking-tight text-slate-100" style={FONT}>
+            <label htmlFor="password" className="bp-auth-label block text-lg font-semibold tracking-tight text-white" style={FONT}>
               {t('auth.password')}
             </label>
             <input
@@ -126,7 +129,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={busy}
-            className="btn-cyber inline-flex w-full items-center justify-center gap-2 rounded-lg py-3 disabled:cursor-not-allowed disabled:opacity-60"
+            className="bp-auth-submit inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/60 bg-cyan-950/60 py-4 text-xl font-bold tracking-wide text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.25)] transition-all duration-200 hover:bg-cyan-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
             style={FONT}
           >
             {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : null}

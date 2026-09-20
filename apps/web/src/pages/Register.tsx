@@ -82,7 +82,10 @@ const SEGMENTS: {
 ];
 
 const fieldClass =
-  'mt-1.5 w-full rounded-xl border border-slate-800 bg-[#0b0f19] px-4 py-3.5 text-base text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400';
+  'bp-auth-input mt-1.5 w-full rounded-2xl border border-slate-800 bg-slate-950/80 px-5 py-3.5 text-lg text-white placeholder-slate-500 outline-none transition-all focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500';
+
+const AUTH_BACK_CLASS =
+  'bp-auth-back inline-flex cursor-pointer items-center gap-2.5 rounded-xl border border-cyan-500/30 bg-slate-800/60 px-4 py-2 text-lg font-bold text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all duration-200 hover:-translate-x-1 hover:border-cyan-400 hover:bg-slate-800 hover:text-cyan-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]';
 
 export default function Register() {
   const { t } = useTranslation();
@@ -173,10 +176,10 @@ export default function Register() {
       <button
         onClick={handleGoBack}
         type="button"
-        className="bp-register-back absolute left-6 top-6 z-50 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-3.5 py-2 text-sm font-medium text-slate-300 shadow-lg backdrop-blur-md transition-all hover:border-cyan-500/50 hover:bg-slate-800 hover:text-white"
+        className={`${AUTH_BACK_CLASS} absolute left-6 top-6 z-50`}
         aria-label="Go back to previous page"
       >
-        <ArrowLeft className="h-4 w-4 text-cyan-400" />
+        <ArrowLeft className="h-5 w-5 text-cyan-400" />
         <span>Back</span>
       </button>
 
@@ -242,24 +245,26 @@ export default function Register() {
         {step === 2 && role && selectedSegment && (
           <form
             onSubmit={(event) => void submit(event)}
-            className="bp-register-form mx-auto w-full max-w-4xl space-y-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-8 backdrop-blur-xl md:p-10"
+            className="bp-register-form mx-auto w-full max-w-4xl space-y-8 rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-[0_0_50px_rgba(0,0,0,0.6)] backdrop-blur-xl md:p-12"
           >
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/60 pb-4">
               <button
                 type="button"
-                className="text-sm font-semibold text-cyan-300 transition-colors hover:text-white"
+                className={AUTH_BACK_CLASS}
                 onClick={() => setStep(1)}
               >
-                ← Change account type
+                <span className="text-xl" aria-hidden="true">←</span>
+                <span>Change account type</span>
               </button>
-              <p className="text-sm font-bold text-slate-400">
-                Signing up as: <span className="text-cyan-300">{selectedSegment.label}</span>
+              <p className="bp-auth-status text-lg text-slate-300">
+                Signing up as:{' '}
+                <span className="font-extrabold text-cyan-400">{selectedSegment.label}</span>
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-semibold text-slate-100" htmlFor="name">
+                <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="name">
                   {t('auth.name')}
                 </label>
                 <input
@@ -267,10 +272,11 @@ export default function Register() {
                   className={fieldClass}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your full name"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-100" htmlFor="email">
+                <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="email">
                   {t('auth.email')}
                 </label>
                 <input
@@ -279,12 +285,13 @@ export default function Register() {
                   className={fieldClass}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@school.edu"
                   required
                   autoComplete="email"
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-slate-100" htmlFor="password">
+                <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="password">
                   {t('auth.password')}
                 </label>
                 <input
@@ -293,6 +300,7 @@ export default function Register() {
                   className={fieldClass}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
                   required
                   minLength={8}
                   autoComplete="new-password"
@@ -303,7 +311,7 @@ export default function Register() {
             {(role === 'org_admin' || role === 'center_admin') && (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-100" htmlFor="organizationName">
+                  <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="organizationName">
                     {role === 'org_admin' ? 'School name' : 'Center / academy name'}
                   </label>
                   <input
@@ -315,7 +323,7 @@ export default function Register() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-100" htmlFor="planType">
+                  <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="planType">
                     Subscription plan
                   </label>
                   <select
@@ -337,7 +345,7 @@ export default function Register() {
             {role === 'teacher' && (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-100" htmlFor="schoolName">
+                  <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="schoolName">
                     School / center (optional)
                   </label>
                   <input
@@ -348,7 +356,7 @@ export default function Register() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-100" htmlFor="teacherPlan">
+                  <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="teacherPlan">
                     Plan
                   </label>
                   <select
@@ -375,7 +383,7 @@ export default function Register() {
                 )}
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-100" htmlFor="locale">
+                    <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="locale">
                       Language / locale
                     </label>
                     <select
@@ -392,7 +400,7 @@ export default function Register() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-100" htmlFor="studentPlan">
+                    <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="studentPlan">
                       Plan
                     </label>
                     <select
@@ -406,7 +414,7 @@ export default function Register() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-100" htmlFor="classCode">
+                    <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="classCode">
                       Class invite code (optional)
                     </label>
                     <input
@@ -418,7 +426,7 @@ export default function Register() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-100" htmlFor="parentCode">
+                    <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="parentCode">
                       Parent link code (optional)
                     </label>
                     <input
@@ -435,7 +443,7 @@ export default function Register() {
 
             {role === 'parent' && (
               <div>
-                <label className="block text-sm font-semibold text-slate-100" htmlFor="parentPlan">
+                <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="parentPlan">
                   Plan
                 </label>
                 <select
@@ -458,7 +466,7 @@ export default function Register() {
 
             <button
               type="submit"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/50 bg-cyan-500/10 py-3.5 text-base font-semibold text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:bg-cyan-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+              className="bp-auth-submit inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/60 bg-cyan-950/60 py-4 text-xl font-bold tracking-wide text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.25)] transition-all duration-200 hover:bg-cyan-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={busy}
             >
               {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
