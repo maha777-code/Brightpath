@@ -35,8 +35,8 @@ const COMPANY_LINKS = [
 function FooterColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
   return (
     <div className="space-y-4">
-      <h5 className="text-sm font-bold uppercase tracking-wider text-white">{title}</h5>
-      <ul className="space-y-2.5 text-sm">
+      <h5 className="bp-footer-col-title text-lg font-bold uppercase tracking-wider text-white">{title}</h5>
+      <ul className="bp-footer-col-links space-y-2.5 text-lg">
         {links.map((link) => (
           <li key={link.label}>
             <a href={link.href} className="transition-colors hover:text-cyan-400">
@@ -58,15 +58,15 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-8 border-b border-slate-800/60 pb-12 lg:grid-cols-12">
           <div className="space-y-4 lg:col-span-6">
             <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
-            <p className="max-w-md text-base leading-relaxed text-slate-300">
+            <p className="bp-footer-tagline max-w-md text-xl leading-relaxed text-slate-300">
               Bringing safe, personalized AI to schools, teachers, and students with zero hassle,
               total privacy, and complete instructional support.
             </p>
           </div>
 
           <div className="space-y-3 lg:col-span-6 lg:pl-8">
-            <h4 className="text-lg font-semibold text-white">Stay updated with MindVault</h4>
-            <p className="text-sm text-slate-400">
+            <h4 className="bp-footer-news-title text-2xl font-semibold text-white">Stay updated with MindVault</h4>
+            <p className="bp-footer-news-desc text-lg text-slate-400">
               Get the latest AI education insights, feature updates, and classroom tools delivered
               to your inbox.
             </p>
@@ -81,11 +81,11 @@ export function Footer() {
                 id="mindvault-newsletter"
                 type="email"
                 placeholder="Enter your school email"
-                className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-white placeholder-slate-500 transition-colors focus:border-cyan-500 focus:outline-none"
+                className="bp-footer-input w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-lg text-white placeholder-slate-500 transition-colors focus:border-cyan-500 focus:outline-none"
               />
               <button
                 type="submit"
-                className="shrink-0 rounded-xl bg-cyan-500 px-6 py-3 text-sm font-bold text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.2)] transition-all hover:bg-cyan-400"
+                className="bp-footer-submit shrink-0 rounded-xl bg-cyan-500 px-6 py-3 text-lg font-bold text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.2)] transition-all hover:bg-cyan-400"
               >
                 Subscribe
               </button>
@@ -100,7 +100,7 @@ export function Footer() {
           <FooterColumn title="Company" links={COMPANY_LINKS} />
         </div>
 
-        <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-800/60 pt-8 text-xs md:flex-row">
+        <div className="bp-footer-legal flex flex-col items-center justify-between gap-4 border-t border-slate-800/60 pt-8 text-base md:flex-row">
           <span>© {year} MindVault, Inc. All rights reserved.</span>
 
           <div className="flex flex-wrap items-center justify-center gap-6">

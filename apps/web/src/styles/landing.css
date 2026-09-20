@@ -902,6 +902,56 @@
   font-family: var(--bp-font);
 }
 
+.bp-landing .bp-footer-tagline {
+  font-size: 1.25rem;
+  line-height: 1.625;
+  color: #cbd5e1;
+}
+
+.bp-landing .bp-footer-news-title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.bp-landing .bp-footer-news-desc {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  color: #94a3b8;
+}
+
+.bp-landing .bp-footer-input,
+.bp-landing .bp-site-footer input[type='email'] {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.bp-landing .bp-footer-submit {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+}
+
+.bp-landing .bp-footer-col-title {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.bp-landing .bp-footer-col-links {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.bp-landing .bp-footer-legal {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
 /* ── Responsive ── */
 @media (min-width: 640px) {
   .bp-subjects {

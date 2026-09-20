@@ -37,3 +37,103 @@ textarea,
 select {
   font-weight: 400;
 }
+
+/* ── Create Account / Register ── */
+.bp-register {
+  background-image: radial-gradient(ellipse 80% 80% at 50% -20%, rgba(120, 119, 198, 0.15), rgba(255, 255, 255, 0));
+}
+
+.bp-register-shell {
+  width: 100%;
+  max-width: 75vw;
+}
+
+.bp-register-title {
+  font-size: 2.25rem;
+  line-height: 1.15;
+  font-weight: 800;
+  color: #fff;
+}
+
+.bp-register-subtitle {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.bp-register-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.bp-register-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  padding: 2rem;
+  backdrop-filter: blur(24px);
+  cursor: pointer;
+  appearance: none;
+}
+
+.bp-register-card:hover,
+.bp-register-card:focus-visible {
+  border-color: #06b6d4;
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.25);
+  transform: translateY(-4px);
+  outline: none;
+}
+
+.bp-register-back {
+  appearance: none;
+}
+
+.bp-register-form input,
+.bp-register-form select,
+.bp-register .form-input {
+  background: #0b0f19;
+  color: #f1f5f9;
+  border: 1px solid #1e293b;
+}
+
+.bp-register a,
+.bp-register a:link,
+.bp-register a:visited,
+.bp-register .bp-register-login,
+.bp-register .bp-register-login:link,
+.bp-register .bp-register-login:visited {
+  color: #06b6d4;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.bp-register a:hover,
+.bp-register .bp-register-login:hover {
+  color: #67e8f9;
+}
+
+@media (min-width: 768px) {
+  .bp-register-title {
+    font-size: 3rem;
+  }
+
+  .bp-register-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .bp-register-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
