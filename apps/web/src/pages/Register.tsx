@@ -232,7 +232,7 @@ export default function Register() {
                       <p className="text-base leading-relaxed text-slate-300">{segment.subtext}</p>
                     </div>
                   </div>
-                  <div className="relative z-10 flex items-center justify-between pt-6 text-sm font-bold text-cyan-400 opacity-80 group-hover:opacity-100">
+                  <div className="bp-register-continue relative z-10 flex items-center justify-between pt-6 text-lg font-bold text-cyan-400 opacity-80 group-hover:opacity-100">
                     <span>Continue as {segment.continueAs}</span>
                     <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                   </div>

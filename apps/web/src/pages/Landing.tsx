@@ -450,9 +450,9 @@ function AiSolutionsMenu() {
           </div>
 
           <div className="bp-mega-foot mt-6 flex items-center justify-between border-t border-slate-800/80 pt-4 text-sm font-medium text-cyan-400">
-            <a href="mailto:hello@brightpath.ai" className="transition-colors hover:text-white">
+            <Link to="/contact" className="transition-colors hover:text-white">
               Support →
-            </a>
+            </Link>
             <a href="#how-it-works" className="transition-colors hover:text-white">
               App Status →
             </a>
@@ -526,6 +526,12 @@ export default function Landing() {
             >
               For Schools
             </a>
+            <Link
+              to="/contact"
+              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+            >
+              Contact Us
+            </Link>
             <Link
               to={loginHref}
               className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
@@ -743,9 +749,9 @@ export default function Landing() {
               Bring AI tutoring to your classroom. Safe for students, private by design, and easy
               for teachers to use.
             </p>
-            <a href="mailto:hello@brightpath.ai" className="bp-btn bp-btn--outline">
+            <Link to="/contact" className="bp-btn bp-btn--outline">
               Contact Us
-            </a>
+            </Link>
           </div>
         </section>
       </main>

@@ -8,12 +8,6 @@ import { CYBER_FONT_STYLE } from '@/lib/theme';
 
 const FONT: CSSProperties = CYBER_FONT_STYLE;
 
-const FIELD_STYLE: CSSProperties = {
-  ...FONT,
-  color: '#ecfeff',
-  backgroundColor: '#0b0f19',
-};
-
 const fieldClass =
   'bp-auth-input mt-1.5 w-full rounded-2xl border border-slate-800 bg-slate-950/80 px-5 py-3.5 text-lg tracking-tight text-white placeholder-slate-500 outline-none transition-all focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500';
 
@@ -66,16 +60,12 @@ export default function Login() {
         <span>Back</span>
       </button>
 
-      <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-[0_0_50px_rgba(0,0,0,0.6)] backdrop-blur-xl">
-        <div className="mb-2 flex items-center justify-center gap-2">
-          <div className="h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse" />
-          <span className="badge-cyber">[SYS_OK]</span>
-        </div>
-        <div className="mb-6 flex flex-col items-center">
+      <div className="w-full max-w-md space-y-6 rounded-3xl border border-slate-800/80 bg-slate-900/80 p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] backdrop-blur-xl md:p-10">
+        <div className="bp-login-logo flex justify-center pb-2">
           <BrandLogo
             variant="full"
-            to="/login"
-            imgClassName="mx-auto h-auto w-full max-h-52 object-contain"
+            to="/"
+            imgClassName="h-28 w-auto object-contain rounded-xl"
           />
         </div>
 
@@ -88,7 +78,6 @@ export default function Login() {
               id="email"
               type="email"
               className={fieldClass}
-              style={FIELD_STYLE}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="you@school.edu"
@@ -105,7 +94,6 @@ export default function Login() {
               id="password"
               type="password"
               className={fieldClass}
-              style={FIELD_STYLE}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Enter your password"
@@ -137,9 +125,12 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-500" style={FONT}>
+        <p className="bp-login-foot pt-2 text-center text-lg font-medium text-slate-400" style={FONT}>
           {t('auth.noAccount')}{' '}
-          <Link to="/register" className="font-semibold text-cyan-300 hover:text-cyan-200">
+          <Link
+            to="/register"
+            className="bp-login-register text-lg font-bold text-cyan-400 underline underline-offset-4 transition-colors hover:text-cyan-300 visited:text-cyan-400"
+          >
             {t('auth.register')}
           </Link>
         </p>

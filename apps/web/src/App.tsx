@@ -34,6 +34,11 @@ import CenterDashboard from '@/pages/CenterDashboard';
 import ParentPortalDashboard from '@/pages/ParentPortalDashboard';
 import StudentDashboard from '@/pages/StudentDashboard';
 import BrandingSettingsPage from '@/pages/BrandingSettingsPage';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import TermsOfService from '@/pages/TermsOfService';
+import SecurityOverview from '@/pages/SecurityOverview';
+import CookiePreferences from '@/pages/CookiePreferences';
+import ContactUs from '@/pages/ContactUs';
 
 function RequireRole({
   roles,
@@ -150,6 +155,11 @@ export default function App() {
         <Route path="/login" element={<LoginGate />} />
         <Route path="/register" element={<Register />} />
         <Route path="/signup" element={<Navigate to="/register" replace />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/security" element={<SecurityOverview />} />
+        <Route path="/cookie-preferences" element={<CookiePreferences />} />
+        <Route path="/contact" element={<ContactUs />} />
 
         <Route
           path="/admin/school-dashboard"

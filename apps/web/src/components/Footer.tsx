@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 const SOLUTION_LINKS = [
@@ -20,16 +21,17 @@ const RESOURCE_LINKS = [
   { label: 'Blog & Guides', href: '#how-it-works' },
   { label: 'AI Readiness Framework', href: '#how-it-works' },
   { label: 'Teacher Exemplars', href: '#for-teachers' },
-  { label: 'Help & Support Center', href: 'mailto:hello@brightpath.ai' },
+  { label: 'Help & Support Center', href: '/contact' },
   { label: 'App Status', href: '#how-it-works' },
 ];
 
 const COMPANY_LINKS = [
   { label: 'About Us', href: '#how-it-works' },
   { label: 'Pricing & Plans', href: '#pricing' },
-  { label: 'Security & Privacy', href: '#how-it-works' },
+  { label: 'Security & Privacy', href: '/security' },
   { label: 'Careers', href: 'mailto:hello@brightpath.ai' },
-  { label: 'Contact Sales', href: 'mailto:hello@brightpath.ai' },
+  { label: 'Contact Us', href: '/contact' },
+  { label: 'Contact Sales', href: '/contact' },
 ];
 
 function FooterColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
@@ -37,13 +39,22 @@ function FooterColumn({ title, links }: { title: string; links: { label: string;
     <div className="space-y-4">
       <h5 className="bp-footer-col-title text-lg font-bold uppercase tracking-wider text-white">{title}</h5>
       <ul className="bp-footer-col-links space-y-2.5 text-lg">
-        {links.map((link) => (
-          <li key={link.label}>
-            <a href={link.href} className="transition-colors hover:text-cyan-400">
-              {link.label}
-            </a>
-          </li>
-        ))}
+        {links.map((link) => {
+          const isAppRoute = link.href.startsWith('/') && !link.href.startsWith('//');
+          return (
+            <li key={link.label}>
+              {isAppRoute ? (
+                <Link to={link.href} className="transition-colors hover:text-cyan-400">
+                  {link.label}
+                </Link>
+              ) : (
+                <a href={link.href} className="transition-colors hover:text-cyan-400">
+                  {link.label}
+                </a>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -103,19 +114,19 @@ export function Footer() {
         <div className="bp-footer-legal flex flex-col items-center justify-between gap-4 border-t border-slate-800/60 pt-8 text-base md:flex-row">
           <span>© {year} MindVault, Inc. All rights reserved.</span>
 
-          <div className="flex flex-wrap items-center justify-center gap-6">
-            <a href="#how-it-works" className="transition-colors hover:text-white">
+          <div className="flex flex-wrap items-center justify-center gap-6 text-base font-medium text-slate-400">
+            <Link to="/privacy" className="transition-colors hover:text-cyan-400">
               Privacy Policy
-            </a>
-            <a href="#how-it-works" className="transition-colors hover:text-white">
+            </Link>
+            <Link to="/terms" className="transition-colors hover:text-cyan-400">
               Terms of Service
-            </a>
-            <a href="#how-it-works" className="transition-colors hover:text-white">
+            </Link>
+            <Link to="/security" className="transition-colors hover:text-cyan-400">
               Security Overview
-            </a>
-            <a href="#how-it-works" className="transition-colors hover:text-white">
+            </Link>
+            <Link to="/cookie-preferences" className="transition-colors hover:text-cyan-400">
               Cookie Preferences
-            </a>
+            </Link>
           </div>
 
           <div className="flex items-center gap-4 text-slate-400">
