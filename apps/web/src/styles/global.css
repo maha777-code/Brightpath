@@ -218,6 +218,20 @@ select {
   color: #cbd5e1;
 }
 
+.bp-policy-body ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+
+.bp-policy-body li {
+  padding-left: 0.25rem;
+}
+
+.bp-policy-body strong {
+  color: #fff;
+  font-weight: 700;
+}
+
 .bp-policy a,
 .bp-policy a:link,
 .bp-policy a:visited {
