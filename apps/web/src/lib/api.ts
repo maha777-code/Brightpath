@@ -192,6 +192,12 @@ export const api = {
       skipped: { email: string; reason: string }[];
     }>('/admin/users/bulk-import', { method: 'POST', body: JSON.stringify(body) }),
 
+  sendContact: (body: { name: string; email: string; message: string }) =>
+    request<{ success: true; message: string }>('/contact', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   getBranding: () => request<{ organization: OrganizationPublic }>('/org/branding'),
 
   updateBranding: (body: {

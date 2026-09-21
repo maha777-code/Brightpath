@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail, MapPin } from 'lucide-react';
+import { api } from '@/lib/api';
 
 const CONTACT_EMAIL = 'qxicybertech.helpcenter@gmail.com';
 const BACK_CLASS =
@@ -12,11 +13,26 @@ export default function ContactUs() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
-    setSubmitted(true);
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      await api.sendContact({ name, email, message });
+      setSubmitted(true);
+      setName('');
+      setEmail('');
+      setMessage('');
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Network error. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -74,7 +90,7 @@ export default function ContactUs() {
                 className="rounded-2xl border border-emerald-500/40 bg-emerald-950/60 p-6 text-lg font-semibold text-emerald-300"
                 role="status"
               >
-                Thank you for reaching out! We will get back to you shortly.
+                Thank you! Your message has been sent to {CONTACT_EMAIL}.
               </div>
             ) : (
               <form onSubmit={submit} className="space-y-4">
@@ -86,9 +102,11 @@ export default function ContactUs() {
                     id="contact-name"
                     type="text"
                     required
+                    autoComplete="name"
                     placeholder="Your full name"
                     className={fieldClass}
                     value={name}
+                    disabled={loading}
                     onChange={(event) => setName(event.target.value)}
                   />
                 </div>
@@ -100,9 +118,11 @@ export default function ContactUs() {
                     id="contact-email"
                     type="email"
                     required
+                    autoComplete="email"
                     placeholder="you@school.edu"
                     className={fieldClass}
                     value={email}
+                    disabled={loading}
                     onChange={(event) => setEmail(event.target.value)}
                   />
                 </div>
@@ -117,14 +137,22 @@ export default function ContactUs() {
                     placeholder="How can we help you?"
                     className={`${fieldClass} resize-none`}
                     value={message}
+                    disabled={loading}
                     onChange={(event) => setMessage(event.target.value)}
                   />
                 </div>
+                {errorMsg ? (
+                  <p className="text-sm font-medium text-rose-400" role="alert">
+                    {errorMsg}
+                  </p>
+                ) : null}
                 <button
                   type="submit"
-                  className="w-full rounded-xl bg-cyan-500 py-3.5 text-lg font-bold text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:bg-cyan-400"
+                  disabled={loading}
+                  aria-busy={loading}
+                  className="w-full rounded-xl bg-cyan-500 py-3.5 text-lg font-bold text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Send Message
+                  {loading ? 'Sending Message...' : 'Send Message'}
                 </button>
               </form>
             )}
