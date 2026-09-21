@@ -5,7 +5,7 @@ import { Clock, GitFork, TrendingUp, ChevronDown, type LucideIcon } from 'lucide
 import { useAuth } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { Footer } from '@/components/Footer';
-import { ScrollingSection } from '@/components/ScrollingSection';
+import { StackedCardsSection } from '@/components/StackedCardsSection';
 
 const SUBJECTS = [
   {
@@ -104,7 +104,7 @@ const SCHOOL_CARDS = [
   {
     id: 's1',
     title: 'Enterprise Dashboard',
-    description: 'Multi-tenant management across all classrooms, teachers, and student batches.',
+    description: 'Multi-tenant management across all classrooms, teachers, and student batches with centralized oversight.',
     icon: '🏫',
     tag: 'Administration',
   },
@@ -118,7 +118,7 @@ const SCHOOL_CARDS = [
   {
     id: 's3',
     title: 'Security & Compliance',
-    description: 'FERPA & COPPA compliant data isolation with custom role-based access rules.',
+    description: 'FERPA & COPPA compliant data isolation with custom role-based access rules and Zero Data Retention.',
     icon: '🛡️',
     tag: 'Security',
   },
@@ -149,14 +149,14 @@ const TEACHER_CARDS = [
   {
     id: 't3',
     title: 'Automated Grading',
-    description: 'Review assignments against custom criteria and generate actionable feedback.',
+    description: 'Review assignments against custom criteria and generate actionable feedback instantly.',
     icon: '⚡',
     tag: 'Assessment',
   },
   {
     id: 't4',
     title: 'Parent Reports',
-    description: 'Generate personalized student progress summaries for parent updates instantly.',
+    description: 'Generate personalized student progress summaries for parent updates in one click.',
     icon: '📈',
     tag: 'Communication',
   },
@@ -173,21 +173,21 @@ const STUDENT_CARDS = [
   {
     id: 'st2',
     title: 'Interactive Quizzes',
-    description: 'Test your understanding with dynamically generated practice problems.',
+    description: 'Test your understanding with dynamically generated practice problems and instant feedback.',
     icon: '🧩',
     tag: 'Practice',
   },
   {
     id: 'st3',
     title: 'Study Workspace',
-    description: 'Summarize textbooks, generate flashcards, and organize key takeaways.',
+    description: 'Summarize textbooks, generate flashcards, and organize key takeaways in a unified space.',
     icon: '💡',
     tag: 'Productivity',
   },
   {
     id: 'st4',
     title: 'Progress Tracking',
-    description: 'Monitor concept mastery and identify areas for improvement.',
+    description: 'Monitor concept mastery and identify specific areas for improvement.',
     icon: '🎯',
     tag: 'Analytics',
   },
@@ -673,19 +673,19 @@ export default function Landing() {
             Transforming education for every student and classroom through AI
           </h2>
 
-          <ScrollingSection
+          <StackedCardsSection
             id="how-it-works"
             title="AI for Schools"
             subtitle="Enterprise multi-tenant tools built for district-wide scale"
             cards={SCHOOL_CARDS}
           />
-          <ScrollingSection
+          <StackedCardsSection
             id="for-teachers"
             title="AI for Teachers"
             subtitle="Empower educators to enrich lessons and save hours weekly"
             cards={TEACHER_CARDS}
           />
-          <ScrollingSection
+          <StackedCardsSection
             id="for-students"
             title="AI for Students"
             subtitle="Interactive study workspaces and 24/7 personalized AI tutoring"

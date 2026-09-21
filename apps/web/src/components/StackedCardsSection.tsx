@@ -29,7 +29,11 @@ export function StackedCardsSection({ id, title, subtitle, cards }: StackedCards
           const scale = 1 - (cards.length - 1 - index) * 0.018;
 
           return (
-            <div key={card.id} className="bp-stack-slot" style={{ zIndex: index + 1 }}>
+            <div
+              key={card.id}
+              className="bp-stack-slot"
+              style={{ zIndex: index + 1 }}
+            >
               <article
                 className="bp-stack-card sticky rounded-3xl border border-slate-800 bg-slate-900/90 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl md:p-12"
                 style={{
@@ -65,6 +69,3 @@ export function StackedCardsSection({ id, title, subtitle, cards }: StackedCards
     </section>
   );
 }
-
-/** @deprecated use StackedCardsSection — kept so existing landing imports still resolve */
-export const ScrollingSection = StackedCardsSection;

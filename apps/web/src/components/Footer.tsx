@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
+import { NewsletterSubscribe } from '@/components/NewsletterSubscribe';
 
 const SOLUTION_LINKS = [
   { label: 'For Schools & Districts', href: '#schools' },
@@ -75,32 +76,8 @@ export function Footer() {
             </p>
           </div>
 
-          <div className="space-y-3 lg:col-span-6 lg:pl-8">
-            <h4 className="bp-footer-news-title text-2xl font-semibold text-white">Stay updated with MindVault</h4>
-            <p className="bp-footer-news-desc text-lg text-slate-400">
-              Get the latest AI education insights, feature updates, and classroom tools delivered
-              to your inbox.
-            </p>
-            <form
-              onSubmit={(event) => event.preventDefault()}
-              className="flex max-w-md gap-2 pt-1"
-            >
-              <label htmlFor="mindvault-newsletter" className="sr-only">
-                School email
-              </label>
-              <input
-                id="mindvault-newsletter"
-                type="email"
-                placeholder="Enter your school email"
-                className="bp-footer-input w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-lg text-white placeholder-slate-500 transition-colors focus:border-cyan-500 focus:outline-none"
-              />
-              <button
-                type="submit"
-                className="bp-footer-submit shrink-0 rounded-xl bg-cyan-500 px-6 py-3 text-lg font-bold text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.2)] transition-all hover:bg-cyan-400"
-              >
-                Subscribe
-              </button>
-            </form>
+          <div className="lg:col-span-6 lg:pl-8">
+            <NewsletterSubscribe />
           </div>
         </div>
 

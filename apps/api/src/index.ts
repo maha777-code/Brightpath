@@ -22,6 +22,7 @@ import aiRoutes from './routes/ai.js';
 import chaptersRoutes from './routes/chapters.js';
 import topicsRoutes from './routes/topics.js';
 import contactRoutes from './routes/contact.js';
+import subscribeRoutes from './routes/subscribe.js';
 import { ensureDatabaseSchema } from './lib/ensureDatabaseSchema.js';
 import { ensureDemoTeacher } from './lib/ensureDemoTeacher.js';
 import { prisma } from './lib/prisma.js';
@@ -120,6 +121,7 @@ app.use('/ai', aiRoutes);
 app.use('/chapters', chaptersRoutes);
 app.use('/topics', topicsRoutes);
 app.use('/contact', contactRoutes);
+app.use('/subscribe', subscribeRoutes);
 
 app.use(
   (
