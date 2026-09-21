@@ -5,6 +5,7 @@ import { Clock, GitFork, TrendingUp, ChevronDown, type LucideIcon } from 'lucide
 import { useAuth } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { Footer } from '@/components/Footer';
+import { ScrollingSection } from '@/components/ScrollingSection';
 
 const SUBJECTS = [
   {
@@ -99,25 +100,97 @@ function HeroAITutorCard() {
   );
 }
 
-const SCHOOL_FEATURES = [
-  'Safe & secure from day one',
-  'Built to fit your school',
-  'Clear progress at a glance',
-  'Easy setup & hands-on teacher support',
+const SCHOOL_CARDS = [
+  {
+    id: 's1',
+    title: 'Enterprise Dashboard',
+    description: 'Multi-tenant management across all classrooms, teachers, and student batches.',
+    icon: '🏫',
+    tag: 'Administration',
+  },
+  {
+    id: 's2',
+    title: 'Analytics & Insights',
+    description: 'Track curriculum progress, engagement metrics, and administrative performance in real-time.',
+    icon: '📊',
+    tag: 'Reporting',
+  },
+  {
+    id: 's3',
+    title: 'Security & Compliance',
+    description: 'FERPA & COPPA compliant data isolation with custom role-based access rules.',
+    icon: '🛡️',
+    tag: 'Security',
+  },
+  {
+    id: 's4',
+    title: 'Custom Curriculums',
+    description: 'Upload and sync institutional textbooks, rubrics, and standards seamlessly.',
+    icon: '📚',
+    tag: 'Content',
+  },
 ];
 
-const TEACHER_FEATURES = [
-  '80+ teacher tools',
-  'Tool exemplars',
-  'Student learning insights',
-  'AI instructional coach',
+const TEACHER_CARDS = [
+  {
+    id: 't1',
+    title: 'Lesson Plan Generator',
+    description: 'Create tailored lesson plans, worksheets, and quizzes aligned to your curriculum in seconds.',
+    icon: '📝',
+    tag: 'Time Saver',
+  },
+  {
+    id: 't2',
+    title: 'AI Doubts Assistant',
+    description: 'Automate student doubt resolution with customized AI assistant guidelines.',
+    icon: '💬',
+    tag: 'Student Support',
+  },
+  {
+    id: 't3',
+    title: 'Automated Grading',
+    description: 'Review assignments against custom criteria and generate actionable feedback.',
+    icon: '⚡',
+    tag: 'Assessment',
+  },
+  {
+    id: 't4',
+    title: 'Parent Reports',
+    description: 'Generate personalized student progress summaries for parent updates instantly.',
+    icon: '📈',
+    tag: 'Communication',
+  },
 ];
 
-const STUDENT_FEATURES = [
-  'Teacher-led activities',
-  'Safe settings for students',
-  '50+ student tools',
-  'Designed to build AI skills',
+const STUDENT_CARDS = [
+  {
+    id: 'st1',
+    title: 'Personalized AI Tutor',
+    description: 'Get step-by-step guidance, hints, and explanations tailored to your learning pace.',
+    icon: '🎓',
+    tag: 'Adaptive Learning',
+  },
+  {
+    id: 'st2',
+    title: 'Interactive Quizzes',
+    description: 'Test your understanding with dynamically generated practice problems.',
+    icon: '🧩',
+    tag: 'Practice',
+  },
+  {
+    id: 'st3',
+    title: 'Study Workspace',
+    description: 'Summarize textbooks, generate flashcards, and organize key takeaways.',
+    icon: '💡',
+    tag: 'Productivity',
+  },
+  {
+    id: 'st4',
+    title: 'Progress Tracking',
+    description: 'Monitor concept mastery and identify areas for improvement.',
+    icon: '🎯',
+    tag: 'Analytics',
+  },
 ];
 
 type TeacherReview = {
@@ -595,137 +668,29 @@ export default function Landing() {
 
         <AiToolsShowcase />
 
-        <section id="how-it-works" className="w-full px-6 py-20 lg:px-12">
-          <h2 className="mb-12 w-full text-center text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
+        <section className="w-full px-0 pt-12">
+          <h2 className="mb-4 w-full px-6 text-center text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl lg:px-12">
             Transforming education for every student and classroom through AI
           </h2>
 
-          <div className="w-full rounded-3xl border border-slate-800 bg-slate-950/60 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12">
-            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12">
-              <div className="space-y-6 lg:col-span-6">
-                <span className="bp-audience-badge text-lg font-bold uppercase tracking-widest text-cyan-400">
-                  AI FOR SCHOOLS
-                </span>
-
-                <h3 className="text-3xl font-extrabold leading-tight text-white md:text-4xl lg:text-5xl">
-                  Bring safe, personalized AI to your school with zero hassle, total privacy, and
-                  complete teacher support.
-                </h3>
-
-                <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
-                  {SCHOOL_FEATURES.map((feature) => (
-                    <div
-                      key={feature}
-                      className="bp-audience-item flex items-center gap-3 text-xl font-medium text-slate-200 md:text-2xl"
-                    >
-                      <span className="bp-audience-check text-2xl font-bold text-cyan-400">✓</span>
-                      {feature}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="group relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/60 shadow-[0_0_30px_rgba(6,182,212,0.15)] lg:col-span-6">
-                <img
-                  src="/safe-ai-tutor-hd.png?v=1"
-                  alt="Safe and secure AI tutor in classroom"
-                  width={1920}
-                  height={1080}
-                  loading="eager"
-                  decoding="async"
-                  className="bp-hd-img aspect-[16/10] h-full w-full object-cover brightness-[1.02] contrast-[1.05] transition-transform duration-700 group-hover:scale-105 [image-rendering:-webkit-optimize-contrast]"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="for-teachers" className="w-full px-6 py-12 lg:px-12">
-          <div className="w-full rounded-3xl border border-slate-800 bg-slate-950/60 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12">
-            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-12">
-              <div className="group relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/60 shadow-[0_0_30px_rgba(6,182,212,0.15)] lg:col-span-6">
-                <img
-                  src="/teacher-hologram.png"
-                  alt="Holographic AI Assistant supporting a teacher in classroom"
-                  className="aspect-[4/3] h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-cyan-500/40 bg-slate-900/90 p-4 shadow-xl backdrop-blur-md sm:right-auto sm:max-w-xs">
-                  <p className="text-2xl font-extrabold text-cyan-400">7–10 hrs</p>
-                  <p className="text-base font-medium leading-snug text-slate-200">
-                    time saved per week on average
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-6 lg:col-span-6">
-                <span className="bp-audience-badge text-lg font-bold uppercase tracking-widest text-cyan-400">
-                  AI FOR TEACHERS
-                </span>
-
-                <h3 className="text-3xl font-extrabold leading-tight text-white md:text-4xl lg:text-5xl">
-                  Save time. <br />
-                  Spark creativity. <br />
-                  Personalize learning.
-                </h3>
-
-                <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
-                  {TEACHER_FEATURES.map((feature) => (
-                    <div
-                      key={feature}
-                      className="bp-audience-item flex items-center gap-3 text-xl font-medium text-slate-200 md:text-2xl"
-                    >
-                      <span className="bp-audience-check text-2xl font-bold text-cyan-400">✓</span>
-                      {feature}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="for-students" className="w-full px-6 py-12 lg:px-12">
-          <div className="w-full rounded-3xl border border-slate-800 bg-slate-950/60 p-8 shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-md md:p-12 lg:p-16">
-            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-16">
-              <div className="space-y-6 lg:col-span-6">
-                <span className="bp-audience-badge text-lg font-bold uppercase tracking-widest text-cyan-400">
-                  AI FOR STUDENTS
-                </span>
-
-                <h3 className="text-3xl font-extrabold leading-tight text-white md:text-4xl lg:text-5xl">
-                  Learn confidently. <br />
-                  Think critically. <br />
-                  Build the future.
-                </h3>
-
-                <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
-                  {STUDENT_FEATURES.map((feature) => (
-                    <div
-                      key={feature}
-                      className="bp-audience-item flex items-center gap-3 text-xl font-medium text-slate-200 md:text-2xl"
-                    >
-                      <span className="bp-audience-check text-2xl font-bold text-cyan-400">✓</span>
-                      {feature}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="group relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/60 shadow-[0_0_30px_rgba(6,182,212,0.15)] lg:col-span-6">
-                <img
-                  src="/student-hologram.png"
-                  alt="Holographic AI assisting students with interactive learning"
-                  className="aspect-[16/10] h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-cyan-500/40 bg-slate-900/90 p-4 shadow-xl backdrop-blur-md sm:right-auto sm:max-w-xs">
-                  <p className="text-2xl font-extrabold text-cyan-400">88%</p>
-                  <p className="text-base font-medium leading-snug text-slate-200">
-                    of teachers say it helps them reach every learner
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ScrollingSection
+            id="how-it-works"
+            title="AI for Schools"
+            subtitle="Enterprise multi-tenant tools built for district-wide scale"
+            cards={SCHOOL_CARDS}
+          />
+          <ScrollingSection
+            id="for-teachers"
+            title="AI for Teachers"
+            subtitle="Empower educators to enrich lessons and save hours weekly"
+            cards={TEACHER_CARDS}
+          />
+          <ScrollingSection
+            id="for-students"
+            title="AI for Students"
+            subtitle="Interactive study workspaces and 24/7 personalized AI tutoring"
+            cards={STUDENT_CARDS}
+          />
         </section>
 
         <TeacherReviewsCarousel />
