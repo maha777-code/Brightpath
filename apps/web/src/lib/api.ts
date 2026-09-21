@@ -198,12 +198,6 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  subscribeNewsletter: (email: string) =>
-    request<{ success: true; message: string }>('/subscribe', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    }),
-
   getBranding: () => request<{ organization: OrganizationPublic }>('/org/branding'),
 
   updateBranding: (body: {
