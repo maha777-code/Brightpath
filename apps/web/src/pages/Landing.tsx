@@ -5,7 +5,6 @@ import { Clock, GitFork, TrendingUp, ChevronDown, type LucideIcon } from 'lucide
 import { useAuth } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { Footer } from '@/components/Footer';
-import { StackedCardsSection } from '@/components/StackedCardsSection';
 
 const SUBJECTS = [
   {
@@ -100,11 +99,65 @@ function HeroAITutorCard() {
   );
 }
 
-const SCHOOL_CARDS = [
+type AudienceCard = {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  tag?: string;
+};
+
+function AudienceGridSection({
+  id,
+  title,
+  subtitle,
+  cards,
+}: {
+  id: string;
+  title: string;
+  subtitle: string;
+  cards: AudienceCard[];
+}) {
+  return (
+    <section id={id} className="bp-audience-section mx-auto max-w-7xl space-y-6 px-4 py-10 sm:px-8">
+      <div>
+        <h2 className="bp-audience-title text-2xl font-extrabold uppercase tracking-tight text-white md:text-4xl">
+          {title}
+        </h2>
+        <p className="bp-audience-sub mt-1 text-base text-slate-400 md:text-lg">{subtitle}</p>
+      </div>
+      <div className="bp-audience-grid grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {cards.map((card) => (
+          <article
+            key={card.id}
+            className="bp-audience-card flex flex-col justify-between space-y-4 rounded-3xl border border-slate-800 bg-slate-900/80 p-6 backdrop-blur-xl md:p-8"
+          >
+            <div className="space-y-4">
+              <div className="bp-audience-icon flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-500/30 bg-cyan-950/60 text-3xl text-cyan-400">
+                {card.icon}
+              </div>
+              <h3 className="text-2xl font-bold text-white">{card.title}</h3>
+              <p className="text-base leading-relaxed text-slate-400">{card.description}</p>
+            </div>
+            {card.tag ? (
+              <div className="pt-4">
+                <span className="bp-audience-tag inline-block rounded-full border border-cyan-500/30 bg-cyan-950/60 px-3 py-1.5 text-sm font-semibold text-cyan-400">
+                  {card.tag}
+                </span>
+              </div>
+            ) : null}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const SCHOOL_CARDS: AudienceCard[] = [
   {
     id: 's1',
     title: 'Enterprise Dashboard',
-    description: 'Multi-tenant management across all classrooms, teachers, and student batches with centralized oversight.',
+    description: 'Multi-tenant management across all classrooms, teachers, and student batches.',
     icon: '🏫',
     tag: 'Administration',
   },
@@ -118,7 +171,7 @@ const SCHOOL_CARDS = [
   {
     id: 's3',
     title: 'Security & Compliance',
-    description: 'FERPA & COPPA compliant data isolation with custom role-based access rules and Zero Data Retention.',
+    description: 'FERPA & COPPA compliant data isolation with custom role-based access rules.',
     icon: '🛡️',
     tag: 'Security',
   },
@@ -149,14 +202,14 @@ const TEACHER_CARDS = [
   {
     id: 't3',
     title: 'Automated Grading',
-    description: 'Review assignments against custom criteria and generate actionable feedback instantly.',
+    description: 'Review assignments against custom criteria and generate actionable feedback.',
     icon: '⚡',
     tag: 'Assessment',
   },
   {
     id: 't4',
     title: 'Parent Reports',
-    description: 'Generate personalized student progress summaries for parent updates in one click.',
+    description: 'Generate personalized student progress summaries for parent updates instantly.',
     icon: '📈',
     tag: 'Communication',
   },
@@ -173,21 +226,21 @@ const STUDENT_CARDS = [
   {
     id: 'st2',
     title: 'Interactive Quizzes',
-    description: 'Test your understanding with dynamically generated practice problems and instant feedback.',
+    description: 'Test your understanding with dynamically generated practice problems.',
     icon: '🧩',
     tag: 'Practice',
   },
   {
     id: 'st3',
     title: 'Study Workspace',
-    description: 'Summarize textbooks, generate flashcards, and organize key takeaways in a unified space.',
+    description: 'Summarize textbooks, generate flashcards, and organize key takeaways.',
     icon: '💡',
     tag: 'Productivity',
   },
   {
     id: 'st4',
     title: 'Progress Tracking',
-    description: 'Monitor concept mastery and identify specific areas for improvement.',
+    description: 'Monitor concept mastery and identify areas for improvement.',
     icon: '🎯',
     tag: 'Analytics',
   },
@@ -673,19 +726,19 @@ export default function Landing() {
             Transforming education for every student and classroom through AI
           </h2>
 
-          <StackedCardsSection
+          <AudienceGridSection
             id="how-it-works"
             title="AI for Schools"
             subtitle="Enterprise multi-tenant tools built for district-wide scale"
             cards={SCHOOL_CARDS}
           />
-          <StackedCardsSection
+          <AudienceGridSection
             id="for-teachers"
             title="AI for Teachers"
             subtitle="Empower educators to enrich lessons and save hours weekly"
             cards={TEACHER_CARDS}
           />
-          <StackedCardsSection
+          <AudienceGridSection
             id="for-students"
             title="AI for Students"
             subtitle="Interactive study workspaces and 24/7 personalized AI tutoring"

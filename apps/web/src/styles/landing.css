@@ -18,13 +18,8 @@
   min-height: 100dvh;
   font-family: var(--bp-font);
   color: var(--bp-text);
-  overflow-x: clip;
+  overflow-x: hidden;
   isolation: isolate;
-}
-
-body:has(.bp-landing),
-html:has(.bp-landing) {
-  overflow-x: clip;
 }
 
 .bp-landing *,
@@ -347,97 +342,87 @@ html:has(.bp-landing) {
   }
 }
 
-/* ── Audience stacked cards ── */
-.bp-stack-section {
+/* ── Audience card grids ── */
+.bp-audience-section {
   width: 100%;
-  max-width: 64rem;
+  max-width: 80rem;
   margin: 0 auto;
-  padding: 4rem 1.5rem 2rem;
+  padding: 2.5rem 1rem;
 }
 
-.bp-stack-head {
-  margin-bottom: 3rem;
-  text-align: center;
-}
-
-.bp-stack-title {
-  font-size: 1.875rem;
-  line-height: 2.25rem;
+.bp-audience-title {
+  font-size: 1.5rem;
+  line-height: 2rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   text-transform: uppercase;
   color: #fff;
 }
 
-.bp-stack-sub {
-  margin: 0.75rem auto 0;
-  max-width: 42rem;
-  font-size: 1.125rem;
-  line-height: 1.75rem;
+.bp-audience-sub {
+  margin-top: 0.25rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
   color: #94a3b8;
 }
 
-.bp-stack-list {
-  position: relative;
+.bp-audience-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.bp-audience-card {
+  position: static;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-}
-
-.bp-stack-slot {
-  position: relative;
-  padding-bottom: 2rem;
-}
-
-.bp-stack-slot:not(:last-child) {
-  padding-bottom: 28vh;
-}
-
-.bp-stack-card {
-  position: sticky;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem;
   border-radius: 1.5rem;
   border: 1px solid #1e293b;
-  background: rgba(15, 23, 42, 0.9);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
-  padding: 2rem;
-  transform-origin: top center;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  will-change: transform;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+  transform: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
-.bp-stack-card:hover {
+.bp-audience-card:hover {
   border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.2);
+  transform: translateY(-4px);
 }
 
-.bp-stack-card h3 {
+.bp-audience-card h3 {
   font-size: 1.5rem;
   line-height: 2rem;
   font-weight: 700;
   color: #fff;
 }
 
-.bp-stack-card p {
-  font-size: 1.125rem;
-  line-height: 1.75rem;
-  color: #cbd5e1;
+.bp-audience-card p {
+  font-size: 1rem;
+  line-height: 1.625;
+  color: #94a3b8;
 }
 
-.bp-stack-icon {
-  width: 4rem;
-  height: 4rem;
+.bp-audience-icon {
+  width: 3.5rem;
+  height: 3.5rem;
   border-radius: 1rem;
-  border: 1px solid rgba(6, 182, 212, 0.4);
-  background: rgba(8, 47, 73, 0.7);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  background: rgba(8, 47, 73, 0.6);
   color: #22d3ee;
-  font-size: 2.25rem;
+  font-size: 1.875rem;
   line-height: 1;
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
 }
 
-.bp-stack-tag {
+.bp-audience-tag {
   display: inline-block;
-  padding: 0.375rem 1rem;
+  padding: 0.375rem 0.75rem;
   border-radius: 999px;
   border: 1px solid rgba(6, 182, 212, 0.3);
   background: rgba(8, 47, 73, 0.6);
@@ -446,51 +431,80 @@ html:has(.bp-landing) {
   font-weight: 600;
 }
 
-.bp-stack-index {
-  width: 4rem;
-  height: 4rem;
-  border-radius: 999px;
-  border: 1px solid #1e293b;
-  background: rgba(2, 6, 23, 0.8);
-  color: #64748b;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 1.5rem;
-  font-weight: 700;
+@media (min-width: 640px) {
+  .bp-audience-section {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
 }
 
 @media (min-width: 768px) {
-  .bp-stack-section {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
+  .bp-audience-title {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
   }
 
-  .bp-stack-title {
-    font-size: 3rem;
-    line-height: 1.1;
-  }
-
-  .bp-stack-sub {
-    font-size: 1.25rem;
+  .bp-audience-sub {
+    font-size: 1.125rem;
     line-height: 1.75rem;
   }
 
-  .bp-stack-card {
-    padding: 3rem;
+  .bp-audience-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .bp-stack-card h3 {
-    font-size: 1.875rem;
-    line-height: 2.25rem;
-  }
-
-  .bp-stack-index {
-    display: flex;
+  .bp-audience-card {
+    padding: 2rem;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .bp-stack-card {
-    transform: none !important;
+@media (min-width: 1024px) {
+  .bp-audience-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Kill leftover sticky stack / carousel if a stale bundle still mounts it */
+.bp-stack-card,
+.bp-scroll-card {
+  position: static !important;
+  top: auto !important;
+  transform: none !important;
+  min-width: 0 !important;
+}
+
+.bp-stack-list,
+.bp-scroll-row {
+  display: grid !important;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  overflow: visible !important;
+}
+
+.bp-stack-slot {
+  padding-bottom: 0 !important;
+  position: static !important;
+}
+
+.bp-stack-nav,
+.bp-scroll-nav,
+.bp-scroll-nav-btn,
+.bp-scroll-progress,
+.bp-stack-index {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .bp-stack-list,
+  .bp-scroll-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .bp-stack-list,
+  .bp-scroll-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
 }
 
