@@ -18,8 +18,13 @@
   min-height: 100dvh;
   font-family: var(--bp-font);
   color: var(--bp-text);
-  overflow-x: hidden;
+  overflow-x: clip;
   isolation: isolate;
+}
+
+/* overflow-x: hidden on body creates a containing block that kills position:sticky */
+body:has(.bp-landing) {
+  overflow-x: clip !important;
 }
 
 .bp-landing *,
@@ -339,6 +344,63 @@
 @media (min-width: 768px) {
   .bp-landing .bp-audience-item {
     font-size: 1.5rem;
+  }
+}
+
+/* ── Sticky vertical card stack (AI for Schools / Teachers / Students) ── */
+.bp-landing .bp-stack-section {
+  width: 100%;
+}
+
+.bp-landing .bp-stack-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  padding-bottom: 6rem;
+}
+
+.bp-landing .bp-stack-card {
+  position: sticky !important;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid #1e293b;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+  will-change: transform;
+}
+
+.bp-landing .bp-stack-card[data-stack-index="0"] {
+  z-index: 1;
+}
+
+.bp-landing .bp-stack-card[data-stack-index="1"] {
+  z-index: 2;
+}
+
+.bp-landing .bp-stack-card[data-stack-index="2"] {
+  z-index: 3;
+}
+
+.bp-landing .bp-stack-media img {
+  display: block;
+  width: 100%;
+}
+
+@media (max-width: 767px) {
+  .bp-landing .bp-stack-card[data-stack-index="0"] {
+    top: 4.5rem !important;
+  }
+
+  .bp-landing .bp-stack-card[data-stack-index="1"] {
+    top: 5.25rem !important;
+  }
+
+  .bp-landing .bp-stack-card[data-stack-index="2"] {
+    top: 6rem !important;
   }
 }
 
