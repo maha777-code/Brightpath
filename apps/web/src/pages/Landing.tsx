@@ -5,6 +5,7 @@ import { Clock, GitFork, TrendingUp, ChevronDown, type LucideIcon } from 'lucide
 import { useAuth } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { CardStackSection } from '@/components/CardStackSection';
+import { CtaBanner } from '@/components/CtaBanner';
 import { Footer } from '@/components/Footer';
 
 const SUBJECTS = [
@@ -428,21 +429,6 @@ function AiSolutionsMenu() {
               </div>
             </div>
           </div>
-
-          <div className="bp-mega-foot mt-6 flex items-center justify-between border-t border-slate-800/80 pt-4 text-sm font-medium text-cyan-400">
-            <Link to="/contact" className="transition-colors hover:text-white">
-              Support →
-            </Link>
-            <a href="#how-it-works" className="transition-colors hover:text-white">
-              App Status →
-            </a>
-            <a href="#how-it-works" className="transition-colors hover:text-white">
-              What's New →
-            </a>
-            <a href="#pricing" className="transition-colors hover:text-white">
-              Get Pricing →
-            </a>
-          </div>
         </div>
       </div>
     </div>
@@ -579,17 +565,7 @@ export default function Landing() {
 
         <TeacherReviewsCarousel />
 
-        <section id="pricing" className="bp-cta-wrap w-full px-4 py-16 sm:px-6 lg:px-12">
-          <div className="bp-cta-glass mx-auto w-full max-w-5xl">
-            <h2 className="text-4xl font-extrabold text-white md:text-5xl">Ready to unlock your potential?</h2>
-            <p className="mt-2 text-lg font-normal text-slate-100 md:text-xl">
-              Private tutoring quality at app-store prices. Start free today.
-            </p>
-            <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--lg">
-              Get Started For Free
-            </Link>
-          </div>
-        </section>
+        <CtaBanner startHref={startHref} />
       </main>
 
       <Footer />

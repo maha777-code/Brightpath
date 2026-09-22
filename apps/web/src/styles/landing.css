@@ -223,16 +223,6 @@ body:has(.bp-landing) {
   color: #94a3b8;
 }
 
-.bp-landing .bp-nav-center .bp-mega-foot a {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #22d3ee;
-}
-
-.bp-landing .bp-nav-center .bp-mega-foot a:hover {
-  color: #ffffff;
-}
-
 /* ── Buttons ── */
 .bp-btn {
   display: inline-flex;
@@ -901,6 +891,101 @@ body:has(.bp-landing) {
     animation: none;
     transform: none;
   }
+}
+
+/* ── Full-width purple CTA banner ── */
+.bp-landing .bp-cta-banner {
+  width: 100%;
+  background: linear-gradient(90deg, #7c3aed 0%, #6d28d9 45%, #4338ca 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.bp-landing .bp-cta-glow {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+}
+
+.bp-landing .bp-cta-glow--tl {
+  top: -120px;
+  left: -40px;
+  background: rgba(233, 213, 255, 0.28);
+}
+
+.bp-landing .bp-cta-glow--br {
+  right: -60px;
+  bottom: -140px;
+  background: rgba(165, 180, 252, 0.24);
+}
+
+.bp-landing .bp-cta-banner-title {
+  font-size: 2.25rem;
+  line-height: 1.15;
+  font-weight: 900;
+  color: #fff;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .bp-landing .bp-cta-banner-title {
+    font-size: 3rem;
+  }
+}
+
+.bp-landing .bp-cta-banner-copy {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  font-weight: 500;
+  color: #ede9fe;
+  margin: 0;
+}
+
+.bp-landing a.bp-cta-banner-primary,
+.bp-landing a.bp-cta-banner-primary:link,
+.bp-landing a.bp-cta-banner-primary:visited {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fff !important;
+  color: #6d28d9 !important;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+  text-decoration: none !important;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.bp-landing a.bp-cta-banner-primary:hover {
+  background: #f1f5f9 !important;
+  color: #5b21b6 !important;
+}
+
+.bp-landing a.bp-cta-banner-secondary,
+.bp-landing a.bp-cta-banner-secondary:link,
+.bp-landing a.bp-cta-banner-secondary:visited {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent !important;
+  color: #fff !important;
+  border: 2px solid #fff !important;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 0.75rem;
+  text-decoration: none !important;
+  transition: background-color 0.2s ease;
+}
+
+.bp-landing a.bp-cta-banner-secondary:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
 }
 
 /* ── CTA ── */
