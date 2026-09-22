@@ -41,9 +41,9 @@ function getTransporter() {
 
 function getGmailTransporter() {
   if (gmailTransporter) return gmailTransporter;
-  const pass = process.env.GMAIL_APP_PASSWORD;
+  const pass = process.env.GMAIL_APP_PASSWORD?.trim().replace(/\s+/g, '');
   if (!pass) return null;
-  const user = process.env.GMAIL_USER ?? CONTACT_INBOX;
+  const user = (process.env.GMAIL_USER ?? CONTACT_INBOX).trim();
   gmailTransporter = nodemailer.createTransport({
     service: 'gmail',
     auth: { user, pass },
