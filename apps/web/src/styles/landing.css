@@ -987,6 +987,21 @@ body:has(.bp-landing) {
 .bp-landing .bp-site-footer input[type='email'] {
   font-size: 1.125rem;
   line-height: 1.75rem;
+  background: #e8f0fe;
+  color: #0f172a;
+  border: none;
+}
+
+.bp-landing .bp-footer-input::placeholder {
+  color: #64748b;
+}
+
+.bp-landing .bp-newsletter-ok {
+  color: #34d399;
+}
+
+.bp-landing .bp-newsletter-err {
+  color: #fb7185;
 }
 
 .bp-landing .bp-footer-submit {

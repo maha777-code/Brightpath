@@ -124,3 +124,41 @@ export async function sendContactInquiry(input: {
     `,
   });
 }
+
+export async function sendNewsletterSubscription(email: string): Promise<void> {
+  const mailer = getContactTransporter();
+  if (!mailer) {
+    throw new MailerUnconfiguredError();
+  }
+
+  const fromUser = process.env.GMAIL_USER ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? CONTACT_INBOX;
+  const inbox = process.env.CONTACT_INBOX ?? CONTACT_INBOX;
+  const safeEmail = escapeHtml(email);
+
+  await mailer.sendMail({
+    from: `"MindVault" <${fromUser}>`,
+    to: email,
+    subject: 'Welcome to MindVault Updates!',
+    text: 'Thank you for subscribing. You will now receive the latest AI education insights, feature updates, and classroom tools.',
+    html: `
+      <div style="font-family: Arial, sans-serif; background-color: #0b0f19; color: #ffffff; padding: 32px; border-radius: 16px; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #00bcd4; font-size: 24px;">Welcome to MindVault!</h2>
+        <p style="color: #cbd5e1; line-height: 1.6;">
+          Thank you for subscribing. You'll now receive the latest AI education insights, feature updates, and classroom tools delivered straight to your inbox.
+        </p>
+      </div>
+    `,
+  });
+
+  try {
+    await mailer.sendMail({
+      from: `"MindVault" <${fromUser}>`,
+      to: inbox,
+      subject: `New newsletter subscriber: ${email.replace(/[\r\n]+/g, ' ').slice(0, 120)}`,
+      text: `${email} subscribed to MindVault updates.`,
+      html: `<p style="font-family: Arial, sans-serif;">New subscriber: <a href="mailto:${safeEmail}">${safeEmail}</a></p>`,
+    });
+  } catch (error) {
+    console.error('[newsletter] inbox notify failed:', error);
+  }
+}

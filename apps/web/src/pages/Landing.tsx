@@ -501,7 +501,7 @@ export default function Landing() {
               Pricing
             </a>
             <a
-              href="#schools"
+              href="#how-it-works"
               className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
             >
               For Schools
@@ -587,19 +587,6 @@ export default function Landing() {
             </p>
             <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--lg">
               Get Started For Free
-            </Link>
-          </div>
-        </section>
-
-        <section id="schools" className="bp-cta-wrap w-full px-4 py-16 sm:px-6 lg:px-12">
-          <div className="bp-cta-glass bp-cta-glass--soft mx-auto w-full max-w-5xl">
-            <h2 className="text-4xl font-extrabold text-white md:text-5xl">For Schools</h2>
-            <p className="mt-2 text-lg font-normal leading-relaxed text-slate-100 md:text-xl">
-              Bring AI tutoring to your classroom. Safe for students, private by design, and easy
-              for teachers to use.
-            </p>
-            <Link to="/contact" className="bp-btn bp-btn--outline">
-              Contact Us
             </Link>
           </div>
         </section>

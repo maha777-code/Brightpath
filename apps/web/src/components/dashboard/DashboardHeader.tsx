@@ -97,7 +97,7 @@ export function DashboardHeader({
             <a href="/#pricing" className="hover:text-teal-700">
               Pricing
             </a>
-            <a href="/#schools" className="hover:text-teal-700">
+            <a href="/#how-it-works" className="hover:text-teal-700">
               For Schools
             </a>
             <Link to="/parent" className="hover:text-teal-700">
