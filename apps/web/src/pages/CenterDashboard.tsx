@@ -61,50 +61,62 @@ export default function CenterDashboard() {
     <div className="min-h-screen bg-[#0b0f19] text-slate-100">
       <div className="flex min-h-screen">
         <aside
-          className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-slate-800 bg-slate-950 p-4 transition-transform md:static md:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-800/80 bg-[#090d16] p-4 transition-transform md:static md:translate-x-0 ${
             menuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          <div className="mb-6 flex items-center justify-between px-2">
-            <BrandLogo variant="full" to="/" imgClassName="h-9 w-auto object-contain" />
-            <button type="button" className="text-slate-400 md:hidden" onClick={() => setMenuOpen(false)} aria-label="Close menu">
-              <X className="h-5 w-5" />
+          <div className="space-y-6">
+            <div className="flex items-center justify-between px-3 py-2">
+              <div>
+                <BrandLogo variant="full" to="/" imgClassName="h-9 w-auto object-contain" />
+                <p className="mt-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  {organization?.name ?? 'Tutor Center'}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="border-0 bg-transparent text-slate-400 md:hidden"
+                onClick={() => setMenuOpen(false)}
+                aria-label="Close menu"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <nav className="space-y-1.5" aria-label="Academy">
+              {NAV.map((item) => {
+                const Icon = item.icon;
+                const active = panel === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => select(item.id)}
+                    className={`flex w-full cursor-pointer appearance-none items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm font-medium transition-all duration-200 ${
+                      active
+                        ? 'border-cyan-500/30 bg-slate-900/90 text-cyan-400 shadow-sm shadow-cyan-950'
+                        : 'border-transparent bg-transparent text-slate-400 hover:bg-slate-900/80 hover:text-white'
+                    }`}
+                  >
+                    <Icon className={`h-5 w-5 ${active ? 'text-cyan-400' : 'text-slate-400'}`} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+          <div className="mt-auto border-t border-slate-800/60 pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                navigate('/login');
+              }}
+              className="flex w-full cursor-pointer appearance-none items-center gap-3 rounded-xl border border-transparent bg-transparent px-4 py-3 text-left text-sm font-medium text-slate-400 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Log out</span>
             </button>
           </div>
-          <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-            {organization?.name ?? 'Tutor Center'}
-          </p>
-          <nav className="space-y-1" aria-label="Academy">
-            {NAV.map((item) => {
-              const Icon = item.icon;
-              const active = panel === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => select(item.id)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${
-                    active
-                      ? 'bg-cyan-950/50 text-cyan-300'
-                      : 'text-slate-400 hover:bg-slate-900 hover:text-slate-100'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </button>
-              );
-            })}
-          </nav>
-          <button
-            type="button"
-            onClick={() => {
-              logout();
-              navigate('/login');
-            }}
-            className="mt-8 flex w-full items-center gap-2 rounded-xl border border-slate-800 px-3 py-2.5 text-sm font-semibold text-slate-300"
-          >
-            <LogOut className="h-4 w-4" /> Log out
-          </button>
         </aside>
 
         {menuOpen ? (
