@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Clock, GitFork, TrendingUp, ChevronDown, type LucideIcon } from 'lucide-react';
@@ -466,6 +466,11 @@ export default function Landing() {
   const startHref = parent ? '/dashboard' : '/register';
   const loginHref = parent ? '/dashboard' : '/login';
 
+  useEffect(() => {
+    if (window.location.hash !== '#pricing') return;
+    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
   return (
     <div className="bp-landing">
       <div className="bp-bg" aria-hidden="true">
@@ -483,6 +488,12 @@ export default function Landing() {
             <a
               href="#pricing"
               className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+              onClick={(event) => {
+                const target = document.getElementById('pricing');
+                if (!target) return;
+                event.preventDefault();
+                target.scrollIntoView({ behavior: 'smooth' });
+              }}
             >
               Pricing
             </a>

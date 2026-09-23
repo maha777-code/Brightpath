@@ -22,8 +22,10 @@ import type {
   TeacherToolDefinition,
   TeacherToolFocusArea,
 } from '@brightpath/shared';
-import { TEACHER_TOOLS_CATALOG } from '@brightpath/shared';
+import { hasAiToolAccess, TEACHER_TOOLS_CATALOG, type AiToolPlan } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { TeacherToolLauncher } from '@/pages/TeacherToolPage';
 
@@ -62,11 +64,23 @@ export default function TeacherTools() {
   const [sort, setSort] = useState<SortKey>('popular');
   const [error, setError] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<TeacherToolDefinition | null>(null);
+  const { role, planType } = useAuth();
+  const [lockedPlan, setLockedPlan] = useState<AiToolPlan | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const res = await api.teacherTools();
-      setTools(res.tools.length ? res.tools : TEACHER_TOOLS_CATALOG);
+      const byId = new Map(TEACHER_TOOLS_CATALOG.map((tool) => [tool.id, tool]));
+      setTools(
+        res.tools.length
+          ? res.tools.map((tool) => ({
+              ...(byId.get(tool.id) ?? {}),
+              ...tool,
+              requiredPlan: tool.requiredPlan ?? byId.get(tool.id)?.requiredPlan ?? 'pro',
+            }))
+          : TEACHER_TOOLS_CATALOG,
+      );
       setFavoriteIds(res.favoriteIds);
       setError(null);
     } catch (e) {
@@ -113,7 +127,15 @@ export default function TeacherTools() {
     }
   };
 
+  const canLaunch = (tool: TeacherToolDefinition) =>
+    hasAiToolAccess({ role, planType, requiredPlan: tool.requiredPlan ?? 'pro' });
+
   const openTool = (tool: TeacherToolDefinition) => {
+    if (!canLaunch(tool)) {
+      setLockedPlan(tool.requiredPlan ?? 'pro');
+      setCheckoutOpen(false);
+      return;
+    }
     if (tool.id === 'curriculum-studio' || tool.href === '/teacher/dashboard') {
       navigate('/teacher/dashboard');
       return;
@@ -263,7 +285,11 @@ export default function TeacherTools() {
                     <span className="font-normal text-slate-400">{tool.description}</span>
                   </div>
                   <p className="mt-4 text-sm font-medium tracking-tight text-cyan-400">
-                    {tool.highlighted ? 'Open Curriculum Studio' : 'Launch tool'}
+                    {canLaunch(tool)
+                      ? tool.highlighted
+                        ? 'Open Curriculum Studio'
+                        : 'Launch tool'
+                      : '🔒 Upgrade to unlock'}
                   </p>
                 </article>
               );
@@ -271,6 +297,29 @@ export default function TeacherTools() {
           </div>
         )}
       </main>
+
+      {lockedPlan && !checkoutOpen ? (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center p-4 sm:items-center">
+          <button type="button" className="absolute inset-0 bg-slate-950/70" aria-label="Close upgrade" onClick={() => setLockedPlan(null)} />
+          <div className="relative z-10 w-full max-w-md rounded-3xl border border-slate-700 bg-slate-900 p-6 text-white" role="dialog" aria-modal="true">
+            <h2 className="text-xl font-bold">Upgrade Plan</h2>
+            <p className="mt-2 text-sm text-slate-300">This tool is included on a higher MindVault plan.</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <a href="/pricing#pricing" className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950">
+                View pricing
+              </a>
+              <button type="button" className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold" onClick={() => setCheckoutOpen(true)}>
+                Upgrade now
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <PaymentUpgradeModal
+        open={checkoutOpen && lockedPlan !== null}
+        onClose={() => setCheckoutOpen(false)}
+        defaultPlan={lockedPlan === 'center_pro' ? 'tutor_center_pro' : 'teacher_pro'}
+      />
 
       {activeTool && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center p-4 sm:items-center">

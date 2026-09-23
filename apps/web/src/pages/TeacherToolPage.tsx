@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Sparkles } from 'lucide-react';
-import { getTeacherToolById, type TeacherToolDefinition } from '@brightpath/shared';
+import { getTeacherToolById, hasAiToolAccess, type AiToolPlan, type TeacherToolDefinition } from '@brightpath/shared';
+import { useAuth } from '@/context/AuthContext';
+import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import QuizGenerator from '@/pages/TeacherTools/QuizGenerator';
 import WorksheetGenerator from '@/pages/TeacherTools/WorksheetGenerator';
 import SongGeneratorDashboard from '@/pages/TeacherTools/SongGeneratorDashboard';
@@ -157,6 +159,8 @@ export function TeacherToolLauncher({
 export default function TeacherToolPage() {
   const { toolId = '' } = useParams<{ toolId: string }>();
   const tool = useMemo(() => getTeacherToolById(toolId), [toolId]);
+  const { role, planType } = useAuth();
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   if (toolId === 'curriculum-studio') {
     return <Navigate to="/teacher/dashboard" replace />;
@@ -170,6 +174,37 @@ export default function TeacherToolPage() {
           <Link to="/teacher/tools" className="mt-4 inline-block text-cyan-200 underline">
             Return to the tools hub
           </Link>
+        </main>
+      </TeacherWorkspaceLayout>
+    );
+  }
+
+  const requiredPlan: AiToolPlan = tool.requiredPlan ?? 'pro';
+  if (!hasAiToolAccess({ role, planType, requiredPlan })) {
+    return (
+      <TeacherWorkspaceLayout>
+        <main className="w-full max-w-lg px-6 py-10">
+          <div className="rounded-3xl border border-slate-700 bg-slate-900 p-8 text-white">
+            <h1 className="text-2xl font-bold">{tool.title}</h1>
+            <p className="mt-2 text-sm text-slate-300">🔒 Upgrade to unlock this tool.</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link to="/pricing#pricing" className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950">
+                View pricing
+              </Link>
+              <button
+                type="button"
+                className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold"
+                onClick={() => setCheckoutOpen(true)}
+              >
+                Upgrade now
+              </button>
+            </div>
+          </div>
+          <PaymentUpgradeModal
+            open={checkoutOpen}
+            onClose={() => setCheckoutOpen(false)}
+            defaultPlan={requiredPlan === 'center_pro' ? 'tutor_center_pro' : 'teacher_pro'}
+          />
         </main>
       </TeacherWorkspaceLayout>
     );

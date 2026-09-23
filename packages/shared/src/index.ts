@@ -452,6 +452,8 @@ export {
   lyricsPreview,
 } from './teacherTools.js';
 
+export type { AiToolPlan } from './teacherTools.js';
+
 export type {
   AppRole,
   OrgType,
@@ -525,6 +527,8 @@ export {
   toAppRole,
   getPlanLimits,
   hasFeatureAccess,
+  hasAiToolAccess,
+  isOwnerAccess,
   maxPdfBytes,
   maxPdfCount,
   isSubscriptionActive,

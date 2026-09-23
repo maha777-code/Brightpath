@@ -11,6 +11,8 @@ export const TEACHER_TOOL_FOCUS_LABELS: Record<TeacherToolFocusArea, string> = {
   communication: 'Communication',
 };
 
+export type AiToolPlan = 'free' | 'pro' | 'center_pro';
+
 export interface TeacherToolDefinition {
   id: string;
   title: string;
@@ -18,6 +20,7 @@ export interface TeacherToolDefinition {
   focusArea: TeacherToolFocusArea;
   /** In-app route. Curriculum studio goes to the existing dashboard. */
   href: string;
+  requiredPlan: AiToolPlan;
   badge?: TeacherToolBadge | null;
   popularity: number;
   newestRank: number;
@@ -34,6 +37,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
       'Upload state textbooks, extract chapters, generate gamified videos & doubt control.',
     focusArea: 'curriculum',
     href: '/teacher/dashboard',
+    requiredPlan: 'center_pro',
     badge: 'Hot',
     popularity: 100,
     newestRank: 11,
@@ -46,6 +50,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Generate custom lyrics and a song on any topic — to the tune of your choice!',
     focusArea: 'content',
     href: '/teacher/tools/song-generator',
+    requiredPlan: 'pro',
     badge: 'Beta',
     popularity: 88,
     newestRank: 1,
@@ -57,6 +62,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Generate an original podcast episode script and audio.',
     focusArea: 'content',
     href: '/teacher/tools/podcast-generator',
+    requiredPlan: 'pro',
     badge: 'New',
     popularity: 82,
     newestRank: 2,
@@ -68,6 +74,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Generate a worksheet based on any topic or text.',
     focusArea: 'assessment',
     href: '/teacher/tools/worksheet-generator',
+    requiredPlan: 'free',
     badge: 'Hot',
     popularity: 91,
     newestRank: 6,
@@ -79,6 +86,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Take any text and rewrite it with custom criteria.',
     focusArea: 'content',
     href: '/teacher/tools/text-rewriter',
+    requiredPlan: 'free',
     popularity: 74,
     newestRank: 8,
     icon: 'pencil',
@@ -89,6 +97,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Generate a lesson plan based on a standard, topic, or objective.',
     focusArea: 'curriculum',
     href: '/teacher/tools/lesson-plan-generator',
+    requiredPlan: 'free',
     popularity: 86,
     newestRank: 5,
     icon: 'clipboard-list',
@@ -99,6 +108,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Generate quizzes based on textbook topics.',
     focusArea: 'assessment',
     href: '/teacher/tools/quiz-generator',
+    requiredPlan: 'free',
     badge: 'Hot',
     popularity: 93,
     newestRank: 4,
@@ -110,6 +120,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Generate exportable slides based on a topic or video.',
     focusArea: 'content',
     href: '/teacher/tools/presentation-generator',
+    requiredPlan: 'pro',
     badge: 'Beta',
     popularity: 70,
     newestRank: 3,
@@ -121,6 +132,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Generate feedback on student writing based on custom rubrics.',
     focusArea: 'assessment',
     href: '/teacher/tools/writing-feedback',
+    requiredPlan: 'pro',
     popularity: 68,
     newestRank: 7,
     icon: 'message-square',
@@ -131,6 +143,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Generate guiding questions aligned to a YouTube video.',
     focusArea: 'content',
     href: '/teacher/tools/youtube-questions',
+    requiredPlan: 'pro',
     popularity: 64,
     newestRank: 9,
     icon: 'youtube',
@@ -141,6 +154,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Draft professional communications.',
     focusArea: 'communication',
     href: '/teacher/tools/family-email',
+    requiredPlan: 'pro',
     popularity: 77,
     newestRank: 10,
     icon: 'mail',

@@ -1,5 +1,7 @@
 /** Multi-tenant RBAC, plans, and feature gating */
 
+import type { AiToolPlan } from './teacherTools.js';
+
 export type AppRole = 'org_admin' | 'center_admin' | 'teacher' | 'parent' | 'student';
 
 /** Signup segments (same as AppRole for new accounts). */
@@ -45,7 +47,7 @@ export const DEFAULT_PLAN_FOR_ROLE: Record<AppRole, PlanType> = {
 
 export const HOME_PATH_FOR_ROLE: Record<AppRole, string> = {
   org_admin: '/admin/school-dashboard',
-  center_admin: '/admin/center-dashboard',
+  center_admin: '/tutor-center',
   teacher: '/home',
   parent: '/parent/dashboard',
   student: '/student/dashboard',
@@ -162,6 +164,37 @@ export const PLAN_LIMITS: Record<PlanType, FeatureLimits> = {
 export function getPlanLimits(planType: PlanType | string | null | undefined): FeatureLimits {
   if (planType && planType in PLAN_LIMITS) return PLAN_LIMITS[planType as PlanType];
   return PLAN_LIMITS.free;
+}
+
+const PRO_PLANS = new Set<string>([
+  'teacher_pro',
+  'student_pro',
+  'tutor_center_pro',
+  'school_enterprise',
+  'family_plan',
+]);
+
+export function isOwnerAccess(role: string | null | undefined): boolean {
+  return role === 'org_admin' || role === 'owner' || role === 'super_admin';
+}
+
+/** Subscription gate for the AI tools library. Owners bypass every lock. */
+export function hasAiToolAccess(input: {
+  role?: string | null;
+  planType?: string | null;
+  requiredPlan: AiToolPlan;
+}): boolean {
+  if (isOwnerAccess(input.role)) return true;
+  if (input.requiredPlan === 'free') return true;
+  const plan = input.planType ?? 'free';
+  const center =
+    plan === 'tutor_center_pro' ||
+    plan === 'school_enterprise' ||
+    plan === 'academy' ||
+    input.role === 'center_admin' ||
+    input.role === 'academy';
+  if (input.requiredPlan === 'pro') return PRO_PLANS.has(plan) || center;
+  return center;
 }
 
 export function hasFeatureAccess(

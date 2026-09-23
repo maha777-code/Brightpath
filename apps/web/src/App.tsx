@@ -60,7 +60,7 @@ function ProtectedStudent({ children }: { children: React.ReactNode }) {
   if (loading) return <div className="app-loading"><div className="loader" /></div>;
   if (role === 'teacher') return <Navigate to="/home" replace />;
   if (role === 'org_admin') return <Navigate to="/admin/school-dashboard" replace />;
-  if (role === 'center_admin') return <Navigate to="/admin/center-dashboard" replace />;
+  if (role === 'center_admin') return <Navigate to="/tutor-center" replace />;
   if (isParentPortalRole(role)) return <Navigate to="/parent/dashboard" replace />;
   if (!parent || !isLearnerRole(role)) return <Navigate to="/login" replace />;
   return <>{children}</>;
@@ -69,6 +69,7 @@ function ProtectedStudent({ children }: { children: React.ReactNode }) {
 function ProtectedTeacher({ children }: { children: React.ReactNode }) {
   const { teacher, role, loading } = useAuth();
   if (loading) return <div className="app-loading"><div className="loader" /></div>;
+  if (role === 'center_admin' || role === 'org_admin') return <>{children}</>;
   if (role !== 'teacher' || !teacher) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
@@ -80,7 +81,7 @@ function ProtectedChapterExplore({ children }: { children: React.ReactNode }) {
   if (role === 'teacher' && teacher) return <>{children}</>;
   if (parent && isLearnerRole(role)) return <>{children}</>;
   if (role === 'org_admin') return <Navigate to="/admin/school-dashboard" replace />;
-  if (role === 'center_admin') return <Navigate to="/admin/center-dashboard" replace />;
+  if (role === 'center_admin') return <Navigate to="/tutor-center" replace />;
   if (isParentPortalRole(role)) return <Navigate to="/parent/dashboard" replace />;
   return <Navigate to="/login" replace />;
 }
@@ -135,6 +136,7 @@ export default function App() {
     <div className="app min-h-screen" style={CYBER_FONT_STYLE}>
       <Routes>
         <Route path="/" element={<RootHome />} />
+        <Route path="/pricing" element={<Landing />} />
         <Route
           path="/home"
           element={
@@ -180,7 +182,23 @@ export default function App() {
         <Route
           path="/admin/center-dashboard"
           element={
-            <RequireRole roles={['center_admin']}>
+            <RequireRole roles={['center_admin', 'org_admin']}>
+              <CenterDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/tutor-center"
+          element={
+            <RequireRole roles={['center_admin', 'org_admin']}>
+              <CenterDashboard />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/academy"
+          element={
+            <RequireRole roles={['center_admin', 'org_admin']}>
               <CenterDashboard />
             </RequireRole>
           }
@@ -188,7 +206,7 @@ export default function App() {
         <Route
           path="/admin/center-dashboard/settings"
           element={
-            <RequireRole roles={['center_admin']}>
+            <RequireRole roles={['center_admin', 'org_admin']}>
               <BrandingSettingsPage />
             </RequireRole>
           }
