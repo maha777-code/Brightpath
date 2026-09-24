@@ -28,7 +28,7 @@ const RESOURCE_LINKS = [
 
 const COMPANY_LINKS = [
   { label: 'About Us', href: '#how-it-works' },
-  { label: 'Pricing & Plans', href: '#pricing' },
+  { label: 'Pricing & Plans', href: '/pricing' },
   { label: 'Security & Privacy', href: '/security' },
   { label: 'Careers', href: 'mailto:hello@brightpath.ai' },
   { label: 'Contact Us', href: '/contact' },

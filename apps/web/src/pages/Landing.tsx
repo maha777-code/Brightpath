@@ -485,18 +485,12 @@ export default function Landing() {
 
           <nav className="bp-nav-center flex items-center space-x-8" aria-label="Main">
             <AiSolutionsMenu />
-            <a
-              href="#pricing"
+            <Link
+              to="/pricing"
               className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
-              onClick={(event) => {
-                const target = document.getElementById('pricing');
-                if (!target) return;
-                event.preventDefault();
-                target.scrollIntoView({ behavior: 'smooth' });
-              }}
             >
               Pricing
-            </a>
+            </Link>
             <a
               href="#how-it-works"
               className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"

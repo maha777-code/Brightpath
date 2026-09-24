@@ -6,6 +6,7 @@ import { homePathForRole, isAppRole, type AppRole } from '@brightpath/shared';
 import Home from '@/pages/Home';
 import SharadaChat from '@/pages/SharadaChat';
 import Landing from '@/pages/Landing';
+import PricingPage from '@/pages/PricingPage';
 import Login from '@/pages/Auth/Login';
 import { CyberLayout } from '@/components/layout/CyberLayout';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
@@ -136,7 +137,7 @@ export default function App() {
     <div className="app min-h-screen" style={CYBER_FONT_STYLE}>
       <Routes>
         <Route path="/" element={<RootHome />} />
-        <Route path="/pricing" element={<Landing />} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route
           path="/home"
           element={

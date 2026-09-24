@@ -94,18 +94,9 @@ export function DashboardHeader({
             <a href="/#how-it-works" className="hover:text-teal-700">
               How It Works
             </a>
-            <a
-              href="/#pricing"
-              className="hover:text-teal-700"
-              onClick={(event) => {
-                const target = document.getElementById('pricing');
-                if (!target) return;
-                event.preventDefault();
-                target.scrollIntoView({ behavior: 'smooth' });
-              }}
-            >
+            <Link to="/pricing" className="hover:text-teal-700">
               Pricing
-            </a>
+            </Link>
             <a href="/#how-it-works" className="hover:text-teal-700">
               For Schools
             </a>
@@ -157,19 +148,13 @@ export function DashboardHeader({
                 >
                   <Cake className="h-4 w-4" /> Age & Grade Settings
                 </button>
-                <a
-                  href="/#pricing"
+                <Link
+                  to="/pricing"
                   className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
-                  onClick={(event) => {
-                    setOpen(false);
-                    const target = document.getElementById('pricing');
-                    if (!target) return;
-                    event.preventDefault();
-                    target.scrollIntoView({ behavior: 'smooth' });
-                  }}
+                  onClick={() => setOpen(false)}
                 >
                   Pricing
-                </a>
+                </Link>
                 <Link
                   to="/parent"
                   className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
