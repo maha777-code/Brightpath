@@ -195,19 +195,6 @@ export const api = {
       };
     }>('/auth/teacher/batches', { method: 'POST', body: JSON.stringify({ name }) }),
 
-  ownerOverview: () =>
-    request<{
-      subscribers: { planType: string; count: number }[];
-      feedback: {
-        id: string;
-        email: string;
-        planType: string;
-        rating: string;
-        text: string | null;
-        createdAt: string;
-      }[];
-    }>('/admin/owner/overview'),
-
   bulkImportUsers: (body: {
     rows: { name: string; email: string; classGrade?: string; role: 'student' | 'teacher' }[];
     sendInvites?: boolean;
