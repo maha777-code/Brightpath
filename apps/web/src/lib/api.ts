@@ -219,6 +219,17 @@ export const api = {
       }[];
     }>('/admin/owner/overview'),
 
+  submitFeedback: (body: {
+    rating: number;
+    category: string;
+    comments: string;
+    pageUrl: string;
+  }) =>
+    request<{ ok: true }>('/feedback', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   sendContact: (body: { name: string; email: string; message: string }) =>
     request<{ success: true; message: string }>('/contact', {
       method: 'POST',

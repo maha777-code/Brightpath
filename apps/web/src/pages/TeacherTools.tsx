@@ -29,6 +29,7 @@ import { useAuth } from '@/context/AuthContext';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { TeacherToolLauncher } from '@/pages/TeacherToolPage';
+import { toolVisibleToRole } from '@/config/toolsRegistry';
 
 type LibraryFilter = 'all' | 'favorites' | 'custom';
 type SortKey = 'popular' | 'newest' | 'alpha';
@@ -97,6 +98,7 @@ export default function TeacherTools() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     let next = tools.filter((tool) => {
+      if (!toolVisibleToRole(tool.id, role)) return false;
       if (focusArea !== 'all' && tool.focusArea !== focusArea) return false;
       if (library === 'favorites' && !favoriteIds.includes(tool.id)) return false;
       if (library === 'custom' && !tool.custom) return false;
@@ -115,7 +117,7 @@ export default function TeacherTools() {
       return b.popularity - a.popularity;
     });
     return next;
-  }, [tools, query, focusArea, library, sort, favoriteIds]);
+  }, [tools, query, focusArea, library, sort, favoriteIds, role]);
 
   const toggleFavorite = async (toolId: string) => {
     const wasFav = favoriteIds.includes(toolId);

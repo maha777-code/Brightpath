@@ -2,7 +2,6 @@ import { Component, useEffect, useMemo, useState, type ErrorInfo, type FormEvent
 import { Navigate } from 'react-router-dom';
 import {
   AlertTriangle,
-  ArrowLeft,
   BookOpen,
   CheckCircle2,
   ClipboardList,
@@ -33,7 +32,9 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { isTeacherToolEnabled, setTeacherToolEnabled } from '@/lib/teacherToolAvailability';
-import { sampleOutput } from '@/lib/toolPreview';
+import { ToolRenderer } from '@/components/tools/ToolRenderer';
+import { getRegistryTool, toToolDefinition, type ToolDefinition } from '@/config/toolsRegistry';
+import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 
 type Tab = 'overview' | 'tools' | 'feedback';
 
@@ -206,7 +207,7 @@ export default function OwnerDashboard() {
   return (
     <DashboardErrorBoundary>
     <div className="flex min-h-screen flex-col bg-[#070a12] text-slate-100 md:flex-row">
-      <aside className="w-full shrink-0 space-y-6 border-r border-slate-800 bg-[#0c1220] p-6 md:w-64">
+      <aside className="flex w-full shrink-0 flex-col gap-6 border-r border-slate-800 bg-[#0c1220] p-6 md:min-h-screen md:w-64">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">School Admin</span>
           <h2 className="mt-1 text-xl font-black text-white">Admin Panel</h2>
@@ -234,6 +235,9 @@ export default function OwnerDashboard() {
             Ratings & Feedback
           </button>
         </nav>
+        <div className="mt-auto border-t border-slate-800 pt-4">
+          <FeedbackMenuButton />
+        </div>
       </aside>
 
       <main className="flex-1 space-y-8 p-8">
@@ -533,89 +537,38 @@ export default function OwnerDashboard() {
         </div>
       ) : null}
 
-      {preview ? <AdminToolPreview tool={preview} onClose={() => setPreview(null)} /> : null}
+      {preview ? (
+        <AdminToolPreview
+          tool={
+            getRegistryTool(preview.id) ??
+            toToolDefinition(
+              {
+                id: preview.id,
+                title: preview.title,
+                description: preview.description,
+                focusArea: preview.focusArea,
+                href: preview.href,
+                requiredPlan: (preview.requiredPlan as 'free' | 'pro' | 'center_pro') || 'pro',
+                popularity: preview.popularity,
+                newestRank: preview.newestRank,
+                icon: preview.icon,
+              },
+              preview.staged,
+            )
+          }
+          onClose={() => setPreview(null)}
+        />
+      ) : null}
     </div>
     </DashboardErrorBoundary>
   );
 }
 
-function AdminToolPreview({ tool, onClose }: { tool: DraftTool; onClose: () => void }) {
-  const [grade, setGrade] = useState('9th grade');
-  const [topic, setTopic] = useState('');
-  const [output, setOutput] = useState('');
-
-  const runPreview = (event: FormEvent) => {
-    event.preventDefault();
-    setOutput(sampleOutput({ id: tool.id, title: tool.title || 'tool' }, topic, grade));
-  };
-
+function AdminToolPreview({ tool, onClose }: { tool: ToolDefinition; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
-      <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-slate-800 bg-[#0b101d]">
-        <div className="flex items-center justify-between border-b border-slate-800 bg-[#080d19] px-6 py-4">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="cursor-pointer appearance-none rounded-xl border border-transparent bg-slate-800 p-2 text-slate-300"
-              aria-label="Close preview"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <div>
-              <span className="text-xs font-bold uppercase text-cyan-400">Admin test sandbox</span>
-              <h2 className="text-lg font-bold text-white">{tool.title}</h2>
-            </div>
-          </div>
-          <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-bold text-cyan-400">
-            Target plan: {planLabel(tool.requiredPlan)}
-          </span>
-        </div>
-        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-12">
-          <form onSubmit={runPreview} className="space-y-4 overflow-y-auto border-r border-slate-800/80 bg-[#070a12] p-6 lg:col-span-5">
-            <label className="block space-y-1 text-xs font-bold text-slate-300">
-              Grade level
-              <select
-                value={grade}
-                onChange={(event) => setGrade(event.target.value)}
-                className="w-full rounded-xl border border-slate-800 bg-[#0d1322] p-3 text-xs text-white"
-                style={{ backgroundColor: '#0d1322' }}
-              >
-                <option>9th grade</option>
-                <option>10th grade</option>
-              </select>
-            </label>
-            <label className="block space-y-1 text-xs font-bold text-slate-300">
-              Topic or text
-              <textarea
-                rows={6}
-                value={topic}
-                onChange={(event) => setTopic(event.target.value)}
-                placeholder="Enter prompt criteria..."
-                className="w-full resize-none rounded-xl border border-slate-800 bg-[#0d1322] p-3 text-xs text-white"
-                style={{ backgroundColor: '#0d1322', color: '#fff' }}
-              />
-            </label>
-            <button
-              type="submit"
-              className="w-full cursor-pointer appearance-none rounded-xl border border-transparent bg-cyan-400 py-3 text-sm font-extrabold text-slate-950"
-            >
-              Generate test output
-            </button>
-            <p className="text-xs text-slate-500">
-              This is a template preview inside the admin dashboard. It does not call the teacher generator or leave this page.
-            </p>
-          </form>
-          <div className="space-y-4 overflow-y-auto bg-[#0c1220] p-6 lg:col-span-7">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3 text-xs text-slate-400">
-              <span className="font-bold uppercase tracking-wider">Output preview</span>
-              <span>Name / date header template</span>
-            </div>
-            <div className="min-h-[300px] whitespace-pre-wrap rounded-2xl border border-slate-800/80 bg-[#080d19] p-6 text-xs leading-relaxed text-slate-300">
-              {output || 'Output will render here when testing prompt configurations...'}
-            </div>
-          </div>
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md sm:p-8">
+      <div className="flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-slate-800 bg-[#060911] shadow-2xl">
+        <ToolRenderer tool={tool} mode="admin-preview" onClose={onClose} />
       </div>
     </div>
   );

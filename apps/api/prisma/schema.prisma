@@ -680,3 +680,18 @@ model ClassEnrollment {
   @@index([studentUserId])
   @@index([classBatchId])
 }
+
+model ProductFeedback {
+  id          String   @id @default(cuid())
+  userId      String
+  userEmail   String
+  userRole    String
+  rating      Int
+  category    String
+  comments    String   @default("")
+  pageUrl     String
+  createdAt   DateTime @default(now())
+
+  @@index([userRole, createdAt])
+  @@index([userId])
+}

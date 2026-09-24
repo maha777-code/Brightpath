@@ -41,7 +41,7 @@ async function hasPublicColumn(table: string, column: string): Promise<boolean> 
 /** True when login + teacher video pipeline columns are present. */
 export async function isDatabaseSchemaCurrent(): Promise<boolean> {
   try {
-    const [platformPlan, teacherPlan, videoStatus, cuesJson, activityTable, activityContent, attachmentTable, videoTemplateCol, activityTemplateCol, toolFavoriteTable] =
+    const [platformPlan, teacherPlan, videoStatus, cuesJson, activityTable, activityContent, attachmentTable, videoTemplateCol, activityTemplateCol, toolFavoriteTable, productFeedbackTable] =
       await Promise.all([
         hasPublicColumn('PlatformUser', 'planType'),
         hasPublicColumn('Teacher', 'planType'),
@@ -53,6 +53,7 @@ export async function isDatabaseSchemaCurrent(): Promise<boolean> {
         hasPublicColumn('TeacherSubtopic', 'videoTemplateId'),
         hasPublicColumn('TeacherSubtopic', 'activityTemplateId'),
         hasPublicTable('TeacherToolFavorite'),
+        hasPublicTable('ProductFeedback'),
       ]);
     return (
       platformPlan &&
@@ -64,7 +65,8 @@ export async function isDatabaseSchemaCurrent(): Promise<boolean> {
       attachmentTable &&
       videoTemplateCol &&
       activityTemplateCol &&
-      toolFavoriteTable
+      toolFavoriteTable &&
+      productFeedbackTable
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -100,7 +102,34 @@ function runPrismaDbPush(): void {
  * Local/dev: apply pending Prisma schema so teacher login does not 503 after pulls.
  * Disable with AUTO_DB_PUSH=false. Production is off unless AUTO_DB_PUSH=true.
  */
+async function ensureProductFeedbackTable(): Promise<void> {
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "ProductFeedback" (
+      "id" TEXT NOT NULL,
+      "userId" TEXT NOT NULL,
+      "userEmail" TEXT NOT NULL,
+      "userRole" TEXT NOT NULL,
+      "rating" INTEGER NOT NULL,
+      "category" TEXT NOT NULL,
+      "comments" TEXT NOT NULL DEFAULT '',
+      "pageUrl" TEXT NOT NULL,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "ProductFeedback_pkey" PRIMARY KEY ("id")
+    )
+  `);
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "ProductFeedback_userRole_createdAt_idx" ON "ProductFeedback"("userRole", "createdAt")`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "ProductFeedback_userId_idx" ON "ProductFeedback"("userId")`,
+  );
+}
+
 export async function ensureDatabaseSchema(): Promise<void> {
+  await ensureProductFeedbackTable().catch((err) => {
+    console.warn('ProductFeedback table was not created:', err instanceof Error ? err.message : err);
+  });
+
   if (!autoPushEnabled()) {
     const current = await isDatabaseSchemaCurrent().catch(() => false);
     if (!current) {

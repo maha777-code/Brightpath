@@ -32,7 +32,7 @@ function mergeSongs(remote: TeacherSong[], local: TeacherSong[]): TeacherSong[] 
   );
 }
 
-export default function SongGeneratorDashboard() {
+export default function SongGeneratorDashboard({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -140,8 +140,7 @@ export default function SongGeneratorDashboard() {
     }));
   };
 
-  return (
-    <DashboardLayout>
+  const studio = (
       <div className="min-h-0 flex-1 overflow-y-auto bg-[#f3f4f8] text-slate-800">
         <div className="mx-auto max-w-6xl space-y-5 px-5 py-6 sm:px-8">
           <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -344,6 +343,7 @@ export default function SongGeneratorDashboard() {
           </section>
         </div>
       </div>
-    </DashboardLayout>
   );
+  if (embedded) return studio;
+  return <DashboardLayout>{studio}</DashboardLayout>;
 }

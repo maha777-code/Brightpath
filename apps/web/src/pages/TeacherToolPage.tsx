@@ -1,17 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { getTeacherToolById, hasAiToolAccess, type AiToolPlan, type TeacherToolDefinition } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { isTeacherToolEnabled } from '@/lib/teacherToolAvailability';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
-import QuizGenerator from '@/pages/TeacherTools/QuizGenerator';
-import WorksheetGenerator from '@/pages/TeacherTools/WorksheetGenerator';
-import SongGeneratorDashboard from '@/pages/TeacherTools/SongGeneratorDashboard';
-import LessonPlanGenerator from '@/pages/TeacherTools/LessonPlanGenerator';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
-import { sampleOutput } from '@/lib/toolPreview';
+import { ToolRenderer } from '@/components/tools/ToolRenderer';
+import { getRegistryTool, toToolDefinition } from '@/config/toolsRegistry';
 
 export function TeacherToolLauncher({
   tool,
@@ -24,12 +21,14 @@ export function TeacherToolLauncher({
   favorited?: boolean;
   onToggleFavorite?: () => void;
 }) {
-  const [topic, setTopic] = useState('');
-  const [grade, setGrade] = useState('Class 9');
-  const [output, setOutput] = useState<string | null>(null);
+  void favorited;
+  void onToggleFavorite;
+
+  const entry = getRegistryTool(tool.id) ?? toToolDefinition(tool);
+  const rendered = <ToolRenderer tool={entry} mode="production" />;
 
   if (tool.id === 'quiz-generator') {
-    const quiz = <QuizGenerator favorited={favorited} onToggleFavorite={onToggleFavorite} />;
+    const quiz = rendered;
     if (embedded) return quiz;
     return (
       <TeacherWorkspaceLayout>
@@ -49,19 +48,13 @@ export function TeacherToolLauncher({
   }
 
   if (tool.id === 'worksheet-generator') {
-    const worksheet = (
-      <WorksheetGenerator favorited={favorited} onToggleFavorite={onToggleFavorite} />
-    );
+    const worksheet = rendered;
     if (embedded) return worksheet;
     return <DashboardLayout>{worksheet}</DashboardLayout>;
   }
 
-  if (tool.id === 'song-generator') {
-    return <SongGeneratorDashboard />;
-  }
-
-  if (tool.id === 'lesson-plan') {
-    return <LessonPlanGenerator />;
+  if (tool.id === 'song-generator' || tool.id === 'lesson-plan') {
+    return rendered;
   }
 
   const body = (
@@ -76,48 +69,7 @@ export function TeacherToolLauncher({
           </Link>
         </div>
       )}
-      <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-cyan-200/70">
-          {tool.focusArea}
-        </p>
-        <h1 className="mt-1 text-3xl font-extrabold text-white">{tool.title}</h1>
-        <p className="mt-2 text-base text-cyan-200/80">{tool.description}</p>
-      </div>
-      <label className="block">
-        <span className="mb-1 block text-sm font-semibold text-cyan-100">Topic or text</span>
-        <textarea
-          className="td-input min-h-28 w-full rounded-2xl px-4 py-3 text-base"
-          placeholder="Enter a topic, standard, or source text…"
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-        />
-      </label>
-      <label className="block max-w-xs">
-        <span className="mb-1 block text-sm font-semibold text-cyan-100">Grade</span>
-        <select
-          className="td-input w-full rounded-2xl px-4 py-3 text-base"
-          value={grade}
-          onChange={(e) => setGrade(e.target.value)}
-        >
-          {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'].map((g) => (
-            <option key={g} value={g}>
-              {g}
-            </option>
-          ))}
-        </select>
-      </label>
-      <button
-        type="button"
-        className="td-btn-cta inline-flex items-center gap-2 rounded-full px-6 py-3 text-base font-semibold"
-        onClick={() => setOutput(sampleOutput(tool, topic, grade))}
-      >
-        <Sparkles className="h-4 w-4" /> Generate
-      </button>
-      {output && (
-        <pre className="td-card whitespace-pre-wrap rounded-2xl p-5 text-sm leading-relaxed text-cyan-50">
-          {output}
-        </pre>
-      )}
+      {rendered}
     </div>
   );
 

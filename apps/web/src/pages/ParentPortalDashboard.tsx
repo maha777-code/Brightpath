@@ -5,6 +5,8 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { HomeButton } from '@/components/Navigation/HomeButton';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
+import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
+import { RoleToolsPanel } from '@/components/tools/RoleToolsPanel';
 
 const ACCENT = '#5B46BA';
 
@@ -51,7 +53,14 @@ export default function ParentPortalDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50">
+      <aside className="flex w-56 shrink-0 flex-col border-r border-slate-200 bg-white p-4">
+        <p className="px-2 text-xs font-bold uppercase tracking-wider text-indigo-600">Parent</p>
+        <div className="mt-auto">
+          <FeedbackMenuButton variant="light" />
+        </div>
+      </aside>
+      <div className="min-w-0 flex-1">
       <header className="border-b border-slate-200 bg-white px-4 py-4 sm:px-8">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -77,6 +86,8 @@ export default function ParentPortalDashboard() {
           Plan: <strong>{planType ?? 'parent_free'}</strong>
         </p>
         {msg && <p className="text-sm font-semibold text-indigo-700">{msg}</p>}
+
+        <RoleToolsPanel />
 
         <section className="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm">
           <h2 className="text-sm font-extrabold text-slate-800">Child link code</h2>
@@ -132,6 +143,7 @@ export default function ParentPortalDashboard() {
           </p>
         </section>
       </main>
+      </div>
     </div>
   );
 }

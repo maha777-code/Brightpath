@@ -9,6 +9,8 @@ import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import { useOrgTheme } from '@/context/OrgThemeProvider';
 import { HomeButton } from '@/components/Navigation/HomeButton';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
+import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
+import { RoleToolsPanel } from '@/components/tools/RoleToolsPanel';
 
 export default function SchoolDashboard() {
   const { user, organization, logout, planType } = useAuth();
@@ -33,7 +35,14 @@ export default function SchoolDashboard() {
   }, [organization?.subscriptionStatus]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50">
+      <aside className="flex w-56 shrink-0 flex-col border-r border-slate-200 bg-white p-4">
+        <p className="px-2 text-xs font-bold uppercase tracking-wider text-indigo-600">School</p>
+        <div className="mt-auto">
+          <FeedbackMenuButton variant="light" />
+        </div>
+      </aside>
+      <div className="min-w-0 flex-1">
       <header className="border-b border-slate-200 bg-white px-4 py-4 sm:px-8">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -121,6 +130,8 @@ export default function SchoolDashboard() {
           </button>
         </div>
 
+        <RoleToolsPanel />
+
         <section className="rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/40 p-5">
           <h2 className="text-sm font-extrabold text-slate-800">Enterprise capabilities</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
@@ -138,6 +149,7 @@ export default function SchoolDashboard() {
         onClose={() => setPayOpen(false)}
         defaultPlan="school_enterprise"
       />
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, Home, LayoutGrid, LogOut, Menu, X } from 'lucide-react';
+import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useDisplayUser } from '@/lib/displayUser';
@@ -130,6 +131,7 @@ export function TeacherSidebar() {
         </div>
 
         <div className="border-t border-slate-800 pt-4">
+          <FeedbackMenuButton />
           <div className="mb-2 flex items-center gap-2 px-3">
             <span className="badge-cyber">[ONLINE]</span>
           </div>

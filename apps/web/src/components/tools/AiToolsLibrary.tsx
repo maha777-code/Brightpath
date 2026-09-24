@@ -22,6 +22,7 @@ import {
   type TeacherToolDefinition,
 } from '@brightpath/shared';
 import { isTeacherToolEnabled } from '@/lib/teacherToolAvailability';
+import { toolVisibleToRole } from '@/config/toolsRegistry';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
@@ -79,7 +80,7 @@ export function AiToolsLibrary({
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {TEACHER_TOOLS_CATALOG.map((tool) => {
+        {TEACHER_TOOLS_CATALOG.filter((tool) => toolVisibleToRole(tool.id, userRole)).map((tool) => {
           const enabled = isTeacherToolEnabled(tool.id);
           const accessible =
             enabled &&

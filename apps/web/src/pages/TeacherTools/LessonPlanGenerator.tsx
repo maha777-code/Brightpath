@@ -889,7 +889,7 @@ function StudioComposer({
   );
 }
 
-export default function LessonPlanGenerator() {
+export default function LessonPlanGenerator({ embedded = false }: { embedded?: boolean }) {
   const [gradeLevel, setGradeLevel] = useState('9th grade');
   const [topic, setTopic] = useState('');
   const [criteria, setCriteria] = useState('');
@@ -989,8 +989,7 @@ export default function LessonPlanGenerator() {
     }
   };
 
-  return (
-    <DashboardLayout>
+  const studio = (
       <div
         className="lesson-plan-studio flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0d131f] text-slate-100"
         style={{ ...FONT, colorScheme: 'dark' }}
@@ -1124,6 +1123,7 @@ export default function LessonPlanGenerator() {
           </button>
         </div>
       </div>
-    </DashboardLayout>
   );
+  if (embedded) return studio;
+  return <DashboardLayout>{studio}</DashboardLayout>;
 }

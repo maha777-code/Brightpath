@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { HomeButton } from '@/components/Navigation/HomeButton';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
+import { RoleToolsPanel } from '@/components/tools/RoleToolsPanel';
 
 /** Student home: join-class strip + existing learning dashboard. */
 export default function StudentDashboard() {
@@ -64,6 +65,9 @@ export default function StudentDashboard() {
           </form>
         </div>
         {msg && <p className="mx-auto mt-2 max-w-6xl text-xs font-semibold text-indigo-700">{msg}</p>}
+      </div>
+      <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+        <RoleToolsPanel />
       </div>
       <Dashboard />
     </div>

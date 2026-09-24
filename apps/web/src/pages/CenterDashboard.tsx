@@ -22,6 +22,7 @@ import { AcademyHome, type AcademyStats } from '@/components/academy/AcademyHome
 import { AcademyAnalytics } from '@/components/academy/AcademyAnalytics';
 import { AcademySettingsBilling } from '@/components/academy/AcademySettingsBilling';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
+import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 
 type Panel = 'home' | 'tools' | 'people' | 'courses' | 'analytics' | 'settings';
 
@@ -105,6 +106,7 @@ export default function CenterDashboard() {
             </nav>
           </div>
           <div className="mt-auto border-t border-slate-800/60 pt-4">
+            <FeedbackMenuButton />
             <button
               type="button"
               onClick={() => {

@@ -1,5 +1,6 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Bot, Map, Library, ChartNoAxesCombined, Settings } from 'lucide-react';
+import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 
 type SidebarItem =
   | {
@@ -123,6 +124,9 @@ export function DashboardSidebar({ onOpenSettings }: DashboardSidebarProps) {
           </NavLink>
         );
       })}
+      <div className="mt-auto">
+        <FeedbackMenuButton variant="icon" />
+      </div>
     </aside>
   );
 }
