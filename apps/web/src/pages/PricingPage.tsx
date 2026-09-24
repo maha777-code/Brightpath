@@ -17,7 +17,10 @@ function monthlyEquivalent(yearlyPaise: number) {
 }
 
 const buttonClass =
-  'inline-flex w-full cursor-pointer appearance-none items-center justify-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-bold transition-all';
+  'inline-flex w-full cursor-pointer appearance-none items-center justify-center gap-2 rounded-xl border-2 px-4 py-3.5 text-base font-extrabold transition-all';
+
+const cardClass =
+  'flex h-full min-h-[620px] flex-col justify-between rounded-2xl bg-[#0b0f1a] p-8 shadow-xl transition-all sm:p-10';
 
 export default function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(true);
@@ -25,75 +28,75 @@ export default function PricingPage() {
   const center = RAZORPAY_PLAN_AMOUNTS_INR.tutor_center_pro;
 
   return (
-    <div id="pricing" className="min-h-screen bg-[#0b0f19] px-4 py-10 text-slate-100 sm:px-6 lg:px-8">
-      <header className="mx-auto mb-10 flex max-w-7xl items-center justify-between">
-        <BrandLogo variant="full" to="/" imgClassName="h-10 w-auto object-contain" />
-        <Link to="/login" className="text-sm font-semibold text-slate-300 hover:text-cyan-400">
+    <div id="pricing" className="flex min-h-screen w-full flex-col bg-[#090d16] px-6 py-10 text-slate-100 sm:px-10 lg:px-16">
+      <header className="flex w-full items-center justify-between pb-8">
+        <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
+        <Link to="/login" className="text-base font-semibold text-slate-300 underline underline-offset-4 hover:text-white">
           Log in
         </Link>
       </header>
 
-      <div className="mx-auto mb-12 max-w-7xl space-y-4 text-center">
-        <span className="inline-block rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-cyan-400">
+      <div className="mb-8 w-full space-y-4 text-center">
+        <span className="inline-block rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3.5 py-1.5 text-sm font-bold uppercase tracking-widest text-cyan-400">
           Flexible Pricing
         </span>
-        <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl">
+        <h1 className="text-5xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl">
           Find the plan that fits your academy best.
         </h1>
-        <p className="mx-auto max-w-2xl text-base text-slate-400">
+        <p className="mx-auto max-w-3xl text-lg text-slate-400">
           Unlock full access to AI tool generators, custom branding, and multi-tutor management.
         </p>
 
-        <div className="flex items-center justify-center gap-3 pt-4">
-          <span className={`text-sm font-medium ${!isAnnual ? 'text-white' : 'text-slate-400'}`}>Monthly</span>
+        <div className="flex items-center justify-center gap-4 pt-2">
+          <span className={`text-xl font-medium ${!isAnnual ? 'text-white' : 'text-slate-300'}`}>Monthly</span>
           <button
             type="button"
             aria-pressed={isAnnual}
             onClick={() => setIsAnnual((value) => !value)}
-            className="relative h-8 w-14 cursor-pointer appearance-none rounded-full border border-slate-700 bg-slate-800 p-1"
+            className="relative h-9 w-16 cursor-pointer appearance-none rounded-full border border-slate-700 bg-slate-800 p-1"
           >
             <span
-              className={`block h-6 w-6 rounded-full bg-cyan-400 transition-transform ${
-                isAnnual ? 'translate-x-6' : 'translate-x-0'
+              className={`block h-7 w-7 rounded-full bg-cyan-400 transition-transform ${
+                isAnnual ? 'translate-x-7' : 'translate-x-0'
               }`}
             />
           </button>
-          <span className={`text-sm font-medium ${isAnnual ? 'text-white' : 'text-slate-400'}`}>
-            Billed annually{' '}
-            <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-xs font-bold text-cyan-400">
+          <span className={`flex items-center gap-3 text-xl font-bold ${isAnnual ? 'text-white' : 'text-slate-300'}`}>
+            Billed annually
+            <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-sm font-extrabold uppercase tracking-wide text-cyan-400">
               2 months included
             </span>
           </span>
         </div>
       </div>
 
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 rounded-3xl border border-slate-800/80 bg-slate-900/40 p-6 backdrop-blur-xl md:grid-cols-4">
-        <div className="flex flex-col justify-between p-4">
+      <main className="flex w-full flex-1 items-stretch rounded-3xl border border-slate-800/80 bg-[#0d1322] p-8 backdrop-blur-xl sm:p-10 lg:p-12">
+      <div className="grid w-full grid-cols-1 items-stretch gap-8 md:grid-cols-4">
+        <div className="flex h-full min-h-[620px] flex-col justify-between p-4">
           <div>
-            <h2 className="mb-2 text-2xl font-bold text-white">Compare plans</h2>
-            <p className="text-sm text-slate-400">
+            <h2 className="mb-4 text-4xl font-extrabold tracking-tight text-white">Compare plans</h2>
+            <p className="text-lg leading-relaxed text-slate-300">
               Find the plan that fits your school, tutoring center, or enterprise district best.
             </p>
           </div>
-          <p className="hidden pt-8 text-xs text-slate-500 md:block">
-            Need custom seat counts?
-            <br />
-            <Link to="/contact" className="text-cyan-400 hover:underline">
+          <div className="pt-12 text-base text-slate-400">
+            <p className="font-medium">Need custom seat counts?</p>
+            <Link to="/contact" className="mt-1 inline-block font-bold text-cyan-400 hover:underline">
               Contact our sales team →
             </Link>
-          </p>
+          </div>
         </div>
 
-        <article className="flex flex-col justify-between rounded-2xl border border-slate-800 bg-slate-900/60 p-6 transition-all hover:border-slate-700">
+        <article className={`${cardClass} border border-slate-800/90 hover:border-slate-700`}>
           <div>
-            <div className="mb-4 inline-block rounded-md border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1 text-xs font-bold text-cyan-400">
+            <div className="inline-block rounded-md border border-cyan-500/20 bg-cyan-500/10 px-3.5 py-1.5 text-sm font-extrabold uppercase tracking-wider text-cyan-400">
               FREE
             </div>
-            <div className="mb-1 text-4xl font-extrabold text-white">{inr(0)}</div>
-            <p className="mb-4 text-xs text-slate-400">Forever free</p>
-            <p className="mb-6 min-h-[36px] text-xs text-slate-300">For individual teachers exploring AI tools.</p>
+            <div className="mt-6 text-5xl font-black text-white">{inr(0)}</div>
+            <p className="mb-6 mt-2 text-sm text-slate-400">Forever free</p>
+            <p className="mb-8 min-h-[48px] text-base leading-normal text-slate-300">For individual teachers exploring AI tools.</p>
             <Link to="/register" className={`${buttonClass} border-slate-700 bg-transparent text-slate-200 hover:bg-slate-800`}>
-              Try it free <ArrowUpRight className="h-4 w-4" />
+              Try it free <ArrowUpRight className="h-5 w-5" />
             </Link>
             <FeatureList
               items={[
@@ -105,22 +108,22 @@ export default function PricingPage() {
           </div>
         </article>
 
-        <article className="flex flex-col justify-between rounded-2xl border border-purple-500/40 bg-slate-900/60 p-6 shadow-lg shadow-purple-950/30">
+        <article className={`${cardClass} border border-purple-500/30 shadow-purple-950/30 hover:border-purple-500/60`}>
           <div>
-            <div className="mb-4 inline-block rounded-md border border-purple-500/30 bg-purple-500/10 px-2.5 py-1 text-xs font-bold text-purple-300">
+            <div className="inline-block rounded-md border border-purple-500/20 bg-purple-500/10 px-3.5 py-1.5 text-sm font-extrabold uppercase tracking-wider text-purple-400">
               TEACHER PRO
             </div>
-            <div className="mb-1 text-4xl font-extrabold text-white">
+            <div className="mt-6 text-5xl font-black text-white">
               {isAnnual ? monthlyEquivalent(teacher.yearly) : inr(teacher.monthly)}
             </div>
-            <p className="mb-4 text-xs text-slate-400">
+            <p className="mb-6 mt-2 text-sm text-slate-400">
               {isAnnual ? `${inr(teacher.yearly)} billed yearly` : 'INR / month'}
             </p>
-            <p className="mb-6 min-h-[36px] text-xs text-slate-300">
+            <p className="mb-8 min-h-[48px] text-base leading-normal text-slate-300">
               For tutors who need the pro generators and unlimited doubts.
             </p>
             <Link to="/register" className={`${buttonClass} border-transparent bg-[#7c3aed] text-white hover:bg-purple-500`}>
-              Start Teacher Pro <ArrowUpRight className="h-4 w-4" />
+              Start Teacher Pro <ArrowUpRight className="h-5 w-5" />
             </Link>
             <FeatureList
               items={[
@@ -132,22 +135,22 @@ export default function PricingPage() {
           </div>
         </article>
 
-        <article className="flex flex-col justify-between rounded-2xl border border-cyan-500/30 bg-slate-900/60 p-6 shadow-lg shadow-cyan-950/20">
+        <article className={`${cardClass} border border-cyan-500/40 shadow-cyan-950/20 hover:border-cyan-500/70`}>
           <div>
-            <div className="mb-4 inline-block rounded-md border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1 text-xs font-bold text-cyan-400">
+            <div className="inline-block rounded-md border border-cyan-500/20 bg-cyan-500/10 px-3.5 py-1.5 text-sm font-extrabold uppercase tracking-wider text-cyan-400">
               CENTER PRO
             </div>
-            <div className="mb-1 text-4xl font-extrabold text-white">
+            <div className="mt-6 text-5xl font-black text-white">
               {isAnnual ? monthlyEquivalent(center.yearly) : inr(center.monthly)}
             </div>
-            <p className="mb-4 text-xs text-slate-400">
+            <p className="mb-6 mt-2 text-sm text-slate-400">
               {isAnnual ? `${inr(center.yearly)} billed yearly` : 'INR / month'}
             </p>
-            <p className="mb-6 min-h-[36px] text-xs text-slate-300">
+            <p className="mb-8 min-h-[48px] text-base leading-normal text-slate-300">
               For tutoring academies managing tutors, seats, and branding.
             </p>
             <Link to="/register" className={`${buttonClass} border-transparent bg-[#00b4d8] text-slate-950 hover:bg-cyan-300`}>
-              Start Center Pro <ArrowUpRight className="h-4 w-4" />
+              Start Center Pro <ArrowUpRight className="h-5 w-5" />
             </Link>
             <FeatureList
               items={[
@@ -159,24 +162,18 @@ export default function PricingPage() {
           </div>
         </article>
       </div>
-
-      <p className="mx-auto mt-8 max-w-7xl text-center text-sm text-slate-500 md:hidden">
-        Need custom seat counts?{' '}
-        <Link to="/contact" className="text-cyan-400 hover:underline">
-          Contact our sales team →
-        </Link>
-      </p>
+      </main>
     </div>
   );
 }
 
 function FeatureList({ items }: { items: string[] }) {
   return (
-    <div className="mt-8 space-y-3">
-      <p className="text-xs font-semibold uppercase text-slate-400">Key features include:</p>
+    <div className="mt-10 space-y-4">
+      <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Key features include:</p>
       {items.map((item) => (
-        <div key={item} className="flex items-start gap-2 text-sm text-slate-300">
-          <CheckSquare className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" />
+        <div key={item} className="flex items-start gap-3 text-base text-slate-200">
+          <CheckSquare className="mt-0.5 h-5 w-5 shrink-0 text-cyan-400" />
           <span>{item}</span>
         </div>
       ))}
