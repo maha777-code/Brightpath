@@ -36,8 +36,8 @@ export default function ContactUs() {
   };
 
   return (
-    <div className="bp-contact flex min-h-screen items-center justify-center bg-slate-950 px-4 py-16 text-slate-200 sm:px-6 lg:px-8">
-      <div className="w-full max-w-4xl space-y-8 rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] backdrop-blur-xl md:p-12">
+    <div className="bp-contact flex min-h-screen items-center justify-center bg-[#070a12] p-6 text-slate-200 sm:p-10">
+      <div className="mx-auto w-full space-y-8 rounded-3xl border border-slate-800/80 bg-[#0d1322] p-8 shadow-2xl backdrop-blur-xl sm:p-10 lg:w-[75vw] lg:max-w-[75vw] lg:p-12">
         <div>
           <Link to="/" className={BACK_CLASS}>
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
@@ -49,8 +49,8 @@ export default function ContactUs() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 pt-2 md:grid-cols-2">
-          <div className="space-y-6 rounded-2xl border border-slate-800 bg-slate-950/80 p-6 md:p-8">
+        <div className="grid grid-cols-1 items-stretch gap-8 pt-2 lg:grid-cols-12">
+          <div className="flex flex-col justify-between space-y-8 rounded-2xl border border-slate-800/90 bg-[#080d19] p-8 lg:col-span-5 lg:p-10">
             <h2 className="border-b border-slate-800 pb-3 text-2xl font-bold text-white">Get in Touch</h2>
 
             <div className="flex items-start gap-4">
@@ -83,7 +83,7 @@ export default function ContactUs() {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 rounded-2xl p-2 lg:col-span-7 lg:p-4">
             <h2 className="text-2xl font-bold text-white">Send a Message</h2>
             {submitted ? (
               <div
@@ -150,7 +150,7 @@ export default function ContactUs() {
                   type="submit"
                   disabled={loading}
                   aria-busy={loading}
-                  className="w-full rounded-xl bg-cyan-500 py-3.5 text-lg font-bold text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full cursor-pointer appearance-none rounded-xl border border-transparent bg-cyan-400 py-3.5 text-lg font-bold text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? 'Sending Message...' : 'Send Message'}
                 </button>
