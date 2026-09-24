@@ -115,6 +115,7 @@ export default function OwnerDashboard() {
   const [query, setQuery] = useState('');
   const [focus, setFocus] = useState<'all' | TeacherToolFocusArea>('all');
   const [planFilter, setPlanFilter] = useState('all');
+  const [sort, setSort] = useState<'popular' | 'alpha' | 'newest'>('popular');
   const [preview, setPreview] = useState<DraftTool | null>(null);
   const [subscribers, setSubscribers] = useState<SubscriberRow[]>([]);
   const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
