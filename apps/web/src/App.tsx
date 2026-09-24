@@ -31,6 +31,7 @@ import SongGeneratorCreate from '@/pages/TeacherTools/SongGeneratorCreate';
 import LessonPlanGenerator from '@/pages/TeacherTools/LessonPlanGenerator';
 import TeacherChapterManagePage from '@/pages/TeacherChapterManagePage';
 import SchoolDashboard from '@/pages/SchoolDashboard';
+import OwnerDashboard from '@/pages/admin/OwnerDashboard';
 import CenterDashboard from '@/pages/CenterDashboard';
 import ParentPortalDashboard from '@/pages/ParentPortalDashboard';
 import StudentDashboard from '@/pages/StudentDashboard';
@@ -164,6 +165,14 @@ export default function App() {
         <Route path="/cookie-preferences" element={<CookiePreferences />} />
         <Route path="/contact" element={<ContactUs />} />
 
+        <Route
+          path="/admin/dashboard"
+          element={
+            <RequireRole roles={['org_admin']}>
+              <OwnerDashboard />
+            </RequireRole>
+          }
+        />
         <Route
           path="/admin/school-dashboard"
           element={

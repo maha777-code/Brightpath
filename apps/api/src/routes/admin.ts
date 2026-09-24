@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { hasFeatureAccess, type AppRole, type PlanType } from '@brightpath/shared';
+import { hasFeatureAccess, isOwnerAccess, type AppRole, type PlanType } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireRoles, type AuthRequest } from '../middleware/auth.js';
 import { randomPassword, toPlatformUser } from '../lib/platformSerializers.js';
@@ -192,6 +192,43 @@ router.post('/users/bulk-import', async (req: AuthRequest, res) => {
   } catch (err) {
     console.error('Bulk import failed:', err);
     res.status(500).json({ error: err instanceof Error ? err.message : 'Import failed' });
+  }
+});
+
+router.get('/owner/overview', async (req: AuthRequest, res) => {
+  if (!isOwnerAccess(req.auth?.role)) {
+    res.status(403).json({ error: 'Owner access required' });
+    return;
+  }
+  try {
+    const grouped = await prisma.platformUser.groupBy({
+      by: ['planType'],
+      where: { subscriptionStatus: { in: ['active', 'trialing'] } },
+      _count: { _all: true },
+    });
+    const feedback = await prisma.$queryRaw<
+      { id: string; rating: string; createdAt: Date; email: string; planType: string }[]
+    >`
+      SELECT f.id, f.rating, f."createdAt", t.email, t."planType"
+      FROM "TeacherToolFeedback" f
+      JOIN "Teacher" t ON t.id = f."teacherId"
+      ORDER BY f."createdAt" DESC
+      LIMIT 20
+    `;
+    res.json({
+      subscribers: grouped.map((row) => ({ planType: row.planType, count: row._count._all })),
+      feedback: feedback.map((row) => ({
+        id: row.id,
+        email: row.email,
+        planType: row.planType,
+        rating: row.rating,
+        text: null as string | null,
+        createdAt: new Date(row.createdAt).toISOString(),
+      })),
+    });
+  } catch (err) {
+    console.error('Owner overview failed:', err);
+    res.status(500).json({ error: 'Could not load owner overview' });
   }
 });
 

@@ -206,6 +206,19 @@ export const api = {
       skipped: { email: string; reason: string }[];
     }>('/admin/users/bulk-import', { method: 'POST', body: JSON.stringify(body) }),
 
+  ownerOverview: () =>
+    request<{
+      subscribers: { planType: string; count: number }[];
+      feedback: {
+        id: string;
+        email: string;
+        planType: string;
+        rating: string;
+        text: string | null;
+        createdAt: string;
+      }[];
+    }>('/admin/owner/overview'),
+
   sendContact: (body: { name: string; email: string; message: string }) =>
     request<{ success: true; message: string }>('/contact', {
       method: 'POST',

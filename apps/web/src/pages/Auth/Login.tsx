@@ -9,10 +9,7 @@ import { CYBER_FONT_STYLE } from '@/lib/theme';
 const FONT: CSSProperties = CYBER_FONT_STYLE;
 
 const fieldClass =
-  'bp-auth-input h-12 w-full rounded-xl border border-slate-700/60 bg-[#1d1b26] px-4 text-sm text-white placeholder-slate-400 outline-none transition-colors focus:border-purple-400';
-
-const oauthClass =
-  'flex h-11 w-full cursor-pointer appearance-none items-center justify-center gap-2 rounded-xl border border-slate-700/50 bg-[#1d1b26] text-sm font-semibold text-white transition-colors hover:bg-[#262332]';
+  'bp-auth-input mt-1.5 w-full rounded-2xl border border-slate-800 bg-slate-950/80 px-5 py-3.5 text-lg tracking-tight text-white placeholder-slate-500 outline-none transition-all focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500';
 
 const AUTH_BACK_CLASS =
   'bp-auth-back inline-flex cursor-pointer items-center gap-2.5 rounded-xl border border-cyan-500/30 bg-slate-800/60 px-4 py-2 text-lg font-bold text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all duration-200 hover:-translate-x-1 hover:border-cyan-400 hover:bg-slate-800 hover:text-cyan-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]';
@@ -23,7 +20,6 @@ export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -49,13 +45,9 @@ export default function Login() {
     }
   };
 
-  const unavailable = (provider: string) => {
-    setError(`${provider} sign-in is not connected yet. Use your email and password.`);
-  };
-
   return (
     <div
-      className="bp-login fixed inset-0 flex items-center justify-center overflow-y-auto bg-[#121118] p-4 text-white"
+      className="bp-login fixed inset-0 flex items-center justify-center overflow-y-auto bg-transparent px-4 py-10"
       style={FONT}
     >
       <button
@@ -68,51 +60,56 @@ export default function Login() {
         <span>Back</span>
       </button>
 
-      <div className="mx-auto w-full max-w-[400px] space-y-6 text-center">
-        <div className="space-y-3">
-          <div className="bp-login-logo flex justify-center">
-            <BrandLogo variant="full" to="/" imgClassName="h-14 w-auto object-contain" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Educator Sign in</h1>
+      <div className="w-full max-w-md space-y-6 rounded-3xl border border-slate-800/80 bg-slate-900/80 p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] backdrop-blur-xl md:p-10">
+        <div className="bp-login-logo flex justify-center pb-2">
+          <BrandLogo
+            variant="full"
+            to="/"
+            imgClassName="h-28 w-auto object-contain rounded-xl"
+          />
         </div>
 
-        <form onSubmit={(event) => void submit(event)} className="space-y-3 text-left">
-          <input
-            id="email"
-            type="email"
-            className={fieldClass}
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="Email"
-            required
-            autoComplete="email"
-            aria-label="Email"
-          />
+        <form onSubmit={(event) => void submit(event)} className="space-y-5">
+          <div>
+            <label htmlFor="email" className="bp-auth-label block text-lg font-semibold tracking-tight text-white" style={FONT}>
+              {t('auth.email')}
+            </label>
+            <input
+              id="email"
+              type="email"
+              className={fieldClass}
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@school.edu"
+              required
+              autoComplete="email"
+            />
+          </div>
 
-          <div className="relative">
+          <div>
+            <label htmlFor="password" className="bp-auth-label block text-lg font-semibold tracking-tight text-white" style={FONT}>
+              {t('auth.password')}
+            </label>
             <input
               id="password"
-              type={showPassword ? 'text' : 'password'}
-              className={`${fieldClass} pr-16`}
+              type="password"
+              className={fieldClass}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="Password"
+              placeholder="Enter your password"
               required
               minLength={6}
               autoComplete="current-password"
-              aria-label="Password"
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword((value) => !value)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer appearance-none border-0 bg-transparent text-xs font-semibold text-slate-300 hover:text-white"
-            >
-              {showPassword ? 'Hide' : 'Show'}
-            </button>
           </div>
 
+          <p className="text-xs tracking-tight text-slate-400">
+            Demo teacher: <span className="text-cyan-300">teacher@brightpath.ai</span> /{' '}
+            <span className="text-cyan-300">teacher123</span>
+          </p>
+
           {error ? (
-            <p className="rounded-lg border border-rose-500/40 bg-rose-950/40 px-3 py-2 text-sm text-rose-200" role="alert">
+            <p className="rounded-lg border border-rose-500/40 bg-rose-950/40 px-3 py-2 text-sm text-rose-200">
               {error}
             </p>
           ) : null}
@@ -120,58 +117,23 @@ export default function Login() {
           <button
             type="submit"
             disabled={busy}
-            className="bp-auth-submit mt-1 flex h-11 w-full cursor-pointer appearance-none items-center justify-center gap-2 rounded-xl border border-transparent bg-[#b490f5] text-sm font-bold text-slate-950 transition-all hover:bg-[#a379f3] disabled:cursor-not-allowed disabled:opacity-60"
+            className="bp-auth-submit inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/60 bg-cyan-950/60 py-4 text-xl font-bold tracking-wide text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.25)] transition-all duration-200 hover:bg-cyan-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
             style={FONT}
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Sign in
+            {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+            {t('auth.login')}
           </button>
         </form>
 
-        <div className="space-y-2.5 pt-2">
-          <button type="button" className={oauthClass} onClick={() => unavailable('Google')}>
-            Sign in with Google
-          </button>
-          <button type="button" className={oauthClass} onClick={() => unavailable('Microsoft')}>
-            Sign in with Microsoft
-          </button>
-          <button type="button" className={oauthClass} onClick={() => unavailable('SSO')}>
-            Sign in with SSO
-          </button>
-        </div>
-
-        <p className="px-2 text-[11px] leading-relaxed text-slate-400">
-          By continuing, you confirm that you have read and agree to the{' '}
-          <Link to="/terms" className="underline hover:text-slate-200">
-            Terms and Conditions
+        <p className="bp-login-foot pt-2 text-center text-lg font-medium text-slate-400" style={FONT}>
+          {t('auth.noAccount')}{' '}
+          <Link
+            to="/register"
+            className="bp-login-register text-lg font-bold text-cyan-400 underline underline-offset-4 transition-colors hover:text-cyan-300 visited:text-cyan-400"
+          >
+            {t('auth.register')}
           </Link>
-          ,{' '}
-          <Link to="/security" className="underline hover:text-slate-200">
-            Data Protection Addendum
-          </Link>
-          , and{' '}
-          <Link to="/privacy" className="underline hover:text-slate-200">
-            Privacy Policy
-          </Link>
-          .
         </p>
-
-        <div className="space-y-2 pt-2 text-xs text-slate-300">
-          <div className="flex items-center justify-center gap-4">
-            <Link to="/register" className="hover:underline">
-              Create an account
-            </Link>
-            <Link to="/contact" className="hover:underline">
-              Forgot password
-            </Link>
-          </div>
-          <p className="text-xs text-slate-500">
-            Demo teacher: teacher@brightpath.ai / teacher123
-          </p>
-          <Link to="/register" className="text-slate-400 hover:text-white">
-            Not an educator?
-          </Link>
-        </div>
       </div>
     </div>
   );
