@@ -148,7 +148,21 @@ export const api = {
   orgMe: () =>
     request<{
       organization: OrganizationPublic;
-      stats: { memberCount: number; batchCount: number; maxLicenses: number };
+      stats: {
+        memberCount: number;
+        tutorCount: number;
+        batchCount: number;
+        seatsUsed: number;
+        maxLicenses: number;
+        subjects: {
+          subject: string;
+          instructor: string;
+          syllabusProgress: number;
+          quizzesConducted: number;
+          assignmentsGiven: number;
+          nextTestDate: string | null;
+        }[];
+      };
     }>('/auth/org/me'),
 
   parentLinkCode: () => request<{ parentLinkCode: string }>('/auth/parent/link-code'),

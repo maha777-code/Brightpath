@@ -127,7 +127,7 @@ export const PLAN_LIMITS: Record<PlanType, FeatureLimits> = {
     pdfUploadMb: 80,
     pdfUploadCount: null,
     aiDoubtsPerDay: null,
-    features: [...TEACHER_PRO_FEATURES, 'multi_tutor', 'bulk_csv'],
+    features: [...TEACHER_PRO_FEATURES, 'multi_tutor', 'bulk_csv', 'custom_branding'],
   },
   school_enterprise: {
     pdfUploadMb: 80,

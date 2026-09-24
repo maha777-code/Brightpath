@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   BookOpen,
-  CreditCard,
   Home,
   LayoutGrid,
   LogOut,
@@ -19,6 +18,9 @@ import { api } from '@/lib/api';
 import { BulkCsvImportModal } from '@/components/admin/BulkCsvImportModal';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import { AiToolsLibrary } from '@/components/tools/AiToolsLibrary';
+import { AcademyHome, type AcademyStats } from '@/components/academy/AcademyHome';
+import { AcademyAnalytics } from '@/components/academy/AcademyAnalytics';
+import { AcademySettingsBilling } from '@/components/academy/AcademySettingsBilling';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
 type Panel = 'home' | 'tools' | 'people' | 'courses' | 'analytics' | 'settings';
@@ -37,9 +39,7 @@ export default function CenterDashboard() {
   const navigate = useNavigate();
   const [panel, setPanel] = useState<Panel>('tools');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [stats, setStats] = useState<{ memberCount: number; batchCount: number; maxLicenses: number } | null>(
-    null,
-  );
+  const [stats, setStats] = useState<AcademyStats | null>(null);
   const [csvOpen, setCsvOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [subActive, setSubActive] = useState(true);
@@ -153,14 +153,8 @@ export default function CenterDashboard() {
 
             {panel === 'tools' ? <AiToolsLibrary userRole={role} userPlan={planType} /> : null}
 
-            {panel === 'home' ? (
-              <section className="space-y-4">
-                <p className="text-slate-300">
-                  Welcome{user?.name ? `, ${user.name}` : ''}. Your academy workspace is ready.
-                </p>
-                <StatGrid stats={stats} />
-              </section>
-            ) : null}
+            {panel === 'home' ? <AcademyHome userName={user?.name ?? null} stats={stats} /> : null}
+            {panel === 'analytics' ? <AcademyAnalytics stats={stats} /> : null}
 
             {panel === 'people' ? (
               <section className="space-y-4">
@@ -186,31 +180,12 @@ export default function CenterDashboard() {
               </section>
             ) : null}
 
-            {panel === 'analytics' ? (
-              <section className="space-y-4">
-                <StatGrid stats={stats} />
-                <p className="text-sm text-slate-400">
-                  Seat use, tutor count, and batch totals update from your organization record.
-                </p>
-              </section>
-            ) : null}
-
             {panel === 'settings' ? (
-              <section className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => setPayOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-bold text-white"
-                >
-                  <CreditCard className="h-4 w-4" /> Billing
-                </button>
-                <Link
-                  to="/admin/center-dashboard/settings"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-bold text-white"
-                >
-                  <Settings className="h-4 w-4" /> Branding settings
-                </Link>
-              </section>
+              <AcademySettingsBilling
+                organization={organization}
+                stats={stats}
+                onChangePlan={() => setPayOpen(true)}
+              />
             ) : null}
           </main>
         </div>
@@ -222,15 +197,14 @@ export default function CenterDashboard() {
   );
 }
 
-function StatGrid({
-  stats,
-}: {
-  stats: { memberCount: number; batchCount: number; maxLicenses: number } | null;
-}) {
+function StatGrid({ stats }: { stats: AcademyStats | null }) {
   const items = [
-    { label: 'Tutors / staff', value: stats?.memberCount },
+    { label: 'Tutors / staff', value: stats?.tutorCount },
     { label: 'Student batches', value: stats?.batchCount },
-    { label: 'Seats', value: stats?.maxLicenses },
+    {
+      label: 'Seats allocated',
+      value: stats ? `${stats.seatsUsed} / ${stats.maxLicenses}` : undefined,
+    },
   ];
   return (
     <div className="grid gap-4 sm:grid-cols-3">

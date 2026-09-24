@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Check, Copy, FileDown, Loader2, RefreshCw } from 'lucide-react';
 import type { QuizGeneratorPayload, QuizGeneratorResponse } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { watermarkFooterHtml } from '@/lib/exportWatermark';
 import { QuizGeneratorForm } from '@/components/tools/QuizGeneratorForm';
 
 function optionLetterFromIndex(index: number): string {
@@ -99,6 +100,7 @@ function exportQuizPdf(quiz: QuizGeneratorResponse) {
   <h1>Multiple Choice Quiz / Assessment</h1>
   ${body}
   <div class="key"><strong>Answer Key</strong><p>${escapeHtml(formatAnswerKeyLine(quiz))}</p></div>
+  ${watermarkFooterHtml()}
 </body>
 </html>`;
   const frame = document.createElement('iframe');

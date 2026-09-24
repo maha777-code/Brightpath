@@ -34,6 +34,7 @@ import {
   type WorksheetHistoryItem,
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { watermarkFooterHtml } from '@/lib/exportWatermark';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 import { WorksheetHistoryDrawer } from '@/components/tools/WorksheetHistoryDrawer';
 
@@ -441,7 +442,7 @@ function WorksheetStudio({
     if (!doc) return;
     doc.open();
     doc.write(
-      `<!DOCTYPE html><html><head><title>${title}</title><style>body{font-family:Cambria,Georgia,serif;font-size:18px;padding:32px;color:#0f172a} h1,h2,h3{font-family:Cambria,Georgia,serif;text-align:center}</style></head><body>${node.innerHTML}</body></html>`,
+      `<!DOCTYPE html><html><head><title>${title}</title><style>body{font-family:Cambria,Georgia,serif;font-size:18px;padding:32px;color:#0f172a} h1,h2,h3{font-family:Cambria,Georgia,serif;text-align:center}</style></head><body>${node.innerHTML}${watermarkFooterHtml()}</body></html>`,
     );
     doc.close();
     window.setTimeout(() => {

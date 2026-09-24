@@ -725,7 +725,88 @@ router.post('/student/join-class', requireRoles('student'), async (req: AuthRequ
   res.json({ ok: true, classBatch: { id: batch.id, name: batch.name, inviteCode: batch.inviteCode } });
 });
 
+type AcademyTutor = { id: string; name: string | null; email: string; subjectFocus: string | null };
+type AcademyTextbook = {
+  subject: string;
+  teacher: { name: string | null; email: string };
+  chapters: {
+    classProgressPct: number;
+    subtopics: { hasGamifiedActivity: boolean; activities: { id: string }[] }[];
+  }[];
+};
+type AcademyWorksheet = { teacherId: string; title: string; topicOrText: string };
+
+function personName(person: { name: string | null; email: string }): string {
+  return person.name?.trim() || person.email;
+}
+
+function buildAcademySubjects(
+  tutors: AcademyTutor[],
+  textbooks: AcademyTextbook[],
+  worksheets: AcademyWorksheet[],
+) {
+  const rows = new Map<
+    string,
+    { instructors: Set<string>; progress: number[]; quizzes: number; assignments: number }
+  >();
+  const bucket = (name: string) => {
+    const key = name.trim() || 'General';
+    let row = rows.get(key);
+    if (!row) {
+      row = { instructors: new Set(), progress: [], quizzes: 0, assignments: 0 };
+      rows.set(key, row);
+    }
+    return row;
+  };
+
+  for (const book of textbooks) {
+    const row = bucket(book.subject || 'General');
+    row.instructors.add(personName(book.teacher));
+    if (book.chapters.length === 0) row.progress.push(0);
+    else {
+      const total = book.chapters.reduce((sum, chapter) => sum + chapter.classProgressPct, 0);
+      row.progress.push(Math.round(total / book.chapters.length));
+    }
+    for (const chapter of book.chapters) {
+      for (const subtopic of chapter.subtopics) {
+        if (subtopic.activities.length > 0) row.quizzes += subtopic.activities.length;
+        else if (subtopic.hasGamifiedActivity) row.quizzes += 1;
+      }
+    }
+  }
+
+  for (const tutor of tutors) {
+    const focus = tutor.subjectFocus?.trim();
+    if (focus) bucket(focus).instructors.add(personName(tutor));
+  }
+
+  for (const sheet of worksheets) {
+    const hay = `${sheet.title} ${sheet.topicOrText}`.toLowerCase();
+    const match = [...rows.keys()].find((subject) => subject !== 'General' && hay.includes(subject.toLowerCase()));
+    if (match) {
+      rows.get(match)!.assignments += 1;
+      continue;
+    }
+    const tutor = tutors.find((item) => item.id === sheet.teacherId);
+    bucket(tutor?.subjectFocus?.trim() || 'General').assignments += 1;
+  }
+
+  return [...rows.entries()]
+    .map(([subject, row]) => ({
+      subject,
+      instructor: [...row.instructors].join(', ') || 'Unassigned',
+      syllabusProgress: row.progress.length
+        ? Math.round(row.progress.reduce((sum, value) => sum + value, 0) / row.progress.length)
+        : 0,
+      quizzesConducted: row.quizzes,
+      assignmentsGiven: row.assignments,
+      nextTestDate: null as string | null,
+    }))
+    .sort((a, b) => b.syllabusProgress - a.syllabusProgress || a.subject.localeCompare(b.subject));
+}
+
 router.get('/org/me', requireRoles('org_admin', 'center_admin'), async (req: AuthRequest, res) => {
+  try {
   if (!req.organizationId) {
     res.status(404).json({ error: 'No organization linked' });
     return;
@@ -735,12 +816,79 @@ router.get('/org/me', requireRoles('org_admin', 'center_admin'), async (req: Aut
     res.status(404).json({ error: 'Not found' });
     return;
   }
-  const memberCount = await prisma.platformUser.count({ where: { organizationId: org.id } });
-  const batchCount = await prisma.classBatch.count({ where: { organizationId: org.id } });
+  const orgScope = {
+    OR: [
+      { organizationId: org.id },
+      { classBatches: { some: { organizationId: org.id } } },
+      { platformUsers: { some: { organizationId: org.id, role: 'teacher' as const } } },
+    ],
+  };
+  const [memberCount, batchCount, staffCount, tutors, textbooks, worksheets] = await Promise.all([
+    prisma.platformUser.count({ where: { organizationId: org.id } }),
+    prisma.classBatch.count({ where: { organizationId: org.id } }),
+    prisma.platformUser.count({
+      where: { organizationId: org.id, role: { in: ['teacher', 'center_admin', 'org_admin'] } },
+    }),
+    prisma.teacher.findMany({
+      where: orgScope,
+      select: { id: true, name: true, email: true, subjectFocus: true },
+    }),
+    prisma.textbook.findMany({
+      where: {
+        OR: [{ organizationId: org.id }, { teacher: { organizationId: org.id } }],
+      },
+      select: {
+        subject: true,
+        teacher: { select: { name: true, email: true } },
+        chapters: {
+          select: {
+            classProgressPct: true,
+            subtopics: {
+              select: {
+                hasGamifiedActivity: true,
+                activities: { select: { id: true } },
+              },
+            },
+          },
+        },
+      },
+    }),
+    prisma.$queryRaw<AcademyWorksheet[]>`
+      SELECT w."teacherId", w."title", w."topicOrText"
+      FROM "TeacherWorksheetHistory" w
+      WHERE w."teacherId" IN (
+        SELECT t."id" FROM "Teacher" t
+        WHERE t."organizationId" = ${org.id}
+           OR EXISTS (
+             SELECT 1 FROM "ClassBatch" b
+             WHERE b."teacherId" = t."id" AND b."organizationId" = ${org.id}
+           )
+           OR EXISTS (
+             SELECT 1 FROM "PlatformUser" p
+             WHERE p."teacherId" = t."id"
+               AND p."organizationId" = ${org.id}
+               AND p."role" = 'teacher'
+           )
+      )
+    `,
+  ]);
+
+  const subjects = buildAcademySubjects(tutors, textbooks, worksheets);
   res.json({
     organization: toOrganization(org),
-    stats: { memberCount, batchCount, maxLicenses: org.maxLicenses },
+    stats: {
+      memberCount,
+      tutorCount: Math.max(staffCount, tutors.length),
+      batchCount,
+      seatsUsed: memberCount,
+      maxLicenses: org.maxLicenses,
+      subjects,
+    },
   });
+  } catch (err) {
+    console.error('GET /auth/org/me failed', err);
+    res.status(500).json({ error: 'Could not load academy stats' });
+  }
 });
 
 router.post('/teacher/batches', requireRoles('teacher'), async (req: AuthRequest, res) => {

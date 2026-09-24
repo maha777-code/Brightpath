@@ -23,6 +23,7 @@ import {
   type LessonPlanResponse,
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { watermarkFooterHtml } from '@/lib/exportWatermark';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
@@ -376,7 +377,7 @@ function openPrintWindow(title: string, bodyHtml: string) {
       ul, ol { padding-left: 20px; }
     </style>
   </head>
-  <body>${bodyHtml}</body>
+  <body>${bodyHtml}${watermarkFooterHtml()}</body>
 </html>`;
   const printWindow = window.open('', '_blank');
   if (printWindow) {
