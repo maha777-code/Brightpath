@@ -157,13 +157,20 @@ select {
 }
 
 .bp-login input {
-  background: #e8f0fe;
-  color: #0f172a;
-  border: none;
+  background: #1d1b26;
+  color: #fff;
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.bp-login .bp-auth-submit {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 .bp-login-logo img {
-  height: 6rem;
+  height: 3.5rem;
   width: auto;
   max-width: 100%;
   object-fit: contain;

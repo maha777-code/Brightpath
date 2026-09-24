@@ -195,6 +195,40 @@ router.post('/users/bulk-import', async (req: AuthRequest, res) => {
   }
 });
 
+router.get('/owner/overview', async (req: AuthRequest, res) => {
+  if (req.auth?.role !== 'org_admin') {
+    res.status(403).json({ error: 'Owner access required' });
+    return;
+  }
+  try {
+    const [groups, feedback] = await Promise.all([
+      prisma.platformUser.groupBy({
+        by: ['planType'],
+        _count: { _all: true },
+      }),
+      prisma.teacherToolFeedback.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        include: { teacher: { select: { email: true, planType: true } } },
+      }),
+    ]);
+    res.json({
+      subscribers: groups.map((row) => ({ planType: row.planType, count: row._count._all })),
+      feedback: feedback.map((row) => ({
+        id: row.id,
+        email: row.teacher.email,
+        planType: row.teacher.planType,
+        rating: row.rating,
+        text: null as string | null,
+        createdAt: row.createdAt.toISOString(),
+      })),
+    });
+  } catch (err) {
+    console.error('Owner overview failed', err);
+    res.status(500).json({ error: 'Could not load owner overview' });
+  }
+});
+
 router.get('/members', async (req: AuthRequest, res) => {
   if (!req.organizationId) {
     res.json({ members: [] });
