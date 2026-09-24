@@ -156,12 +156,17 @@ select {
   font-weight: 700;
 }
 
+.bp-login input {
+  background: #e8f0fe;
+  color: #0f172a;
+  border: none;
+}
+
 .bp-login-logo img {
-  height: 7rem;
+  height: 6rem;
   width: auto;
   max-width: 100%;
   object-fit: contain;
-  border-radius: 0.75rem;
 }
 
 .bp-login-foot {

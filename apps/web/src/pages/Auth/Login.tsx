@@ -9,7 +9,7 @@ import { CYBER_FONT_STYLE } from '@/lib/theme';
 const FONT: CSSProperties = CYBER_FONT_STYLE;
 
 const fieldClass =
-  'bp-auth-input mt-1.5 w-full rounded-2xl border border-slate-800 bg-slate-950/80 px-5 py-3.5 text-lg tracking-tight text-white placeholder-slate-500 outline-none transition-all focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500';
+  'bp-auth-input mt-2 w-full rounded-2xl border-0 bg-[#e8f0fe] px-5 py-4 text-lg font-medium tracking-tight text-slate-900 placeholder-slate-500 outline-none transition-all focus:ring-2 focus:ring-cyan-400';
 
 const AUTH_BACK_CLASS =
   'bp-auth-back inline-flex cursor-pointer items-center gap-2.5 rounded-xl border border-cyan-500/30 bg-slate-800/60 px-4 py-2 text-lg font-bold text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all duration-200 hover:-translate-x-1 hover:border-cyan-400 hover:bg-slate-800 hover:text-cyan-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]';
@@ -60,16 +60,16 @@ export default function Login() {
         <span>Back</span>
       </button>
 
-      <div className="w-full max-w-md space-y-6 rounded-3xl border border-slate-800/80 bg-slate-900/80 p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] backdrop-blur-xl md:p-10">
-        <div className="bp-login-logo flex justify-center pb-2">
+      <div className="mx-auto w-full space-y-8 rounded-3xl border border-slate-800/80 bg-[#0c1220] p-10 shadow-2xl backdrop-blur-2xl sm:p-14 md:w-[50vw] md:max-w-[50vw]">
+        <div className="bp-login-logo mb-2 flex justify-center">
           <BrandLogo
             variant="full"
             to="/"
-            imgClassName="h-28 w-auto object-contain rounded-xl"
+            imgClassName="h-20 w-auto object-contain sm:h-24"
           />
         </div>
 
-        <form onSubmit={(event) => void submit(event)} className="space-y-5">
+        <form onSubmit={(event) => void submit(event)} className="space-y-6">
           <div>
             <label htmlFor="email" className="bp-auth-label block text-lg font-semibold tracking-tight text-white" style={FONT}>
               {t('auth.email')}
@@ -103,7 +103,7 @@ export default function Login() {
             />
           </div>
 
-          <p className="text-xs tracking-tight text-slate-400">
+          <p className="text-base tracking-tight text-slate-400">
             Demo teacher: <span className="text-cyan-300">teacher@brightpath.ai</span> /{' '}
             <span className="text-cyan-300">teacher123</span>
           </p>
@@ -117,7 +117,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={busy}
-            className="bp-auth-submit inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/60 bg-cyan-950/60 py-4 text-xl font-bold tracking-wide text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.25)] transition-all duration-200 hover:bg-cyan-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+            className="bp-auth-submit inline-flex w-full cursor-pointer appearance-none items-center justify-center gap-2 rounded-2xl border border-transparent bg-cyan-400 py-4 text-lg font-bold tracking-wide text-slate-950 shadow-[0_0_25px_rgba(6,182,212,0.25)] transition-all duration-200 hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
             style={FONT}
           >
             {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
