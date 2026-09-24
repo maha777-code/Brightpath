@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Component, useEffect, useMemo, useState, type ErrorInfo, type FormEvent, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import {
+  AlertTriangle,
   ArrowLeft,
   BookOpen,
   CheckCircle2,
@@ -12,9 +13,9 @@ import {
   Mail,
   MessageSquare,
   Mic,
+  Monitor,
   Music,
   Pencil,
-  Presentation,
   Search,
   Sparkles,
   Star,
@@ -32,7 +33,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { isTeacherToolEnabled, setTeacherToolEnabled } from '@/lib/teacherToolAvailability';
-import { sampleOutput } from '@/pages/TeacherToolPage';
+import { sampleOutput } from '@/lib/toolPreview';
 
 type Tab = 'overview' | 'tools' | 'feedback';
 
@@ -60,7 +61,7 @@ const TOOL_ICONS: Record<string, LucideIcon> = {
   pencil: Pencil,
   'clipboard-list': ClipboardList,
   'list-checks': ListChecks,
-  presentation: Presentation,
+  presentation: Monitor,
   'message-square': MessageSquare,
   youtube: Youtube,
   mail: Mail,
@@ -156,8 +157,9 @@ export default function OwnerDashboard() {
 
   const visibleTools = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const rows = tools.filter((tool) => {
-      const matchesQuery = !q || `${tool.title} ${tool.description}`.toLowerCase().includes(q);
+    const rows = (tools ?? []).filter((tool) => {
+      if (!tool) return false;
+      const matchesQuery = !q || `${tool.title ?? ''} ${tool.description ?? ''}`.toLowerCase().includes(q);
       const matchesFocus = focus === 'all' || tool.focusArea === focus;
       const matchesPlan = planFilter === 'all' || tool.requiredPlan === planFilter;
       return matchesQuery && matchesFocus && matchesPlan;
@@ -201,6 +203,7 @@ export default function OwnerDashboard() {
   };
 
   return (
+    <DashboardErrorBoundary>
     <div className="flex min-h-screen flex-col bg-[#070a12] text-slate-100 md:flex-row">
       <aside className="w-full shrink-0 space-y-6 border-r border-slate-800 bg-[#0c1220] p-6 md:w-64">
         <div>
@@ -531,6 +534,7 @@ export default function OwnerDashboard() {
 
       {preview ? <AdminToolPreview tool={preview} onClose={() => setPreview(null)} /> : null}
     </div>
+    </DashboardErrorBoundary>
   );
 }
 
@@ -541,23 +545,7 @@ function AdminToolPreview({ tool, onClose }: { tool: DraftTool; onClose: () => v
 
   const runPreview = (event: FormEvent) => {
     event.preventDefault();
-    setOutput(
-      sampleOutput(
-        {
-          id: tool.id,
-          title: tool.title,
-          description: tool.description,
-          focusArea: tool.focusArea,
-          href: tool.href,
-          requiredPlan: tool.requiredPlan === 'center_pro' || tool.requiredPlan === 'pro' || tool.requiredPlan === 'free' ? tool.requiredPlan : 'pro',
-          popularity: tool.popularity,
-          newestRank: tool.newestRank,
-          icon: tool.icon,
-        },
-        topic,
-        grade,
-      ),
-    );
+    setOutput(sampleOutput({ id: tool.id, title: tool.title || 'tool' }, topic, grade));
   };
 
   return (
@@ -630,6 +618,40 @@ function AdminToolPreview({ tool, onClose }: { tool: DraftTool; onClose: () => v
       </div>
     </div>
   );
+}
+
+class DashboardErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Uncaught Admin Dashboard Error:', error, info);
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="m-6 space-y-4 rounded-2xl border border-rose-900/50 bg-rose-950/20 p-8 text-center">
+        <div className="inline-flex rounded-xl bg-rose-500/10 p-3 text-rose-400">
+          <AlertTriangle className="h-8 w-8" />
+        </div>
+        <h2 className="text-xl font-bold text-white">Something went wrong loading Admin Control</h2>
+        <p className="mx-auto max-w-xl overflow-x-auto rounded-lg bg-rose-950/60 p-3 font-mono text-xs text-rose-300">
+          {this.state.error.message || 'Unknown rendering error'}
+        </p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="cursor-pointer appearance-none rounded-xl border border-transparent bg-rose-500 px-4 py-2 text-xs font-bold text-white"
+        >
+          Reload Dashboard Page
+        </button>
+      </div>
+    );
+  }
 }
 
 function Tier({
