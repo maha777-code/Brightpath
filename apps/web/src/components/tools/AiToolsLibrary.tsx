@@ -21,6 +21,7 @@ import {
   type AiToolPlan,
   type TeacherToolDefinition,
 } from '@brightpath/shared';
+import { isTeacherToolEnabled } from '@/lib/teacherToolAvailability';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
@@ -79,16 +80,20 @@ export function AiToolsLibrary({
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {TEACHER_TOOLS_CATALOG.map((tool) => {
-          const accessible = hasAiToolAccess({
-            role: userRole,
-            planType: userPlan,
-            requiredPlan: tool.requiredPlan,
-          });
+          const enabled = isTeacherToolEnabled(tool.id);
+          const accessible =
+            enabled &&
+            hasAiToolAccess({
+              role: userRole,
+              planType: userPlan,
+              requiredPlan: tool.requiredPlan,
+            });
           return (
             <ToolCard
               key={tool.id}
               tool={tool}
               accessible={accessible}
+              enabled={enabled}
               onUpgrade={() => openUpgrade(tool.requiredPlan)}
             />
           );
@@ -140,10 +145,12 @@ export function AiToolsLibrary({
 function ToolCard({
   tool,
   accessible,
+  enabled,
   onUpgrade,
 }: {
   tool: TeacherToolDefinition;
   accessible: boolean;
+  enabled: boolean;
   onUpgrade: () => void;
 }) {
   const Icon = ICONS[tool.icon] ?? SparkFallback;
@@ -168,15 +175,17 @@ function ToolCard({
         <p className="mt-1 text-sm text-slate-400">{tool.description}</p>
       </div>
       <div className="mt-5 flex items-center justify-between border-t border-slate-800/80 pt-3">
-        {accessible ? (
+        {enabled && accessible ? (
           <Link to={tool.href} className="flex items-center gap-1 text-sm font-semibold text-cyan-400 hover:underline">
             Launch tool →
           </Link>
+        ) : !enabled ? (
+          <span className="text-sm font-semibold text-amber-300">Tool Under Maintenance</span>
         ) : (
           <button
             type="button"
             onClick={onUpgrade}
-            className="flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-purple-400"
+            className="flex cursor-pointer appearance-none items-center gap-1 border-0 bg-transparent text-sm font-semibold text-amber-300"
           >
             <Lock className="h-3.5 w-3.5" /> Upgrade to unlock
           </button>

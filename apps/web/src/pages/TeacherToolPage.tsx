@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { getTeacherToolById, hasAiToolAccess, type AiToolPlan, type TeacherToolDefinition } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
+import { isTeacherToolEnabled } from '@/lib/teacherToolAvailability';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import QuizGenerator from '@/pages/TeacherTools/QuizGenerator';
 import WorksheetGenerator from '@/pages/TeacherTools/WorksheetGenerator';
@@ -11,7 +12,7 @@ import LessonPlanGenerator from '@/pages/TeacherTools/LessonPlanGenerator';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 
-function sampleOutput(tool: TeacherToolDefinition, topic: string, grade: string): string {
+export function sampleOutput(tool: TeacherToolDefinition, topic: string, grade: string): string {
   const subject = topic.trim() || 'your topic';
   switch (tool.id) {
     case 'song-generator':
@@ -180,6 +181,22 @@ export default function TeacherToolPage() {
   }
 
   const requiredPlan: AiToolPlan = tool.requiredPlan ?? 'pro';
+  if (!isTeacherToolEnabled(tool.id)) {
+    return (
+      <TeacherWorkspaceLayout>
+        <main className="w-full max-w-lg px-6 py-10">
+          <div className="rounded-3xl border border-amber-500/30 bg-slate-900 p-8 text-white">
+            <h1 className="text-2xl font-bold">{tool.title}</h1>
+            <p className="mt-2 text-sm font-semibold text-amber-300">Tool Under Maintenance</p>
+            <p className="mt-2 text-sm text-slate-300">A school admin has turned this generator off. It cannot run until it is active again.</p>
+            <Link to="/teacher/tools" className="mt-5 inline-block text-sm font-bold text-cyan-300 underline">
+              Back to teacher tools
+            </Link>
+          </div>
+        </main>
+      </TeacherWorkspaceLayout>
+    );
+  }
   if (!hasAiToolAccess({ role, planType, requiredPlan })) {
     return (
       <TeacherWorkspaceLayout>

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import {
+  ArrowLeft,
   BookOpen,
   CheckCircle2,
   ClipboardList,
+  Eye,
   FileText,
   ListChecks,
   Lock,
@@ -29,6 +31,8 @@ import {
 } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { isTeacherToolEnabled, setTeacherToolEnabled } from '@/lib/teacherToolAvailability';
+import { sampleOutput } from '@/pages/TeacherToolPage';
 
 type Tab = 'overview' | 'tools' | 'feedback';
 
@@ -110,7 +114,7 @@ export default function OwnerDashboard() {
   const [query, setQuery] = useState('');
   const [focus, setFocus] = useState<'all' | TeacherToolFocusArea>('all');
   const [planFilter, setPlanFilter] = useState('all');
-  const [sort, setSort] = useState<'popular' | 'alpha' | 'newest'>('popular');
+  const [preview, setPreview] = useState<DraftTool | null>(null);
   const [subscribers, setSubscribers] = useState<SubscriberRow[]>([]);
   const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
   const [tools, setTools] = useState<DraftTool[]>(() =>
@@ -126,7 +130,7 @@ export default function OwnerDashboard() {
       popularity: tool.popularity,
       newestRank: tool.newestRank,
       favorite: false,
-      active: true,
+      active: isTeacherToolEnabled(tool.id),
       staged: false,
     })),
   );
@@ -407,12 +411,14 @@ export default function OwnerDashboard() {
                             <span className="inline-flex items-center gap-1.5 font-semibold text-amber-400">
                               <Lock className="h-3.5 w-3.5" /> Staged locally
                             </span>
-                          ) : tool.active ? (
-                            <Link to={tool.href} className="font-bold text-cyan-400 hover:underline">
-                              Launch tool
-                            </Link>
                           ) : (
-                            <span className="font-semibold text-slate-500">Inactive</span>
+                            <button
+                              type="button"
+                              onClick={() => setPreview(tool)}
+                              className="inline-flex cursor-pointer appearance-none items-center gap-1.5 border-0 bg-transparent text-xs font-bold text-cyan-400"
+                            >
+                              <Eye className="h-4 w-4" /> Admin Preview
+                            </button>
                           )}
                           <span className="rounded bg-slate-900 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">
                             {planLabel(tool.requiredPlan)}
@@ -424,7 +430,12 @@ export default function OwnerDashboard() {
                             type="button"
                             onClick={() =>
                               setTools((current) =>
-                                current.map((item) => (item.id === tool.id ? { ...item, active: !item.active } : item)),
+                                current.map((item) => {
+                                  if (item.id !== tool.id) return item;
+                                  const active = !item.active;
+                                  if (!item.staged) setTeacherToolEnabled(item.id, active);
+                                  return { ...item, active };
+                                }),
                               )
                             }
                             className={`inline-flex cursor-pointer appearance-none items-center gap-1 rounded-md border border-transparent px-2 py-1 text-[11px] font-bold ${
@@ -517,6 +528,106 @@ export default function OwnerDashboard() {
           </form>
         </div>
       ) : null}
+
+      {preview ? <AdminToolPreview tool={preview} onClose={() => setPreview(null)} /> : null}
+    </div>
+  );
+}
+
+function AdminToolPreview({ tool, onClose }: { tool: DraftTool; onClose: () => void }) {
+  const [grade, setGrade] = useState('9th grade');
+  const [topic, setTopic] = useState('');
+  const [output, setOutput] = useState('');
+
+  const runPreview = (event: FormEvent) => {
+    event.preventDefault();
+    setOutput(
+      sampleOutput(
+        {
+          id: tool.id,
+          title: tool.title,
+          description: tool.description,
+          focusArea: tool.focusArea,
+          href: tool.href,
+          requiredPlan: tool.requiredPlan === 'center_pro' || tool.requiredPlan === 'pro' || tool.requiredPlan === 'free' ? tool.requiredPlan : 'pro',
+          popularity: tool.popularity,
+          newestRank: tool.newestRank,
+          icon: tool.icon,
+        },
+        topic,
+        grade,
+      ),
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
+      <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-slate-800 bg-[#0b101d]">
+        <div className="flex items-center justify-between border-b border-slate-800 bg-[#080d19] px-6 py-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="cursor-pointer appearance-none rounded-xl border border-transparent bg-slate-800 p-2 text-slate-300"
+              aria-label="Close preview"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div>
+              <span className="text-xs font-bold uppercase text-cyan-400">Admin test sandbox</span>
+              <h2 className="text-lg font-bold text-white">{tool.title}</h2>
+            </div>
+          </div>
+          <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-bold text-cyan-400">
+            Target plan: {planLabel(tool.requiredPlan)}
+          </span>
+        </div>
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-12">
+          <form onSubmit={runPreview} className="space-y-4 overflow-y-auto border-r border-slate-800/80 bg-[#070a12] p-6 lg:col-span-5">
+            <label className="block space-y-1 text-xs font-bold text-slate-300">
+              Grade level
+              <select
+                value={grade}
+                onChange={(event) => setGrade(event.target.value)}
+                className="w-full rounded-xl border border-slate-800 bg-[#0d1322] p-3 text-xs text-white"
+                style={{ backgroundColor: '#0d1322' }}
+              >
+                <option>9th grade</option>
+                <option>10th grade</option>
+              </select>
+            </label>
+            <label className="block space-y-1 text-xs font-bold text-slate-300">
+              Topic or text
+              <textarea
+                rows={6}
+                value={topic}
+                onChange={(event) => setTopic(event.target.value)}
+                placeholder="Enter prompt criteria..."
+                className="w-full resize-none rounded-xl border border-slate-800 bg-[#0d1322] p-3 text-xs text-white"
+                style={{ backgroundColor: '#0d1322', color: '#fff' }}
+              />
+            </label>
+            <button
+              type="submit"
+              className="w-full cursor-pointer appearance-none rounded-xl border border-transparent bg-cyan-400 py-3 text-sm font-extrabold text-slate-950"
+            >
+              Generate test output
+            </button>
+            <p className="text-xs text-slate-500">
+              This is a template preview inside the admin dashboard. It does not call the teacher generator or leave this page.
+            </p>
+          </form>
+          <div className="space-y-4 overflow-y-auto bg-[#0c1220] p-6 lg:col-span-7">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 text-xs text-slate-400">
+              <span className="font-bold uppercase tracking-wider">Output preview</span>
+              <span>Name / date header template</span>
+            </div>
+            <div className="min-h-[300px] whitespace-pre-wrap rounded-2xl border border-slate-800/80 bg-[#080d19] p-6 text-xs leading-relaxed text-slate-300">
+              {output || 'Output will render here when testing prompt configurations...'}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

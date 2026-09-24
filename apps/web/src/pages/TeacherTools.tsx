@@ -23,6 +23,7 @@ import type {
   TeacherToolFocusArea,
 } from '@brightpath/shared';
 import { hasAiToolAccess, TEACHER_TOOLS_CATALOG, type AiToolPlan } from '@brightpath/shared';
+import { isTeacherToolEnabled } from '@/lib/teacherToolAvailability';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
@@ -128,10 +129,12 @@ export default function TeacherTools() {
   };
 
   const canLaunch = (tool: TeacherToolDefinition) =>
+    isTeacherToolEnabled(tool.id) &&
     hasAiToolAccess({ role, planType, requiredPlan: tool.requiredPlan ?? 'pro' });
 
   const openTool = (tool: TeacherToolDefinition) => {
-    if (!canLaunch(tool)) {
+    if (!isTeacherToolEnabled(tool.id)) return;
+    if (!hasAiToolAccess({ role, planType, requiredPlan: tool.requiredPlan ?? 'pro' })) {
       setLockedPlan(tool.requiredPlan ?? 'pro');
       setCheckoutOpen(false);
       return;
@@ -284,12 +287,22 @@ export default function TeacherTools() {
                     <span className="font-bold text-slate-100">{tool.title}. </span>
                     <span className="font-normal text-slate-400">{tool.description}</span>
                   </div>
-                  <p className="mt-4 text-sm font-medium tracking-tight text-cyan-400">
-                    {canLaunch(tool)
-                      ? tool.highlighted
-                        ? 'Open Curriculum Studio'
-                        : 'Launch tool'
-                      : '🔒 Upgrade to unlock'}
+                  <p
+                    className={`mt-4 text-sm font-medium tracking-tight ${
+                      !isTeacherToolEnabled(tool.id)
+                        ? 'text-amber-300'
+                        : canLaunch(tool)
+                          ? 'text-cyan-400'
+                          : 'text-amber-300'
+                    }`}
+                  >
+                    {!isTeacherToolEnabled(tool.id)
+                      ? 'Tool Under Maintenance'
+                      : canLaunch(tool)
+                        ? tool.highlighted
+                          ? 'Open Curriculum Studio'
+                          : 'Launch tool'
+                        : '🔒 Upgrade to unlock'}
                   </p>
                 </article>
               );
