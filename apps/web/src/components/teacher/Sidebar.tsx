@@ -80,7 +80,7 @@ export function TeacherSidebar() {
             <div className="h-3 w-3 shrink-0 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse" />
             <div className="min-w-0">
               <BrandLogo variant="full" imgClassName="h-8 w-auto object-contain" />
-              <p className="mt-1 text-xs font-normal tracking-tight text-slate-400">Teacher workspace</p>
+              <p className="mt-1 text-base font-extrabold tracking-tight text-slate-200">Teacher workspace</p>
             </div>
           </div>
 
@@ -97,7 +97,7 @@ export function TeacherSidebar() {
           </div>
 
           <div className="space-y-2">
-            <p className="px-2 text-[11px] font-medium tracking-tight text-slate-500">
+            <p className="px-2 text-base font-extrabold tracking-tight text-slate-400">
               Teacher workspace
             </p>
             <nav className="space-y-1" aria-label="Teacher workspace">
@@ -116,12 +116,12 @@ export function TeacherSidebar() {
                         : 'border-l-2 border-transparent text-slate-400 hover:bg-cyan-950/20 hover:text-cyan-200',
                     ].join(' ')}
                   >
-                    <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${active ? 'text-cyan-300' : 'text-slate-500'}`} />
+                    <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${active ? 'text-cyan-300' : 'text-slate-500'}`} />
                     <span className="min-w-0">
-                      <span className="block text-sm font-semibold leading-tight tracking-tight">
+                      <span className="block text-base font-bold leading-tight tracking-tight">
                         {item.label}
                       </span>
-                      <span className="mt-0.5 block text-[13px] font-normal leading-snug tracking-tight text-slate-400">
+                      <span className="mt-0.5 block text-sm font-normal leading-snug tracking-tight text-slate-400">
                         {item.detail}
                       </span>
                     </span>
@@ -133,21 +133,23 @@ export function TeacherSidebar() {
         </div>
 
         <div className="border-t border-slate-800 pt-4">
-          <FeedbackMenuButton />
+          <FeedbackMenuButton size="lg" />
           <div className="mb-2 flex items-center gap-2 px-3">
-            <span className="badge-cyber">[ONLINE]</span>
+            <span className="rounded border border-emerald-500/40 bg-emerald-950/80 px-2.5 py-1 text-sm font-semibold tracking-tight text-emerald-400">
+              [ONLINE]
+            </span>
           </div>
-          <p className="truncate px-3 text-sm font-semibold tracking-tight text-slate-100">{userName}</p>
-          <p className="truncate px-3 text-xs font-normal tracking-tight text-slate-400">{userMeta}</p>
+          <p className="truncate px-3 text-base font-bold tracking-tight text-slate-100">{userName}</p>
+          <p className="truncate px-3 text-sm font-normal tracking-tight text-slate-400">{userMeta}</p>
           <button
             type="button"
             onClick={() => {
               logout();
               navigate('/login');
             }}
-            className="btn-cyber mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5"
+            className="mt-3 inline-flex w-full cursor-pointer appearance-none items-center justify-center gap-2 rounded-lg border border-cyan-400/50 bg-cyan-500/10 px-4 py-2.5 text-base font-bold tracking-tight text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:bg-cyan-500 hover:text-black"
           >
-            <LogOut className="h-4 w-4" /> Log out
+            <LogOut className="h-5 w-5" /> Log out
           </button>
         </div>
       </aside>
