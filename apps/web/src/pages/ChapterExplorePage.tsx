@@ -18,8 +18,8 @@ export default function ChapterExplorePage() {
   const { role } = useAuth();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const backPath = role === 'teacher' ? '/teacher/dashboard' : '/dashboard/subjects';
-  const backLabel = role === 'teacher' ? 'Back to Teacher Dashboard' : 'Back to subjects';
+  const backPath = role === 'teacher' ? '/tools/curriculum-textbook-studio' : '/dashboard/subjects';
+  const backLabel = role === 'teacher' ? 'Back to Curriculum Studio' : 'Back to subjects';
 
   const [data, setData] = useState<StreamPayload | null>(null);
   const [error, setError] = useState<string | null>(null);

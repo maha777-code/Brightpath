@@ -36,7 +36,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description:
       'Upload state textbooks, extract chapters, generate gamified videos & doubt control.',
     focusArea: 'curriculum',
-    href: '/teacher/dashboard',
+    href: '/tools/curriculum-textbook-studio',
     requiredPlan: 'center_pro',
     badge: 'Hot',
     popularity: 100,

@@ -14,6 +14,7 @@ import {
 import type { TeacherSong, TeacherSongsListResponse } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AIToolHeader } from '@/components/tools/AIToolHeader';
 import {
   formatCreatedAt,
   formatResetLabel,
@@ -345,5 +346,12 @@ export default function SongGeneratorDashboard({ embedded = false }: { embedded?
       </div>
   );
   if (embedded) return studio;
-  return <DashboardLayout>{studio}</DashboardLayout>;
+  return (
+    <DashboardLayout>
+      <div className="px-5 pt-4 sm:px-8">
+        <AIToolHeader toolName="Educational Song Generator" />
+      </div>
+      {studio}
+    </DashboardLayout>
+  );
 }

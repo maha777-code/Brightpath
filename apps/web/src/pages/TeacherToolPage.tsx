@@ -89,7 +89,7 @@ export default function TeacherToolPage() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   if (toolId === 'curriculum-studio') {
-    return <Navigate to="/teacher/dashboard" replace />;
+    return <Navigate to="/tools/curriculum-textbook-studio" replace />;
   }
 
   if (!tool) {

@@ -23,6 +23,7 @@ import {
   type LessonPlanResponse,
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { AIToolHeader } from '@/components/tools/AIToolHeader';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -1125,5 +1126,12 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
       </div>
   );
   if (embedded) return studio;
-  return <DashboardLayout>{studio}</DashboardLayout>;
+  return (
+    <DashboardLayout>
+      <div className="px-5 pt-4 sm:px-8">
+        <AIToolHeader toolName="Lesson Plan Generator" />
+      </div>
+      {studio}
+    </DashboardLayout>
+  );
 }

@@ -37,7 +37,7 @@ export default function TeacherChapterManagePage() {
     <TeacherWorkspaceLayout>
       <main className="w-full max-w-full space-y-8 px-5 py-6 sm:px-8 lg:px-12 lg:py-8">
         <Link
-          to="/teacher/dashboard"
+          to="/tools/curriculum-textbook-studio"
           className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 px-4 py-2 text-base font-medium text-[#A5F3FC] hover:bg-cyan-400/10"
         >
           <ArrowLeft className="h-5 w-5" /> Dashboard

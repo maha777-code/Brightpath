@@ -106,7 +106,7 @@ function useDictation(onAppend: (text: string) => void) {
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <label className="mb-1.5 block text-sm font-semibold text-slate-800">
+    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
       {children}
       {required ? <span className="ml-0.5 text-rose-500">*</span> : null}
     </label>
@@ -131,9 +131,11 @@ function SelectField({
       <FieldLabel required={required}>{label}</FieldLabel>
       <div className="relative">
         <select
-          className="w-full appearance-none rounded-lg border border-slate-800 bg-[#0b0f19] px-3 py-2.5 pr-9 text-sm tracking-tight text-slate-100 shadow-none outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+          className="w-full cursor-pointer appearance-none rounded-xl border border-slate-800 bg-[#0b101d] px-3.5 py-2.5 pr-9 text-sm text-white shadow-none outline-none transition-all hover:border-slate-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50"
           style={{
             fontFamily: CYBER_FONT_STYLE.fontFamily,
+            backgroundColor: '#0b101d',
+            color: '#fff',
           }}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -187,10 +189,10 @@ function RichTextArea({
   return (
     <div>
       <FieldLabel required={required}>{label}</FieldLabel>
-      <div className="overflow-hidden rounded-lg border border-slate-700 bg-slate-900 shadow-sm focus-within:ring-2 focus-within:ring-cyan-500">
-        <div className="relative">
+      <div className="space-y-3 rounded-xl border border-slate-800 bg-[#0b101d] p-3 transition-all hover:border-slate-700 focus-within:border-cyan-500/60 focus-within:ring-1 focus-within:ring-cyan-500/50">
+        <div className="flex items-start gap-2">
           <textarea
-            className="h-32 w-full resize-y rounded-lg border border-slate-700 bg-[#0f172a] p-3 pr-11 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="min-h-[90px] w-full resize-none bg-transparent p-0 text-sm text-white placeholder-slate-500 focus:outline-none"
             style={TOOL_TEXTAREA_STYLE}
             placeholder={placeholder}
             value={value}
@@ -201,8 +203,8 @@ function RichTextArea({
           <button
             type="button"
             className={[
-              'absolute right-2 top-2 rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-cyan-300',
-              listening ? 'bg-cyan-500/20 text-cyan-200' : '',
+              'shrink-0 cursor-pointer appearance-none rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400 transition-all hover:bg-cyan-500/20',
+              listening ? 'bg-cyan-500/30' : '',
             ].join(' ')}
             aria-label={listening ? 'Stop dictation' : 'Dictate with microphone'}
             onClick={toggle}
@@ -222,14 +224,14 @@ function RichTextArea({
             ))}
           </ul>
         )}
-        <div className="flex items-center justify-between gap-3 border-t border-slate-700 bg-slate-800 px-2 py-1.5">
+        <div className="flex items-center justify-between gap-3 border-t border-slate-800/80 pt-2">
           <div className="relative">
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white"
+              className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-slate-700/60 bg-slate-800/60 px-3 py-1.5 text-xs font-bold text-slate-300 transition-all hover:bg-slate-800"
               onClick={() => setMenuOpen((v) => !v)}
             >
-              <FilePlus className="h-4 w-4" /> + Add File
+              <FilePlus className="h-3.5 w-3.5" /> + Add File
               <ChevronDown className="h-3 w-3" />
             </button>
             {menuOpen && (
@@ -258,7 +260,7 @@ function RichTextArea({
               }}
             />
           </div>
-          <p className={words > WORD_LIMIT ? 'text-xs font-medium text-rose-400' : 'text-xs text-slate-400'}>
+          <p className={words > WORD_LIMIT ? 'text-[11px] font-medium text-rose-400' : 'text-[11px] font-medium text-slate-500'}>
             Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
           </p>
         </div>
@@ -360,17 +362,17 @@ export function QuizGeneratorForm({
   };
 
   return (
-    <div className="ms-quiz-form font-sans text-slate-800">
+    <div className="ms-quiz-form space-y-5 font-sans text-slate-100">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
+            <h2 className="text-2xl font-black tracking-tight text-white">
               Multiple Choice Quiz / Assessment
             </h2>
             {onToggleFavorite || favoritedProp === undefined ? (
               <button
                 type="button"
-                className={favorited ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}
+                className={`cursor-pointer appearance-none border-0 bg-transparent p-0 ${favorited ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}`}
                 aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
                 aria-pressed={Boolean(favorited)}
                 onClick={toggleFavorite}
@@ -379,22 +381,22 @@ export function QuizGeneratorForm({
               </button>
             ) : null}
           </div>
-          <p className="mt-1 max-w-2xl text-sm text-slate-500">
+          <p className="mt-1 max-w-2xl text-xs font-medium leading-relaxed text-slate-400">
             Generate a multiple choice assessment, quiz, or test based on any topic, standard(s), or
             criteria.
           </p>
         </div>
         <button
           type="button"
-          className="btn-cyber shrink-0 rounded-lg px-3 py-1.5"
+          className="shrink-0 cursor-pointer appearance-none rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-400 transition-all hover:bg-cyan-500/20"
           onClick={loadExemplar}
         >
           {showExemplar ? 'Exemplar loaded' : 'Show exemplar'}
         </button>
       </header>
 
-      <div className="mt-6 space-y-4">
-        <SelectField label="Grade level:" required value={gradeLevel} onChange={setGradeLevel}>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <SelectField label="Grade level" required value={gradeLevel} onChange={setGradeLevel}>
           {GRADE_LEVELS.map((g) => (
             <option key={g} value={g}>
               {g}
@@ -427,7 +429,9 @@ export function QuizGeneratorForm({
             </option>
           ))}
         </SelectField>
+      </div>
 
+      <div className="space-y-5">
         <RichTextArea
           label="Topic, Standard, Text, or Description of the Assessment (be specific):"
           required
@@ -448,30 +452,30 @@ export function QuizGeneratorForm({
         />
       </div>
 
-      <div className="mt-6 flex flex-col items-end gap-3">
+      <div className="flex items-center gap-3 pt-2">
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-cyan-700 hover:text-cyan-900"
+          disabled={busy || !payload.topicDescription || overLimit}
+          className="inline-flex flex-1 cursor-pointer appearance-none items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3.5 text-sm font-black uppercase tracking-wider text-slate-950 shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={() => onGenerate(payload)}
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {busy ? 'Generating Quiz...' : 'Generate Quiz'}
+        </button>
+        <button
+          type="button"
+          className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2 text-xs font-bold text-cyan-400 hover:bg-slate-800"
           onClick={() => setAssistantOpen((v) => !v)}
         >
           <Lightbulb className="h-4 w-4" /> Prompt assistant
         </button>
-        {assistantOpen && (
-          <div className="w-full rounded-lg border border-slate-800 bg-[#0b0f19] px-4 py-3 text-sm tracking-tight text-slate-300">
-            Be specific: name the standard, paste a short source excerpt, or list vocabulary. Say
-            whether this is diagnostic, formative, or a summative test.
-          </div>
-        )}
-        <button
-          type="button"
-          disabled={busy || !payload.topicDescription || overLimit}
-          className="btn-cyber inline-flex w-full items-center justify-center gap-2 rounded-lg py-3 disabled:cursor-not-allowed disabled:opacity-60"
-          onClick={() => onGenerate(payload)}
-        >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          Generate
-        </button>
       </div>
+      {assistantOpen ? (
+        <div className="rounded-xl border border-slate-800 bg-[#0b101d] px-4 py-3 text-sm text-slate-300">
+          Be specific: name the standard, paste a short source excerpt, or list vocabulary. Say
+          whether this is diagnostic, formative, or a summative test.
+        </div>
+      ) : null}
     </div>
   );
 }

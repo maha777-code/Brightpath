@@ -175,34 +175,29 @@ type FormSnapshot = {
 
 function WorksheetTemplateSkeleton() {
   return (
-    <div className="ws-doc flex h-full min-h-[28rem] flex-col justify-between" aria-hidden>
-      <div>
-        <div className="mb-6 flex flex-wrap justify-between gap-4 text-sm text-slate-300">
-          <span>
-            Name <span className="inline-block min-w-[9rem] border-b border-slate-500">&nbsp;</span>
-          </span>
-          <span>
-            Date <span className="inline-block min-w-[7rem] border-b border-slate-500">&nbsp;</span>
-          </span>
-        </div>
-        <div className="mb-6 h-9 w-2/3 rounded bg-slate-700/80" />
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Title</p>
-        <div className="mb-8 space-y-2">
-          <div className="h-2.5 w-full rounded bg-slate-700/70" />
-          <div className="h-2.5 w-5/6 rounded bg-slate-700/55" />
-        </div>
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Section</p>
-        <div className="mb-6 space-y-2">
-          <div className="h-2.5 w-full rounded bg-slate-700/70" />
-          <div className="h-2.5 w-4/5 rounded bg-slate-700/50" />
-          <div className="h-2.5 w-3/5 rounded bg-slate-700/40" />
-        </div>
+    <div className="flex h-full min-h-[28rem] flex-col space-y-6 rounded-xl border border-slate-800/80 bg-[#0a0f20] p-6 shadow-inner" aria-hidden>
+      <div className="flex items-center justify-between border-b border-slate-800/80 pb-4 text-xs font-semibold text-slate-400">
+        <span className="flex items-center gap-2">
+          Name <span className="inline-block w-40 border-b border-slate-700/80 py-1" />
+        </span>
+        <span className="flex items-center gap-2">
+          Date <span className="inline-block w-24 border-b border-slate-700/80 py-1" />
+        </span>
       </div>
-      <ol className="space-y-4 text-sm text-slate-400">
+      <div className="space-y-1">
+        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Title</span>
+        <div className="h-5 w-3/4 animate-pulse rounded-md border border-cyan-500/20 bg-cyan-500/10" />
+      </div>
+      <div className="space-y-2">
+        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Section</span>
+        <div className="h-3 w-full animate-pulse rounded-full bg-slate-800/60" />
+        <div className="h-3 w-5/6 animate-pulse rounded-full bg-slate-800/60" />
+      </div>
+      <ol className="space-y-4 border-t border-slate-800/60 pt-4">
         {[1, 2, 3, 4, 5].map((n) => (
           <li key={n} className="flex items-center gap-3">
-            <span className="w-5 shrink-0 font-semibold text-slate-500">{n}.</span>
-            <span className="h-2.5 flex-1 rounded bg-slate-700/60" />
+            <span className="w-4 text-xs font-bold text-slate-500">{n}.</span>
+            <span className="h-3 flex-1 animate-pulse rounded-full bg-slate-800/60" />
           </li>
         ))}
       </ol>
@@ -1163,36 +1158,36 @@ export function WorksheetGenerator({
   }
 
   return (
-    <div className="ms-quiz-form flex h-full min-h-0 w-full flex-col overflow-hidden p-4 font-sans text-slate-800">
-      <div className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
-        <nav className="mb-5 flex shrink-0 flex-wrap items-center justify-between gap-2 text-sm">
-          <div className="flex flex-wrap items-center gap-1.5 text-slate-500">
-            <Link to="/teacher/tools" className="font-semibold text-cyan-700 hover:text-cyan-900">
+    <div className="mx-auto flex min-h-[85vh] w-full max-w-7xl flex-col rounded-3xl border border-slate-800/80 bg-[#040711] p-6 font-sans text-slate-100 shadow-2xl">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <nav className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-4 text-xs font-semibold text-slate-400">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to="/teacher/tools" className="hover:text-white">
               Teacher Tools
             </Link>
-            <ChevronRight className="h-3.5 w-3.5" />
-            <span className="font-semibold text-slate-800">Worksheet Generator</span>
+            <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
+            <span className="font-bold text-cyan-400">Worksheet Generator</span>
           </div>
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-slate-700/60 bg-slate-800/80 px-3.5 py-1.5 text-xs font-bold text-slate-200 transition-all hover:bg-slate-700"
             onClick={resetAll}
             aria-label="Reset worksheet generator"
           >
-            <History className="h-3.5 w-3.5" /> Reset
+            <RotateCcw className="h-3.5 w-3.5" /> Reset
           </button>
         </nav>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-8 lg:h-full lg:grid-cols-12">
-          <div className="flex h-full min-h-0 flex-col justify-between lg:col-span-5">
+        <div className="mt-6 grid min-h-0 flex-1 grid-cols-1 gap-8 overflow-hidden lg:grid-cols-2">
+          <div className="flex h-full min-h-0 flex-col justify-between space-y-5 rounded-2xl border border-slate-800/80 bg-[#060911] p-6">
             <div className="flex min-h-0 flex-1 flex-col">
               <header className="flex shrink-0 flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Worksheet Generator</h2>
+                    <h2 className="flex items-center gap-2.5 text-2xl font-black tracking-tight text-white">Worksheet Generator</h2>
                     <button
                       type="button"
-                      className={favorited ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}
+                      className={`cursor-pointer appearance-none border-0 bg-transparent p-0 ${favorited ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}`}
                       aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
                       aria-pressed={Boolean(favorited)}
                       onClick={toggleFavorite}
@@ -1200,12 +1195,12 @@ export function WorksheetGenerator({
                       <Star className="h-5 w-5" fill={favorited ? 'currentColor' : 'none'} />
                     </button>
                   </div>
-                  <p className="mt-1 text-sm text-slate-500">Generate a worksheet based on any topic or text.</p>
+                  <p className="mt-1 text-xs font-medium leading-relaxed text-slate-400">Generate a worksheet based on any topic or text.</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <button
                     type="button"
-                    className="rounded-full border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-slate-50"
+                    className="cursor-pointer appearance-none rounded-xl border border-slate-700/60 bg-slate-800/80 p-2 text-slate-300 transition-all hover:bg-slate-700"
                     aria-label="Undo last change"
                     onClick={undo}
                   >
@@ -1213,7 +1208,7 @@ export function WorksheetGenerator({
                   </button>
                   <button
                     type="button"
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-cyan-700 shadow-sm hover:bg-cyan-50"
+                    className="cursor-pointer appearance-none rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-bold text-cyan-400 transition-all hover:bg-cyan-500/20"
                     onClick={() => {
                       pushHistory();
                       setShowExemplar(true);
@@ -1227,16 +1222,13 @@ export function WorksheetGenerator({
               </header>
 
               <div className="mt-6 shrink-0">
-                <label className="mb-1.5 block text-sm font-semibold text-slate-800">
-                  Grade level:<span className="ml-0.5 text-rose-500">*</span>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+                  Grade level <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
                   <select
-                    className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 pr-9 text-sm text-slate-800 shadow-sm outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200"
-                    style={{
-                      fontFamily:
-                        'Cambria, Georgia, serif',
-                    }}
+                    className="w-full cursor-pointer appearance-none rounded-xl border border-slate-800 bg-[#0b101d] px-4 py-3 pr-9 text-sm text-white outline-none transition-all hover:border-slate-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50"
+                    style={{ backgroundColor: '#0b101d', color: '#fff' }}
                     value={gradeLevel}
                     onChange={(e) => setGradeLevel(e.target.value)}
                   >
@@ -1251,13 +1243,13 @@ export function WorksheetGenerator({
               </div>
 
               <div className="my-4 flex min-h-0 flex-1 flex-col">
-                <label className="mb-1 block text-sm font-semibold text-slate-800">
-                  Topic or text:<span className="ml-0.5 text-rose-500">*</span>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+                  Topic or text <span className="text-rose-400">*</span>
                 </label>
-                <div className="relative flex min-h-[220px] flex-1 flex-col overflow-hidden rounded-xl border border-cyan-500/40 bg-[#0f172a] p-3 shadow-inner focus-within:ring-2 focus-within:ring-cyan-500">
+                <div className="relative flex min-h-[260px] flex-1 flex-col justify-between space-y-3 rounded-xl border border-slate-800 bg-[#0b101d] p-4 transition-all hover:border-slate-700 focus-within:border-cyan-500/60">
                   <div className="relative flex min-h-0 flex-1 flex-col">
                     <textarea
-                      className="min-h-[220px] w-full flex-1 resize-none bg-transparent p-0 pr-11 text-sm text-slate-100 placeholder-slate-400 focus:outline-none"
+                      className="min-h-[180px] w-full flex-1 resize-none bg-transparent p-0 pr-12 text-sm leading-relaxed text-white placeholder-slate-500 focus:outline-none"
                       style={TOOL_TEXTAREA_STYLE}
                       placeholder={TOPIC_PLACEHOLDER}
                       value={topicOrText}
@@ -1268,7 +1260,7 @@ export function WorksheetGenerator({
                     <button
                       type="button"
                       className={[
-                        'absolute right-0 top-0 flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-800 p-2 text-cyan-300 shadow-md transition-all hover:bg-cyan-900/60 hover:text-cyan-200',
+                        'absolute right-0 top-0 flex shrink-0 cursor-pointer appearance-none items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400 transition-all hover:bg-cyan-500/20',
                         listening ? 'border-cyan-400 bg-cyan-900/60 text-cyan-200' : '',
                       ].join(' ')}
                       aria-label={listening ? 'Stop dictation' : 'Start recording voice prompt'}
@@ -1293,12 +1285,12 @@ export function WorksheetGenerator({
                     <div className="relative">
                       <button
                         type="button"
-                        className="flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-slate-800 px-3 py-1.5 text-xs font-medium text-cyan-300 transition-colors hover:bg-slate-700 hover:text-white"
+                        className="flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-slate-700/60 bg-slate-800/60 px-3 py-1.5 text-xs font-bold text-slate-300 transition-all hover:bg-slate-800"
                         onClick={() => setMenuOpen((v) => !v)}
                       >
-                        <FilePlus className="h-3.5 w-3.5 text-cyan-400" />
-                        <span className="text-cyan-200">+ Add File</span>
-                        <ChevronDown className="h-3 w-3 text-cyan-400" />
+                        <FilePlus className="h-3.5 w-3.5" />
+                        <span>+ Add File</span>
+                        <ChevronDown className="h-3 w-3" />
                       </button>
                       {menuOpen && (
                         <div className="absolute bottom-9 left-0 z-10 w-44 overflow-hidden rounded-lg border border-slate-600 bg-slate-800 py-1 shadow-lg">
@@ -1330,7 +1322,7 @@ export function WorksheetGenerator({
                       className={
                         overLimit
                           ? 'text-xs font-medium tracking-tight text-rose-400'
-                          : 'text-xs tracking-tight text-slate-400'
+                          : 'text-[11px] font-medium text-slate-500'
                       }
                     >
                       Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
@@ -1344,13 +1336,13 @@ export function WorksheetGenerator({
               <div className="mb-3 flex flex-col items-end gap-3">
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-cyan-700 hover:text-cyan-900"
+                  className="inline-flex cursor-pointer appearance-none items-center gap-1.5 self-end rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-xs font-bold text-cyan-400 transition-all hover:bg-slate-800"
                   onClick={() => setAssistantOpen((v) => !v)}
                 >
                   <Lightbulb className="h-4 w-4" /> Prompt assistant
                 </button>
                 {assistantOpen && (
-                  <div className="w-full rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-slate-700">
+                  <div className="w-full rounded-xl border border-slate-800 bg-[#0b101d] px-4 py-3 text-sm text-slate-300">
                     Name a topic, paste source text, or attach a PDF. Say whether you want vocabulary,
                     short answer, or mixed practice.
                   </div>
@@ -1359,25 +1351,28 @@ export function WorksheetGenerator({
               <button
                 type="button"
                 disabled={busy || !payload.topicOrText || overLimit}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 py-3 font-medium text-white hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex w-full cursor-pointer appearance-none items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3.5 text-sm font-black uppercase tracking-wider text-slate-950 shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => void generate()}
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Generate
+                {busy ? 'Generating Worksheet...' : 'Generate'}
               </button>
               {error && (
-                <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                <p className="mt-4 rounded-xl border border-rose-500/40 bg-rose-950/50 px-4 py-3 text-sm text-rose-200">
                   {error}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex h-full min-h-0 flex-col lg:col-span-7">
-            <span className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Template preview
-            </span>
-            <div className="ws-preview-card flex h-full min-h-[500px] flex-1 flex-col justify-between overflow-y-auto rounded-xl bg-[#1a2332] p-6 text-slate-300">
+          <div className="custom-scrollbar flex h-full min-h-0 flex-col space-y-4 overflow-y-auto rounded-2xl border border-slate-800/90 bg-[#080d1a] p-6 shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-400">
+                Template Preview
+              </span>
+              <span className="text-xs font-semibold text-slate-500">Live Preview Mode</span>
+            </div>
+            <div className="flex min-h-[400px] flex-1 flex-col">
               {busy && !worksheet ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 text-slate-400">
                   <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />

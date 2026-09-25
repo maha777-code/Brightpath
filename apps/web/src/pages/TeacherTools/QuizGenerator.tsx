@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { Check, Copy, FileDown, Loader2, RefreshCw } from 'lucide-react';
+import { Check, Copy, FileDown, HelpCircle, Loader2, RefreshCw } from 'lucide-react';
 import type { QuizGeneratorPayload, QuizGeneratorResponse } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
@@ -152,66 +152,58 @@ function QuizOutputCard({
   onExportPdf: () => void;
   onRegenerate: () => void;
 }) {
+  const actionClass = quiz && !busy
+    ? 'inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-slate-800 px-3 py-1.5 text-xs font-bold text-cyan-400 transition-all hover:bg-slate-700'
+    : 'inline-flex cursor-not-allowed appearance-none items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5 text-xs font-bold text-slate-500';
+
   return (
-    <section className="quiz-gen-output flex min-h-[28rem] flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 sm:px-5">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Generated output
-        </h3>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-            disabled={!quiz || busy}
-            onClick={onExportPdf}
-          >
+    <section className="quiz-gen-output flex h-full min-h-0 flex-col overflow-y-auto bg-[#03060d] p-6 custom-scrollbar">
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Generated Output</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className={actionClass} disabled={!quiz || busy} onClick={onExportPdf}>
             <FileDown className="h-3.5 w-3.5" /> Export to PDF
           </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-            disabled={!quiz || busy}
-            onClick={onCopy}
-          >
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-            {copied ? 'Copied' : 'Copy to Clipboard'}
+          <button type="button" className={actionClass} disabled={!quiz || busy} onClick={onCopy}>
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? 'Copied' : 'Copy'}
           </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-xs font-medium text-violet-800 hover:bg-violet-100 disabled:opacity-40"
-            disabled={!quiz || busy}
-            onClick={onRegenerate}
-          >
+          <button type="button" className={actionClass} disabled={!quiz || busy} onClick={onRegenerate}>
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             Regenerate
           </button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+      <div className="flex min-h-[400px] flex-1 flex-col justify-center rounded-2xl border border-slate-800/90 bg-[#080d1a] p-6 shadow-xl">
         {busy && !quiz ? (
-          <div className="flex h-full min-h-[20rem] flex-col items-center justify-center gap-3 text-slate-500">
-            <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
-            <p className="text-sm">Generating your quiz…</p>
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-400">
+            <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+            <p className="text-sm font-semibold">Generating your quiz…</p>
           </div>
         ) : !quiz ? (
-          <div className="flex h-full min-h-[20rem] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center text-sm text-slate-500">
-            Your generated quiz will appear here after you click Generate.
+          <div className="flex h-full flex-col items-center justify-center space-y-3 rounded-xl border-2 border-dashed border-slate-800/80 p-8 text-center">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
+              <HelpCircle className="h-8 w-8 text-slate-600" />
+            </div>
+            <p className="max-w-xs text-sm font-semibold leading-relaxed text-slate-400">
+              Your generated quiz will appear here after you click <strong className="text-cyan-400">Generate Quiz</strong>.
+            </p>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-5 overflow-y-auto">
             {quiz.questions.map((q, i) => (
-              <article key={`${q.id}-${i}`} className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-                <h4 className="text-base font-bold text-slate-900">
+              <article key={`${q.id}-${i}`} className="rounded-xl border border-slate-800 bg-[#0b101d] p-4">
+                <h4 className="text-base font-bold text-white">
                   {q.id ?? i + 1}. {q.question.replace(/^\d+\.\s*/, '')}
                 </h4>
                 <ul className="mt-3 space-y-2">
                   {q.options.map((opt, j) => (
                     <li
                       key={`${opt}-${j}`}
-                      className="flex items-start gap-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-800 shadow-sm"
+                      className="flex items-start gap-2 rounded-lg border border-slate-800 bg-[#060911] px-3 py-2 text-sm text-slate-200"
                     >
-                      <span className="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-violet-100 text-[11px] font-bold text-violet-800">
+                      <span className="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-cyan-500/10 text-[11px] font-bold text-cyan-300">
                         {String.fromCharCode(65 + j)}
                       </span>
                       <span>{opt.replace(/^[A-G][.)]\s+/i, '')}</span>
@@ -220,10 +212,9 @@ function QuizOutputCard({
                 </ul>
               </article>
             ))}
-
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">Answer Key</p>
-              <p className="mt-2 font-mono text-sm font-semibold leading-relaxed text-emerald-950">
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-4">
+              <p className="text-xs font-black uppercase tracking-wider text-emerald-300">Answer Key</p>
+              <p className="mt-2 font-mono text-sm font-semibold leading-relaxed text-emerald-100">
                 {formatAnswerKeyLine(quiz)}
               </p>
             </div>
@@ -278,9 +269,9 @@ export function QuizGenerator({
   };
 
   return (
-    <div className="quiz-gen-shell font-sans text-slate-800">
-      <div className="quiz-gen-split">
-        <div className="quiz-gen-form-panel min-w-0">
+    <div className="quiz-gen-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#040711] font-sans text-slate-100">
+      <div className="quiz-gen-split min-h-0 flex-1 divide-y divide-slate-800/80 lg:divide-x lg:divide-y-0">
+        <div className="custom-scrollbar min-h-0 space-y-5 overflow-y-auto bg-[#060911] p-6">
           <QuizGeneratorForm
             favorited={favorited}
             onToggleFavorite={onToggleFavorite}
@@ -288,11 +279,11 @@ export function QuizGenerator({
             onGenerate={(payload) => void runGenerate(payload)}
             onPayloadChange={handlePayloadChange}
           />
-          {error && (
-            <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error ? (
+            <p className="rounded-xl border border-rose-500/40 bg-rose-950/50 px-4 py-3 text-sm text-rose-200">
               {error}
             </p>
-          )}
+          ) : null}
         </div>
         <QuizOutputCard
           quiz={quiz}

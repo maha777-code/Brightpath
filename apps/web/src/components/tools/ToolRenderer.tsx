@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { AIToolHeader } from '@/components/tools/AIToolHeader';
 import { WorksheetGenerator } from '@/pages/TeacherTools/WorksheetGenerator';
 import { QuizGenerator } from '@/pages/TeacherTools/QuizGenerator';
 import LessonPlanGenerator from '@/pages/TeacherTools/LessonPlanGenerator';
@@ -15,6 +16,8 @@ interface ToolRendererProps {
 
 export function ToolRenderer({ tool, mode = 'production', embed = false, onClose }: ToolRendererProps) {
   const embedded = mode === 'admin-preview' || embed;
+  const toolSuppliesHeader =
+    !embedded && (tool.componentKey === 'LessonPlanGenerator' || tool.componentKey === 'SongGenerator');
 
   const renderActualTool = () => {
     switch (tool.componentKey) {
@@ -31,7 +34,7 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, onClose
           <div className="space-y-3 text-slate-200">
             <h2 className="text-2xl font-bold text-white">{tool.title}</h2>
             <p>{tool.description}</p>
-            <Link to="/teacher/dashboard" className="inline-block font-bold text-cyan-300 underline">
+            <Link to="/tools/curriculum-textbook-studio" className="inline-block font-bold text-cyan-300 underline">
               Open Curriculum & Textbook Studio
             </Link>
           </div>
@@ -44,7 +47,7 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, onClose
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden rounded-2xl bg-[#060911] text-slate-100">
       {mode === 'admin-preview' ? (
-        <div className="flex items-center justify-between border-b border-slate-800 bg-[#0b0f19] px-6 py-3 text-xs font-semibold text-cyan-400">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-800 bg-[#080d1a] px-6 py-2.5 text-xs font-bold text-cyan-400">
           <span className="flex items-center gap-2">
             <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
             ADMIN PREVIEW MODE — Testing Live Production Tool Architecture
@@ -53,14 +56,29 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, onClose
             <button
               type="button"
               onClick={onClose}
-              className="cursor-pointer appearance-none rounded-lg border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200 hover:bg-slate-700"
+              className="cursor-pointer appearance-none rounded-lg border border-slate-700/60 bg-slate-800/80 px-3 py-1 text-xs font-bold text-slate-200 hover:bg-slate-700"
             >
               Exit Preview
             </button>
           ) : null}
         </div>
       ) : null}
-      <div className={embedded ? 'min-h-0 flex-1 overflow-y-auto p-4 sm:p-6' : 'min-h-0 flex-1'}>{renderActualTool()}</div>
+      {toolSuppliesHeader ? null : (
+        <div className="shrink-0 px-4 pt-4 sm:px-6">
+          <AIToolHeader toolName={tool.title} onClose={onClose} />
+        </div>
+      )}
+      <div
+        className={
+          embedded && (tool.componentKey === 'QuizGenerator' || tool.componentKey === 'WorksheetGenerator')
+            ? 'min-h-0 flex-1 overflow-hidden'
+            : embedded
+              ? 'min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6'
+              : 'min-h-0 flex-1 overflow-hidden'
+        }
+      >
+        {renderActualTool()}
+      </div>
     </div>
   );
 }

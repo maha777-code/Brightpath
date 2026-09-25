@@ -17,12 +17,14 @@ const WORKSPACE_ITEMS = [
       pathname === '/home' || pathname === '/' || pathname.startsWith('/chat/sharada') || pathname.startsWith('/chat/raina'),
   },
   {
-    to: '/teacher/dashboard',
-    label: 'Teacher Dashboard',
-    detail: 'Curriculum & Textbook Studio',
+    to: '/tools/curriculum-textbook-studio',
+    label: 'Curriculum & Textbook Studio',
+    detail: 'Upload textbooks and enrich lessons',
     icon: BookOpen,
     match: (pathname: string) =>
-      pathname === '/teacher/dashboard' || pathname.startsWith('/teacher/chapter'),
+      pathname === '/tools/curriculum-textbook-studio' ||
+      pathname === '/teacher/dashboard' ||
+      pathname.startsWith('/teacher/chapter'),
   },
   {
     to: '/teacher/tools',

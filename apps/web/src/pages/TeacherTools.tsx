@@ -141,8 +141,8 @@ export default function TeacherTools() {
       setCheckoutOpen(false);
       return;
     }
-    if (tool.id === 'curriculum-studio' || tool.href === '/teacher/dashboard') {
-      navigate('/teacher/dashboard');
+    if (tool.id === 'curriculum-studio' || tool.href === '/tools/curriculum-textbook-studio') {
+      navigate('/tools/curriculum-textbook-studio');
       return;
     }
     if (tool.id === 'worksheet-generator') {

@@ -1,5 +1,5 @@
 import { Component, useEffect, useMemo, useState, type ErrorInfo, type FormEvent, type ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   BookOpen,
@@ -35,6 +35,7 @@ import { isTeacherToolEnabled, setTeacherToolEnabled } from '@/lib/teacherToolAv
 import { ToolRenderer } from '@/components/tools/ToolRenderer';
 import { getRegistryTool, toToolDefinition, type ToolDefinition } from '@/config/toolsRegistry';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
+import { CURRICULUM_STUDIO_PATH } from '@/pages/tools/CurriculumTextbookStudio';
 
 type Tab = 'overview' | 'tools' | 'feedback';
 
@@ -109,6 +110,7 @@ function isFreePlan(planType: string): boolean {
 
 export default function OwnerDashboard() {
   const { role, loading, homePath } = useAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('overview');
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState('');
@@ -422,7 +424,13 @@ export default function OwnerDashboard() {
                           ) : (
                             <button
                               type="button"
-                              onClick={() => setPreview(tool)}
+                              onClick={() => {
+                                if (tool.id === 'curriculum-studio') {
+                                  navigate(CURRICULUM_STUDIO_PATH);
+                                  return;
+                                }
+                                setPreview(tool);
+                              }}
                               className="inline-flex cursor-pointer appearance-none items-center gap-1.5 border-0 bg-transparent text-base font-bold text-cyan-400"
                             >
                               <Eye className="h-4 w-4" /> Admin Preview
@@ -567,7 +575,7 @@ export default function OwnerDashboard() {
 function AdminToolPreview({ tool, onClose }: { tool: ToolDefinition; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md sm:p-8">
-      <div className="flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-slate-800 bg-[#060911] shadow-2xl">
+      <div className="flex h-[88vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-slate-800 bg-[#040711] shadow-2xl">
         <ToolRenderer tool={tool} mode="admin-preview" onClose={onClose} />
       </div>
     </div>

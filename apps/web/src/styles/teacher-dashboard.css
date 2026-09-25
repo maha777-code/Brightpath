@@ -102,28 +102,32 @@ body:has(.td-dash),
 
 .quiz-gen-shell {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif;
+  height: 100%;
+  min-height: 0;
 }
 
 .quiz-gen-split {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.25rem;
-  align-items: start;
+  gap: 0;
+  align-items: stretch;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .quiz-gen-output {
-  min-height: 28rem;
+  min-height: 0;
 }
 
 @media (min-width: 1024px) {
   .quiz-gen-split {
-    grid-template-columns: minmax(280px, 0.95fr) minmax(320px, 1.15fr);
+    grid-template-columns: 1fr 1fr;
   }
 
   .quiz-gen-output {
-    position: sticky;
-    top: 0.5rem;
-    max-height: min(78dvh, 52rem);
+    position: static;
+    max-height: none;
   }
 }
 
