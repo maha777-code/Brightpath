@@ -82,7 +82,7 @@ export function resolveUserSchool(input: {
       input.teacher?.schoolName,
       input.user?.school,
       storedUserSchool(),
-    ) || 'Brightpath Academy'
+    ) || 'School'
   );
 }
 
@@ -92,16 +92,28 @@ export function firstNameFromDisplayName(name?: string | null): string {
   return cleaned.split(/\s+/)[0] || 'Teacher';
 }
 
+function emailLocalPart(...emails: Array<string | null | undefined>): string {
+  for (const email of emails) {
+    const local = email?.split('@')[0]?.trim();
+    if (local) return local;
+  }
+  return '';
+}
+
 export function useDisplayUser() {
   const { user, teacher, parent, organization } = useAuth();
-  const userName = resolveUserName({ user, teacher, parent });
+  const resolvedName = firstNonEmpty(nameFrom(user), nameFrom(teacher), nameFrom(parent), storedUserName());
+  const userName = resolvedName || 'Teacher User';
+  const firstName = resolvedName
+    ? firstNameFromDisplayName(resolvedName)
+    : emailLocalPart(user?.email, teacher?.email, parent?.email) || 'Teacher';
   const schoolName = resolveUserSchool({ organization, teacher, user });
-  const subjectFocus = teacher?.subjectFocus?.trim() || '';
-  const userMeta = subjectFocus ? `${schoolName} · ${subjectFocus}` : schoolName;
+  const subject = teacher?.subjectFocus?.trim() || 'Education';
+  const userMeta = `${schoolName} · ${subject}`;
 
   return {
     userName,
-    firstName: firstNameFromDisplayName(userName),
+    firstName: firstName || 'Teacher',
     schoolName,
     userMeta,
   };

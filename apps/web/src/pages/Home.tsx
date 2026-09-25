@@ -155,7 +155,7 @@ export function HomePage() {
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-cyan-400" /> SYS_OK
           </span>
           <h1 className="text-center text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
-            Hi {firstName}. <span className="text-slate-400">How can I help today?</span>
+            Hi {firstName || 'Teacher'}. <span className="text-slate-400">How can I help today?</span>
           </h1>
           <p className="mb-6 mt-2 text-center text-lg font-medium text-slate-300">
             Chat with Sharada, your AI assistant
