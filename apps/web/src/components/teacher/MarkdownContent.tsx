@@ -1,4 +1,5 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
+import { ArrowDownToLine, Copy, Check } from 'lucide-react';
 
 function renderInline(text: string): ReactNode[] {
   const tokens = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g);
@@ -6,14 +7,14 @@ function renderInline(text: string): ReactNode[] {
     if (!token) return null;
     if (token.startsWith('**') && token.endsWith('**') && token.length > 4) {
       return (
-        <strong key={index} className="font-semibold text-slate-50">
+        <strong key={index} className="mr-1.5 font-bold text-white">
           {token.slice(2, -2)}
         </strong>
       );
     }
     if (token.startsWith('`') && token.endsWith('`') && token.length > 2) {
       return (
-        <code key={index} className="rounded bg-slate-800 px-1 py-0.5 text-[0.95em] text-amber-200">
+        <code key={index} className="rounded bg-[#282a2c] px-2 py-0.5 font-mono text-sm text-cyan-300">
           {token.slice(1, -1)}
         </code>
       );
@@ -37,9 +38,65 @@ function renderInline(text: string): ReactNode[] {
 }
 
 function headingClass(level: number): string {
-  if (level === 1) return 'text-2xl font-bold text-slate-50';
-  if (level === 2) return 'mt-6 text-xl font-semibold text-slate-100';
-  return 'mt-4 text-lg font-semibold text-slate-200';
+  if (level === 1) return 'mb-3 mt-6 text-xl font-bold text-white sm:text-2xl';
+  if (level === 2) return 'mb-3 mt-6 text-xl font-bold text-white sm:text-2xl';
+  return 'mb-3 mt-6 text-xl font-bold text-white';
+}
+
+function CodeBlock({ lang, code }: { lang: string; code: string }) {
+  const [copied, setCopied] = useState(false);
+  const label = lang.trim() || 'Plaintext';
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  const download = () => {
+    const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `sharada-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'plaintext'}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-800/80 bg-[#1e1f20] shadow-md">
+      <div className="flex items-center justify-between rounded-t-2xl border-b border-slate-700/60 bg-[#1e1f20] px-4 py-2.5 font-mono text-xs text-slate-300">
+        <span>{label}</span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="inline-flex cursor-pointer appearance-none items-center border-0 bg-transparent p-0 text-slate-300 hover:text-white"
+            aria-label="Download code"
+            title="Download"
+            onClick={download}
+          >
+            <ArrowDownToLine className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="inline-flex cursor-pointer appearance-none items-center border-0 bg-transparent p-0 text-slate-300 hover:text-white"
+            aria-label="Copy code"
+            title={copied ? 'Copied' : 'Copy code'}
+            onClick={() => void copy()}
+          >
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+      <pre className="overflow-x-auto rounded-b-2xl border border-slate-800/80 bg-[#1e1f20] p-4 font-mono text-sm leading-relaxed text-slate-200 sm:text-base">
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
 }
 
 function isListLine(line: string): boolean {
@@ -59,6 +116,20 @@ export function MarkdownContent({ markdown }: { markdown: string }) {
     const line = lines[i] ?? '';
     if (!line.trim()) {
       i += 1;
+      continue;
+    }
+
+    if (line.trim().startsWith('```')) {
+      const lang = line.trim().slice(3).trim() || 'Plaintext';
+      const start = i;
+      const buffer: string[] = [];
+      i += 1;
+      while (i < lines.length && !(lines[i] ?? '').trim().startsWith('```')) {
+        buffer.push(lines[i] ?? '');
+        i += 1;
+      }
+      if (i < lines.length) i += 1;
+      nodes.push(<CodeBlock key={`code-${start}`} lang={lang} code={buffer.join('\n')} />);
       continue;
     }
 
@@ -105,23 +176,28 @@ export function MarkdownContent({ markdown }: { markdown: string }) {
         }
         break;
       }
-      const ListTag = ordered ? 'ol' : 'ul';
-      nodes.push(
-        <ListTag
-          key={`list-${start}`}
-          className={
-            ordered
-              ? 'list-decimal space-y-2 pl-6 text-slate-100'
-              : 'list-disc space-y-2 pl-6 text-slate-100'
-          }
-        >
-          {items.map((item, idx) => (
-            <li key={`${start}-${idx}`} className="leading-relaxed">
-              {item}
-            </li>
-          ))}
-        </ListTag>,
-      );
+      if (ordered) {
+        nodes.push(
+          <ol key={`list-${start}`} className="space-y-3 pl-1 text-base leading-[1.7] text-slate-200 sm:text-lg">
+            {items.map((item, idx) => (
+              <li key={`${start}-${idx}`} className="flex items-start gap-3">
+                <span className="font-bold text-slate-100">{idx + 1}.</span>
+                <span className="font-normal text-slate-200">{item}</span>
+              </li>
+            ))}
+          </ol>,
+        );
+      } else {
+        nodes.push(
+          <ul key={`list-${start}`} className="list-disc space-y-2.5 pl-6 text-slate-200 marker:text-slate-400">
+            {items.map((item, idx) => (
+              <li key={`${start}-${idx}`} className="leading-[1.7]">
+                {item}
+              </li>
+            ))}
+          </ul>,
+        );
+      }
       continue;
     }
 
@@ -129,7 +205,7 @@ export function MarkdownContent({ markdown }: { markdown: string }) {
     i += 1;
     while (i < lines.length) {
       const next = lines[i] ?? '';
-      if (!next.trim() || next.startsWith('#') || isListLine(next) || /^---+$/.test(next.trim())) break;
+      if (!next.trim() || next.trim().startsWith('```') || next.startsWith('#') || isListLine(next) || /^---+$/.test(next.trim())) break;
       para.push(next);
       i += 1;
     }
@@ -141,7 +217,7 @@ export function MarkdownContent({ markdown }: { markdown: string }) {
         className={
           wordBank
             ? 'rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3 leading-relaxed text-slate-100'
-            : 'leading-relaxed text-slate-100'
+            : 'text-base font-normal leading-[1.7] tracking-wide text-slate-200 sm:text-[17px]'
         }
       >
         {renderInline(joined)}
@@ -150,7 +226,7 @@ export function MarkdownContent({ markdown }: { markdown: string }) {
   }
 
   return (
-    <div className="prose prose-invert max-w-none space-y-4 text-slate-100 leading-relaxed">
+    <div className="max-w-none space-y-4 text-base font-normal leading-[1.7] tracking-wide text-slate-200 sm:text-[17px]">
       {nodes}
     </div>
   );

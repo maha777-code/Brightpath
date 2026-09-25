@@ -86,6 +86,7 @@ export function HomePage() {
   const { firstName } = useDisplayUser();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState('');
   const [reply, setReply] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -111,6 +112,13 @@ export function HomePage() {
       .then((res) => setFavoriteIds(res.favoriteIds))
       .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    const field = textareaRef.current;
+    if (!field) return;
+    field.style.height = 'auto';
+    field.style.height = `${Math.min(field.scrollHeight, 200)}px`;
+  }, [prompt]);
 
   const toggleFavorite = async (toolId: string) => {
     const wasFav = favoriteIds.includes(toolId);
@@ -154,14 +162,15 @@ export function HomePage() {
           </p>
 
           <form
-            className="w-full space-y-4 rounded-2xl border border-slate-800 bg-[#080d1a] p-5 text-left shadow-2xl transition-all hover:border-cyan-500/40"
+            className="mx-auto my-4 flex w-full max-w-3xl flex-col justify-between space-y-3 rounded-[28px] border border-slate-700/50 bg-[#131b2e] p-4 text-left shadow-2xl transition-all duration-300 hover:border-slate-600 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20 sm:p-5"
             onSubmit={(event) => {
               event.preventDefault();
               sendPrompt();
             }}
           >
             <textarea
-              rows={2}
+              ref={textareaRef}
+              rows={1}
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               onKeyDown={(event) => {
@@ -170,16 +179,17 @@ export function HomePage() {
                   sendPrompt();
                 }
               }}
-              placeholder="Recommend 5 accessible video resources for social..."
-              className="min-h-[60px] w-full resize-none bg-transparent text-lg leading-relaxed text-white placeholder-slate-500 outline-none"
+              placeholder="Ask Sharada or enter prompt..."
+              className="custom-scrollbar max-h-[200px] w-full resize-none overflow-y-auto border-none bg-transparent p-0 font-sans text-base font-normal leading-relaxed text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-0 sm:text-lg"
               style={FONT}
             />
-            <div className="flex items-center justify-between border-t border-slate-800/80 pt-3">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  className="cursor-pointer appearance-none rounded-xl bg-slate-800/80 p-3 text-slate-200 transition-colors hover:text-cyan-400"
-                  aria-label="Attach a file"
+                  className="cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
+                  aria-label="Add file or attachment"
+                  title="Add file or attachment"
                   onClick={() => fileRef.current?.click()}
                 >
                   <Plus className="h-5 w-5" />
@@ -195,9 +205,9 @@ export function HomePage() {
                 />
                 <button
                   type="button"
-                  className="cursor-pointer appearance-none rounded-xl bg-slate-800/80 p-3 text-slate-200 transition-colors hover:text-cyan-400"
-                  aria-label="Voice input"
-                  title="Voice input"
+                  className="cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-cyan-400"
+                  aria-label="Use voice input"
+                  title="Use voice input"
                   onClick={() =>
                     setReply('Sharada: Voice input is ready in your next session. Type your request for now.')
                   }
@@ -206,21 +216,26 @@ export function HomePage() {
                 </button>
                 <button
                   type="button"
-                  className="hidden cursor-pointer appearance-none items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3.5 py-2 text-sm font-bold text-cyan-400 hover:bg-cyan-500/20 sm:inline-flex"
+                  className="ml-1 hidden cursor-pointer appearance-none items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-bold text-cyan-400 shadow-sm transition-all hover:bg-cyan-500/20 sm:inline-flex sm:text-sm"
                   onClick={() => {
                     setPrompt('Generate a classroom image of ');
                     setReply(null);
                   }}
                 >
-                  <Sparkles className="h-4 w-4" /> New! Ask Sharada to generate images
+                  <Sparkles className="h-3.5 w-3.5" /> New! Ask Sharada to generate images
                 </button>
               </div>
               <button
                 type="submit"
-                className="cursor-pointer appearance-none rounded-xl bg-cyan-500 p-3 font-extrabold text-slate-950 shadow-md shadow-cyan-500/20 transition-all hover:bg-cyan-400"
+                disabled={!prompt.trim()}
+                className={`flex appearance-none items-center justify-center rounded-full border-0 p-3 font-extrabold transition-all duration-200 ${
+                  prompt.trim()
+                    ? 'scale-105 cursor-pointer bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/30 hover:bg-cyan-300 active:scale-95'
+                    : 'cursor-not-allowed bg-slate-800 text-slate-500'
+                }`}
                 aria-label="Send message"
               >
-                <ArrowUp className="h-5 w-5" />
+                <ArrowUp className="h-5 w-5 stroke-[2.5]" />
               </button>
             </div>
           </form>

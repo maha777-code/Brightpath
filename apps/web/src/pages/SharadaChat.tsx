@@ -6,9 +6,12 @@ import {
   Clock,
   Copy,
   Mic,
-  Newspaper,
+  MoreHorizontal,
   Plus,
+  RotateCw,
   Share2,
+  ThumbsDown,
+  ThumbsUp,
 } from 'lucide-react';
 import { fallbackSharadaChat, sharadaTitleFromPrompt, type SharadaChatMessage, type SharadaChatResponse } from '@brightpath/shared';
 import { api } from '@/lib/api';
@@ -68,6 +71,8 @@ export function SharadaChat() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [barNote, setBarNote] = useState<string | null>(null);
+  const [reaction, setReaction] = useState<Record<string, 'up' | 'down'>>({});
+  const [moreId, setMoreId] = useState<string | null>(null);
 
   const scrollToEnd = useCallback(() => {
     requestAnimationFrame(() => {
@@ -170,13 +175,23 @@ export function SharadaChat() {
     }
   };
 
+  const regenerate = (assistantId: string) => {
+    if (busy) return;
+    const index = messages.findIndex((msg) => msg.id === assistantId);
+    if (index < 1) return;
+    const user = messages[index - 1];
+    if (!user || user.role !== 'user') return;
+    const prior = messages.slice(0, index - 1).filter((msg) => !(msg.role === 'assistant' && msg.pending));
+    void runPrompt(user.text, prior);
+  };
+
   const empty = messages.length === 0;
   const activeTitle = useMemo(() => title || 'New conversation', [title]);
 
   return (
     <TeacherWorkspaceLayout fillViewport>
-      <div className="flex min-h-0 flex-1 flex-col bg-transparent text-slate-100" style={FONT}>
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800/80 bg-[#030712]/80 px-5 py-3 backdrop-blur-md sm:px-8">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#131314] font-sans text-slate-100" style={FONT}>
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800/40 bg-[#131314] px-5 py-3 sm:px-8">
           <nav className="flex min-w-0 items-center gap-2 text-sm text-slate-400" aria-label="Breadcrumb">
             <button
               type="button"
@@ -223,45 +238,118 @@ export function SharadaChat() {
           </div>
         </header>
 
-        <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
-          <div className="mx-auto flex w-full max-w-4xl flex-col space-y-6">
+        <div ref={scrollerRef} className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+          <div className="mx-auto flex w-full max-w-4xl flex-col space-y-8">
             {empty && !busy ? (
-              <p className="pt-16 text-center text-sm text-slate-400">
+              <p className="pt-16 text-center text-base text-slate-400">
                 Ask Sharada to generate a worksheet, quiz, or lesson plan.
               </p>
             ) : null}
 
             {messages.map((msg) =>
               msg.role === 'user' ? (
-                <div key={msg.id} className="ml-auto w-full max-w-lg">
-                  <div className="rounded-lg border border-slate-800 bg-[#0b0f19] p-4 text-right">
-                    <p className="text-slate-200">{msg.text}</p>
-                    <div className="mt-2 flex justify-end">
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 border-0 bg-transparent p-0 text-xs text-slate-500 shadow-none hover:text-slate-300"
-                        style={{ appearance: 'none' }}
-                        aria-label="Copy prompt"
-                        onClick={() => void copyText(msg.id, msg.text)}
-                      >
-                        {copiedId === msg.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                        {copiedId === msg.id ? 'Copied' : 'Copy'}
-                      </button>
-                    </div>
+                <div key={msg.id} className="flex w-full flex-col items-end space-y-1">
+                  <div className="inline-block max-w-[80%] rounded-2xl rounded-tr-sm bg-[#282a2c] px-5 py-3.5 text-base font-normal leading-relaxed text-slate-100 shadow-sm hover:bg-[#313335] sm:text-lg">
+                    {msg.text}
                   </div>
+                  <button
+                    type="button"
+                    className="inline-flex cursor-pointer appearance-none items-center gap-1 border-0 bg-transparent pr-1 pt-1 text-xs text-slate-400 shadow-none transition-colors hover:text-slate-200"
+                    aria-label="Copy prompt"
+                    onClick={() => void copyText(msg.id, msg.text)}
+                  >
+                    {copiedId === msg.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copiedId === msg.id ? 'Copied' : 'Copy'}
+                  </button>
                 </div>
               ) : (
-                <article key={msg.id} className="max-w-none space-y-4">
-                  <p className="text-slate-300">{msg.statusLine}</p>
+                <article key={msg.id} className="w-full space-y-4 pt-2">
+                  <p className="text-base font-normal leading-[1.7] tracking-wide text-slate-200 sm:text-[17px]">
+                    {msg.statusLine}
+                  </p>
                   {msg.pending ? (
-                    <p className="animate-pulse text-sm text-slate-500">Working on it…</p>
+                    <p className="animate-pulse text-base text-slate-400">Working on it…</p>
                   ) : (
                     <>
                       {msg.confirmation ? (
-                        <p className="font-medium text-slate-200">{msg.confirmation}</p>
+                        <p className="text-base font-normal leading-[1.7] text-slate-200 sm:text-[17px]">{msg.confirmation}</p>
                       ) : null}
-                      <div className="my-4 border-b border-slate-800" />
                       <MarkdownContent markdown={msg.markdown} />
+                      <div className="mt-4 flex items-center gap-1 text-slate-400">
+                        <button
+                          type="button"
+                          title="Good response"
+                          aria-pressed={reaction[msg.id] === 'up'}
+                          className={`cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2 transition-all hover:bg-slate-800 hover:text-slate-200 ${reaction[msg.id] === 'up' ? 'text-cyan-300' : ''}`}
+                          onClick={() =>
+                            setReaction((current) => {
+                              const next = { ...current };
+                              if (next[msg.id] === 'up') delete next[msg.id];
+                              else next[msg.id] = 'up';
+                              return next;
+                            })
+                          }
+                        >
+                          <ThumbsUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Bad response"
+                          aria-pressed={reaction[msg.id] === 'down'}
+                          className={`cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2 transition-all hover:bg-slate-800 hover:text-slate-200 ${reaction[msg.id] === 'down' ? 'text-cyan-300' : ''}`}
+                          onClick={() =>
+                            setReaction((current) => {
+                              const next = { ...current };
+                              if (next[msg.id] === 'down') delete next[msg.id];
+                              else next[msg.id] = 'down';
+                              return next;
+                            })
+                          }
+                        >
+                          <ThumbsDown className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Regenerate"
+                          className="cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2 transition-all hover:bg-slate-800 hover:text-slate-200 disabled:opacity-40"
+                          disabled={busy}
+                          onClick={() => regenerate(msg.id)}
+                        >
+                          <RotateCw className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Copy text"
+                          className="cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2 transition-all hover:bg-slate-800 hover:text-slate-200"
+                          onClick={() =>
+                            void copyText(msg.id, [msg.confirmation, msg.markdown].filter(Boolean).join('\n\n'))
+                          }
+                        >
+                          {copiedId === msg.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            title="More"
+                            className="cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2 transition-all hover:bg-slate-800 hover:text-slate-200"
+                            onClick={() => setMoreId((current) => (current === msg.id ? null : msg.id))}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                          {moreId === msg.id ? (
+                            <button
+                              type="button"
+                              className="absolute bottom-10 left-0 cursor-pointer appearance-none whitespace-nowrap rounded-xl border border-slate-700/60 bg-[#1e1f20] px-3 py-2 text-xs text-slate-200 shadow-lg"
+                              onClick={() => {
+                                void copyText(`${msg.id}-more`, [msg.confirmation, msg.markdown].filter(Boolean).join('\n\n'));
+                                setMoreId(null);
+                              }}
+                            >
+                              Copy response
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
                     </>
                   )}
                 </article>
@@ -270,66 +358,59 @@ export function SharadaChat() {
           </div>
         </div>
 
-        <div className="sticky bottom-0 shrink-0 bg-gradient-to-t from-[#030712] via-[#030712] to-transparent px-4 pb-4 pt-2 sm:px-8">
-          <div className="mx-auto w-full max-w-4xl">
+        <div className="shrink-0 bg-[#131314] px-4 pb-3 pt-2">
+          <div className="mx-auto w-full max-w-3xl">
             <form
-              className="rounded-lg border border-slate-800 bg-[#0b0f19]/95 p-3 shadow-[0_0_20px_rgba(6,182,212,0.12)]"
+              className="flex items-center justify-between gap-3 rounded-[28px] border border-slate-700/50 bg-[#1e1f20] p-3 shadow-xl transition-all duration-200 hover:bg-[#282a2c] focus-within:border-cyan-500/50 focus-within:bg-[#1e1f20] sm:p-4"
               onSubmit={(event) => {
                 event.preventDefault();
                 submitFollowUp();
               }}
             >
-              <div className="flex items-end gap-2">
+              <button
+                type="button"
+                className="cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2 text-slate-300 shadow-none transition-colors hover:bg-slate-800 hover:text-white"
+                aria-label="Attach a file"
+                title="Add file or attachment"
+                onClick={() => fileRef.current?.click()}
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+              <input
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    submitFollowUp();
+                  }
+                }}
+                placeholder="Ask Sharada..."
+                className="w-full border-none bg-transparent p-0 text-base text-slate-100 placeholder-slate-400 outline-none focus:outline-none sm:text-lg"
+                style={FONT}
+                disabled={busy}
+              />
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  className="rounded-lg border-0 bg-transparent p-1.5 text-slate-400 shadow-none hover:text-white"
-                  style={{ appearance: 'none' }}
-                  aria-label="Attach a file"
-                  onClick={() => fileRef.current?.click()}
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-                <input
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.shiftKey) {
-                      event.preventDefault();
-                      submitFollowUp();
-                    }
-                  }}
-                  placeholder="Continue the conversation..."
-                  className="min-h-[2.25rem] w-full bg-transparent px-2 py-1.5 text-slate-100 placeholder-slate-600 outline-none tracking-tight"
-                  style={FONT}
-                  disabled={busy}
-                />
-                <button
-                  type="button"
-                  className="rounded-lg border-0 bg-transparent p-1.5 text-slate-400 shadow-none hover:text-cyan-300"
-                  style={{ appearance: 'none' }}
+                  className="cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2 text-slate-300 shadow-none transition-colors hover:bg-slate-800 hover:text-cyan-400"
                   aria-label="Voice input"
-                  title="Voice input"
+                  title="Use voice input"
                   onClick={() => setBarNote('Voice input is ready in your next session. Type your follow-up for now.')}
                 >
-                  <Mic className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  className="rounded-lg border-0 bg-transparent p-1.5 text-slate-400 shadow-none hover:text-cyan-300"
-                  style={{ appearance: 'none' }}
-                  aria-label="Insert a document"
-                  title="Insert a document"
-                  onClick={() => fileRef.current?.click()}
-                >
-                  <Newspaper className="h-4 w-4" />
+                  <Mic className="h-5 w-5" />
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg border border-cyan-400/50 bg-cyan-500/10 p-2 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:bg-cyan-500 hover:text-black disabled:opacity-40"
+                  className={`flex appearance-none items-center justify-center rounded-full border-0 p-2.5 transition-all duration-200 ${
+                    draft.trim() && !busy
+                      ? 'cursor-pointer bg-cyan-400 text-slate-950 shadow-md hover:bg-cyan-300'
+                      : 'cursor-not-allowed bg-slate-800 text-slate-500'
+                  }`}
                   aria-label="Send"
                   disabled={busy || !draft.trim()}
                 >
-                  <ArrowUp className="h-4 w-4" />
+                  <ArrowUp className="h-4 w-4 stroke-[2.5]" />
                 </button>
               </div>
             </form>
@@ -341,8 +422,8 @@ export function SharadaChat() {
               onChange={() => setBarNote('Attachment added. Tell Sharada how to use this file.')}
             />
             {barNote ? <p className="mt-2 text-center text-xs text-slate-400">{barNote}</p> : null}
-            <p className="mt-2 text-center text-xs text-slate-500">
-              Sharada can make mistakes. Always review content for accuracy and follow school policies.
+            <p className="mt-2 pb-2 text-center text-xs text-slate-500">
+              Sharada is AI and can make mistakes. Always review content for accuracy.
             </p>
           </div>
         </div>
