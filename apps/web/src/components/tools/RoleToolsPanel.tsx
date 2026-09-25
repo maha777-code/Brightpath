@@ -4,7 +4,7 @@ import { toolsForAppRole, type ToolDefinition } from '@/config/toolsRegistry';
 import { ToolRenderer } from '@/components/tools/ToolRenderer';
 
 /** Lists registry tools this role may open and renders the same production component. */
-export function RoleToolsPanel({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
+export function RoleToolsPanel({ tone = 'light', showHeading = true }: { tone?: 'light' | 'dark'; showHeading?: boolean }) {
   const { role } = useAuth();
   const tools = toolsForAppRole(role);
   const [active, setActive] = useState<ToolDefinition | null>(null);
@@ -14,11 +14,15 @@ export function RoleToolsPanel({ tone = 'light' }: { tone?: 'light' | 'dark' }) 
 
   return (
     <section className={dark ? 'space-y-3' : 'rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm'}>
-      <h2 className={dark ? 'text-lg font-bold text-white' : 'text-sm font-extrabold text-slate-800'}>AI Tools</h2>
-      <p className={dark ? 'text-sm text-slate-400' : 'text-xs text-slate-500'}>
-        Tools available for your role. Opening one uses the same generator as the teacher workspace.
-      </p>
-      <div className="grid gap-3 sm:grid-cols-2">
+      {showHeading ? (
+        <>
+          <h2 className={dark ? 'text-lg font-extrabold tracking-tight text-white' : 'text-sm font-extrabold text-slate-800'}>AI Tools</h2>
+          <p className={dark ? 'text-xs font-medium text-slate-400 sm:text-sm' : 'text-xs text-slate-500'}>
+            Tools available for your role. Opening one uses the same generator as the teacher workspace.
+          </p>
+        </>
+      ) : null}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {tools.map((tool) => (
           <button
             key={tool.id}
@@ -26,7 +30,7 @@ export function RoleToolsPanel({ tone = 'light' }: { tone?: 'light' | 'dark' }) 
             onClick={() => setActive(tool)}
             className={
               dark
-                ? 'cursor-pointer appearance-none rounded-xl border border-slate-800 bg-[#0c1220] p-4 text-left text-white hover:border-cyan-500/40'
+                ? 'cursor-pointer appearance-none rounded-2xl border border-slate-800/80 bg-[#0b101d] p-5 text-left text-white shadow-xl transition-all hover:border-cyan-500/40'
                 : 'cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-50 p-4 text-left hover:border-indigo-300'
             }
           >
