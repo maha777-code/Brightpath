@@ -1,21 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Award, CreditCard, Layers, LogOut, Palette, Sparkles, ShieldCheck, Upload, Users } from 'lucide-react';
+import { Award, Layers, LogOut, Sparkles, ShieldCheck, Users } from 'lucide-react';
 import { isSubscriptionActive } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { BulkCsvImportModal } from '@/components/admin/BulkCsvImportModal';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import { useOrgTheme } from '@/context/OrgThemeProvider';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 import { RoleToolsPanel } from '@/components/tools/RoleToolsPanel';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
-
-const primaryBtn =
-  'inline-flex cursor-pointer appearance-none items-center gap-2 rounded-xl border border-transparent bg-cyan-500 px-4 py-2.5 text-xs font-extrabold text-slate-950 shadow-lg shadow-cyan-500/10 hover:bg-cyan-400 disabled:opacity-50';
-const secondaryBtn =
-  'inline-flex cursor-pointer appearance-none items-center gap-2 rounded-xl border border-slate-700/60 bg-slate-800/60 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-800';
 
 export default function SchoolDashboard() {
   const { user, organization, logout, planType } = useAuth();
@@ -24,7 +17,6 @@ export default function SchoolDashboard() {
     null,
   );
   const [error, setError] = useState('');
-  const [csvOpen, setCsvOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [subActive, setSubActive] = useState(true);
 
@@ -123,24 +115,12 @@ export default function SchoolDashboard() {
             })}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="button" disabled={!subActive} onClick={() => setCsvOpen(true)} className={primaryBtn}>
-              <Upload className="h-4 w-4" /> Bulk CSV import
-            </button>
-            <Link to="/admin/school-dashboard/settings" className={secondaryBtn}>
-              <Palette className="h-4 w-4 text-cyan-400" /> Branding settings
-            </Link>
-            <button type="button" onClick={() => setPayOpen(true)} className={secondaryBtn}>
-              <CreditCard className="h-4 w-4 text-emerald-400" /> Billing
-            </button>
-          </div>
-
           <div className="space-y-4">
             <div>
-              <h2 className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-white">
+              <h2 className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-white">
                 <Sparkles className="h-5 w-5 text-cyan-400" /> AI Tools Suite
               </h2>
-              <p className="mt-1 text-xs font-medium text-slate-400 sm:text-sm">
+              <p className="mt-1 text-xs text-slate-400">
                 Tools available for your enterprise role. Opening one uses the same generator as the teacher workspace.
               </p>
             </div>
@@ -168,7 +148,6 @@ export default function SchoolDashboard() {
         </main>
       </div>
 
-      <BulkCsvImportModal open={csvOpen} onClose={() => setCsvOpen(false)} />
       <PaymentUpgradeModal open={payOpen} onClose={() => setPayOpen(false)} defaultPlan="school_enterprise" />
     </div>
   );

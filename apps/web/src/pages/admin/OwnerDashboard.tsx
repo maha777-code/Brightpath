@@ -70,7 +70,7 @@ const TOOL_ICONS: Record<string, LucideIcon> = {
 };
 
 const selectClass =
-  'w-full cursor-pointer appearance-none rounded-xl border border-slate-800/80 bg-[#060911] px-4 py-2.5 text-sm font-semibold text-slate-300';
+  'w-full cursor-pointer appearance-none rounded-xl border border-slate-800/80 bg-[#060911] px-4 py-3 text-base font-semibold text-slate-300';
 
 type SubscriberRow = { planType: string; count: number };
 type FeedbackRow = {
@@ -83,7 +83,7 @@ type FeedbackRow = {
 };
 
 const navClass =
-  'w-full cursor-pointer appearance-none rounded-xl border px-4 py-3 text-left text-sm font-bold';
+  'w-full cursor-pointer appearance-none rounded-xl border px-4 py-3.5 text-left text-base font-bold';
 
 function monthlyPaise(planType: string): number {
   return RAZORPAY_PLAN_AMOUNTS_INR[planType]?.monthly ?? 0;
@@ -207,12 +207,12 @@ export default function OwnerDashboard() {
   return (
     <DashboardErrorBoundary>
     <div className="flex min-h-screen flex-col bg-[#070a12] text-slate-100 md:flex-row">
-      <aside className="flex w-full shrink-0 flex-col gap-6 border-r border-slate-800 bg-[#0c1220] p-6 md:min-h-screen md:w-64">
+      <aside className="flex w-full shrink-0 flex-col gap-6 border-r border-slate-800 bg-[#0c1220] p-6 md:min-h-screen md:w-72">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">School Admin</span>
-          <h2 className="mt-1 text-xl font-black text-white">Admin Panel</h2>
+          <span className="text-sm font-bold uppercase tracking-wider text-cyan-400">School Admin</span>
+          <h2 className="mt-1 text-2xl font-black text-white">Admin Panel</h2>
         </div>
-        <nav className="space-y-2">
+        <nav className="space-y-3">
           <button
             type="button"
             onClick={() => setTab('overview')}
@@ -242,31 +242,31 @@ export default function OwnerDashboard() {
 
       <main className="flex-1 space-y-8 p-8">
         {notice ? (
-          <p className="rounded-xl border border-amber-500/30 bg-amber-950/40 px-4 py-3 text-sm text-amber-100">{notice}</p>
+          <p className="rounded-xl border border-amber-500/30 bg-amber-950/40 px-4 py-3 text-base text-amber-100">{notice}</p>
         ) : null}
 
         {tab === 'overview' ? (
           <div className="space-y-6">
-            <h1 className="text-3xl font-black text-white">School Overview</h1>
+            <h1 className="text-4xl font-black tracking-tight text-white">School Overview</h1>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
               <article className="space-y-1 rounded-2xl border border-slate-800 bg-[#0c1220] p-6">
-                <span className="text-xs font-bold uppercase text-slate-400">Estimated MRR</span>
-                <div className="text-3xl font-black text-cyan-400">{inr(totals.mrr)}</div>
-                <p className="text-xs text-slate-500">Catalog price × active accounts</p>
+                <span className="text-sm font-bold uppercase text-slate-400">Estimated MRR</span>
+                <div className="text-4xl font-black text-cyan-400">{inr(totals.mrr)}</div>
+                <p className="text-sm text-slate-500">Catalog price × active accounts</p>
               </article>
               <article className="space-y-1 rounded-2xl border border-slate-800 bg-[#0c1220] p-6">
-                <span className="text-xs font-bold uppercase text-slate-400">Estimated ARR</span>
-                <div className="text-3xl font-black text-purple-400">{inr(totals.mrr * 12)}</div>
-                <p className="text-xs text-slate-500">Annual run-rate</p>
+                <span className="text-sm font-bold uppercase text-slate-400">Estimated ARR</span>
+                <div className="text-4xl font-black text-purple-400">{inr(totals.mrr * 12)}</div>
+                <p className="text-sm text-slate-500">Annual run-rate</p>
               </article>
               <article className="space-y-1 rounded-2xl border border-slate-800 bg-[#0c1220] p-6">
-                <span className="text-xs font-bold uppercase text-slate-400">Token Usage</span>
-                <div className="text-3xl font-black text-slate-500">—</div>
-                <p className="text-xs text-slate-500">No token ledger configured</p>
+                <span className="text-sm font-bold uppercase text-slate-400">Token Usage</span>
+                <div className="text-4xl font-black text-slate-500">—</div>
+                <p className="text-sm text-slate-500">No token ledger configured</p>
               </article>
             </div>
             <section className="space-y-4 rounded-2xl border border-slate-800 bg-[#0c1220] p-6">
-              <h3 className="text-lg font-bold text-white">Active Accounts by Tier</h3>
+              <h3 className="text-xl font-bold text-white">Active Accounts by Tier</h3>
               <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-3">
                 <Tier label="Free" count={totals.free} />
                 <Tier label="Teacher Pro" count={totals.teacher} accent="text-purple-400" price={`${inr(monthlyPaise('teacher_pro'))}/mo`} />
@@ -280,28 +280,28 @@ export default function OwnerDashboard() {
           <div className="space-y-6">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <div>
-                <h1 className="text-3xl font-black text-white">AI Tool Library</h1>
-                <p className="mt-1 text-sm text-slate-400">
+                <h1 className="text-4xl font-black tracking-tight text-white">AI Tool Library</h1>
+                <p className="mt-1 text-xl text-slate-400">
                   Search, filter, and manage classroom generators available to teachers.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="inline-flex cursor-pointer appearance-none items-center gap-2 rounded-xl border border-transparent bg-cyan-400 px-5 py-3 text-sm font-extrabold text-slate-950"
+                className="inline-flex cursor-pointer appearance-none items-center gap-2 rounded-xl border border-transparent bg-cyan-400 px-5 py-3 text-base font-extrabold text-slate-950"
               >
                 Implement New Tool
               </button>
             </div>
 
             <div className="rounded-2xl border border-slate-800/80 bg-[#0b101d] p-6">
-              <h2 className="text-2xl font-bold tracking-tight text-white">
+              <h2 className="text-3xl font-bold tracking-tight text-white">
                 Teacher tools.{' '}
                 <span className="font-normal text-slate-400">Search, filter, and launch classroom generators.</span>
               </h2>
             </div>
 
-            <div className="space-y-3 rounded-2xl border border-slate-800/80 bg-[#0b101d] p-4">
+            <div className="space-y-3 rounded-2xl border border-slate-800/80 bg-[#0b101d] p-5">
               <label className="relative block">
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                 <input
@@ -310,7 +310,7 @@ export default function OwnerDashboard() {
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search all teacher tools..."
                   aria-label="Search all teacher tools"
-                  className="w-full rounded-xl border border-slate-800/80 bg-[#060911] py-3 pl-12 pr-4 text-sm text-white"
+                  className="w-full rounded-xl border border-slate-800/80 bg-[#060911] py-3.5 pl-12 pr-4 text-base text-white"
                   style={{ backgroundColor: '#060911', color: '#fff' }}
                 />
               </label>
@@ -356,7 +356,7 @@ export default function OwnerDashboard() {
             </div>
 
             {visibleTools.length === 0 ? (
-              <p className="rounded-2xl border border-slate-800/80 bg-[#0c1322] p-8 text-sm text-slate-400">
+              <p className="rounded-2xl border border-slate-800/80 bg-[#0c1322] p-8 text-base text-slate-400">
                 No tools match these filters.
               </p>
             ) : (
@@ -371,19 +371,19 @@ export default function OwnerDashboard() {
                       }`}
                     >
                       <div>
-                        <div className="mb-4 flex items-center justify-between gap-2">
+                        <div className="mb-4 flex items-center justify-between gap-3">
                           <div className="shrink-0 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-3">
                             <Icon className="h-5 w-5 text-cyan-400" />
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             {tool.staged ? (
-                              <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-300">
+                              <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wider text-amber-300">
                                 Staged
                               </span>
                             ) : null}
                             {tool.badge ? (
                               <span
-                                className={`rounded-md border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
+                                className={`rounded-md border px-2.5 py-1 text-xs font-extrabold uppercase tracking-wider ${
                                   tool.badge === 'Hot'
                                     ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
                                     : tool.badge === 'Beta'
@@ -410,11 +410,11 @@ export default function OwnerDashboard() {
                             </button>
                           </div>
                         </div>
-                        <h3 className="text-base font-bold leading-snug text-white">{tool.title}</h3>
-                        <p className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-slate-400">{tool.description}</p>
+                        <h3 className="text-xl font-bold leading-snug text-white">{tool.title}</h3>
+                        <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-slate-400">{tool.description}</p>
                       </div>
                       <div className="space-y-3 border-t border-slate-800/80 pt-3">
-                        <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center justify-between gap-3 text-base">
                           {tool.staged ? (
                             <span className="inline-flex items-center gap-1.5 font-semibold text-amber-400">
                               <Lock className="h-3.5 w-3.5" /> Staged locally
@@ -423,17 +423,17 @@ export default function OwnerDashboard() {
                             <button
                               type="button"
                               onClick={() => setPreview(tool)}
-                              className="inline-flex cursor-pointer appearance-none items-center gap-1.5 border-0 bg-transparent text-xs font-bold text-cyan-400"
+                              className="inline-flex cursor-pointer appearance-none items-center gap-1.5 border-0 bg-transparent text-base font-bold text-cyan-400"
                             >
                               <Eye className="h-4 w-4" /> Admin Preview
                             </button>
                           )}
-                          <span className="rounded bg-slate-900 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">
+                          <span className="rounded bg-slate-900 px-2.5 py-1 text-xs font-bold uppercase text-slate-500">
                             {planLabel(tool.requiredPlan)}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between pt-1 text-xs">
-                          <span className="text-[11px] text-slate-500">Admin status</span>
+                        <div className="flex items-center justify-between gap-3 pt-1 text-base">
+                          <span className="text-base text-slate-500">Admin status</span>
                           <button
                             type="button"
                             onClick={() =>
@@ -446,7 +446,7 @@ export default function OwnerDashboard() {
                                 }),
                               )
                             }
-                            className={`inline-flex cursor-pointer appearance-none items-center gap-1 rounded-md border border-transparent px-2 py-1 text-[11px] font-bold ${
+                            className={`inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-md border border-transparent px-2.5 py-1.5 text-sm font-bold ${
                               tool.active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
                             }`}
                           >
@@ -472,24 +472,24 @@ export default function OwnerDashboard() {
 
         {tab === 'feedback' ? (
           <div className="space-y-6">
-            <h1 className="text-3xl font-black text-white">Ratings & Feedback</h1>
+            <h1 className="text-4xl font-black tracking-tight text-white">Ratings & Feedback</h1>
             {feedback.length === 0 ? (
               <div className="rounded-2xl border border-slate-800 bg-[#0c1220] p-12 text-center text-slate-400">
-                <p className="text-base font-semibold">No feedback ratings submitted yet.</p>
-                <p className="mt-1 text-xs text-slate-500">Ratings given by teachers will automatically populate here.</p>
+                <p className="text-lg font-semibold">No feedback ratings submitted yet.</p>
+                <p className="mt-1 text-sm text-slate-500">Ratings given by teachers will automatically populate here.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
                 {feedback.map((row) => (
                   <article key={row.id} className="rounded-2xl border border-slate-800 bg-[#0c1220] p-6">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-bold text-white">{row.email}</span>
-                      <span className="text-xs text-slate-500">{new Date(row.createdAt).toLocaleDateString()}</span>
+                      <span className="text-base font-bold text-white">{row.email}</span>
+                      <span className="text-sm text-slate-500">{new Date(row.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <p className="mt-2 text-sm font-bold text-amber-400">
+                    <p className="mt-2 text-base font-bold text-amber-400">
                       {row.rating} · {planLabel(row.planType)}
                     </p>
-                    <p className="mt-2 text-sm text-slate-400">
+                    <p className="mt-2 text-base text-slate-400">
                       {row.text ?? 'No written comment was stored with this rating.'}
                     </p>
                   </article>
@@ -503,32 +503,32 @@ export default function OwnerDashboard() {
       {open ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <form onSubmit={stageTool} className="w-full max-w-md space-y-4 rounded-2xl border border-slate-800 bg-[#0c1220] p-6">
-            <h3 className="text-xl font-bold text-white">Stage Draft AI Tool</h3>
-            <label className="block text-xs font-bold uppercase text-slate-400">
+            <h3 className="text-2xl font-bold text-white">Stage Draft AI Tool</h3>
+            <label className="block text-sm font-bold uppercase text-slate-400">
               Tool Name
               <input
                 required
                 value={draftName}
                 onChange={(event) => setDraftName(event.target.value)}
                 placeholder="e.g. AI Rubric Generator"
-                className="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900 p-3 text-sm text-white"
+                className="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900 p-3 text-base text-white"
                 style={{ backgroundColor: '#0f172a', color: '#fff' }}
               />
             </label>
-            <p className="text-xs leading-relaxed text-amber-400">
+            <p className="text-sm leading-relaxed text-amber-400">
               Draft created. To publish to all teachers, append tool definition to TEACHER_TOOLS_CATALOG.
             </p>
             <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="cursor-pointer appearance-none border-0 bg-transparent px-4 py-2 text-sm font-semibold text-slate-400"
+                className="cursor-pointer appearance-none border-0 bg-transparent px-4 py-2 text-base font-semibold text-slate-400"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="cursor-pointer appearance-none rounded-xl border border-transparent bg-cyan-400 px-5 py-2 text-sm font-bold text-slate-950"
+                className="cursor-pointer appearance-none rounded-xl border border-transparent bg-cyan-400 px-5 py-3 text-base font-bold text-slate-950"
               >
                 Stage Draft Tool
               </button>
@@ -592,14 +592,14 @@ class DashboardErrorBoundary extends Component<{ children: ReactNode }, { error:
         <div className="inline-flex rounded-xl bg-rose-500/10 p-3 text-rose-400">
           <AlertTriangle className="h-8 w-8" />
         </div>
-        <h2 className="text-xl font-bold text-white">Something went wrong loading Admin Control</h2>
-        <p className="mx-auto max-w-xl overflow-x-auto rounded-lg bg-rose-950/60 p-3 font-mono text-xs text-rose-300">
+        <h2 className="text-2xl font-bold text-white">Something went wrong loading Admin Control</h2>
+        <p className="mx-auto max-w-xl overflow-x-auto rounded-lg bg-rose-950/60 p-3 font-mono text-sm text-rose-300">
           {this.state.error.message || 'Unknown rendering error'}
         </p>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="cursor-pointer appearance-none rounded-xl border border-transparent bg-rose-500 px-4 py-2 text-xs font-bold text-white"
+          className="cursor-pointer appearance-none rounded-xl border border-transparent bg-rose-500 px-5 py-3 text-base font-bold text-white"
         >
           Reload Dashboard Page
         </button>
@@ -620,10 +620,10 @@ function Tier({
   price?: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-      <span className={`text-xs font-bold uppercase ${accent}`}>{label}</span>
-      <div className="mt-1 text-2xl font-black text-white">{count}</div>
-      {price ? <p className="mt-1 text-xs text-slate-500">{price}</p> : null}
+    <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
+      <span className={`text-sm font-bold uppercase ${accent}`}>{label}</span>
+      <div className="mt-1 text-3xl font-black text-white">{count}</div>
+      {price ? <p className="mt-1 text-sm text-slate-500">{price}</p> : null}
     </div>
   );
 }
