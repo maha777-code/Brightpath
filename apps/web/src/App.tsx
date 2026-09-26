@@ -34,7 +34,7 @@ import SchoolDashboard from '@/pages/SchoolDashboard';
 import OwnerDashboard from '@/pages/admin/OwnerDashboard';
 import CenterDashboard from '@/pages/CenterDashboard';
 import ParentPortalDashboard from '@/pages/ParentPortalDashboard';
-import StudentDashboard from '@/pages/StudentDashboard';
+import StudentDashboard, { StudentTools } from '@/pages/StudentDashboard';
 import BrandingSettingsPage from '@/pages/BrandingSettingsPage';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import TermsOfService from '@/pages/TermsOfService';
@@ -240,6 +240,14 @@ export default function App() {
           element={
             <ProtectedStudent>
               <StudentDashboard />
+            </ProtectedStudent>
+          }
+        />
+        <Route
+          path="/student/tools"
+          element={
+            <ProtectedStudent>
+              <StudentTools />
             </ProtectedStudent>
           }
         />

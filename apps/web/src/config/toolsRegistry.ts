@@ -45,9 +45,12 @@ function targetPlan(plan: AiToolPlan): ToolDefinition['targetPlan'] {
   return 'Free';
 }
 
-function allowedRoles(plan: AiToolPlan): UserRole[] {
-  if (plan === 'center_pro') return ['admin', 'school', 'academy'];
-  if (plan === 'pro') return ['admin', 'school', 'academy', 'teacher'];
+function allowedRoles(tool: TeacherToolDefinition): UserRole[] {
+  if (tool.id === 'curriculum-studio') {
+    return ['admin', 'school', 'academy', 'teacher', 'parent'];
+  }
+  if (tool.requiredPlan === 'center_pro') return ['admin', 'school', 'academy'];
+  if (tool.requiredPlan === 'pro') return ['admin', 'school', 'academy', 'teacher'];
   return ['admin', 'school', 'academy', 'teacher', 'parent', 'student'];
 }
 
@@ -58,7 +61,7 @@ export function toToolDefinition(tool: TeacherToolDefinition, custom = false): T
     description: tool.description,
     category: categoryFor(tool),
     icon: tool.icon,
-    allowedRoles: allowedRoles(tool.requiredPlan),
+    allowedRoles: allowedRoles(tool),
     targetPlan: targetPlan(tool.requiredPlan),
     componentKey: COMPONENT_KEYS[tool.id] ?? 'CustomDynamicTool',
     requiredPlan: tool.requiredPlan,

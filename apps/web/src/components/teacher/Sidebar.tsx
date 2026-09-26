@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, Home, LayoutGrid, LogOut, Menu, X } from 'lucide-react';
+import { Home, LayoutGrid, LogOut, Menu, X } from 'lucide-react';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -16,16 +16,6 @@ const WORKSPACE_ITEMS = [
     icon: Home,
     match: (pathname: string) =>
       pathname === '/home' || pathname === '/' || pathname.startsWith('/chat/sharada') || pathname.startsWith('/chat/raina'),
-  },
-  {
-    to: '/tools/curriculum-textbook-studio',
-    label: 'Curriculum & Textbook Studio',
-    detail: 'Upload textbooks and enrich lessons',
-    icon: BookOpen,
-    match: (pathname: string) =>
-      pathname === '/tools/curriculum-textbook-studio' ||
-      pathname === '/teacher/dashboard' ||
-      pathname.startsWith('/teacher/chapter'),
   },
   {
     to: '/teacher/tools',

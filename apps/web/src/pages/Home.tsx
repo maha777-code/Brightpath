@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   ArrowUp,
+  BookOpen,
   ClipboardList,
   Clock,
   FileText,
@@ -28,6 +29,7 @@ import { CYBER_FONT_STYLE } from '@/lib/theme';
 const FONT = CYBER_FONT_STYLE;
 
 const HOME_TOOL_IDS = [
+  'curriculum-studio',
   'worksheet-generator',
   'lesson-plan',
   'family-email',
@@ -38,6 +40,7 @@ const HOME_TOOL_IDS = [
 ] as const;
 
 const HOME_TOOL_LABELS: Record<(typeof HOME_TOOL_IDS)[number], string> = {
+  'curriculum-studio': 'Curriculum & Textbook Studio',
   'worksheet-generator': 'Worksheet Generator',
   'lesson-plan': 'Lesson Plan',
   'family-email': 'Professional Email',
@@ -48,6 +51,7 @@ const HOME_TOOL_LABELS: Record<(typeof HOME_TOOL_IDS)[number], string> = {
 };
 
 const TOOL_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+  'book-open': BookOpen,
   music: Music,
   'file-text': FileText,
   pencil: Pencil,

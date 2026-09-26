@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import {
@@ -141,7 +141,13 @@ export default function AiTutorPage() {
   );
   const [stars, setStars] = useState(12);
   const [mistake, setMistake] = useState<{ wrong: string; fix: string } | null>(null);
+  const location = useLocation();
   const [doubtDraft, setDoubtDraft] = useState('');
+
+  useEffect(() => {
+    const incoming = (location.state as { prompt?: string } | null)?.prompt?.trim();
+    if (incoming) setDoubtDraft(incoming);
+  }, [location.state]);
   const [doubtBusy, setDoubtBusy] = useState(false);
   const [voiceHint, setVoiceHint] = useState<string | null>(null);
 

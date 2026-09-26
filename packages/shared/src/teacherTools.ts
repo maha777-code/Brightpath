@@ -34,10 +34,10 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     id: 'curriculum-studio',
     title: 'Curriculum & Textbook Studio',
     description:
-      'Upload state textbooks, extract chapters, generate gamified videos & doubt control.',
+      'Upload textbooks, standards, and syllabus documents to enrich lessons and align teaching content.',
     focusArea: 'curriculum',
     href: '/tools/curriculum-textbook-studio',
-    requiredPlan: 'center_pro',
+    requiredPlan: 'free',
     badge: 'Hot',
     popularity: 100,
     newestRank: 11,

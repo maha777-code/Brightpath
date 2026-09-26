@@ -136,13 +136,13 @@ export default function TeacherTools() {
 
   const openTool = (tool: TeacherToolDefinition) => {
     if (!isTeacherToolEnabled(tool.id)) return;
+    if (tool.id === 'curriculum-studio' || tool.href === '/tools/curriculum-textbook-studio') {
+      navigate('/tools/curriculum-textbook-studio');
+      return;
+    }
     if (!hasAiToolAccess({ role, planType, requiredPlan: tool.requiredPlan ?? 'pro' })) {
       setLockedPlan(tool.requiredPlan ?? 'pro');
       setCheckoutOpen(false);
-      return;
-    }
-    if (tool.id === 'curriculum-studio' || tool.href === '/tools/curriculum-textbook-studio') {
-      navigate('/tools/curriculum-textbook-studio');
       return;
     }
     if (tool.id === 'worksheet-generator') {
