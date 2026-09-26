@@ -540,3 +540,9 @@ export {
   maxPdfCount,
   isSubscriptionActive,
 } from './rbac.js';
+export {
+  CATEGORY_PLANS_DATA,
+  categoryForPlanType,
+  categoryPlanById,
+} from './categoryPlans.js';
+export type { AccountCategory, CategoryPlan } from './categoryPlans.js';

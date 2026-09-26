@@ -270,8 +270,9 @@ export const STRIPE_PLAN_PRICES: Record<
 export const RAZORPAY_PLAN_AMOUNTS_INR: Record<string, { monthly: number; yearly: number }> = {
   teacher_pro: { monthly: 49900, yearly: 499000 },
   tutor_center_pro: { monthly: 249900, yearly: 2499000 },
-  family_plan: { monthly: 79900, yearly: 799000 },
+  family_plan: { monthly: 29900, yearly: 299000 },
   school_enterprise: { monthly: 999900, yearly: 9999000 },
+  student_pro: { monthly: 19900, yearly: 199000 },
 };
 
 export function isSubscriptionActive(

@@ -1,31 +1,46 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, CheckSquare } from 'lucide-react';
-import { RAZORPAY_PLAN_AMOUNTS_INR } from '@brightpath/shared';
+import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { CATEGORY_PLANS_DATA, type AccountCategory } from '@brightpath/shared';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 
-function inr(paise: number) {
+type PricingTab = 'all' | AccountCategory;
+
+const TABS: { id: PricingTab; label: string }[] = [
+  { id: 'all', label: 'All Plans' },
+  { id: 'student', label: 'Students' },
+  { id: 'teacher', label: 'Teachers' },
+  { id: 'tutor_center', label: 'Tutor Centers' },
+  { id: 'school', label: 'Schools' },
+  { id: 'parent', label: 'Parents' },
+];
+
+function rupees(amount: number) {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
     maximumFractionDigits: 0,
-  }).format(paise / 100);
-}
-
-function monthlyEquivalent(yearlyPaise: number) {
-  return inr(Math.round(yearlyPaise / 12));
+  }).format(amount);
 }
 
 const buttonClass =
   'inline-flex w-full cursor-pointer appearance-none items-center justify-center gap-2 rounded-xl border-2 px-4 py-3.5 text-base font-extrabold transition-all';
 
-const cardClass =
-  'flex h-full min-h-[620px] flex-col justify-between rounded-2xl bg-[#0b0f1a] p-8 shadow-xl transition-all sm:p-10';
+const ctaClass: Record<AccountCategory, string> = {
+  student: 'border-transparent bg-cyan-400 text-slate-950 hover:bg-cyan-300',
+  teacher: 'border-transparent bg-purple-500 text-white hover:bg-purple-400',
+  tutor_center: 'border-transparent bg-emerald-400 text-slate-950 hover:bg-emerald-300',
+  school: 'border-transparent bg-blue-500 text-white hover:bg-blue-400',
+  parent: 'border-transparent bg-amber-400 text-slate-950 hover:bg-amber-300',
+};
 
 export default function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(true);
-  const teacher = RAZORPAY_PLAN_AMOUNTS_INR.teacher_pro;
-  const center = RAZORPAY_PLAN_AMOUNTS_INR.tutor_center_pro;
+  const [tab, setTab] = useState<PricingTab>('all');
+  const plans = useMemo(
+    () => (tab === 'all' ? CATEGORY_PLANS_DATA : CATEGORY_PLANS_DATA.filter((plan) => plan.category === tab)),
+    [tab],
+  );
 
   return (
     <div id="pricing" className="flex min-h-screen w-full flex-col bg-[#090d16] px-6 py-10 text-slate-100 sm:px-10 lg:px-16">
@@ -41,10 +56,10 @@ export default function PricingPage() {
           Flexible Pricing
         </span>
         <h1 className="text-5xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl">
-          Find the plan that fits your academy best.
+          A plan for every role.
         </h1>
         <p className="mx-auto max-w-3xl text-lg text-slate-400">
-          Unlock full access to AI tool generators, custom branding, and multi-tutor management.
+          Students, teachers, tutor centers, schools, and parents each get a catalog built for how they use MindVault.
         </p>
 
         <div className="flex items-center justify-center gap-4 pt-2">
@@ -52,13 +67,13 @@ export default function PricingPage() {
           <button
             type="button"
             aria-pressed={isAnnual}
+            aria-label={isAnnual ? 'Show monthly prices' : 'Show annual prices'}
             onClick={() => setIsAnnual((value) => !value)}
             className="relative h-9 w-16 cursor-pointer appearance-none rounded-full border border-slate-700 bg-slate-800 p-1"
           >
             <span
-              className={`block h-7 w-7 rounded-full bg-cyan-400 transition-transform ${
-                isAnnual ? 'translate-x-7' : 'translate-x-0'
-              }`}
+              className="block h-7 w-7 rounded-full bg-cyan-400 transition-transform"
+              style={{ transform: isAnnual ? 'translateX(1.75rem)' : 'translateX(0px)' }}
             />
           </button>
           <span className={`flex items-center gap-3 text-xl font-bold ${isAnnual ? 'text-white' : 'text-slate-300'}`}>
@@ -68,115 +83,73 @@ export default function PricingPage() {
             </span>
           </span>
         </div>
-      </div>
 
-      <main className="flex w-full flex-1 items-stretch rounded-3xl border border-slate-800/80 bg-[#0d1322] p-8 backdrop-blur-xl sm:p-10 lg:p-12">
-      <div className="grid w-full grid-cols-1 items-stretch gap-8 md:grid-cols-4">
-        <div className="flex h-full min-h-[620px] flex-col justify-between p-4">
-          <div>
-            <h2 className="mb-4 text-4xl font-extrabold tracking-tight text-white">Compare plans</h2>
-            <p className="text-lg leading-relaxed text-slate-300">
-              Find the plan that fits your school, tutoring center, or enterprise district best.
-            </p>
-          </div>
-          <div className="pt-12 text-base text-slate-400">
-            <p className="font-medium">Need custom seat counts?</p>
-            <Link to="/contact" className="mt-1 inline-block font-bold text-cyan-400 hover:underline">
-              Contact our sales team →
-            </Link>
-          </div>
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-2" role="tablist" aria-label="Plan categories">
+          {TABS.map((item) => {
+            const selected = tab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setTab(item.id)}
+                className={`cursor-pointer appearance-none rounded-full border px-4 py-2 text-sm font-bold ${
+                  selected
+                    ? 'border-cyan-400/60 bg-cyan-400 text-slate-950'
+                    : 'border-slate-700 bg-[#101422] text-slate-300 hover:border-slate-500 hover:text-white'
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
-
-        <article className={`${cardClass} border border-slate-800/90 hover:border-slate-700`}>
-          <div>
-            <div className="inline-block rounded-md border border-cyan-500/20 bg-cyan-500/10 px-3.5 py-1.5 text-sm font-extrabold uppercase tracking-wider text-cyan-400">
-              FREE
-            </div>
-            <div className="mt-6 text-5xl font-black text-white">{inr(0)}</div>
-            <p className="mb-6 mt-2 text-sm text-slate-400">Forever free</p>
-            <p className="mb-8 min-h-[48px] text-base leading-normal text-slate-300">For individual teachers exploring AI tools.</p>
-            <Link to="/register" className={`${buttonClass} border-slate-700 bg-transparent text-slate-200 hover:bg-slate-800`}>
-              Try it free <ArrowUpRight className="h-5 w-5" />
-            </Link>
-            <FeatureList
-              items={[
-                'Lesson plans, quizzes, worksheets, and the text rewriter',
-                '20 MB PDF upload',
-                '5 AI doubts a day',
-              ]}
-            />
-          </div>
-        </article>
-
-        <article className={`${cardClass} border border-purple-500/30 shadow-purple-950/30 hover:border-purple-500/60`}>
-          <div>
-            <div className="inline-block rounded-md border border-purple-500/20 bg-purple-500/10 px-3.5 py-1.5 text-sm font-extrabold uppercase tracking-wider text-purple-400">
-              TEACHER PRO
-            </div>
-            <div className="mt-6 text-5xl font-black text-white">
-              {isAnnual ? monthlyEquivalent(teacher.yearly) : inr(teacher.monthly)}
-            </div>
-            <p className="mb-6 mt-2 text-sm text-slate-400">
-              {isAnnual ? `${inr(teacher.yearly)} billed yearly` : 'INR / month'}
-            </p>
-            <p className="mb-8 min-h-[48px] text-base leading-normal text-slate-300">
-              For tutors who need the pro generators and unlimited doubts.
-            </p>
-            <Link to="/register" className={`${buttonClass} border-transparent bg-[#7c3aed] text-white hover:bg-purple-500`}>
-              Start Teacher Pro <ArrowUpRight className="h-5 w-5" />
-            </Link>
-            <FeatureList
-              items={[
-                'Songs, podcasts, slides, and writing feedback',
-                'Unlimited AI doubts and 80 MB uploads',
-                'Everything in the free teacher tools',
-              ]}
-            />
-          </div>
-        </article>
-
-        <article className={`${cardClass} border border-cyan-500/40 shadow-cyan-950/20 hover:border-cyan-500/70`}>
-          <div>
-            <div className="inline-block rounded-md border border-cyan-500/20 bg-cyan-500/10 px-3.5 py-1.5 text-sm font-extrabold uppercase tracking-wider text-cyan-400">
-              CENTER PRO
-            </div>
-            <div className="mt-6 text-5xl font-black text-white">
-              {isAnnual ? monthlyEquivalent(center.yearly) : inr(center.monthly)}
-            </div>
-            <p className="mb-6 mt-2 text-sm text-slate-400">
-              {isAnnual ? `${inr(center.yearly)} billed yearly` : 'INR / month'}
-            </p>
-            <p className="mb-8 min-h-[48px] text-base leading-normal text-slate-300">
-              For tutoring academies managing tutors, seats, and branding.
-            </p>
-            <Link to="/register" className={`${buttonClass} border-transparent bg-[#00b4d8] text-slate-950 hover:bg-cyan-300`}>
-              Start Center Pro <ArrowUpRight className="h-5 w-5" />
-            </Link>
-            <FeatureList
-              items={[
-                'Curriculum studio and every teacher tool',
-                'Multi-tutor seats and bulk CSV import',
-                'Custom academy name, logo, and colors',
-              ]}
-            />
-          </div>
-        </article>
       </div>
+
+      <main className="w-full flex-1 rounded-3xl border border-slate-800/80 bg-[#0d1322] p-6 sm:p-8 lg:p-10">
+        <div className={`grid w-full grid-cols-1 items-stretch gap-6 ${plans.length > 1 ? 'md:grid-cols-2 xl:grid-cols-3' : 'mx-auto max-w-md'}`}>
+          {plans.map((plan) => {
+            const shown = isAnnual ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice;
+            return (
+              <article
+                key={plan.category}
+                className="flex h-full flex-col justify-between rounded-2xl border border-slate-800/90 bg-[#0b0f1a] p-8 shadow-xl"
+              >
+                <div>
+                  <span className={`inline-block rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wider ${plan.badgeColor}`}>
+                    {plan.badge}
+                  </span>
+                  <h2 className="mt-4 text-2xl font-black text-white">{plan.categoryLabel}</h2>
+                  <div className="mt-6 text-5xl font-black text-white">{rupees(shown)}</div>
+                  <p className="mb-6 mt-2 text-sm text-slate-400">
+                    {isAnnual ? `${rupees(plan.yearlyPrice)} billed yearly` : 'INR / month'}
+                  </p>
+                  <p className="mb-8 min-h-[72px] text-base leading-normal text-slate-300">{plan.description}</p>
+                  <Link to={plan.ctaHref} className={`${buttonClass} ${ctaClass[plan.category]}`}>
+                    {plan.cta} <ArrowUpRight className="h-5 w-5" />
+                  </Link>
+                  <div className="mt-10 space-y-4">
+                    <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Key features include:</p>
+                    {plan.features.map((item) => (
+                      <div key={item} className="flex items-start gap-3 text-base text-slate-200">
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-cyan-400" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        <p className="mt-8 text-center text-base text-slate-400">
+          Need custom seat counts?{' '}
+          <Link to="/contact" className="font-bold text-cyan-400 hover:underline">
+            Contact our sales team
+          </Link>
+        </p>
       </main>
-    </div>
-  );
-}
-
-function FeatureList({ items }: { items: string[] }) {
-  return (
-    <div className="mt-10 space-y-4">
-      <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Key features include:</p>
-      {items.map((item) => (
-        <div key={item} className="flex items-start gap-3 text-base text-slate-200">
-          <CheckSquare className="mt-0.5 h-5 w-5 shrink-0 text-cyan-400" />
-          <span>{item}</span>
-        </div>
-      ))}
     </div>
   );
 }

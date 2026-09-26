@@ -23,10 +23,11 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import {
-  RAZORPAY_PLAN_AMOUNTS_INR,
+  CATEGORY_PLANS_DATA,
   STRIPE_PLAN_PRICES,
   TEACHER_TOOL_FOCUS_LABELS,
   TEACHER_TOOLS_CATALOG,
+  categoryForPlanType,
   type TeacherToolFocusArea,
 } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
@@ -86,26 +87,18 @@ type FeedbackRow = {
 const navClass =
   'w-full cursor-pointer appearance-none rounded-xl border px-4 py-3.5 text-left text-base font-bold';
 
-function monthlyPaise(planType: string): number {
-  return RAZORPAY_PLAN_AMOUNTS_INR[planType]?.monthly ?? 0;
-}
-
-function inr(paise: number): string {
+function rupees(amount: number): string {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
     maximumFractionDigits: 0,
-  }).format(paise / 100);
+  }).format(amount);
 }
 
 function planLabel(planType: string): string {
   if (planType === 'pro' || planType === 'teacher_pro') return 'Teacher Pro';
   if (planType === 'center_pro' || planType === 'tutor_center_pro') return 'Center Pro';
   return STRIPE_PLAN_PRICES[planType]?.label ?? (planType.endsWith('_free') || planType === 'free' ? 'Free' : planType);
-}
-
-function isFreePlan(planType: string): boolean {
-  return planType === 'free' || planType.endsWith('_free');
 }
 
 export default function OwnerDashboard() {
@@ -152,11 +145,22 @@ export default function OwnerDashboard() {
   }, [role]);
 
   const totals = useMemo(() => {
-    const free = subscribers.filter((row) => isFreePlan(row.planType)).reduce((sum, row) => sum + row.count, 0);
-    const teacher = subscribers.find((row) => row.planType === 'teacher_pro')?.count ?? 0;
-    const center = subscribers.find((row) => row.planType === 'tutor_center_pro')?.count ?? 0;
-    const mrr = subscribers.reduce((sum, row) => sum + row.count * monthlyPaise(row.planType), 0);
-    return { free, teacher, center, mrr };
+    const accounts = Object.fromEntries(CATEGORY_PLANS_DATA.map((plan) => [plan.category, 0])) as Record<
+      (typeof CATEGORY_PLANS_DATA)[number]['category'],
+      number
+    >;
+    let mrr = 0;
+    for (const row of subscribers) {
+      const category = categoryForPlanType(row.planType);
+      if (!category) continue;
+      accounts[category] += row.count;
+      const catalog = CATEGORY_PLANS_DATA.find((plan) => plan.category === category);
+      if (catalog?.paidPlanTypes.includes(row.planType)) {
+        mrr += row.count * catalog.monthlyPrice;
+      }
+    }
+    const users = Object.values(accounts).reduce((sum, count) => sum + count, 0);
+    return { accounts, users, mrr, arr: mrr * 12 };
   }, [subscribers]);
 
   const visibleTools = useMemo(() => {
@@ -249,30 +253,57 @@ export default function OwnerDashboard() {
 
         {tab === 'overview' ? (
           <div className="space-y-6">
-            <h1 className="text-4xl font-black tracking-tight text-white">School Overview</h1>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-              <article className="space-y-1 rounded-2xl border border-slate-800 bg-[#0c1220] p-6">
-                <span className="text-sm font-bold uppercase text-slate-400">Estimated MRR</span>
-                <div className="text-4xl font-black text-cyan-400">{inr(totals.mrr)}</div>
-                <p className="text-sm text-slate-500">Catalog price × active accounts</p>
+            <div>
+              <h1 className="text-4xl font-black tracking-tight text-white">Platform Overview</h1>
+              <p className="mt-1 text-sm text-slate-400">
+                Registered accounts and catalog revenue across all 5 roles.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              <article className="space-y-2 rounded-2xl border border-slate-800/80 bg-[#0b0e1a] p-5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Active Users</span>
+                <div className="text-3xl font-black text-white">{totals.users.toLocaleString('en-IN')}</div>
+                <p className="text-[11px] text-emerald-400">Across 5 account categories</p>
               </article>
-              <article className="space-y-1 rounded-2xl border border-slate-800 bg-[#0c1220] p-6">
-                <span className="text-sm font-bold uppercase text-slate-400">Estimated ARR</span>
-                <div className="text-4xl font-black text-purple-400">{inr(totals.mrr * 12)}</div>
-                <p className="text-sm text-slate-500">Annual run-rate</p>
+              <article className="space-y-2 rounded-2xl border border-slate-800/80 bg-[#0b0e1a] p-5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Estimated MRR</span>
+                <div className="text-3xl font-black text-cyan-400">{rupees(totals.mrr)}</div>
+                <p className="text-[11px] text-slate-400">Paid accounts × monthly catalog price</p>
               </article>
-              <article className="space-y-1 rounded-2xl border border-slate-800 bg-[#0c1220] p-6">
-                <span className="text-sm font-bold uppercase text-slate-400">Token Usage</span>
-                <div className="text-4xl font-black text-slate-500">—</div>
-                <p className="text-sm text-slate-500">No token ledger configured</p>
+              <article className="space-y-2 rounded-2xl border border-slate-800/80 bg-[#0b0e1a] p-5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Estimated ARR</span>
+                <div className="text-3xl font-black text-purple-400">{rupees(totals.arr)}</div>
+                <p className="text-[11px] text-slate-400">Annual run-rate</p>
               </article>
             </div>
-            <section className="space-y-4 rounded-2xl border border-slate-800 bg-[#0c1220] p-6">
-              <h3 className="text-xl font-bold text-white">Active Accounts by Tier</h3>
-              <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-3">
-                <Tier label="Free" count={totals.free} />
-                <Tier label="Teacher Pro" count={totals.teacher} accent="text-purple-400" price={`${inr(monthlyPaise('teacher_pro'))}/mo`} />
-                <Tier label="Center Pro" count={totals.center} accent="text-cyan-400" price={`${inr(monthlyPaise('tutor_center_pro'))}/mo`} />
+            <section className="space-y-4 rounded-3xl border border-slate-800/80 bg-[#0b0e1a] p-6">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-bold text-white">Active Accounts by Category</h3>
+                <span className="text-xs text-slate-400">5 categories configured</span>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                {CATEGORY_PLANS_DATA.map((plan) => {
+                  const count = totals.accounts[plan.category];
+                  const share = totals.users === 0 ? 0 : Math.round((count / totals.users) * 100);
+                  return (
+                    <article
+                      key={plan.category}
+                      className="flex flex-col justify-between space-y-3 rounded-2xl border border-slate-800/80 bg-[#101422] p-4 transition-all hover:border-slate-700"
+                    >
+                      <div className="space-y-1">
+                        <span className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${plan.badgeColor}`}>
+                          {plan.badge}
+                        </span>
+                        <div className="pt-2 text-2xl font-black text-white">{count.toLocaleString('en-IN')}</div>
+                        <span className="text-[11px] text-slate-400">{share}% of platform accounts</span>
+                      </div>
+                      <div className="flex items-center justify-between border-t border-slate-800/60 pt-2 text-xs text-slate-400">
+                        <span>Tier price</span>
+                        <span className="font-bold text-white">{rupees(plan.monthlyPrice)}/mo</span>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </section>
           </div>
@@ -616,22 +647,3 @@ class DashboardErrorBoundary extends Component<{ children: ReactNode }, { error:
   }
 }
 
-function Tier({
-  label,
-  count,
-  accent = 'text-slate-400',
-  price,
-}: {
-  label: string;
-  count: number;
-  accent?: string;
-  price?: string;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-      <span className={`text-sm font-bold uppercase ${accent}`}>{label}</span>
-      <div className="mt-1 text-3xl font-black text-white">{count}</div>
-      {price ? <p className="mt-1 text-sm text-slate-500">{price}</p> : null}
-    </div>
-  );
-}
