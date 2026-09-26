@@ -16,12 +16,9 @@ import {
 } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/context/AuthContext';
-import { HomeButton } from '@/components/Navigation/HomeButton';
-import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { useAiClassroomSession } from '@/hooks/useAiClassroomSession';
 import { useClassroomVoice } from '@/hooks/useClassroomVoice';
 import { HabitatDragAndDrop } from '@/components/games/HabitatDragAndDrop';
-import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { DashboardSettingsDrawer } from '@/components/dashboard/DashboardSettingsDrawer';
 
 interface VideoClip {
@@ -114,7 +111,7 @@ export default function AiTutorPage() {
   const navigate = useNavigate();
   const { profile } = useProfile();
   const { parent } = useAuth();
-  const learnerName = profile?.name || parent?.name?.split(' ')[0] || 'maha';
+  const learnerName = profile?.name || parent?.name?.split(' ')[0] || 'Student';
 
   const {
     isSpeaking,
@@ -139,7 +136,7 @@ export default function AiTutorPage() {
   const [bubble, setBubble] = useState(
     "Hi there! Ask a doubt or tap a chip — I'll explain with a video.",
   );
-  const [stars, setStars] = useState(12);
+  const [stars, setStars] = useState(0);
   const [mistake, setMistake] = useState<{ wrong: string; fix: string } | null>(null);
   const location = useLocation();
   const [doubtDraft, setDoubtDraft] = useState('');
@@ -352,77 +349,70 @@ export default function AiTutorPage() {
   const masteryPct = useMemo(() => Math.round((stars / 15) * 100), [stars]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-slate-50 text-slate-800">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
-        <div className="flex flex-wrap items-center gap-3 px-4 py-3 lg:px-6">
-          <HomeButton to="/dashboard" />
-          <BrandLogo variant="compact" to="/dashboard" />
+    <div className="flex min-h-dvh flex-col bg-[#040711] p-4 text-slate-100 sm:p-6">
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800/80 bg-[#0b0e1a]/80 px-4 py-3.5 shadow-2xl backdrop-blur-xl sm:px-6">
+        <div className="flex min-w-0 items-center gap-4">
           <button
             type="button"
-            onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200"
+            onClick={() => navigate('/student/dashboard')}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Map View
           </button>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-base font-extrabold text-slate-900 sm:text-lg">
-              🧪 Interactive Chemistry Session with Prof. Spark
-            </h1>
-            <p className="truncate text-xs text-slate-500">
-              Lesson 3: Atoms, Electrons & Chemical Bonds
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 ring-1 ring-amber-200">
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" /> Stars Earned: {stars}/15
-            </span>
-            <span className="rounded-full bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700 ring-1 ring-violet-200">
-              Super Chemist 🚀
-            </span>
-            <span className="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200 sm:inline-flex">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              AI Video Engine Ready
-              <span className="h-2 w-16 overflow-hidden rounded-full bg-slate-200">
-                <span className="block h-full bg-emerald-500" style={{ width: `${masteryPct}%` }} />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="truncate text-base font-bold text-white">
+                Interactive Science Session with Prof. Spark
+              </h1>
+              <span className="rounded-full border border-cyan-800/60 bg-cyan-950 px-2.5 py-0.5 text-[10px] font-bold text-cyan-400">
+                Lesson 3: Atoms, Electrons & Habitats
               </span>
-            </span>
+            </div>
           </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1.5 text-xs font-bold text-amber-400">
+            <Star className="h-3.5 w-3.5 fill-amber-400" /> Stars Earned: {stars}/15
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-400">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
+            SYS_READY · {masteryPct}%
+          </span>
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            className="rounded-xl border border-slate-800 bg-slate-900 p-2 text-slate-300 hover:text-white"
+            aria-label="Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        <DashboardSidebar onOpenSettings={() => setSettingsOpen(true)} />
-
-        <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto p-3 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)_280px] lg:overflow-hidden lg:p-4">
+      <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-12">
           {/* LEFT — Tutor & controls */}
-          <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:min-h-0 lg:overflow-y-auto">
-            <div className="relative overflow-hidden rounded-2xl bg-slate-900 px-4 pb-4 pt-6 text-center">
+          <section className="flex flex-col gap-4 lg:col-span-3 lg:min-h-0 lg:overflow-y-auto">
+            <div className="rounded-3xl border border-slate-800/80 bg-[#0b0e1a] p-5 text-center shadow-xl">
               <motion.div
-                className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-violet-500 shadow-lg shadow-violet-500/40"
+                className="relative mx-auto w-fit rounded-full bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-500 p-1 shadow-[0_0_30px_rgba(6,182,212,0.35)]"
                 animate={{ scale: avatarActive ? [1, 1.04, 1] : 1 }}
                 transition={{ duration: 0.8, repeat: avatarActive ? Infinity : 0 }}
               >
-                <div className="relative">
-                  <div className="absolute -top-3 left-1/2 h-5 w-16 -translate-x-1/2 rounded-full bg-white/90" />
-                  <div className="flex gap-5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-slate-900" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-slate-900" />
-                  </div>
-                  <motion.div
-                    className="mx-auto mt-3 h-2 w-10 rounded-full border-b-2 border-white"
-                    animate={{ scaleX: isSpeaking ? [1, 1.35, 1] : 1 }}
-                    transition={{ duration: 0.45, repeat: isSpeaking ? Infinity : 0 }}
-                  />
-                </div>
+                <img
+                  src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=200&q=80"
+                  alt=""
+                  className="h-20 w-20 rounded-full border-2 border-slate-900 object-cover"
+                />
               </motion.div>
-              <p className="mt-3 text-sm font-extrabold text-white">Prof. Spark</p>
+              <p className="mt-3 text-base font-bold text-white">Prof. Spark</p>
+              <p className="text-xs text-cyan-400">AI Tutor & Companion</p>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={bubble}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="mx-auto mt-3 max-w-[95%] rounded-2xl bg-white/10 px-3 py-2 text-left text-xs font-medium leading-relaxed text-violet-100 ring-1 ring-white/15"
+                  className="mx-auto mt-3 max-w-[95%] rounded-2xl border border-cyan-500/30 bg-[#121829] px-3.5 py-3 text-left text-xs leading-relaxed text-cyan-200 shadow-lg"
                 >
                   {bubble}
                 </motion.div>
@@ -431,10 +421,10 @@ export default function AiTutorPage() {
                 className={[
                   'mt-3 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-wide',
                   isSpeaking
-                    ? 'animate-pulse bg-violet-600 text-white'
+                    ? 'animate-pulse bg-cyan-500 text-slate-950'
                     : isListening
                       ? 'animate-pulse bg-red-500 text-white'
-                      : 'bg-slate-800 text-slate-200',
+                      : 'border border-slate-800 bg-slate-900 text-slate-300',
                 ].join(' ')}
               >
                 {[8, 14, 6, 16, 10].map((h, i) => (
@@ -462,15 +452,15 @@ export default function AiTutorPage() {
               onChange={onFileSelected}
             />
 
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+            <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-[#101422] p-2">
               <button
                 type="button"
                 onClick={onMicToggle}
                 className={[
-                  'flex h-11 w-11 items-center justify-center rounded-full text-white transition',
+                  'flex h-11 w-11 items-center justify-center rounded-full transition',
                   isListening
                     ? 'animate-pulse border-2 border-red-600 bg-red-500 shadow-lg shadow-red-500/40'
-                    : 'bg-slate-400 hover:bg-slate-500',
+                    : 'bg-cyan-400 text-slate-950 hover:bg-cyan-300',
                 ].join(' ')}
                 aria-label={isListening ? 'Stop listening' : 'Start listening'}
                 title={sttSupported ? 'Speak your doubt' : 'Mic STT needs Chrome/Edge/Safari'}
@@ -480,7 +470,7 @@ export default function AiTutorPage() {
               <button
                 type="button"
                 onClick={onCameraClick}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 text-white transition hover:bg-blue-600"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-cyan-300 transition hover:border-cyan-500/50"
                 aria-label="Upload homework photo"
                 title="Upload a textbook or homework photo"
               >
@@ -490,7 +480,7 @@ export default function AiTutorPage() {
                 type="button"
                 onClick={onAskDoubt}
                 disabled={doubtBusy}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-violet-500 px-2 py-2.5 text-xs font-extrabold text-white hover:bg-violet-600 disabled:opacity-60"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-800 bg-[#101524] px-2 py-2.5 text-xs font-bold text-slate-200 hover:border-cyan-500/40 hover:text-cyan-300 disabled:opacity-60"
               >
                 <HelpCircle className="h-3.5 w-3.5" /> Ask Doubt to AI Tutor
               </button>
@@ -498,8 +488,8 @@ export default function AiTutorPage() {
 
             <div
               className={[
-                'my-3 flex w-full items-center gap-2 rounded-2xl border-2 bg-white p-2.5 shadow-sm transition-all focus-within:border-purple-500 focus-within:ring-4 focus-within:ring-purple-100',
-                isListening ? 'border-red-400 ring-4 ring-red-100' : 'border-purple-200',
+                'flex w-full items-center gap-2 rounded-xl border bg-[#101422] px-3 py-2 transition-all focus-within:border-cyan-500/60',
+                isListening ? 'border-red-400' : 'border-slate-800',
               ].join(' ')}
             >
               <input
@@ -507,13 +497,13 @@ export default function AiTutorPage() {
                 onChange={(e) => setDoubtDraft(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && submitDoubt(doubtDraft)}
                 placeholder={isListening ? 'Listening… speak now' : 'Type your doubt…'}
-                className="flex-1 border-none bg-transparent px-2 text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
+                className="flex-1 border-none bg-transparent px-1 text-xs text-slate-100 outline-none placeholder:text-slate-500"
               />
               <button
                 type="button"
                 onClick={() => submitDoubt(doubtDraft)}
                 disabled={doubtBusy || !doubtDraft.trim()}
-                className="rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 p-2.5 text-white shadow-md transition-transform hover:from-purple-700 hover:to-indigo-700 active:scale-90 disabled:opacity-40"
+                className="rounded-lg bg-cyan-400 p-1.5 text-slate-950 hover:bg-cyan-300 disabled:opacity-40"
                 aria-label="Send doubt"
               >
                 {doubtBusy ? (
@@ -524,18 +514,18 @@ export default function AiTutorPage() {
               </button>
             </div>
             {voiceHint && (
-              <p className="mb-2 text-[11px] font-semibold text-amber-700">{voiceHint}</p>
+              <p className="text-[11px] font-semibold text-amber-300">{voiceHint}</p>
             )}
 
-            <div>
-              <p className="mb-2 text-sm font-extrabold text-slate-800">Quick Doubt Chips</p>
+            <div className="rounded-3xl border border-slate-800/80 bg-[#0b0e1a] p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Quick Doubt Chips</p>
               <div className="space-y-2">
                 {DOUBT_CHIPS.map((chip) => (
                   <button
                     key={chip.id}
                     type="button"
                     onClick={() => onChip(chip)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-left text-xs font-bold text-slate-700 transition hover:border-violet-300 hover:bg-violet-50"
+                    className="w-full rounded-xl border border-slate-800 bg-[#101524] px-3 py-3 text-left text-xs text-slate-300 transition-all hover:border-cyan-500/40 hover:bg-[#161d30] hover:text-cyan-300"
                   >
                     {chip.label}
                   </button>
@@ -543,21 +533,21 @@ export default function AiTutorPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="mb-2 text-sm font-extrabold text-slate-800">Real-time Mistake Corrector</p>
+            <div className="rounded-3xl border border-slate-800/80 bg-[#0b0e1a] p-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Real-time Mistake Corrector</p>
               {mistake ? (
                 <div className="space-y-2">
-                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+                  <div className="rounded-xl border border-rose-500/30 bg-rose-950/40 px-3 py-2 text-xs text-rose-200">
                     <span className="font-bold">Mistake: </span>
                     {mistake.wrong}
                   </div>
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/40 px-3 py-2 text-xs text-emerald-200">
                     <span className="font-bold">Fix: </span>
                     {mistake.fix}
                   </div>
                 </div>
               ) : (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/30 px-3 py-2 text-xs font-semibold text-emerald-300">
                   All clear — drag animals to their homes in the game!
                 </div>
               )}
@@ -565,10 +555,17 @@ export default function AiTutorPage() {
           </section>
 
           {/* CENTER — Video + habitat game */}
-          <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:min-h-0 lg:overflow-y-auto">
-            <div className="relative overflow-hidden rounded-2xl bg-[#090d16] text-white">
+          <section className="flex flex-col gap-6 lg:col-span-6 lg:min-h-0 lg:overflow-y-auto">
+            <div className="group relative h-52 overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-b from-[#0e1322] to-[#080b14] text-white shadow-2xl">
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  backgroundImage:
+                    'radial-gradient(circle at 18% 30%, rgba(34,211,238,0.16), transparent 42%), radial-gradient(circle at 82% 72%, rgba(99,102,241,0.18), transparent 40%)',
+                }}
+              />
               {rendering && (
-                <div className="flex h-64 flex-col items-center justify-center gap-3 px-6">
+                <div className="flex h-full flex-col items-center justify-center gap-3 px-6">
                   <div className="h-10 w-10 animate-spin rounded-full border-4 border-violet-400 border-t-transparent" />
                   <p className="text-center text-sm font-bold text-violet-200">
                     AI Rendering custom molecular animation…
@@ -584,7 +581,7 @@ export default function AiTutorPage() {
               )}
 
               {!rendering && video && (
-                <div className="relative h-64">
+                <div className="relative h-full">
                   <div className="absolute left-3 top-3 rounded-md bg-slate-800/80 px-2.5 py-1 text-[11px] font-bold text-sky-300">
                     {video.title}
                   </div>
@@ -633,10 +630,19 @@ export default function AiTutorPage() {
               )}
 
               {!rendering && !video && (
-                <div className="flex h-64 flex-col items-center justify-center gap-2 px-6 text-center">
-                  <p className="text-sm font-bold text-slate-300">AI Video Generator Stage</p>
-                  <p className="text-xs text-slate-500">
-                    Click a doubt chip or Ask Doubt to render a custom explanation video.
+                <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
+                  <div className="absolute left-4 top-3 flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                      AI Video Stage · SYS_READY
+                    </span>
+                  </div>
+                  <div className="mb-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 p-4 text-cyan-400 transition-transform group-hover:scale-110">
+                    <Play className="h-6 w-6" />
+                  </div>
+                  <p className="text-sm font-bold text-white">AI Video Explanation Generator</p>
+                  <p className="max-w-md text-xs text-slate-400">
+                    Click a quick doubt chip or ask Prof. Spark to render a custom HD explanation.
                   </p>
                 </div>
               )}
@@ -668,10 +674,10 @@ export default function AiTutorPage() {
           </section>
 
           {/* RIGHT — Dynamic transcript & summary */}
-          <div className="flex w-full flex-col gap-4 lg:w-[280px]">
-            <div className="flex h-[380px] flex-col rounded-2xl border border-slate-200 bg-white p-4">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
-                💬 Dialogue Transcript
+          <div className="flex w-full flex-col gap-4 lg:col-span-3">
+            <div className="flex h-[380px] flex-col rounded-3xl border border-slate-800/80 bg-[#0b0e1a] p-4">
+              <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+                Dialogue Transcript
               </h3>
 
               <div className="flex-1 space-y-3 overflow-y-auto pr-1 text-xs">
@@ -681,20 +687,20 @@ export default function AiTutorPage() {
                     className={[
                       'rounded-xl p-3',
                       msg.sender === 'tutor'
-                        ? 'border border-purple-100 bg-purple-50 text-purple-950'
-                        : 'ml-3 border border-slate-200 bg-slate-50 text-slate-800',
+                        ? 'border border-slate-800/60 bg-[#101524] text-slate-200'
+                        : 'ml-3 border border-slate-800/60 bg-[#101524] text-slate-200',
                     ].join(' ')}
                   >
                     <p
                       className={[
                         'mb-1 text-[11px] font-bold',
-                        msg.sender === 'tutor' ? 'text-purple-700' : 'text-slate-600',
+                        msg.sender === 'tutor' ? 'text-cyan-400' : 'text-slate-300',
                       ].join(' ')}
                     >
                       {msg.sender === 'tutor' ? '🤖' : '👤'} {msg.senderName}
                       <span className="ml-2 font-medium text-slate-400">{msg.timestamp}</span>
                       {msg.isDoubtTrigger && (
-                        <span className="ml-1 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-extrabold text-amber-700">
+                        <span className="ml-1 rounded bg-amber-500/15 px-1 py-0.5 text-[9px] font-extrabold text-amber-300">
                           doubt
                         </span>
                       )}
@@ -703,7 +709,7 @@ export default function AiTutorPage() {
                   </div>
                 ))}
                 {rendering && (
-                  <div className="rounded-xl border border-violet-200 bg-violet-100 p-3 text-xs font-bold text-violet-800">
+                  <div className="rounded-xl border border-cyan-500/30 bg-cyan-950/40 p-3 text-xs font-bold text-cyan-200">
                     🎬 Generating AI Video… {renderPct}%
                   </div>
                 )}
@@ -711,26 +717,26 @@ export default function AiTutorPage() {
               </div>
             </div>
 
-            <div className="flex h-[280px] flex-col rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-emerald-900">
-                📝 Today&apos;s Chemistry Summary
+            <div className="flex h-[280px] flex-col rounded-3xl border border-slate-800/80 bg-[#0b0e1a] p-4">
+              <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+                Today&apos;s Science Summary
               </h3>
 
               <div className="flex-1 space-y-2 overflow-y-auto pr-1 text-xs">
                 {summaryNotes.length === 0 ? (
-                  <p className="py-4 text-center italic text-emerald-700/60">
+                  <p className="py-4 text-center text-xs italic text-slate-500">
                     Notes will automatically appear here as Prof. Spark explains concepts…
                   </p>
                 ) : (
                   summaryNotes.map((note) => (
                     <div
                       key={note.id}
-                      className="rounded-xl border border-emerald-100 bg-white p-2.5 shadow-sm"
+                      className="rounded-2xl border border-slate-800/60 bg-[#101524] p-2.5"
                     >
-                      <h4 className="flex items-center gap-1 text-[11px] font-extrabold text-emerald-800">
+                      <h4 className="flex items-center gap-1 text-[11px] font-bold text-cyan-300">
                         • {note.title}
                       </h4>
-                      <p className="mt-0.5 text-[10px] leading-normal text-emerald-900/80">
+                      <p className="mt-0.5 text-[10px] leading-normal text-slate-400">
                         {note.description}
                       </p>
                     </div>
@@ -741,25 +747,24 @@ export default function AiTutorPage() {
               <button
                 type="button"
                 onClick={handleCompleteLesson}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-2.5 text-xs font-black text-white shadow-md transition-all hover:from-amber-600 hover:to-orange-600 active:scale-95"
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-orange-500/20 transition-all hover:from-amber-400 hover:to-orange-400"
               >
                 🎉 Lesson Complete!
               </button>
               {completeFlash && (
-                <p className="mt-2 text-center text-xs font-bold text-emerald-700">
+                <p className="mt-2 text-center text-xs font-bold text-emerald-300">
                   Confetti unlocked — you crushed Lesson 3!
                 </p>
               )}
               <Link
-                to="/dashboard"
-                className="mt-2 block text-center text-[11px] font-semibold text-slate-400 hover:text-teal-700"
+                to="/student/dashboard"
+                className="mt-2 block text-center text-[11px] font-semibold text-slate-500 hover:text-cyan-300"
               >
                 ← Back to Map View
               </Link>
             </div>
           </div>
         </div>
-      </div>
 
       <DashboardSettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>

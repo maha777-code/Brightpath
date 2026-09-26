@@ -25,6 +25,8 @@ export interface HabitatTarget {
   emoji: string;
   bgColor: string;
   borderColor: string;
+  glowClass: string;
+  hint: string;
 }
 
 const INITIAL_HABITATS: HabitatTarget[] = [
@@ -32,22 +34,28 @@ const INITIAL_HABITATS: HabitatTarget[] = [
     id: 'jungle',
     title: 'Jungle',
     emoji: '🌴',
-    bgColor: 'bg-emerald-100',
-    borderColor: 'border-emerald-400',
+    bgColor: 'bg-gradient-to-b from-emerald-950/40 to-emerald-900/10',
+    borderColor: 'border-emerald-500/30',
+    glowClass: 'border-emerald-400 shadow-[0_0_28px_rgba(16,185,129,0.35)] ring-2 ring-emerald-400/50',
+    hint: 'Drop jungle animals',
   },
   {
     id: 'ocean',
     title: 'Ocean',
     emoji: '🌊',
-    bgColor: 'bg-sky-100',
-    borderColor: 'border-sky-400',
+    bgColor: 'bg-gradient-to-b from-cyan-950/40 to-blue-900/10',
+    borderColor: 'border-cyan-500/30',
+    glowClass: 'border-cyan-400 shadow-[0_0_28px_rgba(34,211,238,0.35)] ring-2 ring-cyan-400/50',
+    hint: 'Drop ocean animals',
   },
   {
     id: 'farm',
     title: 'Barn Farm',
     emoji: '🚜',
-    bgColor: 'bg-amber-100',
-    borderColor: 'border-amber-400',
+    bgColor: 'bg-gradient-to-b from-amber-950/40 to-yellow-900/10',
+    borderColor: 'border-amber-500/30',
+    glowClass: 'border-amber-400 shadow-[0_0_28px_rgba(245,158,11,0.35)] ring-2 ring-amber-400/50',
+    hint: 'Drop farm animals',
   },
 ];
 
@@ -60,19 +68,19 @@ const INITIAL_ANIMALS: AnimalItem[] = [
     isMatched: false,
     soundPhrase: 'Roar! I live in the Jungle!',
     photoUrl:
-      'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?auto=format&fit=crop&w=800&q=80',
     soundUrl: '/animals/sounds/lion.mp3',
     synth: 'roar',
   },
   {
     id: 'a2',
-    name: 'Fish',
+    name: 'Tropical Fish',
     emoji: '🐠',
     habitatId: 'ocean',
     isMatched: false,
     soundPhrase: 'Splish splash! I live in the Ocean!',
     photoUrl:
-      'https://images.unsplash.com/photo-1524704654690-b56c05c78a04?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1522069169874-c58ec4b76be5?auto=format&fit=crop&w=800&q=80',
     soundUrl: '/animals/sounds/fish.mp3',
     synth: 'splash',
   },
@@ -84,7 +92,7 @@ const INITIAL_ANIMALS: AnimalItem[] = [
     isMatched: false,
     soundPhrase: 'Moo! I live on the Farm!',
     photoUrl:
-      'https://images.unsplash.com/photo-1570042223110-7b0cce0f1f29?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1546445317-29f4545f9d52?auto=format&fit=crop&w=800&q=80',
     soundUrl: '/animals/sounds/cow.mp3',
     synth: 'moo',
   },
@@ -96,7 +104,7 @@ const INITIAL_ANIMALS: AnimalItem[] = [
     isMatched: false,
     soundPhrase: 'Ooh ooh! I live in the Jungle!',
     photoUrl:
-      'https://images.unsplash.com/photo-1540573133985-87b6da6d54a9?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1540573133985-7585fc8286c2?auto=format&fit=crop&w=800&q=80',
     soundUrl: '/animals/sounds/monkey.mp3',
     synth: 'chatter',
   },
@@ -108,7 +116,7 @@ const INITIAL_ANIMALS: AnimalItem[] = [
     isMatched: false,
     soundPhrase: 'Click click! I live in the Ocean!',
     photoUrl:
-      'https://images.unsplash.com/photo-1607153333879-c174d265f1d2?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1570481662006-a3a1374699e8?auto=format&fit=crop&w=800&q=80',
     soundUrl: '/animals/sounds/dolphin.mp3',
     synth: 'click',
   },
@@ -456,36 +464,36 @@ export function HabitatDragAndDrop({
     <div
       ref={boardRef}
       className={[
-        'relative flex min-h-0 flex-col overflow-hidden rounded-3xl border-2 border-violet-100 bg-gradient-to-b from-violet-50 via-white to-sky-50 p-4 shadow-soft sm:p-5',
+        'relative flex min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800/80 bg-[#0b0e1a] p-4 shadow-xl sm:p-5',
         className,
       ].join(' ')}
     >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="flex items-center gap-2 text-lg font-black text-slate-800">
-            <Sparkles className="h-5 w-5 text-amber-500" /> Animal Homes
+          <h3 className="flex items-center gap-2 text-base font-bold text-white">
+            <Sparkles className="h-4 w-4 text-cyan-400" /> Animal Habitats Match
           </h3>
-          <p className="text-sm font-semibold text-slate-500">
-            Tap for a real photo & sound — drag to a home!
+          <p className="text-xs text-slate-400">
+            Drag each high-definition animal card to its matching home zone.
           </p>
         </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={replayIntro}
-            className="flex h-12 min-w-12 items-center justify-center gap-1 rounded-2xl bg-violet-500 px-3 text-sm font-bold text-white shadow-md active:scale-95"
+            className="flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 px-3 text-xs font-semibold text-slate-300 hover:bg-slate-800"
             aria-label="Hear instructions again"
           >
-            <Volume2 className="h-5 w-5" />
+            <Volume2 className="h-3.5 w-3.5 text-cyan-400" />
             <span className="hidden sm:inline">Listen</span>
           </button>
           <button
             type="button"
             onClick={resetGame}
-            className="flex h-12 min-w-12 items-center justify-center gap-1 rounded-2xl bg-slate-100 px-3 text-sm font-bold text-slate-700 shadow-sm active:scale-95"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white"
             aria-label="Play again"
           >
-            <RefreshCw className="h-5 w-5" />
+            <RefreshCw className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Reset</span>
           </button>
         </div>
@@ -503,20 +511,18 @@ export function HabitatDragAndDrop({
                 habitatRefs.current[habitat.id] = el;
               }}
               className={[
-                'min-h-[120px] rounded-3xl border-4 p-3 transition-all',
+                'min-h-[132px] rounded-2xl border p-3 text-center transition-all',
                 habitat.bgColor,
-                glowing
-                  ? 'scale-[1.02] border-dashed border-emerald-400 bg-emerald-50/80 shadow-lg ring-4 ring-emerald-200'
-                  : habitat.borderColor,
+                glowing ? `scale-[1.02] ${habitat.glowClass}` : habitat.borderColor,
               ].join(' ')}
             >
-              <p className="mb-2 text-center text-base font-black text-slate-800">
-                <span className="mr-1 text-2xl">{habitat.emoji}</span>
+              <p className="mb-2 text-xs font-bold text-slate-100">
+                <span className="mr-1 text-xl">{habitat.emoji}</span>
                 {habitat.title}
               </p>
-              <div className="flex min-h-[64px] flex-wrap items-center justify-center gap-2">
+              <div className="flex min-h-[72px] flex-wrap items-center justify-center gap-2 rounded-xl border border-dashed border-white/15">
                 {placed.length === 0 && (
-                  <p className="text-xs font-bold text-slate-400">Drop animals here</p>
+                  <p className="px-2 text-[11px] text-slate-400">{habitat.hint}</p>
                 )}
                 {placed.map((a) => (
                   <motion.button
@@ -529,10 +535,10 @@ export function HabitatDragAndDrop({
                     }}
                     transition={{ type: 'spring', stiffness: 400, damping: 12 }}
                     onClick={() => openAnimalPreview(a)}
-                    className="flex h-16 w-16 flex-col items-center justify-center rounded-2xl bg-white text-2xl shadow-md"
+                    className="overflow-hidden rounded-xl border border-slate-700 bg-[#0d1220] shadow-md"
                   >
-                    <span aria-hidden>{a.emoji}</span>
-                    <span className="text-[10px] font-black text-slate-600">{a.name}</span>
+                    <img src={a.photoUrl} alt="" className="h-12 w-14 object-cover" draggable={false} />
+                    <span className="block px-1 py-0.5 text-[10px] font-bold text-slate-200">{a.name}</span>
                   </motion.button>
                 ))}
               </div>
@@ -542,11 +548,11 @@ export function HabitatDragAndDrop({
       </div>
 
       {/* Animal tray — large cards filling space */}
-      <div className="flex min-h-[220px] flex-1 flex-col rounded-3xl border-2 border-dashed border-violet-200 bg-white/80 p-3 sm:min-h-[260px] sm:p-4">
-        <p className="mb-3 text-center text-base font-black text-violet-700">
+      <div className="flex min-h-[220px] flex-1 flex-col pt-2 sm:min-h-[260px]">
+        <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
           Animals waiting for a home ({unmatched.length})
         </p>
-        <div className="grid min-h-0 flex-1 grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        <div className="grid min-h-0 flex-1 grid-cols-2 gap-3 sm:grid-cols-3">
           {unmatched.map((animal) => {
             const isDragging = drag?.animalId === animal.id;
             return (
@@ -555,23 +561,28 @@ export function HabitatDragAndDrop({
                 type="button"
                 onPointerDown={(e) => onPointerDownAnimal(animal, e)}
                 className={[
-                  'flex min-h-[110px] touch-none select-none flex-col items-center justify-center gap-1 rounded-3xl border-4 border-white bg-gradient-to-b from-white to-violet-50 px-2 py-3 shadow-lg transition active:scale-95 sm:min-h-[130px]',
-                  isDragging ? 'scale-105 opacity-40 shadow-2xl' : 'hover:scale-[1.03]',
+                  'group cursor-grab touch-none select-none rounded-2xl border border-slate-800 bg-[#0d1220] p-2 text-left shadow-xl transition-all active:cursor-grabbing',
+                  isDragging ? 'scale-105 opacity-40' : 'hover:-translate-y-1 hover:border-cyan-400/60',
                 ].join(' ')}
                 aria-label={`Tap or drag ${animal.name}`}
               >
-                <span className="text-5xl leading-none sm:text-6xl" aria-hidden>
-                  {animal.emoji}
+                <img
+                  src={animal.photoUrl}
+                  alt=""
+                  draggable={false}
+                  className="mb-2 h-24 w-full rounded-xl object-cover transition-transform group-hover:scale-[1.03] sm:h-32"
+                />
+                <span className="block text-center text-xs font-bold text-white group-hover:text-cyan-300">
+                  {animal.name}
                 </span>
-                <span className="text-sm font-black text-slate-800 sm:text-base">{animal.name}</span>
-                <span className="text-[10px] font-bold uppercase tracking-wide text-violet-500">
+                <span className="mt-0.5 block text-center text-[10px] uppercase tracking-wider text-slate-500">
                   Tap · Drag
                 </span>
               </button>
             );
           })}
           {unmatched.length === 0 && !showComplete && (
-            <p className="col-span-full self-center py-6 text-center text-base font-bold text-emerald-600">
+            <p className="col-span-full self-center py-6 text-center text-sm font-bold text-emerald-400">
               All animals are home!
             </p>
           )}
@@ -581,14 +592,14 @@ export function HabitatDragAndDrop({
       {/* Floating drag ghost */}
       {draggingAnimal && drag && (
         <div
-          className="pointer-events-none fixed z-50 flex h-28 w-28 scale-110 flex-col items-center justify-center rounded-3xl border-4 border-violet-300 bg-white text-5xl opacity-90 shadow-2xl"
+          className="pointer-events-none fixed z-50 w-28 overflow-hidden rounded-2xl border border-cyan-400/50 bg-[#0d1220] opacity-95 shadow-[0_0_24px_rgba(34,211,238,0.35)]"
           style={{
             left: drag.x - drag.offsetX,
             top: drag.y - drag.offsetY,
           }}
         >
-          <span aria-hidden>{draggingAnimal.emoji}</span>
-          <span className="text-sm font-black text-slate-700">{draggingAnimal.name}</span>
+          <img src={draggingAnimal.photoUrl} alt="" className="h-20 w-full object-cover" draggable={false} />
+          <span className="block py-1 text-center text-xs font-bold text-white">{draggingAnimal.name}</span>
         </div>
       )}
 
@@ -612,13 +623,13 @@ export function HabitatDragAndDrop({
               }}
               exit={{ scale: 0.8, opacity: 0, y: 40 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
-              className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl"
+              className="relative w-full max-w-md overflow-hidden rounded-3xl border border-slate-800 bg-[#0b0e1a] shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 type="button"
                 onClick={() => setPreviewAnimal(null)}
-                className="absolute right-3 top-3 z-10 rounded-full bg-white/90 p-2 text-slate-600 shadow"
+                className="absolute right-3 top-3 z-10 rounded-full border border-slate-700 bg-slate-950/80 p-2 text-slate-200"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
@@ -639,16 +650,16 @@ export function HabitatDragAndDrop({
                 </span>
               </div>
               <div className="p-4 text-center">
-                <h4 className="text-2xl font-black text-slate-800">{previewAnimal.name}!</h4>
-                <p className="mt-1 text-sm font-semibold text-slate-500">{previewAnimal.soundPhrase}</p>
+                <h4 className="text-2xl font-black text-white">{previewAnimal.name}</h4>
+                <p className="mt-1 text-sm text-slate-400">{previewAnimal.soundPhrase}</p>
                 <button
                   type="button"
                   onClick={() => void playAnimalAudio(previewAnimal)}
-                  className="mt-3 inline-flex items-center gap-2 rounded-full bg-violet-500 px-4 py-2 text-sm font-bold text-white"
+                  className="mt-3 inline-flex items-center gap-2 rounded-full bg-cyan-400 px-4 py-2 text-sm font-bold text-slate-950"
                 >
                   <Volume2 className="h-4 w-4" /> Play sound again
                 </button>
-                <p className="mt-2 text-xs font-bold text-violet-600">
+                <p className="mt-2 text-xs font-bold text-cyan-300">
                   Now drag me to my home!
                 </p>
               </div>
@@ -669,17 +680,17 @@ export function HabitatDragAndDrop({
             <motion.div
               initial={{ scale: 0.8, y: 20 }}
               animate={{ scale: 1, y: 0 }}
-              className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl"
+              className="w-full max-w-sm rounded-3xl border border-slate-800 bg-[#0b0e1a] p-6 text-center shadow-2xl"
             >
               <p className="text-5xl">🎉</p>
-              <h4 className="mt-3 text-2xl font-black text-slate-800">Super Animal Helper!</h4>
-              <p className="mt-2 text-sm font-semibold text-slate-500">
+              <h4 className="mt-3 text-2xl font-black text-white">Super Animal Helper!</h4>
+              <p className="mt-2 text-sm text-slate-400">
                 You helped every animal find their home. Amazing work!
               </p>
               <button
                 type="button"
                 onClick={resetGame}
-                className="mt-5 w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-3.5 text-base font-black text-white shadow-md active:scale-95"
+                className="mt-5 w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-base font-bold text-slate-950 shadow-lg shadow-orange-500/20 hover:from-amber-400 hover:to-orange-400"
               >
                 Play Next Game 🎉
               </button>
