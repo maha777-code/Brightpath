@@ -432,6 +432,8 @@ export type {
   SharadaChatMessage,
   SharadaChatRequest,
   SharadaChatResponse,
+  RouterIntent,
+  RouterIntentType,
 } from './teacherTools.js';
 
 export {
@@ -440,6 +442,7 @@ export {
   getTeacherToolById,
   sharadaTitleFromPrompt,
   fallbackSharadaChat,
+  classifyUserIntent,
   applyWorksheetFollowUp,
   applyWorksheetTranslation,
   LESSON_PLAN_GRADE_LEVELS,

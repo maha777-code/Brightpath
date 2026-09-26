@@ -655,6 +655,87 @@ export function sharadaTitleFromPrompt(prompt: string): string {
   return short.charAt(0).toUpperCase() + short.slice(1);
 }
 
+export type RouterIntentType =
+  | 'EXPLANATION'
+  | 'TOOL_WORKSHEET'
+  | 'TOOL_QUIZ'
+  | 'TOOL_LESSON_PLAN'
+  | 'TOOL_EMAIL'
+  | 'TOOL_PRESENTATION'
+  | 'GENERAL_CHAT';
+
+export interface RouterIntent {
+  type: RouterIntentType;
+  targetTool?: string;
+  gradeLevel?: string;
+  topic?: string;
+}
+
+function ordinalGrade(value: string): string {
+  const num = Number(value);
+  const mod100 = num % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${num}th`;
+  switch (num % 10) {
+    case 1:
+      return `${num}st`;
+    case 2:
+      return `${num}nd`;
+    case 3:
+      return `${num}rd`;
+    default:
+      return `${num}th`;
+  }
+}
+
+function includesAny(text: string, keywords: string[]): boolean {
+  return keywords.some((keyword) => text.includes(keyword));
+}
+
+export function classifyUserIntent(prompt: string): RouterIntent {
+  const lower = prompt.toLowerCase();
+  const gradeMatch = lower.match(/(\d{1,2})(?:st|nd|rd|th)?\s*grade|grade\s*(\d{1,2})/);
+  const gradeNumber = gradeMatch?.[1] || gradeMatch?.[2];
+  const gradeLevel = gradeNumber ? `${ordinalGrade(gradeNumber)} grade` : undefined;
+  const topic = prompt.trim();
+
+  const isWorksheet = includesAny(lower, [
+    'worksheet',
+    'practice problems',
+    'fill in the blanks',
+    'fill-in-the-blank',
+    'handout',
+    'practice sheet',
+  ]);
+  const strongQuiz = includesAny(lower, ['quiz', 'multiple choice', 'mcq', 'test questions']) || /\btests?\b/.test(lower);
+  const weakQuiz = /\bquestions\b/.test(lower);
+  const isLessonPlan = includesAny(lower, ['lesson plan', 'curriculum plan', 'teaching objectives', 'teaching plan']);
+  const isEmail = includesAny(lower, ['email', 'draft message']);
+  const isPresentation = includesAny(lower, ['slides', 'presentation', 'deck']);
+  const isExplanation = includesAny(lower, [
+    'explain',
+    'what is',
+    'what are',
+    'how does',
+    'how do',
+    'describe',
+    'simplify',
+    'teach',
+    'walk through',
+    'walkthrough',
+    'break down',
+  ]);
+
+  if (isWorksheet) return { type: 'TOOL_WORKSHEET', targetTool: 'Worksheet Generator', gradeLevel, topic };
+  if (strongQuiz || (weakQuiz && !isExplanation)) {
+    return { type: 'TOOL_QUIZ', targetTool: 'Multiple Choice Quiz', gradeLevel, topic };
+  }
+  if (isLessonPlan) return { type: 'TOOL_LESSON_PLAN', targetTool: 'Lesson Plan Generator', gradeLevel, topic };
+  if (isEmail) return { type: 'TOOL_EMAIL', targetTool: 'Professional Email', gradeLevel, topic };
+  if (isPresentation) return { type: 'TOOL_PRESENTATION', targetTool: 'Presentation Generator', gradeLevel, topic };
+  if (isExplanation) return { type: 'EXPLANATION', gradeLevel, topic };
+  return { type: 'GENERAL_CHAT', topic };
+}
+
 function extractTopic(prompt: string): string {
   const topicMatch = prompt.match(/\btopic\s+([^,.!?]+)/i);
   if (topicMatch?.[1]) return titleCaseWords(topicMatch[1].trim());
@@ -667,14 +748,113 @@ function extractTopic(prompt: string): string {
   return titleCaseWords(cleaned || 'this topic');
 }
 
+function explanationTopic(prompt: string): string {
+  const cleaned = prompt
+    .replace(/^(please\s+)?(can you\s+)?/i, '')
+    .replace(/\b(explain|describe|simplify|teach|walk through|walkthrough|break down|what is|what are|how does|how do)\b/gi, '')
+    .replace(/\b(for|to)\s+(\d{1,2}(?:st|nd|rd|th)?\s*grade|grade\s*\d{1,2})\s*(students|learners|kids|children)?/gi, '')
+    .replace(/[?.!]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return titleCaseWords(cleaned || 'this topic');
+}
+
+function photosynthesisExplanation(gradeLevel?: string): SharadaChatResponse {
+  const grade = gradeLevel ?? 'elementary students';
+  return {
+    title: 'Photosynthesis explanation',
+    statusLine: `I'll explain photosynthesis for ${grade}.`,
+    confirmation: `Here's a clear explanation of photosynthesis for ${grade}:`,
+    markdown: `# Photosynthesis
+
+## A plant's solar kitchen
+Picture a plant as a tiny cook in a kitchen powered by the sun. It does not go to the store for food. It **makes its own meal** using sunlight, water, and air.
+
+## What goes in and what comes out
+- **What goes in:** sunlight, water (H₂O), and carbon dioxide (CO₂) from the air.
+- **What comes out:** glucose, the plant's food, and oxygen (O₂), which people and animals breathe.
+- **Where it happens:** mostly in the leaves, inside tiny green parts called chloroplasts. Chlorophyll is the green pigment that catches the light.
+
+## How it happens
+**1. Catch the light.** Leaves soak up sunlight the way a solar panel soaks up sunshine.
+
+**2. Take a drink and a breath.** Roots pull in water. Tiny leaf openings let in carbon dioxide.
+
+**3. Cook the food.** Inside the leaf, light energy helps turn water and carbon dioxide into glucose.
+
+**4. Share the leftovers.** The plant keeps the glucose for energy and growth, and releases oxygen into the air.
+
+## Check for understanding
+1. If a plant were a cook, what three ingredients would it put in the pot?
+2. Why should we thank plants when we take a deep breath?`,
+  };
+}
+
+function directSharadaReply(prompt: string, intent: RouterIntent): SharadaChatResponse {
+  const topic = explanationTopic(prompt);
+  const grade = intent.gradeLevel;
+  const audience = grade ? ` for ${grade}` : '';
+
+  if (intent.type === 'EXPLANATION' && /photosynthesis/i.test(prompt)) {
+    return photosynthesisExplanation(grade);
+  }
+
+  if (intent.type === 'EXPLANATION') {
+    return {
+      title: `${topic} explanation`,
+      statusLine: `I'll explain ${topic}${audience}.`,
+      confirmation: `Here's a clear explanation of ${topic}${audience}:`,
+      markdown: `# ${topic}
+
+## A simple picture
+Imagine ${topic} as something students already know from everyday life. Start with that picture, then connect it to the science or idea underneath.
+
+## Key ideas
+- **What it is:** ${topic} in one plain sentence a student${grade ? ` in ${grade}` : ''} can repeat.
+- **What matters:** the one or two parts students must remember.
+- **What it is not:** a common mix-up to clear up early.
+
+## Step by step
+**1. Name it.** Say what ${topic} is, using words this age group already uses.
+
+**2. Show the parts.** Point out the pieces that make ${topic} work, one at a time.
+
+**3. Follow the sequence.** Walk through what happens first, next, and last.
+
+**4. Tie it to real life.** Give one example students can see at school or at home.
+
+## Check for understanding
+1. In your own words, what is ${topic}?
+2. What is one example of ${topic} you could point to today?`,
+    };
+  }
+
+  return {
+    title: sharadaTitleFromPrompt(prompt),
+    statusLine: "I'll answer this directly.",
+    confirmation: "Here's a direct answer:",
+    markdown: `# ${topic}
+
+Sharada can help with this in the chat. Ask for an explanation, or name a classroom tool if you want one made.
+
+- Say **explain** when you want a concept taught out loud in the chat.
+- Say **worksheet**, **quiz**, **lesson plan**, **email**, or **slides** only when you want that tool.`,
+  };
+}
+
 export function fallbackSharadaChat(prompt: string): SharadaChatResponse {
+  const intent = classifyUserIntent(prompt);
+  if (intent.type === 'EXPLANATION' || intent.type === 'GENERAL_CHAT') {
+    return directSharadaReply(prompt, intent);
+  }
+
   const topic = extractTopic(prompt);
   const title = sharadaTitleFromPrompt(prompt);
-  const isWorksheet = /worksheet|fill in|word bank|homework/i.test(prompt);
-  const isQuiz = /quiz|multiple choice|assessment/i.test(prompt);
+  const isWorksheet = intent.type === 'TOOL_WORKSHEET';
+  const isQuiz = intent.type === 'TOOL_QUIZ';
   const photosynthesis = /photosynthesis/i.test(prompt);
 
-  if (photosynthesis || (isWorksheet && /photo/i.test(topic))) {
+  if (isWorksheet && (photosynthesis || /photo/i.test(topic))) {
     return {
       title: 'Photosynthesis worksheet',
       statusLine: "I'll search for the right tool to create your worksheet.",
@@ -730,7 +910,19 @@ Circle the best answer.
     };
   }
 
-  const kind = isQuiz ? 'quiz' : isWorksheet ? 'worksheet' : 'classroom resource';
+  if (!isWorksheet && !isQuiz) {
+    const label = intent.targetTool ?? 'the matching classroom tool';
+    return {
+      title,
+      statusLine: `I'll use ${label} for this request.`,
+      confirmation: `This request matches ${label}, not a worksheet.`,
+      markdown: `# ${title}
+
+Use **${label}** for this request. Sharada will not turn it into a worksheet unless you ask for a worksheet, handout, or practice problems.`,
+    };
+  }
+
+  const kind = isQuiz ? 'quiz' : 'worksheet';
   const statusLine = isWorksheet
     ? "I'll search for the right tool to create your worksheet."
     : isQuiz

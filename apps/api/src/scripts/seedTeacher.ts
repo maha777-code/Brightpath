@@ -23,9 +23,6 @@ async function main() {
     where: { email },
     update: {
       passwordHash,
-      name: 'Prof. Ananya',
-      schoolName: 'Brightpath Academy',
-      subjectFocus: 'Science',
       planType: 'teacher_pro',
     },
     create: {
@@ -43,7 +40,6 @@ async function main() {
       where: { email },
       update: {
         passwordHash,
-        name: 'Prof. Ananya',
         role: 'teacher',
         planType: 'teacher_pro',
         teacherId: teacher.id,

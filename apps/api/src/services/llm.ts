@@ -9,9 +9,9 @@ import type {
   LessonPlanResponse,
   SharadaChatRequest,
   SharadaChatResponse,
+  RouterIntent,
 } from '@brightpath/shared';
-import { fallbackSharadaChat } from '@brightpath/shared';
-import { applyWorksheetFollowUp, applyWorksheetTranslation } from '@brightpath/shared';
+import { applyWorksheetFollowUp, applyWorksheetTranslation, classifyUserIntent, fallbackSharadaChat } from '@brightpath/shared';
 import { getActiveProvider } from '../lib/llm/provider.js';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
@@ -617,22 +617,62 @@ export async function generateLessonPlan(input: LessonPlanPayload): Promise<Less
   }
 }
 
-const SHARADA_SYSTEM = `You are Sharada, an expert AI pedagogical assistant. When requested to generate educational material (worksheets, quizzes, lesson plans), produce a complete, classroom-ready document formatted cleanly in Markdown. Include headers, clear instructions, word banks, and structured question parts.
+function looksLikeWorksheet(markdown: string): boolean {
+  return /fill in the blanks|word bank|teacher answer key/i.test(markdown);
+}
 
-Return JSON only in this exact shape:
+function sharadaSystemFor(intent: RouterIntent): string {
+  const shape = `Return JSON only in this exact shape:
 {
-  "title": "short breadcrumb title, e.g. Photosynthesis worksheet",
-  "statusLine": "I'll search for the right tool to create your worksheet.",
-  "confirmation": "Great! Here's a photosynthesis worksheet you can use right away:",
-  "markdown": "# Full markdown document..."
+  "title": "short breadcrumb title",
+  "statusLine": "one short status sentence",
+  "confirmation": "one short lead-in sentence",
+  "markdown": "the full reply in Markdown"
 }
 
 Rules:
-- markdown must be a complete student-facing document: title, name/date lines, Part 1 Fill in the Blanks with a Word Bank, Part 2 Multiple Choice with a–d options, and a teacher answer key.
-- Use Markdown headings, bold labels, numbered lists, and blank lines (______) for fill-ins.
-- Keep statusLine and confirmation concise and warm.
 - Do not wrap markdown in code fences.
-- Match the teacher's requested topic, grade, and format.`;
+- Match the teacher's topic and grade level.`;
+
+  if (intent.type === 'EXPLANATION') {
+    const grade = intent.gradeLevel ? `Write for ${intent.gradeLevel} students.` : 'Write for the age group implied by the request, or upper elementary if none is given.';
+    return `You are Sharada, an expert teacher. The teacher asked you to explain a concept in chat. Do NOT create a worksheet, quiz, lesson plan, handout, or practice sheet.
+
+${grade}
+
+Structure the markdown exactly like this:
+1. Age-appropriate hook and analogy. Open with a vivid real-world comparison students that age already understand.
+2. Key concepts as bullet points: what goes in, what comes out, and the one place or idea that matters.
+3. Step-by-step breakdown. Use bold headings for each step.
+4. Check for understanding. End with 1–2 short reflection questions. Do not include an answer key or fill-in blanks.
+
+statusLine should say you are explaining the concept. confirmation should introduce the explanation.
+
+${shape}`;
+  }
+
+  if (intent.type === 'GENERAL_CHAT') {
+    return `You are Sharada, an expert teaching assistant. Answer the teacher directly in chat. Do NOT default to a worksheet, quiz, or lesson plan unless they explicitly asked for one.
+
+${shape}`;
+  }
+
+  if (intent.type === 'TOOL_QUIZ') {
+    return `You are Sharada. The teacher explicitly asked for a quiz. Produce a classroom-ready multiple-choice quiz in Markdown with an answer key. Do not turn an explanation-only request into a quiz.
+
+${shape}`;
+  }
+
+  if (intent.type === 'TOOL_WORKSHEET') {
+    return `You are Sharada. The teacher explicitly asked for a worksheet, handout, or practice problems. Produce a classroom-ready worksheet in Markdown with a word bank, fill-in items, and an answer key.
+
+${shape}`;
+  }
+
+  return `You are Sharada. The teacher asked for ${intent.targetTool ?? 'a classroom tool'}. Respond for that tool only. Do not substitute a worksheet.
+
+${shape}`;
+}
 
 function normalizeSharadaChat(raw: Record<string, unknown>, fallback: SharadaChatResponse): SharadaChatResponse {
   const markdown = String(raw.markdown ?? '').trim();
@@ -645,6 +685,7 @@ function normalizeSharadaChat(raw: Record<string, unknown>, fallback: SharadaCha
 }
 
 export async function generateSharadaChat(input: SharadaChatRequest): Promise<SharadaChatResponse> {
+  const intent = classifyUserIntent(input.prompt);
   const fallback = fallbackSharadaChat(input.prompt);
   const llm = getActiveProvider();
   if (!llm) return fallback;
@@ -656,12 +697,20 @@ export async function generateSharadaChat(input: SharadaChatRequest): Promise<Sh
 
   try {
     const raw = await llm.completeJson<Record<string, unknown>>({
-      system: SHARADA_SYSTEM,
-      user: [historyBlock ? `Conversation so far:\n${historyBlock}` : '', `New request:\n${input.prompt.trim()}`]
+      system: sharadaSystemFor(intent),
+      user: [
+        `Intent: ${intent.type}${intent.gradeLevel ? ` (${intent.gradeLevel})` : ''}`,
+        historyBlock ? `Conversation so far:\n${historyBlock}` : '',
+        `New request:\n${input.prompt.trim()}`,
+      ]
         .filter(Boolean)
         .join('\n\n'),
     });
-    return normalizeSharadaChat(raw, fallback);
+    const reply = normalizeSharadaChat(raw, fallback);
+    if ((intent.type === 'EXPLANATION' || intent.type === 'GENERAL_CHAT') && looksLikeWorksheet(reply.markdown)) {
+      return fallback;
+    }
+    return reply;
   } catch (err) {
     console.error('[llm] sharada chat generation failed', err);
     return fallback;
