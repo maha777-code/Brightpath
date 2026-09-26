@@ -60,10 +60,9 @@ function RequireRole({
 function ProtectedStudent({ children }: { children: React.ReactNode }) {
   const { parent, role, loading } = useAuth();
   if (loading) return <div className="app-loading"><div className="loader" /></div>;
-  if (role === 'teacher') return <Navigate to="/home" replace />;
-  if (role === 'org_admin') return <Navigate to="/admin/school-dashboard" replace />;
-  if (role === 'center_admin') return <Navigate to="/tutor-center" replace />;
-  if (isParentPortalRole(role)) return <Navigate to="/parent/dashboard" replace />;
+  if (role === 'teacher' || role === 'org_admin' || role === 'center_admin' || isParentPortalRole(role)) {
+    return <Navigate to="/home" replace />;
+  }
   if (!parent || !isLearnerRole(role)) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
@@ -71,7 +70,7 @@ function ProtectedStudent({ children }: { children: React.ReactNode }) {
 function ProtectedTeacher({ children }: { children: React.ReactNode }) {
   const { teacher, role, loading } = useAuth();
   if (loading) return <div className="app-loading"><div className="loader" /></div>;
-  if (role === 'center_admin' || role === 'org_admin') return <>{children}</>;
+  if (role === 'center_admin' || role === 'org_admin' || role === 'parent') return <>{children}</>;
   if (role !== 'teacher' || !teacher) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
@@ -82,9 +81,7 @@ function ProtectedChapterExplore({ children }: { children: React.ReactNode }) {
   if (loading) return <div className="app-loading"><div className="loader" /></div>;
   if (role === 'teacher' && teacher) return <>{children}</>;
   if (parent && isLearnerRole(role)) return <>{children}</>;
-  if (role === 'org_admin') return <Navigate to="/admin/school-dashboard" replace />;
-  if (role === 'center_admin') return <Navigate to="/tutor-center" replace />;
-  if (isParentPortalRole(role)) return <Navigate to="/parent/dashboard" replace />;
+  if (role === 'org_admin' || role === 'center_admin' || isParentPortalRole(role)) return <Navigate to="/home" replace />;
   return <Navigate to="/login" replace />;
 }
 
@@ -119,6 +116,7 @@ function LoginGate() {
 function RootHome() {
   const { role, teacher } = useAuth();
   if (role === 'teacher' && teacher) return <Home />;
+  if (role === 'org_admin' || role === 'center_admin' || role === 'parent') return <Navigate to="/home" replace />;
   return <Landing />;
 }
 

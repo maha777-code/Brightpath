@@ -11,10 +11,11 @@ import {
   type WorksheetHistoryResponse,
   type TeacherToolFeedbackResponse,
   type SharadaChatResponse,
+  type EmailResponderResponse,
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
-import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, generateSharadaChat } from '../services/llm.js';
+import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, generateSharadaChat, generateEmailResponse } from '../services/llm.js';
 import { randomUUID } from 'node:crypto';
 
 const favoriteBody = z.object({
@@ -620,5 +621,32 @@ async function handleSharadaChat(req: AuthRequest, res: Response) {
 
 /** POST /teacher/sharada/chat */
 router.post('/sharada/chat', handleSharadaChat);
+
+const emailResponderBody = z.object({
+  authorName: z.string().max(120).optional(),
+  incomingEmail: z.string().min(1).max(200000),
+  responseIntent: z.string().min(1).max(200000),
+  attachments: z.array(z.string().max(240)).max(12).optional(),
+});
+
+/** POST /teacher/tools/email-responder */
+router.post('/tools/email-responder', async (req: AuthRequest, res: Response) => {
+  if (!req.teacherId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  const parsed = emailResponderBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'The email you received and what you want to say are required' });
+    return;
+  }
+  try {
+    const payload: EmailResponderResponse = await generateEmailResponse(parsed.data);
+    res.json(payload);
+  } catch (err) {
+    console.error('[teacher/tools/email-responder] failed', err);
+    res.status(500).json({ error: 'Failed to draft the email' });
+  }
+});
 
 export default router;

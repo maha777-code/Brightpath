@@ -5,6 +5,7 @@ import { QuizGenerator } from '@/pages/TeacherTools/QuizGenerator';
 import LessonPlanGenerator from '@/pages/TeacherTools/LessonPlanGenerator';
 import SongGeneratorDashboard from '@/pages/TeacherTools/SongGeneratorDashboard';
 import { CustomDynamicTool } from '@/components/tools/CustomDynamicTool';
+import { EmailResponder } from '@/components/tools/EmailResponder';
 import type { ToolDefinition } from '@/config/toolsRegistry';
 
 interface ToolRendererProps {
@@ -40,6 +41,7 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, onClose
           </div>
         );
       default:
+        if (tool.id === 'family-email') return <EmailResponder />;
         return <CustomDynamicTool tool={tool} />;
     }
   };

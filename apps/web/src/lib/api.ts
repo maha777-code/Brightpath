@@ -111,6 +111,8 @@ import type {
   LessonPlanResponse,
   SharadaChatRequest,
   SharadaChatResponse,
+  EmailResponderRequest,
+  EmailResponderResponse,
   SongLyricsPayload,
   SongLyricsDraft,
   SongRenderPayload,
@@ -514,6 +516,12 @@ export const api = {
 
   sharadaChat: (body: SharadaChatRequest) =>
     request<SharadaChatResponse>('/teacher/sharada/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  generateEmailResponse: (body: EmailResponderRequest) =>
+    request<EmailResponderResponse>('/teacher/tools/email-responder', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

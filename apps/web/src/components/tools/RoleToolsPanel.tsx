@@ -44,7 +44,15 @@ const TOOL_ICONS: Record<string, ComponentType<{ className?: string }>> = {
 };
 
 /** Lists registry tools this role may open and renders the same production component. */
-export function RoleToolsPanel({ tone = 'light', showHeading = true }: { tone?: 'light' | 'dark'; showHeading?: boolean }) {
+export function RoleToolsPanel({
+  tone = 'light',
+  showHeading = true,
+  hideOuterClose = false,
+}: {
+  tone?: 'light' | 'dark';
+  showHeading?: boolean;
+  hideOuterClose?: boolean;
+}) {
   const { role } = useAuth();
   const navigate = useNavigate();
   const tools = toolsForAppRole(role);
@@ -138,13 +146,15 @@ export function RoleToolsPanel({ tone = 'light', showHeading = true }: { tone?: 
           <div className="flex h-[88vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-slate-800 bg-[#040711] shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
               <p className="text-sm font-bold text-white">{active.title}</p>
-              <button
-                type="button"
-                onClick={() => setActive(null)}
-                className="cursor-pointer appearance-none rounded-lg border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-200"
-              >
-                Close
-              </button>
+              {hideOuterClose ? null : (
+                <button
+                  type="button"
+                  onClick={() => setActive(null)}
+                  className="cursor-pointer appearance-none rounded-lg border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-200"
+                >
+                  Close
+                </button>
+              )}
             </div>
             <ToolRenderer tool={active} embed onClose={() => setActive(null)} />
           </div>

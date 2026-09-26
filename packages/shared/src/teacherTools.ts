@@ -1003,3 +1003,59 @@ Use the **Word Bank** below.
 
   return { title, statusLine, confirmation, markdown };
 }
+
+export interface EmailResponderRequest {
+  authorName?: string;
+  incomingEmail: string;
+  responseIntent: string;
+  attachments?: string[];
+}
+
+export interface EmailResponderResponse {
+  email: string;
+}
+
+export function emailResponderPrompt(input: EmailResponderRequest): string {
+  const author = input.authorName?.trim() || 'Teacher';
+  const files = (input.attachments ?? []).map((name) => name.trim()).filter(Boolean);
+  const fileNote = files.length ? `\nAttached files to consider: ${files.join(', ')}` : '';
+  return `You are a professional educational communication assistant. Draft a polished, empathetic, and professional email response based on these inputs:
+
+Sender / Author Name: ${author}
+Original Email Received:
+"""
+${input.incomingEmail.trim()}
+"""
+
+Key Points / Intent to Communicate in Response:
+"""
+${input.responseIntent.trim()}
+"""${fileNote}
+
+Instructions:
+1. Ensure the tone is professional, warm, clear, and polite.
+2. Address all key points requested in the communication intent.
+3. Include a suitable subject line starting with "Subject: ".
+4. Sign off with "${author}".`;
+}
+
+export function fallbackEmailResponse(input: EmailResponderRequest): EmailResponderResponse {
+  const author = input.authorName?.trim() || 'Teacher';
+  const original = input.incomingEmail.trim();
+  const subjectLine = original.match(/^subject:\s*(.+)$/im)?.[1]?.trim();
+  const subject = subjectLine ? `Re: ${subjectLine}` : 'Following up on your email';
+  return {
+    email: `Subject: ${subject}
+
+Hello,
+
+Thank you for your email. I wanted to reply directly.
+
+${input.responseIntent.trim()}
+
+Please tell me if you would like to adjust any of this.
+
+Warmly,
+${author}`,
+  };
+}

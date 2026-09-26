@@ -10,8 +10,10 @@ import type {
   SharadaChatRequest,
   SharadaChatResponse,
   RouterIntent,
+  EmailResponderRequest,
+  EmailResponderResponse,
 } from '@brightpath/shared';
-import { applyWorksheetFollowUp, applyWorksheetTranslation, classifyUserIntent, fallbackSharadaChat } from '@brightpath/shared';
+import { applyWorksheetFollowUp, applyWorksheetTranslation, classifyUserIntent, emailResponderPrompt, fallbackEmailResponse, fallbackSharadaChat } from '@brightpath/shared';
 import { getActiveProvider } from '../lib/llm/provider.js';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
@@ -713,6 +715,25 @@ export async function generateSharadaChat(input: SharadaChatRequest): Promise<Sh
     return reply;
   } catch (err) {
     console.error('[llm] sharada chat generation failed', err);
+    return fallback;
+  }
+}
+
+export async function generateEmailResponse(input: EmailResponderRequest): Promise<EmailResponderResponse> {
+  const fallback = fallbackEmailResponse(input);
+  const llm = getActiveProvider();
+  if (!llm) return fallback;
+
+  try {
+    const raw = await llm.completeJson<{ email?: string }>({
+      system: 'You draft professional school emails. Return JSON only in this shape: {"email":"Subject: ...\\n\\nfull email body"}. Do not wrap the email in code fences.',
+      user: emailResponderPrompt(input),
+    });
+    const email = String(raw.email ?? '').trim();
+    if (!email) return fallback;
+    return { email: /^subject:/i.test(email) ? email : `Subject: Following up on your email\n\n${email}` };
+  } catch (err) {
+    console.error('[llm] email responder failed', err);
     return fallback;
   }
 }

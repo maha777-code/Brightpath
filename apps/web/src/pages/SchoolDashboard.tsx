@@ -121,7 +121,7 @@ export default function SchoolDashboard() {
                 Tools available for your enterprise role. Opening one uses the same generator as the teacher workspace.
               </p>
             </div>
-            <RoleToolsPanel tone="dark" showHeading={false} />
+            <RoleToolsPanel tone="dark" showHeading={false} hideOuterClose />
           </div>
 
           <div className="w-full space-y-4 rounded-2xl border border-purple-500/30 bg-[#080e1b] p-7 shadow-2xl">

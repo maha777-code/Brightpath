@@ -4,6 +4,7 @@ import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useDisplayUser } from '@/lib/displayUser';
+import { workspaceForRole } from '@/lib/workspaceRole';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 
@@ -38,8 +39,10 @@ const WORKSPACE_ITEMS = [
 export function TeacherSidebar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
-  const { userName, userMeta } = useDisplayUser();
+  const { logout, role } = useAuth();
+  const { userName, userMeta, schoolName } = useDisplayUser();
+  const workspace = workspaceForRole(role);
+  const profileDetail = workspace.detail ? `${schoolName} · ${workspace.detail}` : userMeta;
   const [open, setOpen] = useState(false);
 
   const close = () => setOpen(false);
@@ -80,7 +83,7 @@ export function TeacherSidebar() {
             <div className="h-3 w-3 shrink-0 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse" />
             <div className="min-w-0">
               <BrandLogo variant="full" imgClassName="h-8 w-auto object-contain" />
-              <p className="mt-1 text-base font-extrabold tracking-tight text-slate-200">Teacher workspace</p>
+              <p className="mt-1 text-base font-extrabold tracking-tight text-slate-200">{workspace.title}</p>
             </div>
           </div>
 
@@ -98,9 +101,9 @@ export function TeacherSidebar() {
 
           <div className="space-y-2">
             <p className="px-2 text-base font-extrabold tracking-tight text-slate-400">
-              Teacher workspace
+              {workspace.title}
             </p>
-            <nav className="space-y-1" aria-label="Teacher workspace">
+            <nav className="space-y-1" aria-label={workspace.title}>
               {WORKSPACE_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const active = item.match(pathname);
@@ -140,7 +143,7 @@ export function TeacherSidebar() {
             </span>
           </div>
           <p className="truncate px-3 text-base font-bold tracking-tight text-slate-100">{userName}</p>
-          <p className="truncate px-3 text-sm font-normal tracking-tight text-slate-400">{userMeta}</p>
+          <p className="truncate px-3 text-sm font-normal tracking-tight text-slate-400">{profileDetail}</p>
           <button
             type="button"
             onClick={() => {

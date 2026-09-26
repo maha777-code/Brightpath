@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 import { getTeacherToolById } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { useDisplayUser } from '@/lib/displayUser';
+import { workspaceForRole } from '@/lib/workspaceRole';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 
 import { CYBER_FONT_STYLE } from '@/lib/theme';
@@ -83,7 +85,9 @@ const RECENT_ACTIVITY = [
 ] as const;
 
 export function HomePage() {
+  const { role } = useAuth();
   const { firstName } = useDisplayUser();
+  const workspace = workspaceForRole(role);
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -155,7 +159,7 @@ export function HomePage() {
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-cyan-400" /> SYS_OK
           </span>
           <h1 className="text-center text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
-            Hi {firstName || 'Teacher'}. <span className="text-slate-400">How can I help today?</span>
+            Hi {firstName || workspace.greetingFallback}. <span className="text-slate-400">How can I help today?</span>
           </h1>
           <p className="mb-6 mt-2 text-center text-lg font-medium text-slate-300">
             Chat with Sharada, your AI assistant
@@ -310,7 +314,7 @@ export function HomePage() {
           <div className="space-y-5">
             <h2 className="text-base font-normal text-slate-300">
               <strong className="mr-1 text-xl font-black text-white">Recent activity.</strong>
-              <span className="text-base text-slate-300">Latest classroom work.</span>
+              <span className="text-base text-slate-300">{workspace.activity}</span>
             </h2>
             <div className="mt-4 w-full space-y-4 rounded-2xl border border-slate-800/80 bg-[#080d1a] p-5 shadow-lg">
               {RECENT_ACTIVITY.map((act) => (
