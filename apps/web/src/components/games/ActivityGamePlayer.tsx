@@ -4,9 +4,7 @@ import {
   type TeacherActivity,
 } from '@brightpath/shared';
 import TomJerryCinematicGame from './TomJerryCinematicGame';
-import SpaceShooterGame from './SpaceShooterGame';
 import DetectiveGame from './DetectiveGame';
-import SweetRushQuestGame from './SweetRushQuestGame';
 import PhysicsActivityGame from './PhysicsActivityGame';
 
 interface ActivityGamePlayerProps {
@@ -50,12 +48,6 @@ export default function ActivityGamePlayer({
 
   if (templateId === 'detective_mystery') {
     return <DetectiveGame {...shared} />;
-  }
-  if (templateId === 'space_shooter') {
-    return <SpaceShooterGame {...shared} />;
-  }
-  if (templateId === 'sweetrush_quest') {
-    return <SweetRushQuestGame {...shared} />;
   }
   return <TomJerryCinematicGame {...shared} templateId={templateId} />;
 }

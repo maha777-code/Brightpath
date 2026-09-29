@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { routeParam } from '../lib/routeParam.js';
 import { requireTeacher, type AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 import { toSubtopic } from '../lib/teacherSerializers.js';
@@ -15,7 +16,7 @@ router.post('/:topicId/approve-video', async (req: AuthRequest, res) => {
   try {
     const existing = await prisma.teacherSubtopic.findFirst({
       where: {
-        id: req.params.topicId,
+        id: routeParam(req.params.topicId),
         chapter: { textbook: { teacherId: req.teacherId! } },
       },
     });

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import type { TutorStatusResponse } from '@brightpath/shared';
+import type { Locale, Subject, TutorStatusResponse } from '@brightpath/shared';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { evaluateAnswer, generateGreeting } from '../lib/tutor/evaluate.js';
 import { getActiveProvider, getActiveProviderName } from '../lib/llm/provider.js';
@@ -102,7 +102,11 @@ router.post('/greeting', requireAuth, async (req: AuthRequest, res) => {
   }
 
   try {
-    const result = await generateGreeting(parsed.data);
+    const result = await generateGreeting({
+      ...parsed.data,
+      locale: parsed.data.locale as Locale,
+      subject: parsed.data.subject as Subject,
+    });
     res.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Tutor unavailable';
@@ -154,7 +158,11 @@ router.post('/respond', requireAuth, async (req: AuthRequest, res) => {
   }
 
   try {
-    const result = await evaluateAnswer(parsed.data);
+    const result = await evaluateAnswer({
+      ...parsed.data,
+      locale: parsed.data.locale as Locale,
+      subject: parsed.data.subject as Subject,
+    });
     res.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Tutor unavailable';

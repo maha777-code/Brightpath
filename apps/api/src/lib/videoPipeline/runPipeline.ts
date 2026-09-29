@@ -142,7 +142,7 @@ export async function runHybridVideoPipeline(
           data: {
             videoScript: flatScript,
             animationCuesJson: cues,
-            videoManifestJson: manifest,
+            videoManifestJson: manifest as unknown as Prisma.InputJsonValue,
             videoTitle: `${ctx.code} Video Explainer`,
             videoProgress: STAGE_PROGRESS.scripting,
             videoJobStage: 'scripting',
@@ -162,7 +162,7 @@ export async function runHybridVideoPipeline(
           where: { id: topicId },
           data: {
             videoAudioUrl: voice.audioPublicUrl,
-            videoManifestJson: manifest,
+            videoManifestJson: manifest as unknown as Prisma.InputJsonValue,
             videoProgress: STAGE_PROGRESS.tts,
             videoJobStage: 'tts',
             videoJobStartedAt: new Date(),
@@ -218,7 +218,7 @@ export async function runHybridVideoPipeline(
               ...manifest,
               wordTimings: voice.wordTimings,
               renderFallback: rendered.usedFallback,
-            },
+            } as unknown as Prisma.InputJsonValue,
             videoError: null,
             hasVideoExplainer: false,
             videoTitle: `${ctx.code} Video Explainer`,

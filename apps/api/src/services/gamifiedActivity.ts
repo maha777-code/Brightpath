@@ -80,16 +80,19 @@ export function parseQuizQuestions(raw: unknown): GamifiedQuizQuestion[] {
   if (raw.some((item) => item && typeof item === 'object' && 'scene_type' in item)) {
     return questionsFromCinematicScript(parseCinematicScript(raw));
   }
-  return raw
-    .map((item) => questionSchema.safeParse(item))
-    .filter((r): r is z.ZodSafeParseSuccess<z.infer<typeof questionSchema>> => r.success)
-    .map((r) => ({
-      questionText: r.data.questionText,
-      options: r.data.options,
-      correctAnswerIndex: r.data.correctAnswerIndex,
-      explanation: r.data.explanation,
-      xpReward: r.data.xpReward ?? 50,
-    }));
+  return raw.flatMap((item) => {
+    const parsed = questionSchema.safeParse(item);
+    if (!parsed.success) return [];
+    return [
+      {
+        questionText: parsed.data.questionText,
+        options: parsed.data.options,
+        correctAnswerIndex: parsed.data.correctAnswerIndex,
+        explanation: parsed.data.explanation,
+        xpReward: parsed.data.xpReward ?? 50,
+      },
+    ];
+  });
 }
 
 function resolveScript(row: ActivityRow, title: string): CinematicScriptScene[] {

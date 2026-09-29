@@ -21,7 +21,6 @@ import {
   localSongsResponse,
   readLocalSongs,
   removeLocalSong,
-  upsertLocalSong,
 } from '@/lib/teacherSongs';
 
 const PAGE_SIZE = 10;

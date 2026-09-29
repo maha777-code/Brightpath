@@ -39,12 +39,12 @@ export default function SongGeneratorCreate() {
   const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2>(1);
   const [topic, setTopic] = useState('');
-  const [gradeLevel, setGradeLevel] = useState(SONG_GRADE_LEVELS[1]);
-  const [songStyle, setSongStyle] = useState(SONG_STYLES[0]);
+  const [gradeLevel, setGradeLevel] = useState<(typeof SONG_GRADE_LEVELS)[number]>(SONG_GRADE_LEVELS[1]);
+  const [songStyle, setSongStyle] = useState<(typeof SONG_STYLES)[number]>(SONG_STYLES[0]);
   const [customInstructions, setCustomInstructions] = useState('');
   const [title, setTitle] = useState('');
   const [lyrics, setLyrics] = useState('');
-  const [voiceId, setVoiceId] = useState(SONG_VOICES[0].id);
+  const [voiceId, setVoiceId] = useState<(typeof SONG_VOICES)[number]['id']>(SONG_VOICES[0].id);
   const [lyricsBusy, setLyricsBusy] = useState(false);
   const [renderBusy, setRenderBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -173,7 +173,7 @@ export default function SongGeneratorCreate() {
                     </span>
                     <select
                       value={gradeLevel}
-                      onChange={(e) => setGradeLevel(e.target.value)}
+                      onChange={(e) => setGradeLevel(e.target.value as (typeof SONG_GRADE_LEVELS)[number])}
                       className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200"
                     >
                       {SONG_GRADE_LEVELS.map((grade) => (
@@ -189,7 +189,7 @@ export default function SongGeneratorCreate() {
                     </span>
                     <select
                       value={songStyle}
-                      onChange={(e) => setSongStyle(e.target.value)}
+                      onChange={(e) => setSongStyle(e.target.value as (typeof SONG_STYLES)[number])}
                       className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200"
                     >
                       {SONG_STYLES.map((style) => (
@@ -261,7 +261,7 @@ export default function SongGeneratorCreate() {
                   <span className="mb-1.5 block text-sm font-semibold text-slate-800">Singer voice</span>
                   <select
                     value={voiceId}
-                    onChange={(e) => setVoiceId(e.target.value)}
+                    onChange={(e) => setVoiceId(e.target.value as (typeof SONG_VOICES)[number]['id'])}
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200"
                   >
                     {SONG_VOICES.map((voice) => (

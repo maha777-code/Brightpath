@@ -10,6 +10,7 @@ import {
   maxPdfBytes,
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
+import { routeParam } from '../lib/routeParam.js';
 import { requireTeacher, type AuthRequest } from '../middleware/auth.js';
 import {
   toChapter,
@@ -289,7 +290,7 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
     return;
   }
   const textbook = await prisma.textbook.findFirst({
-    where: { id: req.params.id, teacherId },
+    where: { id: routeParam(req.params.id), teacherId },
   });
   if (!textbook) {
     res.status(404).json({ error: 'Textbook not found' });
@@ -326,7 +327,7 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
 /** GET /teacher/chapters/:id — single chapter with subtopics */
 router.get('/chapters/:id', async (req: AuthRequest, res) => {
   const existing = await prisma.teacherChapter.findFirst({
-    where: { id: req.params.id, textbook: { teacherId: req.teacherId! } },
+    where: { id: routeParam(req.params.id), textbook: { teacherId: req.teacherId! } },
     select: { textbookId: true },
   });
   if (!existing) {
@@ -350,7 +351,7 @@ router.get('/chapters/:id', async (req: AuthRequest, res) => {
   }
 
   const chapter = await prisma.teacherChapter.findFirst({
-    where: { id: req.params.id, textbook: { teacherId: req.teacherId! } },
+    where: { id: routeParam(req.params.id), textbook: { teacherId: req.teacherId! } },
     include: { subtopics: { orderBy: { sequenceOrder: 'asc' } } },
   });
   if (!chapter) {
@@ -379,7 +380,7 @@ router.patch('/subtopics/:id', async (req: AuthRequest, res) => {
 
   const existing = await prisma.teacherSubtopic.findFirst({
     where: {
-      id: req.params.id,
+      id: routeParam(req.params.id),
       chapter: { textbook: { teacherId: req.teacherId! } },
     },
   });
@@ -418,7 +419,7 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => 
 
   const existing = await prisma.teacherSubtopic.findFirst({
     where: {
-      id: req.params.topicId,
+      id: routeParam(req.params.topicId),
       chapter: { textbook: { teacherId: req.teacherId! } },
     },
   });
@@ -480,7 +481,7 @@ router.get('/topics/:topicId/video-status', async (req: AuthRequest, res) => {
   try {
     const existing = await prisma.teacherSubtopic.findFirst({
       where: {
-        id: req.params.topicId,
+        id: routeParam(req.params.topicId),
         chapter: { textbook: { teacherId: req.teacherId! } },
       },
     });
@@ -530,7 +531,7 @@ router.get('/topics/:topicId/video-status', async (req: AuthRequest, res) => {
   } catch (err) {
     console.error('[video-status]', err);
     res.status(500).json({
-      topicId: req.params.topicId,
+      topicId: routeParam(req.params.topicId),
       status: 'failed',
       progress: 0,
       error: err instanceof Error ? err.message : 'Status check failed',
@@ -552,7 +553,7 @@ router.patch('/topics/:topicId/video-script', async (req: AuthRequest, res) => {
 
   const existing = await prisma.teacherSubtopic.findFirst({
     where: {
-      id: req.params.topicId,
+      id: routeParam(req.params.topicId),
       chapter: { textbook: { teacherId: req.teacherId! } },
     },
   });
@@ -572,7 +573,7 @@ router.patch('/topics/:topicId/video-script', async (req: AuthRequest, res) => {
 router.post('/topics/:topicId/reject-video', async (req: AuthRequest, res) => {
   const existing = await prisma.teacherSubtopic.findFirst({
     where: {
-      id: req.params.topicId,
+      id: routeParam(req.params.topicId),
       chapter: { textbook: { teacherId: req.teacherId! } },
     },
   });
@@ -628,7 +629,7 @@ router.post('/doubts/:id/review', async (req: AuthRequest, res) => {
   }
 
   const doubt = await prisma.studentDoubt.findFirst({
-    where: { id: req.params.id, teacherId: req.teacherId! },
+    where: { id: routeParam(req.params.id), teacherId: req.teacherId! },
   });
   if (!doubt) {
     res.status(404).json({ error: 'Doubt not found' });

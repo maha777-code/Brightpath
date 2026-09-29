@@ -54,7 +54,7 @@ export default function TutorSession() {
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiChecking, setAiChecking] = useState(true);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [sttEngine, setSttEngine] = useState<'deepgram' | null>(null);
+  const [sttEngine, setSttEngine] = useState<'deepgram' | 'elevenlabs' | 'browser' | null>(null);
 
   const [consecutiveFailures, setConsecutiveFailures] = useState(0);
   const [remediationSteps, setRemediationSteps] = useState<LessonStep[] | null>(null);

@@ -147,7 +147,7 @@ export function useActivityTracker(enabled: boolean) {
       const base = import.meta.env.VITE_API_URL ?? '/api';
 
       // Prefer sendBeacon for unload; fall back to sync flush
-      if (navigator.sendBeacon && token) {
+      if (token) {
         try {
           void fetch(`${base}/user/track-activity`, {
             method: 'POST',

@@ -254,7 +254,7 @@ export async function ingestSubtopicAttachments(input: {
       const pageHint = sanitizeUtf8(`teacher_attachment / ${sub.code} / ${file.originalname}`);
       let createdChunk: { id: string };
       try {
-        createdChunk = await ragChunkDelegate().create({
+        createdChunk = (await ragChunkDelegate().create({
           data: {
             textbookId: sub.chapter.textbookId,
             content,
@@ -265,7 +265,7 @@ export async function ingestSubtopicAttachments(input: {
             attachmentId: row.id,
             embedding: embeddings[i] ?? [],
           },
-        });
+        })) as { id: string };
       } catch {
         createdChunk = await prisma.ragChunk.create({
           data: {
@@ -354,8 +354,8 @@ export async function prioritizedRagExcerpts(input: {
       take,
     });
     return {
-      attachment: attachment.map((c) => c.content),
-      textbook: textbook.map((c) => c.content),
+      attachment: attachment.map((c) => (c as { content: string }).content),
+      textbook: textbook.map((c) => (c as { content: string }).content),
     };
   } catch {
     const fallback = await prisma.ragChunk.findMany({

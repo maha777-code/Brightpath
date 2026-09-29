@@ -106,11 +106,18 @@ function formatWhen(timestamp: number): string {
 }
 
 function historyFromThread(messages: ThreadMessage[]): SharadaChatMessage[] {
-  return messages.flatMap((msg) => {
-    if (msg.role === 'user') return [{ role: 'user' as const, content: msg.text }];
-    if (msg.pending) return [];
-    return [{ role: 'assistant' as const, content: [msg.confirmation, msg.markdown].filter(Boolean).join('\n\n') }];
-  });
+  const history: SharadaChatMessage[] = [];
+  for (const msg of messages) {
+    if (msg.role === 'user') {
+      history.push({ role: 'user', content: msg.text });
+    } else if (!msg.pending) {
+      history.push({
+        role: 'assistant',
+        content: [msg.confirmation, msg.markdown].filter(Boolean).join('\n\n'),
+      });
+    }
+  }
+  return history;
 }
 
 export function SharadaChat() {

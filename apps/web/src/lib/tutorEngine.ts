@@ -73,7 +73,7 @@ export function buildSessionSummary(
   name: string,
   correct: number,
   total: number,
-  subject: Subject,
+  _subject: Subject,
 ): string {
   const ratio = total > 0 ? correct / total : 0;
   if (ratio >= 0.9) {

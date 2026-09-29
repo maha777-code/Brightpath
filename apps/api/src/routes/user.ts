@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { formatStudyTime, toLocalDateString, AGE_GROUPS } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
+import { routeParam } from '../lib/routeParam.js';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { applyActivityHeartbeat, toParentUser } from '../lib/ageCurriculum.js';
 import { buildLearningPath, submitModuleAssessment } from '../lib/learningPath.js';
@@ -228,7 +229,7 @@ router.post('/skill-assessment', async (req: AuthRequest, res) => {
 /** Mark a goal complete */
 router.patch('/goals/:id', async (req: AuthRequest, res) => {
   try {
-    const goal = await completeUserGoal(req.parentId!, req.params.id);
+    const goal = await completeUserGoal(req.parentId!, routeParam(req.params.id));
     if (!goal) {
       res.status(404).json({ error: 'Goal not found' });
       return;

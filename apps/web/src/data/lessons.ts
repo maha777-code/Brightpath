@@ -166,7 +166,7 @@ export const lessons: Lesson[] = [
       {
         id: 's1',
         tutorPrompt: 'Write a **topic sentence** about your favorite season.',
-        expectedPatterns: /.+/,
+        expectedPatterns: [/.+/],
         hint: 'Example: "Summer is my favorite season because..."',
         explanation: 'A topic sentence sets up everything that follows.',
         skillTag: 'topic-sentence',
@@ -174,7 +174,7 @@ export const lessons: Lesson[] = [
       {
         id: 's2',
         tutorPrompt: 'Now add one **detail sentence** that supports your topic sentence.',
-        expectedPatterns: /.+/,
+        expectedPatterns: [/.+/],
         hint: 'Give a specific reason — weather, activities, holidays, etc.',
         explanation: 'Details make writing interesting. You\'re building a real paragraph!',
         skillTag: 'supporting-details',
@@ -182,7 +182,7 @@ export const lessons: Lesson[] = [
       {
         id: 's3',
         tutorPrompt: 'Write a good **closing sentence** for that paragraph.',
-        expectedPatterns: /.+/,
+        expectedPatterns: [/.+/],
         hint: 'Wrap it up — restate why you love that season.',
         explanation: 'Topic + details + closing = solid paragraph.',
         skillTag: 'closing-sentence',

@@ -279,7 +279,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
             </h1>
             <p className="text-lg font-medium text-slate-300">Chat with Sharada, your AI tutor & assistant</p>
             <form
-              className="mx-auto flex w-full max-w-3xl flex-col space-y-3 rounded-[28px] border border-slate-700/50 bg-[#131b2e] p-4 text-left shadow-2xl focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20 sm:p-5"
+              className="mx-auto flex w-full flex-col space-y-3 rounded-[28px] border border-slate-700/50 bg-[#131b2e] p-4 text-left shadow-2xl transition-all duration-200 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20 md:w-[75%] sm:p-5"
               onSubmit={(event) => {
                 event.preventDefault();
                 sendPrompt();
@@ -340,7 +340,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                 </button>
               </div>
             </form>
-            {reply ? <p className="mx-auto max-w-3xl rounded-xl border border-slate-800 bg-[#080d1a] px-4 py-3 text-left text-slate-300">{reply}</p> : null}
+            {reply ? <p className="mx-auto w-full rounded-xl border border-slate-800 bg-[#080d1a] px-4 py-3 text-left text-slate-300 md:w-[75%]">{reply}</p> : null}
           </section>
         ) : (
           <section className="mb-8">

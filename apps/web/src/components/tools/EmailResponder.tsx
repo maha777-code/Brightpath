@@ -137,7 +137,7 @@ export function EmailResponder() {
   const [responseIntent, setResponseIntent] = useState('');
   const [incomingFiles, setIncomingFiles] = useState<string[]>([]);
   const [intentFiles, setIntentFiles] = useState<string[]>([]);
-  const [history, setHistory] = useState<Snapshot[]>([]);
+  const [, setHistory] = useState<Snapshot[]>([]);
   const [exemplarOn, setExemplarOn] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [busy, setBusy] = useState(false);

@@ -170,7 +170,7 @@ export function HomePage() {
           </p>
 
           <form
-            className="mx-auto my-4 flex w-full max-w-3xl flex-col justify-between space-y-3 rounded-[28px] border border-slate-700/50 bg-[#131b2e] p-4 text-left shadow-2xl transition-all duration-300 hover:border-slate-600 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20 sm:p-5"
+            className="mx-auto my-4 flex w-full flex-col justify-between space-y-3 rounded-[28px] border border-slate-700/50 bg-[#131b2e] p-4 text-left shadow-2xl transition-all duration-200 hover:border-slate-600 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20 md:w-[75%] sm:p-5"
             onSubmit={(event) => {
               event.preventDefault();
               sendPrompt();
@@ -249,7 +249,7 @@ export function HomePage() {
           </form>
 
           {reply ? (
-            <p className="rounded-xl border border-slate-800 bg-[#080d1a] px-4 py-3 text-left text-lg text-slate-300">
+            <p className="mx-auto w-full rounded-xl border border-slate-800 bg-[#080d1a] px-4 py-3 text-left text-lg text-slate-300 md:w-[75%]">
               {reply}
             </p>
           ) : null}

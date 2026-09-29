@@ -933,7 +933,7 @@ export function WorksheetGenerator({
   const [worksheet, setWorksheet] = useState<WorksheetGeneratorResponse | null>(null);
   const [submitted, setSubmitted] = useState<WorksheetGeneratorPayload | null>(null);
   const [localFavorited, setLocalFavorited] = useState(false);
-  const [history, setHistory] = useState<FormSnapshot[]>([]);
+  const [, setHistory] = useState<FormSnapshot[]>([]);
   const [savedVersions, setSavedVersions] = useState<WorksheetHistoryItem[]>(loadLocalVersions);
   const [historyOpen, setHistoryOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);

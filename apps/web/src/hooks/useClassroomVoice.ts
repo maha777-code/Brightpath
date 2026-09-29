@@ -126,7 +126,7 @@ export function useClassroomVoice() {
     recognition.lang = 'en-US';
     recognition.maxAlternatives = 1;
 
-    recognition.onstart = () => {
+    (recognition as unknown as { onstart: (() => void) | null }).onstart = () => {
       setIsListening(true);
     };
 
@@ -153,9 +153,9 @@ export function useClassroomVoice() {
       }
     };
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (event: Event) => {
       setIsListening(false);
-      const code = event.error;
+      const code = (event as SpeechRecognitionErrorEvent).error;
       if (code === 'aborted') return;
       if (code === 'no-speech') {
         handlersRef.current?.onError?.('No speech detected. Tap the mic and try again.');

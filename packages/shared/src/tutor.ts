@@ -50,8 +50,8 @@ export interface TutorStatusResponse {
   llmAvailable: boolean;
   provider: 'gemini' | 'openai' | null;
   phase: 1;
-  /** Server STT engine: deepgram when configured */
-  sttEngine?: 'deepgram' | null;
+  /** Server STT engine when one is configured */
+  sttEngine?: 'deepgram' | 'elevenlabs' | 'browser' | null;
 }
 
 export interface TutorGreetingRequest {

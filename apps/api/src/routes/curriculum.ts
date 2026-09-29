@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { routeParam } from '../lib/routeParam.js';
 import { z } from 'zod';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import {
@@ -35,7 +36,7 @@ const quizSubmitSchema = z.object({
 /** Subject → chapters → 5 videos + quiz progress */
 router.get('/subjects/:subjectId', async (req: AuthRequest, res) => {
   try {
-    const data = await buildSubjectCurriculum(req.parentId!, req.params.subjectId);
+    const data = await buildSubjectCurriculum(req.parentId!, routeParam(req.params.subjectId));
     if (!data) {
       res.status(404).json({ error: 'Subject not found' });
       return;
@@ -89,7 +90,7 @@ router.post('/video/complete', async (req: AuthRequest, res) => {
 
 router.get('/chapters/:chapterId/quiz', async (req: AuthRequest, res) => {
   try {
-    const quiz = await getChapterQuiz(req.parentId!, req.params.chapterId);
+    const quiz = await getChapterQuiz(req.parentId!, routeParam(req.params.chapterId));
     res.json(quiz);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Quiz unavailable';
@@ -106,7 +107,7 @@ router.post('/chapters/:chapterId/quiz', async (req: AuthRequest, res) => {
   try {
     const result = await submitChapterQuiz({
       userId: req.parentId!,
-      chapterId: req.params.chapterId,
+      chapterId: routeParam(req.params.chapterId),
       answers: parsed.data.answers,
     });
     res.json(result);

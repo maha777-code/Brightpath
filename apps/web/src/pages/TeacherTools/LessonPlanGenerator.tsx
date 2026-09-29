@@ -246,7 +246,7 @@ function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse {
         heading: 'Guided / group practice',
         minutes: 18,
         activities: [
-          input.criteria?.trim() || 'Students complete a collaborative task using the objective.',
+          input.additionalCriteria?.trim() || 'Students complete a collaborative task using the objective.',
           'Teacher circulates with a success-criteria checklist.',
         ],
       },
@@ -898,7 +898,7 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
   const [topicFiles, setTopicFiles] = useState<string[]>([]);
   const [criteriaFiles, setCriteriaFiles] = useState<string[]>([]);
   const [standardsFiles, setStandardsFiles] = useState<string[]>([]);
-  const [history, setHistory] = useState<FormState[]>([]);
+  const [, setHistory] = useState<FormState[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<LessonPlanResponse | null>(null);

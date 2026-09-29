@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { routeParam } from '../lib/routeParam.js';
 import { z } from 'zod';
 import {
   SUBJECTS,
@@ -121,7 +122,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
 router.get('/:id', async (req: AuthRequest, res) => {
   const child = await prisma.child.findFirst({
-    where: { id: req.params.id, parentId: req.parentId! },
+    where: { id: routeParam(req.params.id), parentId: req.parentId! },
   });
   if (!child) {
     res.status(404).json({ error: 'Child not found' });
@@ -138,7 +139,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
   }
 
   const existing = await prisma.child.findFirst({
-    where: { id: req.params.id, parentId: req.parentId! },
+    where: { id: routeParam(req.params.id), parentId: req.parentId! },
   });
   if (!existing) {
     res.status(404).json({ error: 'Child not found' });
@@ -186,7 +187,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
 
 router.delete('/:id', async (req: AuthRequest, res) => {
   const existing = await prisma.child.findFirst({
-    where: { id: req.params.id, parentId: req.parentId! },
+    where: { id: routeParam(req.params.id), parentId: req.parentId! },
   });
   if (!existing) {
     res.status(404).json({ error: 'Child not found' });
