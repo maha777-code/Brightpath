@@ -1,4 +1,11 @@
-const BASE = import.meta.env.VITE_API_URL ?? '/api';
+/** Absolute API origin, or same-host `/api` when no production API URL is configured. */
+export const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  '/api'
+).replace(/\/$/, '');
+
+const BASE = API_BASE_URL;
 
 function authHeaders(json = true): HeadersInit {
   const token = localStorage.getItem('brightpath_token');
@@ -8,13 +15,58 @@ function authHeaders(json = true): HeadersInit {
   };
 }
 
+function unreachableMessage(): string {
+  const host = typeof window !== 'undefined' ? window.location.hostname : '';
+  const local = host === 'localhost' || host === '127.0.0.1';
+  if (local) {
+    return 'Cannot reach the API server. From the project root run: npm run dev (starts web + api). Check http://localhost:3001/health';
+  }
+  return 'Cannot reach the MindVault API. Sign-in is unavailable until the API server is connected to this site.';
+}
+
+function errorText(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  if (value && typeof value === 'object') {
+    const flat = value as { formErrors?: string[]; fieldErrors?: Record<string, string[]> };
+    const parts = [
+      ...(Array.isArray(flat.formErrors) ? flat.formErrors : []),
+      ...Object.values(flat.fieldErrors ?? {}).flat(),
+    ].filter((part): part is string => typeof part === 'string' && part.trim().length > 0);
+    if (parts.length) return parts.join(' ');
+  }
+  return null;
+}
+
 async function parseError(res: Response): Promise<string> {
-  const err = await res.json().catch(() => ({ error: res.statusText }));
-  if (typeof err.error === 'string' && err.error.trim()) return err.error;
-  if (typeof err.message === 'string' && err.message.trim()) return err.message;
+  const raw = await res.text();
+  const contentType = res.headers.get('content-type') ?? '';
+  let payload: { error?: unknown; message?: unknown } = {};
+  if (raw && !contentType.includes('text/html') && !raw.trimStart().startsWith('<')) {
+    try {
+      payload = JSON.parse(raw) as { error?: unknown; message?: unknown };
+    } catch {
+      payload = {};
+    }
+  }
+  const message = errorText(payload.error) || errorText(payload.message);
+  if (message) return message;
   if (res.status === 413) {
     return 'File size exceeds the 80 MB limit. Please select a smaller PDF.';
   }
+  if (
+    contentType.includes('text/html') ||
+    raw.trimStart().startsWith('<') ||
+    res.status === 404 ||
+    res.status === 405
+  ) {
+    console.error('API request returned a non-API response', {
+      status: res.status,
+      url: res.url,
+      contentType,
+    });
+    return `Sign-in could not reach the API (HTTP ${res.status}). This site is serving the website only.`;
+  }
+  console.error('API request failed', { status: res.status, url: res.url, body: raw.slice(0, 300) });
   return res.statusText || 'Request failed';
 }
 
@@ -23,16 +75,23 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(`${BASE}${path}`, {
       ...init,
+      credentials: 'include',
       headers: { ...authHeaders(true), ...init?.headers },
     });
-  } catch {
-    throw new Error(
-      'Cannot reach the API server. From the project root run: npm run dev (starts web + api). Check http://localhost:3001/health',
-    );
+  } catch (err) {
+    console.error('API request failed', path, err);
+    throw new Error(unreachableMessage());
   }
   if (!res.ok) throw new Error(await parseError(res));
   if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
+  const raw = await res.text();
+  if (!raw) return undefined as T;
+  try {
+    return JSON.parse(raw) as T;
+  } catch (err) {
+    console.error('API response was not JSON', path, err);
+    throw new Error(unreachableMessage());
+  }
 }
 
 /** Multipart upload — do not set Content-Type (browser sets boundary). */
@@ -41,13 +100,13 @@ async function requestFormData<T>(path: string, form: FormData): Promise<T> {
   try {
     res = await fetch(`${BASE}${path}`, {
       method: 'POST',
+      credentials: 'include',
       headers: authHeaders(false),
       body: form,
     });
-  } catch {
-    throw new Error(
-      'Cannot reach the API server. From the project root run: npm run dev (starts web + api). Check http://localhost:3001/health',
-    );
+  } catch (err) {
+    console.error('API upload failed', path, err);
+    throw new Error(unreachableMessage());
   }
   if (!res.ok) throw new Error(await parseError(res));
   if (res.status === 204) return undefined as T;

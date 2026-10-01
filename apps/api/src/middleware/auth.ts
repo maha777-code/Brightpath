@@ -15,10 +15,21 @@ export interface AuthRequest extends Request {
   organizationId?: string | null;
   planType?: PlanType;
   auth?: JwtPayload;
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+  file?: Express.Multer.File;
 }
 
 async function attachAuth(req: AuthRequest, payload: JwtPayload): Promise<boolean> {
   req.auth = payload;
+  req.user = {
+    id: payload.sub,
+    email: payload.email,
+    role: payload.role,
+  };
   req.planType = payload.planType;
   req.organizationId = payload.organizationId ?? null;
 

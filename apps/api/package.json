@@ -27,9 +27,7 @@
     "razorpay": "^2.9.8",
     "redis": "^4.7.0",
     "stripe": "^22.5.0",
-    "zod": "4.4.3"
-  },
-  "devDependencies": {
+    "zod": "4.4.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
@@ -39,7 +37,9 @@
     "@types/nodemailer": "^8.0.1",
     "@types/papaparse": "^5.5.2",
     "prisma": "^6.1.0",
-    "tsx": "^4.19.2",
     "typescript": "~5.7.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
   }
 }

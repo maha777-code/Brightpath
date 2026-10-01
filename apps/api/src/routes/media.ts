@@ -1,4 +1,4 @@
-import { Router, type NextFunction, type Response } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import fs from 'node:fs';
 import multer from 'multer';
 import type { AuthRequest } from '../middleware/auth.js';
@@ -18,17 +18,17 @@ function ensureDir() {
 
 const upload = multer({
   storage: multer.diskStorage({
-    destination: (_req, _file, cb) => {
+    destination: (_req: Request, _file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
       ensureDir();
       cb(null, ATTACHMENT_UPLOAD_DIR);
     },
-    filename: (_req, file, cb) => {
+    filename: (_req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
       const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
       cb(null, `${Date.now()}-${safe}`);
     },
   }),
   limits: { fileSize: MAX_BYTES, files: 8 },
-  fileFilter: (_req, file, cb) => {
+  fileFilter: (_req: Request, file: Express.Multer.File, cb: { (error: Error): void; (error: null, acceptFile: boolean): void }) => {
     if (!detectAttachmentKind(file.originalname, file.mimetype)) {
       cb(new Error('Only PDF, PNG, JPEG, and PPTX files are supported'));
       return;

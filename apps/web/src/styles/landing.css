@@ -572,7 +572,7 @@ body:has(.bp-landing) {
 /* ── Features row ── */
 .bp-features {
   width: 100%;
-  max-width: 96rem;
+  max-width: 1440px;
   margin: 12px auto 0;
   padding: 0;
 }
@@ -639,7 +639,7 @@ body:has(.bp-landing) {
 /* ── Sections / Subjects ── */
 .bp-section {
   width: 100%;
-  max-width: 96rem;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 64px 0 0;
 }

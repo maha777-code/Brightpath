@@ -16,6 +16,20 @@
   --font-pickwick: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, system-ui, sans-serif;
 }
 
+html {
+  font-size: 16px !important;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
 *,
 *::before,
 *::after,
@@ -31,13 +45,21 @@ li, ul, ol, nav, header, footer, main, section, article {
 
 html,
 body {
-  font-size: 16px;
+  font-size: 16px !important;
   line-height: 1.5;
   background: var(--bg-primary);
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   letter-spacing: -0.015em;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
 }
 
 textarea::placeholder,

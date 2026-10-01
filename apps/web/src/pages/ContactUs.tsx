@@ -37,7 +37,7 @@ export default function ContactUs() {
 
   return (
     <div className="bp-contact flex min-h-screen items-center justify-center bg-[#070a12] p-6 text-slate-200 sm:p-10">
-      <div className="mx-auto w-full space-y-8 rounded-3xl border border-slate-800/80 bg-[#0d1322] p-8 shadow-2xl backdrop-blur-xl sm:p-10 lg:w-[75vw] lg:max-w-[75vw] lg:p-12">
+      <div className="mx-auto w-full space-y-8 rounded-3xl border border-slate-800/80 bg-[#0d1322] p-8 shadow-2xl backdrop-blur-xl sm:p-10 lg:w-[75%] lg:max-w-[75%] lg:p-12">
         <div>
           <Link to="/" className={BACK_CLASS}>
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />

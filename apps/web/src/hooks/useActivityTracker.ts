@@ -6,7 +6,7 @@ import {
   type ParentUser,
   type TrackActivityResponse,
 } from '@brightpath/shared';
-import { api } from '@/lib/api';
+import { api, API_BASE_URL } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 const IDLE_MS = 2 * 60 * 1000;
@@ -144,7 +144,7 @@ export function useActivityTracker(enabled: boolean) {
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
       const token = localStorage.getItem('brightpath_token');
-      const base = import.meta.env.VITE_API_URL ?? '/api';
+      const base = API_BASE_URL;
 
       // Prefer sendBeacon for unload; fall back to sync flush
       if (token) {

@@ -33,17 +33,35 @@ import type { AuthRequest } from './middleware/auth.js';
 const PORT = Number(process.env.API_PORT ?? 3001);
 const app = express();
 
+const DEFAULT_ORIGINS = [
+  'https://mindvault.academy',
+  'https://www.mindvault.academy',
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'http://localhost:3000',
+];
+
+function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  if (DEFAULT_ORIGINS.includes(origin)) return true;
+  if (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) return true;
+  const extra = (process.env.CORS_ORIGIN ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return extra.includes(origin);
+}
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim())
-      : (origin, callback) => {
-          if (!origin || /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
-            callback(null, true);
-          } else {
-            callback(new Error('Not allowed by CORS'));
-          }
-        },
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+      console.warn('CORS rejected origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   }),
 );

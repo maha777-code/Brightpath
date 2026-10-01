@@ -1,4 +1,4 @@
-import { Router, type NextFunction, type Response } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import fs from 'fs';
@@ -54,17 +54,17 @@ function ensureUploadDir() {
 
 const textbookUpload = multer({
   storage: multer.diskStorage({
-    destination: (_req, _file, cb) => {
+    destination: (_req: Request, _file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
       ensureUploadDir();
       cb(null, UPLOAD_DIR);
     },
-    filename: (_req, file, cb) => {
+    filename: (_req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
       const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
       cb(null, `${Date.now()}-${safe}`);
     },
   }),
   limits: { fileSize: HARD_MAX_PDF_BYTES },
-  fileFilter: (_req, file, cb) => {
+  fileFilter: (_req: Request, file: Express.Multer.File, cb: { (error: Error): void; (error: null, acceptFile: boolean): void }) => {
     const isPdf =
       file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
     if (!isPdf) {
@@ -94,7 +94,7 @@ function handleTextbookUpload(req: AuthRequest, res: Response, next: NextFunctio
 }
 
 /** GET /teacher/chapters — course structure + textbook */
-router.get('/chapters', async (req: AuthRequest, res) => {
+router.get('/chapters', async (req: AuthRequest, res: Response) => {
   res.setHeader('Cache-Control', 'no-store');
   const teacherId = req.teacherId!;
   const latest = await prisma.textbook.findFirst({
@@ -155,7 +155,7 @@ router.get('/chapters', async (req: AuthRequest, res) => {
 });
 
 /** GET /teacher/textbooks/current — latest textbook metadata (no stale cache). */
-router.get('/textbooks/current', async (req: AuthRequest, res) => {
+router.get('/textbooks/current', async (req: AuthRequest, res: Response) => {
   res.setHeader('Cache-Control', 'no-store');
   const teacherId = req.teacherId!;
   const textbook = await prisma.textbook.findFirst({
@@ -166,7 +166,7 @@ router.get('/textbooks/current', async (req: AuthRequest, res) => {
 });
 
 /** POST /teacher/textbooks/upload — multipart PDF (field: file) for RAG pipeline */
-router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, res) => {
+router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, res: Response) => {
   const file = req.file;
   if (!file) {
     res.status(400).json({ error: 'PDF file is required (multipart field name: file)' });
@@ -280,7 +280,7 @@ router.post('/textbooks/upload', handleTextbookUpload, async (req: AuthRequest, 
 });
 
 /** POST /teacher/textbooks/:id/verify — enqueue parse + RAG index; return immediately. */
-router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
+router.post('/textbooks/:id/verify', async (req: AuthRequest, res: Response) => {
   const teacherId = req.teacherId!;
   if (!hasFeatureAccess(req.planType ?? 'teacher_free', 'rag_indexing')) {
     res.status(402).json({
@@ -325,7 +325,7 @@ router.post('/textbooks/:id/verify', async (req: AuthRequest, res) => {
 });
 
 /** GET /teacher/chapters/:id — single chapter with subtopics */
-router.get('/chapters/:id', async (req: AuthRequest, res) => {
+router.get('/chapters/:id', async (req: AuthRequest, res: Response) => {
   const existing = await prisma.teacherChapter.findFirst({
     where: { id: routeParam(req.params.id), textbook: { teacherId: req.teacherId! } },
     select: { textbookId: true },
@@ -364,7 +364,7 @@ router.get('/chapters/:id', async (req: AuthRequest, res) => {
 });
 
 /** PATCH /teacher/subtopics/:id — attach video / activity */
-router.patch('/subtopics/:id', async (req: AuthRequest, res) => {
+router.patch('/subtopics/:id', async (req: AuthRequest, res: Response) => {
   const schema = z.object({
     videoTitle: z.string().optional(),
     videoUrl: z.string().url().optional().nullable(),
@@ -406,7 +406,7 @@ router.patch('/subtopics/:id', async (req: AuthRequest, res) => {
 });
 
 /** POST /teacher/topics/:topicId/generate-video — start hybrid Remotion pipeline */
-router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => {
+router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res: Response) => {
   const schema = z.object({
     prompt: z.string().max(500).optional(),
     templateId: z.string().min(1).optional(),
@@ -477,7 +477,7 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res) => 
 });
 
 /** GET /teacher/topics/:topicId/video-status — poll generation progress */
-router.get('/topics/:topicId/video-status', async (req: AuthRequest, res) => {
+router.get('/topics/:topicId/video-status', async (req: AuthRequest, res: Response) => {
   try {
     const existing = await prisma.teacherSubtopic.findFirst({
       where: {
@@ -541,7 +541,7 @@ router.get('/topics/:topicId/video-status', async (req: AuthRequest, res) => {
 });
 
 /** PATCH /teacher/topics/:topicId/video-script — edit script before re-render / approve */
-router.patch('/topics/:topicId/video-script', async (req: AuthRequest, res) => {
+router.patch('/topics/:topicId/video-script', async (req: AuthRequest, res: Response) => {
   const schema = z.object({
     videoScript: z.string().min(1).max(20_000),
   });
@@ -570,7 +570,7 @@ router.patch('/topics/:topicId/video-script', async (req: AuthRequest, res) => {
 });
 
 /** POST /teacher/topics/:topicId/reject-video — clear generated draft */
-router.post('/topics/:topicId/reject-video', async (req: AuthRequest, res) => {
+router.post('/topics/:topicId/reject-video', async (req: AuthRequest, res: Response) => {
   const existing = await prisma.teacherSubtopic.findFirst({
     where: {
       id: routeParam(req.params.topicId),
@@ -603,7 +603,7 @@ router.post('/topics/:topicId/reject-video', async (req: AuthRequest, res) => {
 });
 
 /** GET /teacher/doubts — student doubts + AI drafts */
-router.get('/doubts', async (req: AuthRequest, res) => {
+router.get('/doubts', async (req: AuthRequest, res: Response) => {
   const status = typeof req.query.status === 'string' ? req.query.status : undefined;
   const doubts = await prisma.studentDoubt.findMany({
     where: {
@@ -616,7 +616,7 @@ router.get('/doubts', async (req: AuthRequest, res) => {
 });
 
 /** POST /teacher/doubts/:id/review — approve / override / reject AI answer */
-router.post('/doubts/:id/review', async (req: AuthRequest, res) => {
+router.post('/doubts/:id/review', async (req: AuthRequest, res: Response) => {
   const schema = z.object({
     action: z.enum(['approve', 'override', 'reject']),
     teacherOverrideText: z.string().optional(),

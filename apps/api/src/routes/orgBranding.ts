@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
@@ -21,17 +21,17 @@ function ensureBrandDir() {
 
 const logoUpload = multer({
   storage: multer.diskStorage({
-    destination: (_req, _file, cb) => {
+    destination: (_req: Request, _file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
       ensureBrandDir();
       cb(null, BRAND_DIR);
     },
-    filename: (_req, file, cb) => {
+    filename: (_req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
       const ext = path.extname(file.originalname).toLowerCase() || '.png';
       cb(null, `${Date.now()}-${(Math.random() * 1e9) | 0}${ext}`);
     },
   }),
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
+  fileFilter: (_req: Request, file: Express.Multer.File, cb: { (error: Error): void; (error: null, acceptFile: boolean): void }) => {
     const ok =
       /image\/(png|jpeg|jpg|svg\+xml|webp)/.test(file.mimetype) ||
       /\.(png|jpe?g|svg|webp)$/i.test(file.originalname);

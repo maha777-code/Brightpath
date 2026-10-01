@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import type { Locale, Subject, TutorStatusResponse } from '@brightpath/shared';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
@@ -58,7 +58,7 @@ const transcribeSchema = z.object({
   durationSec: z.number().min(0).max(120).optional(),
 });
 
-router.get('/status', (_req, res) => {
+router.get('/status', (_req: Request, res: Response) => {
   const provider = getActiveProviderName();
   const body: TutorStatusResponse = {
     llmAvailable: provider !== null,
@@ -70,7 +70,7 @@ router.get('/status', (_req, res) => {
 });
 
 /** Verifies auth + Gemini/OpenAI in one call (used by web on lesson page load). */
-router.post('/warmup', requireAuth, async (_req: AuthRequest, res) => {
+router.post('/warmup', requireAuth, async (_req: AuthRequest, res: Response) => {
   const provider = getActiveProvider();
   if (!provider) {
     res.status(503).json({ error: 'LLM not configured' });
@@ -89,7 +89,7 @@ router.post('/warmup', requireAuth, async (_req: AuthRequest, res) => {
   }
 });
 
-router.post('/greeting', requireAuth, async (req: AuthRequest, res) => {
+router.post('/greeting', requireAuth, async (req: AuthRequest, res: Response) => {
   const parsed = greetingSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Invalid greeting request', details: parsed.error.flatten() });
@@ -116,7 +116,7 @@ router.post('/greeting', requireAuth, async (req: AuthRequest, res) => {
 });
 
 /** Speech-to-text — ElevenLabs Scribe only. */
-router.post('/transcribe', requireAuth, async (req: AuthRequest, res) => {
+router.post('/transcribe', requireAuth, async (req: AuthRequest, res: Response) => {
   const parsed = transcribeSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Invalid audio upload', details: parsed.error.flatten() });
@@ -145,7 +145,7 @@ router.post('/transcribe', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/respond', requireAuth, async (req: AuthRequest, res) => {
+router.post('/respond', requireAuth, async (req: AuthRequest, res: Response) => {
   const parsed = respondSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Invalid respond request', details: parsed.error.flatten() });

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { MailerUnconfiguredError, sendNewsletterSubscription } from '../lib/mailer.js';
 
@@ -25,7 +25,7 @@ function isRateLimited(ip: string) {
   return false;
 }
 
-router.post('/', async (req, res) => {
+router.post('/', async (req: Request, res: Response) => {
   const parsed = subscribeSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Please enter a valid email address.' });

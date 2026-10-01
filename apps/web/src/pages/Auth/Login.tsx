@@ -39,6 +39,7 @@ export default function Login() {
       if (savedSchool) localStorage.setItem('user_school', savedSchool);
       navigate(result.path);
     } catch (err) {
+      console.error('Login failed:', err);
       setError(err instanceof Error ? err.message : t('common.error'));
     } finally {
       setBusy(false);

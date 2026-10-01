@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import { routeParam } from '../lib/routeParam.js';
 import { requireTeacher, type AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
@@ -12,7 +12,7 @@ router.use(requireTeacher);
  * POST /topics/:topicId/approve-video
  * Publishes the generated video to enrolled students' curriculum.
  */
-router.post('/:topicId/approve-video', async (req: AuthRequest, res) => {
+router.post('/:topicId/approve-video', async (req: AuthRequest, res: Response) => {
   try {
     const existing = await prisma.teacherSubtopic.findFirst({
       where: {

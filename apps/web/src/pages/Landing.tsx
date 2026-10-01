@@ -480,7 +480,7 @@ export default function Landing() {
       </div>
 
       <header className="sticky top-0 z-50 w-full overflow-visible border-b border-slate-800/80 bg-[#030712]/80 px-6 backdrop-blur-md lg:px-12">
-        <div className="bp-nav mx-auto w-full max-w-[96rem]">
+        <div className="bp-nav mx-auto w-full max-w-[1440px]">
           <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
 
           <nav className="bp-nav-center flex items-center space-x-8" aria-label="Main">

@@ -165,6 +165,7 @@ export default function Register() {
       });
       navigate(result.path);
     } catch (err) {
+      console.error('Sign up failed:', err);
       setError(err instanceof Error ? err.message : t('common.error'));
     } finally {
       setBusy(false);
@@ -183,7 +184,7 @@ export default function Register() {
         <span>Back</span>
       </button>
 
-      <div className="bp-register-shell w-full max-w-[75vw] space-y-10">
+      <div className="bp-register-shell w-full max-w-[75%] space-y-10">
         <div className="space-y-4 text-center">
           <div className="flex justify-center">
             <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />

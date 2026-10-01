@@ -133,7 +133,7 @@ export default function App() {
 
   return (
     <CyberLayout>
-    <div className="app min-h-screen" style={CYBER_FONT_STYLE}>
+    <div className="app mx-auto min-h-screen w-full max-w-[1440px]" style={CYBER_FONT_STYLE}>
       <Routes>
         <Route path="/" element={<RootHome />} />
         <Route path="/pricing" element={<PricingPage />} />

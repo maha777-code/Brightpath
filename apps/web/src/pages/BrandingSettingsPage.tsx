@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, Upload } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, API_BASE_URL } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import type { OrganizationPublic } from '@brightpath/shared';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? '/api';
+const API_BASE = API_BASE_URL;
 
 export default function BrandingSettingsPage() {
   const { organization, refresh } = useAuth();

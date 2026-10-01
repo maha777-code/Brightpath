@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import { z } from 'zod';
 import { formatStudyTime, toLocalDateString, AGE_GROUPS } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
@@ -38,7 +38,7 @@ const skillAssessmentSchema = z.object({
 
 router.use(requireAuth);
 
-router.post('/track-activity', async (req: AuthRequest, res) => {
+router.post('/track-activity', async (req: AuthRequest, res: Response) => {
   const parsed = trackSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.flatten() });
@@ -96,7 +96,7 @@ router.post('/track-activity', async (req: AuthRequest, res) => {
   });
 });
 
-router.get('/stats', async (req: AuthRequest, res) => {
+router.get('/stats', async (req: AuthRequest, res: Response) => {
   const parent = await prisma.parent.findUnique({ where: { id: req.parentId! } });
   if (!parent) {
     res.status(404).json({ error: 'Not found' });
@@ -113,7 +113,7 @@ router.get('/stats', async (req: AuthRequest, res) => {
 });
 
 /** Adaptive personalized learning path for the logged-in user's age group */
-router.get('/learning-path', async (req: AuthRequest, res) => {
+router.get('/learning-path', async (req: AuthRequest, res: Response) => {
   const parent = await prisma.parent.findUnique({ where: { id: req.parentId! } });
   if (!parent) {
     res.status(404).json({ error: 'Not found' });
@@ -136,7 +136,7 @@ router.get('/learning-path', async (req: AuthRequest, res) => {
 });
 
 /** Recalculate mastery for a module node and refresh path statuses */
-router.post('/submit-assessment', async (req: AuthRequest, res) => {
+router.post('/submit-assessment', async (req: AuthRequest, res: Response) => {
   const parsed = assessmentSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.flatten() });
@@ -170,7 +170,7 @@ router.post('/submit-assessment', async (req: AuthRequest, res) => {
 });
 
 /** Full analytics payload: subjects, radar, skill tree, goals */
-router.get('/analytics', async (req: AuthRequest, res) => {
+router.get('/analytics', async (req: AuthRequest, res: Response) => {
   const parent = await prisma.parent.findUnique({ where: { id: req.parentId! } });
   if (!parent) {
     res.status(404).json({ error: 'Not found' });
@@ -193,7 +193,7 @@ router.get('/analytics', async (req: AuthRequest, res) => {
 });
 
 /** EWMA skill mastery update (quiz / lesson / chat) */
-router.post('/skill-assessment', async (req: AuthRequest, res) => {
+router.post('/skill-assessment', async (req: AuthRequest, res: Response) => {
   const parsed = skillAssessmentSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.flatten() });
@@ -227,7 +227,7 @@ router.post('/skill-assessment', async (req: AuthRequest, res) => {
 });
 
 /** Mark a goal complete */
-router.patch('/goals/:id', async (req: AuthRequest, res) => {
+router.patch('/goals/:id', async (req: AuthRequest, res: Response) => {
   try {
     const goal = await completeUserGoal(req.parentId!, routeParam(req.params.id));
     if (!goal) {
