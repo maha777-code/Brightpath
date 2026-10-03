@@ -12,10 +12,11 @@ interface ToolRendererProps {
   tool: ToolDefinition;
   mode?: 'production' | 'admin-preview';
   embed?: boolean;
+  hideHeader?: boolean;
   onClose?: () => void;
 }
 
-export function ToolRenderer({ tool, mode = 'production', embed = false, onClose }: ToolRendererProps) {
+export function ToolRenderer({ tool, mode = 'production', embed = false, hideHeader = false, onClose }: ToolRendererProps) {
   const embedded = mode === 'admin-preview' || embed;
   const toolSuppliesHeader =
     !embedded && (tool.componentKey === 'LessonPlanGenerator' || tool.componentKey === 'SongGenerator');
@@ -65,7 +66,7 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, onClose
           ) : null}
         </div>
       ) : null}
-      {toolSuppliesHeader ? null : (
+      {hideHeader || toolSuppliesHeader ? null : (
         <div className="shrink-0 px-4 pt-4 sm:px-6">
           <AIToolHeader toolName={tool.title} onClose={onClose} />
         </div>

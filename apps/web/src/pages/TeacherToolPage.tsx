@@ -8,7 +8,7 @@ import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { ToolRenderer } from '@/components/tools/ToolRenderer';
-import { getRegistryTool, toToolDefinition } from '@/config/toolsRegistry';
+import { canUserAccessTool, getRegistryTool, toToolDefinition } from '@/config/toolsRegistry';
 
 export function TeacherToolLauncher({
   tool,
@@ -25,7 +25,7 @@ export function TeacherToolLauncher({
   void onToggleFavorite;
 
   const entry = getRegistryTool(tool.id) ?? toToolDefinition(tool);
-  const rendered = <ToolRenderer tool={entry} mode="production" />;
+  const rendered = <ToolRenderer tool={entry} mode="production" hideHeader={embedded} />;
 
   if (tool.id === 'quiz-generator') {
     const quiz = rendered;
@@ -85,7 +85,8 @@ export function TeacherToolLauncher({
 export default function TeacherToolPage() {
   const { toolId = '' } = useParams<{ toolId: string }>();
   const tool = useMemo(() => getTeacherToolById(toolId), [toolId]);
-  const { role, planType } = useAuth();
+  const { role, planType, user, teacher, parent } = useAuth();
+  const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   if (toolId === 'curriculum-studio') {
@@ -122,7 +123,22 @@ export default function TeacherToolPage() {
       </TeacherWorkspaceLayout>
     );
   }
-  if (!hasAiToolAccess({ role, planType, requiredPlan })) {
+  if (!canUserAccessTool({ role, email }, getRegistryTool(tool.id)?.allowedRoles ?? [])) {
+    return (
+      <TeacherWorkspaceLayout>
+        <main className="w-full max-w-lg px-6 py-10">
+          <div className="rounded-3xl border border-rose-500/30 bg-slate-900 p-8 text-white">
+            <h1 className="text-2xl font-bold">{tool.title}</h1>
+            <p className="mt-2 text-sm font-semibold text-rose-300">Teacher access required</p>
+            <Link to="/teacher/tools" className="mt-5 inline-block text-sm font-bold text-cyan-300 underline">
+              Back to teacher tools
+            </Link>
+          </div>
+        </main>
+      </TeacherWorkspaceLayout>
+    );
+  }
+  if (!hasAiToolAccess({ role, email, planType, requiredPlan })) {
     return (
       <TeacherWorkspaceLayout>
         <main className="w-full max-w-lg px-6 py-10">

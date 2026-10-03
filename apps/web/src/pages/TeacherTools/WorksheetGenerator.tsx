@@ -6,7 +6,6 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
-  FilePlus,
   History,
   Languages,
   Lightbulb,
@@ -34,9 +33,11 @@ import {
   type WorksheetHistoryItem,
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 import { WorksheetHistoryDrawer } from '@/components/tools/WorksheetHistoryDrawer';
+import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
 
 const GRADE_LEVELS = [
   'Kindergarten',
@@ -836,14 +837,16 @@ function WorksheetStudio({
           />
           <button
             type="button"
-            className={['mb-1 rounded-lg p-2 hover:bg-slate-100', listeningFollowUp ? 'text-cyan-700' : 'text-slate-500'].join(
-              ' ',
-            )}
-            aria-label="Voice recording"
+            className={['mb-1', voiceMicButtonClass(listeningFollowUp, 'rounded-lg p-2')].join(' ')}
+            aria-label={listeningFollowUp ? 'Stop recording' : 'Voice recording'}
+            title={listeningFollowUp ? 'Stop recording' : 'Start voice input'}
             onClick={() => setListeningFollowUp((v) => !v)}
           >
             <Mic className="h-4 w-4" />
           </button>
+          {listeningFollowUp ? (
+            <VoiceListeningIndicator isListening onStopListening={() => setListeningFollowUp(false)} />
+          ) : null}
           <div className="relative">
             <button
               type="button"
@@ -936,8 +939,6 @@ export function WorksheetGenerator({
   const [, setHistory] = useState<FormSnapshot[]>([]);
   const [savedVersions, setSavedVersions] = useState<WorksheetHistoryItem[]>(loadLocalVersions);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (favoritedProp !== undefined) return;
@@ -1259,16 +1260,15 @@ export function WorksheetGenerator({
                     />
                     <button
                       type="button"
-                      className={[
-                        'absolute right-0 top-0 flex shrink-0 cursor-pointer appearance-none items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400 transition-all hover:bg-cyan-500/20',
-                        listening ? 'border-cyan-400 bg-cyan-900/60 text-cyan-200' : '',
-                      ].join(' ')}
-                      aria-label={listening ? 'Stop dictation' : 'Start recording voice prompt'}
+                      className={`absolute right-0 top-0 ${voiceMicButtonClass(listening, 'rounded-xl p-2')}`}
+                      aria-label={listening ? 'Stop recording' : 'Start recording voice prompt'}
+                      title={listening ? 'Stop recording' : 'Start voice input'}
                       onClick={toggle}
                     >
-                      <Mic className="h-4 w-4 text-cyan-400" />
+                      <Mic className="h-4 w-4" />
                     </button>
                   </div>
+                  {listening ? <VoiceListeningIndicator isListening onStopListening={toggle} /> : null}
                   {files.length > 0 && (
                     <ul className="mt-2 flex flex-wrap gap-1.5 border-t border-slate-800/80 pt-2">
                       {files.map((name) => (
@@ -1283,40 +1283,7 @@ export function WorksheetGenerator({
                   )}
                   <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-800/80 pt-2">
                     <div className="relative">
-                      <button
-                        type="button"
-                        className="flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-slate-700/60 bg-slate-800/60 px-3 py-1.5 text-xs font-bold text-slate-300 transition-all hover:bg-slate-800"
-                        onClick={() => setMenuOpen((v) => !v)}
-                      >
-                        <FilePlus className="h-3.5 w-3.5" />
-                        <span>+ Add File</span>
-                        <ChevronDown className="h-3 w-3" />
-                      </button>
-                      {menuOpen && (
-                        <div className="absolute bottom-9 left-0 z-10 w-44 overflow-hidden rounded-lg border border-slate-600 bg-slate-800 py-1 shadow-lg">
-                          <button
-                            type="button"
-                            className="block w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
-                            onClick={() => {
-                              setMenuOpen(false);
-                              fileRef.current?.click();
-                            }}
-                          >
-                            Upload PDF or document
-                          </button>
-                        </div>
-                      )}
-                      <input
-                        ref={fileRef}
-                        type="file"
-                        accept=".pdf,.doc,.docx,.txt,.md,application/pdf"
-                        multiple
-                        className="hidden"
-                        onChange={(e) => {
-                          addFiles(e.target.files);
-                          e.currentTarget.value = '';
-                        }}
-                      />
+                      <AddFileMenu onFiles={addFiles} />
                     </div>
                     <p
                       className={

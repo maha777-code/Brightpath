@@ -16,11 +16,12 @@ import {
 } from 'lucide-react';
 import {
   hasAiToolAccess,
-  isOwnerAccess,
+  isPlatformOwner,
   TEACHER_TOOLS_CATALOG,
   type AiToolPlan,
   type TeacherToolDefinition,
 } from '@brightpath/shared';
+import { useAuth } from '@/context/AuthContext';
 import { isTeacherToolEnabled } from '@/lib/teacherToolAvailability';
 import { toolVisibleToRole } from '@/config/toolsRegistry';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
@@ -54,7 +55,9 @@ export function AiToolsLibrary({
 }) {
   const [upgradePlan, setUpgradePlan] = useState<AiToolPlan | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const owner = isOwnerAccess(userRole);
+  const { user, teacher, parent } = useAuth();
+  const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
+  const owner = isPlatformOwner(userRole, email);
 
   const openUpgrade = (requiredPlan: AiToolPlan) => {
     setCheckoutOpen(false);
@@ -80,12 +83,13 @@ export function AiToolsLibrary({
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {TEACHER_TOOLS_CATALOG.filter((tool) => toolVisibleToRole(tool.id, userRole)).map((tool) => {
+        {TEACHER_TOOLS_CATALOG.filter((tool) => toolVisibleToRole(tool.id, userRole, email)).map((tool) => {
           const enabled = isTeacherToolEnabled(tool.id);
           const accessible =
             enabled &&
             hasAiToolAccess({
               role: userRole,
+              email,
               planType: userPlan,
               requiredPlan: tool.requiredPlan,
             });

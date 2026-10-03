@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { sampleOutput } from '@/lib/toolPreview';
 import type { ToolDefinition } from '@/config/toolsRegistry';
+import { AddFileMenu } from '@/components/tools/AddFileMenu';
 
 /** Same topic form the teacher hub uses for tools that do not have a dedicated generator yet. */
 export function CustomDynamicTool({ tool }: { tool: Pick<ToolDefinition, 'id' | 'title' | 'description' | 'category'> }) {
   const [topic, setTopic] = useState('');
   const [grade, setGrade] = useState('Class 9');
+  const [files, setFiles] = useState<string[]>([]);
   const [output, setOutput] = useState<string | null>(null);
 
   return (
@@ -25,6 +27,23 @@ export function CustomDynamicTool({ tool }: { tool: Pick<ToolDefinition, 'id' | 
           onChange={(event) => setTopic(event.target.value)}
         />
       </label>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <AddFileMenu
+          onFiles={(list) => {
+            const names = Array.from(list ?? []).map((file) => file.name);
+            if (names.length) setFiles((current) => [...current, ...names]);
+          }}
+        />
+        {files.length > 0 ? (
+          <ul className="flex flex-wrap gap-1.5">
+            {files.map((name) => (
+              <li key={name} className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-slate-100">
+                {name}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
       <label className="block max-w-xs">
         <span className="mb-1 block text-sm font-semibold text-cyan-100">Grade</span>
         <select

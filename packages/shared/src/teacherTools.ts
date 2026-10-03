@@ -27,6 +27,8 @@ export interface TeacherToolDefinition {
   highlighted?: boolean;
   custom?: boolean;
   icon: string;
+  /** Admin library default. Omitted tools stay active until an admin toggles them off. */
+  isActive?: boolean;
 }
 
 export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
@@ -42,6 +44,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     popularity: 100,
     newestRank: 11,
     highlighted: true,
+    isActive: true,
     icon: 'book-open',
   },
   {

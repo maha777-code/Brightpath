@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
-import { ChevronDown, Copy, FilePlus, Loader2, Mic, RotateCcw, Sparkles, Star } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Copy, Loader2, Mic, RotateCcw, Sparkles, Star } from 'lucide-react';
 import { fallbackEmailResponse, type EmailResponderRequest } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { useDisplayUser } from '@/lib/displayUser';
+import { AddFileMenu } from '@/components/tools/AddFileMenu';
+import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
 
 const WORD_LIMIT = 75_000;
 
@@ -74,54 +76,15 @@ function useDictation(onAppend: (text: string) => void) {
 
 function FieldToolbar({
   words,
-  menuOpen,
-  onToggleMenu,
-  onUpload,
-  inputRef,
   onFiles,
 }: {
   words: number;
-  menuOpen: boolean;
-  onToggleMenu: () => void;
-  onUpload: () => void;
-  inputRef: RefObject<HTMLInputElement | null>;
   onFiles: (files: FileList | null) => void;
 }) {
   const over = words > WORD_LIMIT;
   return (
     <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-800/80 pt-2">
-      <div className="relative">
-        <button
-          type="button"
-          className="flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-slate-700/60 bg-slate-800/60 px-3 py-1.5 text-xs font-bold text-slate-300 transition-all hover:bg-slate-800"
-          onClick={onToggleMenu}
-        >
-          <FilePlus className="h-3.5 w-3.5" />
-          <span>+ Add File</span>
-          <ChevronDown className="h-3 w-3" />
-        </button>
-        {menuOpen ? (
-          <div className="absolute bottom-9 left-0 z-10 w-48 overflow-hidden rounded-lg border border-slate-600 bg-slate-800 py-1 shadow-lg">
-            <button
-              type="button"
-              className="block w-full cursor-pointer appearance-none border-0 bg-transparent px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
-              onClick={onUpload}
-            >
-              Upload PDF or document
-            </button>
-          </div>
-        ) : null}
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".pdf,.doc,.docx,.txt,.md,application/pdf"
-          className="hidden"
-          onChange={(event) => {
-            onFiles(event.target.files);
-            event.currentTarget.value = '';
-          }}
-        />
-      </div>
+      <AddFileMenu multiple={false} onFiles={onFiles} />
       <p className={over ? 'text-xs font-medium text-rose-400' : 'text-[11px] font-medium text-slate-500'}>
         Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
       </p>
@@ -143,10 +106,6 @@ export function EmailResponder() {
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [incomingMenu, setIncomingMenu] = useState(false);
-  const [intentMenu, setIntentMenu] = useState(false);
-  const incomingFileRef = useRef<HTMLInputElement>(null);
-  const intentFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     void api
@@ -259,8 +218,9 @@ export function EmailResponder() {
         <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-[#0b101d] px-3 py-2.5 focus-within:border-cyan-500/60">
           <button
             type="button"
-            className={`cursor-pointer appearance-none rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400 ${authorDictation.listening ? 'bg-cyan-900/60' : ''}`}
-            aria-label="Dictate author name"
+            className={voiceMicButtonClass(authorDictation.listening, 'rounded-lg p-2')}
+            aria-label={authorDictation.listening ? 'Stop recording' : 'Dictate author name'}
+            title={authorDictation.listening ? 'Stop recording' : 'Start voice input'}
             onClick={authorDictation.toggle}
           >
             <Mic className="h-4 w-4" />
@@ -272,6 +232,9 @@ export function EmailResponder() {
             className="w-full border-0 bg-transparent p-0 text-sm text-white outline-none placeholder:text-slate-500"
           />
         </div>
+        {authorDictation.listening ? (
+          <VoiceListeningIndicator className="mt-2" isListening onStopListening={authorDictation.toggle} />
+        ) : null}
       </label>
 
       <div>
@@ -282,8 +245,9 @@ export function EmailResponder() {
           <div className="flex gap-2">
             <button
               type="button"
-              className={`h-9 shrink-0 cursor-pointer appearance-none rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400 ${incomingDictation.listening ? 'bg-cyan-900/60' : ''}`}
-              aria-label="Dictate the email you received"
+              className={`h-9 shrink-0 ${voiceMicButtonClass(incomingDictation.listening, 'rounded-lg p-2')}`}
+              aria-label={incomingDictation.listening ? 'Stop recording' : 'Dictate the email you received'}
+              title={incomingDictation.listening ? 'Stop recording' : 'Start voice input'}
               onClick={incomingDictation.toggle}
             >
               <Mic className="h-4 w-4" />
@@ -298,6 +262,9 @@ export function EmailResponder() {
               className="min-h-36 w-full resize-none border-0 bg-transparent p-0 text-sm leading-relaxed text-white outline-none placeholder:text-slate-500"
             />
           </div>
+          {incomingDictation.listening ? (
+            <VoiceListeningIndicator className="mt-2" isListening onStopListening={incomingDictation.toggle} />
+          ) : null}
           {incomingFiles.length > 0 ? (
             <ul className="mt-2 flex flex-wrap gap-1.5">
               {incomingFiles.map((name) => (
@@ -309,16 +276,6 @@ export function EmailResponder() {
           ) : null}
           <FieldToolbar
             words={incomingWords}
-            menuOpen={incomingMenu}
-            onToggleMenu={() => {
-              setIncomingMenu((open) => !open);
-              setIntentMenu(false);
-            }}
-            onUpload={() => {
-              setIncomingMenu(false);
-              incomingFileRef.current?.click();
-            }}
-            inputRef={incomingFileRef}
             onFiles={(files) => {
               const names = Array.from(files ?? []).map((file) => file.name);
               setIncomingFiles((current) => [...current, ...names]);
@@ -335,8 +292,9 @@ export function EmailResponder() {
           <div className="flex gap-2">
             <button
               type="button"
-              className={`h-9 shrink-0 cursor-pointer appearance-none rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400 ${intentDictation.listening ? 'bg-cyan-900/60' : ''}`}
-              aria-label="Dictate your response"
+              className={`h-9 shrink-0 ${voiceMicButtonClass(intentDictation.listening, 'rounded-lg p-2')}`}
+              aria-label={intentDictation.listening ? 'Stop recording' : 'Dictate your response'}
+              title={intentDictation.listening ? 'Stop recording' : 'Start voice input'}
               onClick={intentDictation.toggle}
             >
               <Mic className="h-4 w-4" />
@@ -351,6 +309,9 @@ export function EmailResponder() {
               className="min-h-36 w-full resize-none border-0 bg-transparent p-0 text-sm leading-relaxed text-white outline-none placeholder:text-slate-500"
             />
           </div>
+          {intentDictation.listening ? (
+            <VoiceListeningIndicator className="mt-2" isListening onStopListening={intentDictation.toggle} />
+          ) : null}
           {intentFiles.length > 0 ? (
             <ul className="mt-2 flex flex-wrap gap-1.5">
               {intentFiles.map((name) => (
@@ -362,16 +323,6 @@ export function EmailResponder() {
           ) : null}
           <FieldToolbar
             words={intentWords}
-            menuOpen={intentMenu}
-            onToggleMenu={() => {
-              setIntentMenu((open) => !open);
-              setIncomingMenu(false);
-            }}
-            onUpload={() => {
-              setIntentMenu(false);
-              intentFileRef.current?.click();
-            }}
-            inputRef={intentFileRef}
             onFiles={(files) => {
               const names = Array.from(files ?? []).map((file) => file.name);
               setIntentFiles((current) => [...current, ...names]);

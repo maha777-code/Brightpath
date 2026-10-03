@@ -19,6 +19,8 @@ import { classifyUserIntent, fallbackSharadaChat, sharadaTitleFromPrompt, type S
 import { api } from '@/lib/api';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { MarkdownContent } from '@/components/teacher/MarkdownContent';
+import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
+import { useDictation } from '@/hooks/useDictation';
 
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 
@@ -139,6 +141,10 @@ export function SharadaChat() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [barNote, setBarNote] = useState<string | null>(null);
+  const { listening, toggle } = useDictation((text) => {
+    setDraft((current) => (current.trim() ? `${current.trim()} ${text}` : text));
+    setBarNote(null);
+  });
   const [reaction, setReaction] = useState<Record<string, 'up' | 'down'>>({});
   const [moreId, setMoreId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(true);
@@ -492,13 +498,17 @@ export function SharadaChat() {
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  className="cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2 text-slate-300 shadow-none transition-colors hover:bg-slate-800 hover:text-cyan-400"
-                  aria-label="Voice input"
-                  title="Use voice input"
-                  onClick={() => setBarNote('Voice input is ready in your next session. Type your follow-up for now.')}
+                  className={voiceMicButtonClass(listening, 'rounded-full p-2')}
+                  aria-label={listening ? 'Stop recording' : 'Voice input'}
+                  title={listening ? 'Stop recording' : 'Start voice input'}
+                  onClick={() => {
+                    const started = toggle();
+                    if (!started) setBarNote('Voice input needs a browser that supports speech recognition.');
+                  }}
                 >
                   <Mic className="h-5 w-5" />
                 </button>
+                {listening ? <VoiceListeningIndicator isListening onStopListening={toggle} /> : null}
                 <button
                   type="submit"
                   className={`flex appearance-none items-center justify-center rounded-full border-0 p-2.5 transition-all duration-200 ${

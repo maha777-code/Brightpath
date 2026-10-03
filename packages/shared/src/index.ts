@@ -536,6 +536,8 @@ export {
   hasFeatureAccess,
   hasAiToolAccess,
   isOwnerAccess,
+  isPlatformOwner,
+  PLATFORM_OWNER_EMAIL,
   maxPdfBytes,
   maxPdfCount,
   isSubscriptionActive,

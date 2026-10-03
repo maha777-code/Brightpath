@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   ChevronDown,
-  FilePlus,
   Lightbulb,
   Loader2,
   Mic,
@@ -10,7 +9,9 @@ import {
 } from 'lucide-react';
 import type { QuizGeneratorPayload } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
+import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
 
 const GRADE_LEVELS = [
   'Kindergarten',
@@ -165,8 +166,6 @@ function RichTextArea({
   attachments: string[];
   onAddFiles: (files: FileList | null) => void;
 }) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const words = countWords(value);
   const { listening, toggle } = useDictation((text) => {
     const next = value.trim() ? `${value.trim()} ${text}` : text;
@@ -202,16 +201,15 @@ function RichTextArea({
           />
           <button
             type="button"
-            className={[
-              'shrink-0 cursor-pointer appearance-none rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400 transition-all hover:bg-cyan-500/20',
-              listening ? 'bg-cyan-500/30' : '',
-            ].join(' ')}
-            aria-label={listening ? 'Stop dictation' : 'Dictate with microphone'}
+            className={voiceMicButtonClass(listening, 'shrink-0 rounded-lg p-2')}
+            aria-label={listening ? 'Stop recording' : 'Dictate with microphone'}
+            title={listening ? 'Stop recording' : 'Start voice input'}
             onClick={toggle}
           >
             <Mic className="h-4 w-4" />
           </button>
         </div>
+        {listening ? <VoiceListeningIndicator isListening onStopListening={toggle} /> : null}
         {attachments.length > 0 && (
           <ul className="flex flex-wrap gap-1.5 border-t border-slate-700 px-3 py-2">
             {attachments.map((name) => (
@@ -225,41 +223,7 @@ function RichTextArea({
           </ul>
         )}
         <div className="flex items-center justify-between gap-3 border-t border-slate-800/80 pt-2">
-          <div className="relative">
-            <button
-              type="button"
-              className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-slate-700/60 bg-slate-800/60 px-3 py-1.5 text-xs font-bold text-slate-300 transition-all hover:bg-slate-800"
-              onClick={() => setMenuOpen((v) => !v)}
-            >
-              <FilePlus className="h-3.5 w-3.5" /> + Add File
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            {menuOpen && (
-              <div className="absolute bottom-9 left-0 z-10 w-44 overflow-hidden rounded-lg border border-slate-600 bg-slate-800 py-1 shadow-lg">
-                <button
-                  type="button"
-                  className="block w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    fileRef.current?.click();
-                  }}
-                >
-                  Upload PDF or document
-                </button>
-              </div>
-            )}
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".pdf,.doc,.docx,.txt,.md,application/pdf"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                onAddFiles(e.target.files);
-                e.currentTarget.value = '';
-              }}
-            />
-          </div>
+          <AddFileMenu onFiles={onAddFiles} />
           <p className={words > WORD_LIMIT ? 'text-[11px] font-medium text-rose-400' : 'text-[11px] font-medium text-slate-500'}>
             Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
           </p>

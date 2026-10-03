@@ -18,6 +18,7 @@ import {
   buildRemediationOutro,
 } from '@/lib/foundationRemediation';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
+import { VoiceListeningIndicator } from '@/components/VoiceListeningIndicator';
 import { updateProgressAfterLesson, saveSession } from '@/lib/storage';
 import { api, loadStoredToken } from '@/lib/api';
 import type { Locale, Subject } from '@brightpath/shared';
@@ -717,16 +718,19 @@ export default function TutorSession() {
       {phase === 'session' ? (
         <div className="tutor-input-bar">
           {supported.stt && (
-            <button
-              type="button"
-              className={`tutor-mic ${recording ? 'listening' : ''}`}
-              onClick={toggleListening}
-              disabled={waiting || transcribing || (!sttReady && !recording)}
-              title={recording ? 'Stop recording & transcribe' : 'Record your answer'}
-              aria-label={recording ? 'Stop recording' : 'Record answer'}
-            >
-              🎤
-            </button>
+            <>
+              <button
+                type="button"
+                className={`tutor-mic ${recording ? 'listening' : ''}`}
+                onClick={toggleListening}
+                disabled={waiting || transcribing || (!sttReady && !recording)}
+                title={recording ? 'Stop recording & transcribe' : 'Record your answer'}
+                aria-label={recording ? 'Stop recording' : 'Record answer'}
+              >
+                🎤
+              </button>
+              {recording ? <VoiceListeningIndicator isListening onStopListening={toggleListening} /> : null}
+            </>
           )}
           <div className="tutor-input-wrap">
             <textarea

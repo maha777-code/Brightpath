@@ -3,7 +3,6 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   BookOpen,
-  CheckCircle2,
   ClipboardList,
   Eye,
   FileText,
@@ -18,7 +17,6 @@ import {
   Search,
   Sparkles,
   Star,
-  XCircle,
   Youtube,
   type LucideIcon,
 } from 'lucide-react';
@@ -34,7 +32,8 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { isTeacherToolEnabled, setTeacherToolEnabled } from '@/lib/teacherToolAvailability';
 import { ToolRenderer } from '@/components/tools/ToolRenderer';
-import { getRegistryTool, toToolDefinition, type ToolDefinition } from '@/config/toolsRegistry';
+import { AIToolWizardModal } from '@/components/tools/AIToolWizardModal';
+import { canUserAccessTool, getRegistryTool, toToolDefinition, type ToolDefinition } from '@/config/toolsRegistry';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 import { CURRICULUM_STUDIO_PATH } from '@/pages/tools/CurriculumTextbookStudio';
 
@@ -102,7 +101,7 @@ function planLabel(planType: string): string {
 }
 
 export default function OwnerDashboard() {
-  const { role, loading, homePath } = useAuth();
+  const { role, loading, homePath, user, teacher, parent } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('overview');
   const [open, setOpen] = useState(false);
@@ -182,6 +181,17 @@ export default function OwnerDashboard() {
   if (loading) return <div className="app-loading"><div className="loader" /></div>;
   if (!role) return <Navigate to="/login" replace />;
   if (role !== 'org_admin') return <Navigate to={homePath} replace />;
+
+  const toggleToolStatus = (toolId: string) => {
+    setTools((current) =>
+      current.map((item) => {
+        if (item.id !== toolId) return item;
+        const active = !item.active;
+        if (!item.staged) setTeacherToolEnabled(item.id, active);
+        return { ...item, active };
+      }),
+    );
+  };
 
   const stageTool = (event: FormEvent) => {
     event.preventDefault();
@@ -456,6 +466,13 @@ export default function OwnerDashboard() {
                             <button
                               type="button"
                               onClick={() => {
+                                const allowed = getRegistryTool(tool.id)?.allowedRoles ?? [];
+                                const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
+                                if (!canUserAccessTool({ role, email }, allowed)) {
+                                  setNotice('Teacher access required');
+                                  setPreview(null);
+                                  return;
+                                }
                                 if (tool.id === 'curriculum-studio') {
                                   navigate(CURRICULUM_STUDIO_PATH);
                                   return;
@@ -471,33 +488,23 @@ export default function OwnerDashboard() {
                             {planLabel(tool.requiredPlan)}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between gap-3 pt-1 text-base">
-                          <span className="text-base text-slate-500">Admin status</span>
+                        <div className="flex items-center justify-between border-t border-slate-800/80 pt-2 text-xs">
+                          <span className="text-slate-400">Admin status</span>
                           <button
                             type="button"
-                            onClick={() =>
-                              setTools((current) =>
-                                current.map((item) => {
-                                  if (item.id !== tool.id) return item;
-                                  const active = !item.active;
-                                  if (!item.staged) setTeacherToolEnabled(item.id, active);
-                                  return { ...item, active };
-                                }),
-                              )
-                            }
-                            className={`inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-md border border-transparent px-2.5 py-1.5 text-sm font-bold ${
-                              tool.active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
+                            onClick={() => toggleToolStatus(tool.id)}
+                            className={`inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                              tool.active
+                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                                : 'border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20'
                             }`}
                           >
-                            {tool.active ? (
-                              <>
-                                <CheckCircle2 className="h-3 w-3" /> Active
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="h-3 w-3" /> Inactive
-                              </>
-                            )}
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                tool.active ? 'animate-pulse bg-emerald-400' : 'bg-rose-400'
+                              }`}
+                            />
+                            {tool.active ? 'Active' : 'Inactive'}
                           </button>
                         </div>
                       </div>
@@ -605,11 +612,9 @@ export default function OwnerDashboard() {
 
 function AdminToolPreview({ tool, onClose }: { tool: ToolDefinition; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md sm:p-8">
-      <div className="flex h-[88vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-slate-800 bg-[#040711] shadow-2xl">
-        <ToolRenderer tool={tool} mode="admin-preview" onClose={onClose} />
-      </div>
-    </div>
+    <AIToolWizardModal isOpen onClose={onClose} toolName={tool.title}>
+      <ToolRenderer tool={tool} mode="admin-preview" hideHeader onClose={onClose} />
+    </AIToolWizardModal>
   );
 }
 

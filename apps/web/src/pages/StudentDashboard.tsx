@@ -29,11 +29,14 @@ import { useLearningPath } from '@/hooks/useLearningPath';
 import { useProfile } from '@/hooks/useProfile';
 import { firstNameFromDisplayName } from '@/lib/displayUser';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
-import { getRegistryTool, type ToolDefinition } from '@/config/toolsRegistry';
+import { canUserAccessTool, getRegistryTool, type ToolDefinition } from '@/config/toolsRegistry';
 import { ToolRenderer } from '@/components/tools/ToolRenderer';
+import { AIToolWizardModal } from '@/components/tools/AIToolWizardModal';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 import { SharadaChatBadge } from '@/components/SharadaChatBadge';
+import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
+import { useDictation } from '@/hooks/useDictation';
 
 const FONT = CYBER_FONT_STYLE;
 
@@ -99,7 +102,7 @@ function studentTools(): StudentTool[] {
 
 export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' }) {
   const navigate = useNavigate();
-  const { parent, logout, planType } = useAuth();
+  const { parent, logout, planType, role, user, teacher } = useAuth();
   const { profile } = useProfile();
   const activity = useActivityTracker(Boolean(parent));
   const learningPath = useLearningPath(Boolean(parent), parent?.calculatedAgeGroup);
@@ -107,8 +110,13 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState('');
   const [reply, setReply] = useState<string | null>(null);
+  const { listening, toggle } = useDictation((text) => {
+    setPrompt((current) => (current.trim() ? `${current.trim()} ${text}` : text));
+    setReply(null);
+  });
   const [openMenu, setOpenMenu] = useState(false);
   const [active, setActive] = useState<ToolDefinition | null>(null);
+  const [toolDenied, setToolDenied] = useState('');
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [classCode, setClassCode] = useState('');
   const [joinMsg, setJoinMsg] = useState('');
@@ -118,7 +126,11 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
   const firstName = fullName ? firstNameFromDisplayName(fullName) : 'Student';
   const ageLabel = parent?.calculatedAgeGroup ? AGE_GROUP_LABELS[parent.calculatedAgeGroup] : 'Student';
   const profileLine = parent?.currentAge != null ? `${ageLabel} · Age ${parent.currentAge}` : ageLabel;
-  const tools = useMemo(() => studentTools(), []);
+  const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
+  const tools = useMemo(
+    () => studentTools().filter((tool) => !tool.registry || canUserAccessTool({ role, email }, tool.registry.allowedRoles)),
+    [role, email],
+  );
   const visibleTools = view === 'tools' ? tools : tools;
 
   useEffect(() => {
@@ -145,6 +157,12 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
   };
 
   const openTool = (tool: StudentTool) => {
+    if (tool.registry && !canUserAccessTool({ role, email }, tool.registry.allowedRoles)) {
+      setToolDenied('Teacher access required');
+      setActive(null);
+      return;
+    }
+    setToolDenied('');
     if (tool.href) {
       navigate(tool.href);
       return;
@@ -319,12 +337,17 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                   />
                   <button
                     type="button"
-                    className="cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2.5 text-slate-300 hover:bg-slate-800 hover:text-cyan-400"
-                    aria-label="Use voice input"
-                    onClick={() => setReply('Sharada: Voice input is available inside the AI Tutor.')}
+                    className={voiceMicButtonClass(listening, 'rounded-full p-2.5')}
+                    aria-label={listening ? 'Stop recording' : 'Use voice input'}
+                    title={listening ? 'Stop recording' : 'Start voice input'}
+                    onClick={() => {
+                      const started = toggle();
+                      if (!started) setReply('Voice input needs a browser that supports speech recognition.');
+                    }}
                   >
                     <Mic className="h-5 w-5" />
                   </button>
+                  {listening ? <VoiceListeningIndicator isListening onStopListening={toggle} /> : null}
                 </div>
                 <button
                   type="submit"
@@ -368,6 +391,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                 </button>
               ) : null}
             </div>
+            {toolDenied ? <p className="text-sm font-semibold text-rose-300">{toolDenied}</p> : null}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {visibleTools.map((tool) => {
                 const Icon = tool.icon;
@@ -485,11 +509,9 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
       </main>
 
       {active ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="flex h-[88vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-slate-800 bg-[#040711] shadow-2xl">
-            <ToolRenderer tool={active} embed onClose={() => setActive(null)} />
-          </div>
-        </div>
+        <AIToolWizardModal isOpen onClose={() => setActive(null)} toolName={active.title}>
+          <ToolRenderer tool={active} embed hideHeader onClose={() => setActive(null)} />
+        </AIToolWizardModal>
       ) : null}
     </div>
   );

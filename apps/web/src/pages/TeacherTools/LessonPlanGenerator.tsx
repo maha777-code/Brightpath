@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   ChevronDown,
-  FilePlus,
   FileText,
   FileCode,
   Globe,
@@ -23,10 +22,12 @@ import {
   type LessonPlanResponse,
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { AIToolHeader } from '@/components/tools/AIToolHeader';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
 
 const WORD_LIMIT = 75_000;
 const FONT: CSSProperties = {
@@ -782,9 +783,7 @@ function StudioComposer({
   assistantHint?: string;
   minHeight?: number;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
   const { listening, toggle } = useDictation((text) => {
     onChange(value.trim() ? `${value.trim()} ${text}` : text);
   });
@@ -796,12 +795,9 @@ function StudioComposer({
       <div className="relative">
         <button
           type="button"
-          title="Voice Input"
-          className={[
-            'absolute left-3 top-3 z-10 cursor-pointer rounded-lg border border-slate-700 bg-slate-900 p-2 text-cyan-400 shadow-md transition-colors hover:bg-cyan-600/40 hover:text-white',
-            listening ? 'border-cyan-500 bg-cyan-600/40 text-white' : '',
-          ].join(' ')}
-          aria-label={listening ? 'Stop dictation' : 'Dictate with microphone'}
+          title={listening ? 'Stop recording' : 'Start voice input'}
+          className={`absolute left-3 top-3 z-10 ${voiceMicButtonClass(listening, 'rounded-lg p-2 shadow-md')}`}
+          aria-label={listening ? 'Stop recording' : 'Dictate with microphone'}
           onClick={toggle}
         >
           <Mic className="h-4 w-4" />
@@ -816,6 +812,7 @@ function StudioComposer({
           spellCheck
         />
       </div>
+      {listening ? <VoiceListeningIndicator className="mt-3" isListening onStopListening={toggle} /> : null}
       {files.length > 0 ? (
         <ul className="mt-3 flex flex-wrap gap-1.5">
           {files.map((name) => (
@@ -829,42 +826,12 @@ function StudioComposer({
         </ul>
       ) : null}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="relative">
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-slate-950 px-3 py-1.5 text-xs font-medium text-cyan-300 transition-colors hover:bg-slate-800 hover:text-white"
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            <FilePlus className="h-3.5 w-3.5 text-cyan-400" />
-            <span>+ Add File</span>
-            <ChevronDown className="h-3 w-3" />
-          </button>
-          {menuOpen ? (
-            <div role="menu" className={`${MENU_PANEL_CLASS} absolute bottom-full left-0 mb-2 w-56`}>
-              <StudioMenuItem
-                icon={<FileText className="h-4 w-4 text-cyan-400" />}
-                onClick={() => {
-                  setMenuOpen(false);
-                  fileRef.current?.click();
-                }}
-              >
-                Upload PDF or document
-              </StudioMenuItem>
-            </div>
-          ) : null}
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".pdf,.doc,.docx,.txt,.md,application/pdf"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              const names = Array.from(e.target.files ?? []).map((f) => f.name);
-              if (names.length) onFiles([...files, ...names]);
-              e.currentTarget.value = '';
-            }}
-          />
-        </div>
+        <AddFileMenu
+          onFiles={(list) => {
+            const names = Array.from(list ?? []).map((file) => file.name);
+            if (names.length) onFiles([...files, ...names]);
+          }}
+        />
         <div className="flex flex-wrap items-center gap-4">
           <span className={overLimit ? 'text-xs font-medium text-rose-300' : 'text-xs text-slate-400'}>
             Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}

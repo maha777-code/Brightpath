@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 
 export const CONTACT_INBOX = 'qxicybertech.helpcenter@gmail.com';
+export const FEEDBACK_INBOX = 'customersupport@mindvault.academy';
 
 export class MailerUnconfiguredError extends Error {
   readonly code = 'MAILER_UNCONFIGURED';
@@ -117,6 +118,66 @@ export async function sendContactInquiry(input: {
         <p><strong>Name:</strong> ${safeName}</p>
         <p><strong>User Email:</strong> <a href="mailto:${safeEmail}" style="color: #38bdf8;">${safeEmail}</a></p>
         <p><strong>Message:</strong></p>
+        <div style="background: #1e293b; padding: 15px; border-radius: 8px; border-left: 4px solid #06b6d4; margin-top: 10px;">
+          ${safeMessage}
+        </div>
+      </div>
+    `,
+  });
+}
+
+export async function sendProductFeedback(input: {
+  userName: string;
+  userEmail: string;
+  userRole: string;
+  rating: number;
+  category: string;
+  comments: string;
+  pageUrl: string;
+}): Promise<void> {
+  const mailer = getContactTransporter();
+  if (!mailer) {
+    throw new MailerUnconfiguredError();
+  }
+
+  const fromUser = process.env.GMAIL_USER ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? CONTACT_INBOX;
+  const inbox = process.env.FEEDBACK_INBOX?.trim() || FEEDBACK_INBOX;
+  const safeName = escapeHtml(input.userName);
+  const safeEmail = escapeHtml(input.userEmail);
+  const safeRole = escapeHtml(input.userRole);
+  const safeCategory = escapeHtml(input.category);
+  const safePage = escapeHtml(input.pageUrl);
+  const message = input.comments.trim() || 'No detailed message provided.';
+  const safeMessage = escapeHtml(message).replace(/\r\n|\r|\n/g, '<br/>');
+  const stars = '⭐'.repeat(input.rating);
+  const subjectCategory = input.category.replace(/[\r\n]+/g, ' ').slice(0, 80);
+
+  await mailer.sendMail({
+    from: `"MindVault Feedback" <${fromUser}>`,
+    to: inbox,
+    replyTo: input.userEmail,
+    subject: `[MindVault Feedback] ${subjectCategory} - ${input.rating} Stars`,
+    text: [
+      'New feedback received',
+      '',
+      `User: ${input.userName} (${input.userEmail})`,
+      `Role: ${input.userRole}`,
+      `Rating: ${stars} (${input.rating}/5)`,
+      `Feedback type: ${input.category}`,
+      `Page: ${input.pageUrl}`,
+      '',
+      'Thoughts:',
+      message,
+    ].join('\n'),
+    html: `
+      <div style="font-family: Arial, sans-serif; background: #0f172a; color: #ffffff; padding: 30px; border-radius: 12px;">
+        <h2 style="color: #06b6d4; margin-bottom: 20px;">New Feedback Received</h2>
+        <p><strong>User:</strong> ${safeName} (<a href="mailto:${safeEmail}" style="color: #38bdf8;">${safeEmail}</a>)</p>
+        <p><strong>Role:</strong> ${safeRole}</p>
+        <p><strong>Rating:</strong> ${stars} (${input.rating}/5)</p>
+        <p><strong>Feedback Type:</strong> ${safeCategory}</p>
+        <p><strong>Page:</strong> ${safePage}</p>
+        <p><strong>Thoughts/Message:</strong></p>
         <div style="background: #1e293b; padding: 15px; border-radius: 8px; border-left: 4px solid #06b6d4; margin-top: 10px;">
           ${safeMessage}
         </div>

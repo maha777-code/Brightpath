@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import {
@@ -456,17 +457,13 @@ export default function AiTutorPage() {
               <button
                 type="button"
                 onClick={onMicToggle}
-                className={[
-                  'flex h-11 w-11 items-center justify-center rounded-full transition',
-                  isListening
-                    ? 'animate-pulse border-2 border-red-600 bg-red-500 shadow-lg shadow-red-500/40'
-                    : 'bg-cyan-400 text-slate-950 hover:bg-cyan-300',
-                ].join(' ')}
+                className={voiceMicButtonClass(isListening, 'flex h-11 w-11 items-center justify-center rounded-full')}
                 aria-label={isListening ? 'Stop listening' : 'Start listening'}
-                title={sttSupported ? 'Speak your doubt' : 'Mic STT needs Chrome/Edge/Safari'}
+                title={isListening ? 'Stop recording' : sttSupported ? 'Speak your doubt' : 'Mic STT needs Chrome/Edge/Safari'}
               >
                 <Mic className="h-5 w-5" />
               </button>
+              {isListening ? <VoiceListeningIndicator isListening onStopListening={onMicToggle} /> : null}
               <button
                 type="button"
                 onClick={onCameraClick}

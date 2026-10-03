@@ -41,6 +41,7 @@ import TermsOfService from '@/pages/TermsOfService';
 import SecurityOverview from '@/pages/SecurityOverview';
 import CookiePreferences from '@/pages/CookiePreferences';
 import ContactUs from '@/pages/ContactUs';
+import { ToolAccessGate } from '@/components/tools/ToolAccessGate';
 
 function RequireRole({
   roles,
@@ -273,12 +274,12 @@ export default function App() {
         <Route path="/lesson/:nodeId" element={<ProtectedStudent><LessonModulePage /></ProtectedStudent>} />
         <Route path="/learn/:subject" element={<ProtectedLearner><TutorSession /></ProtectedLearner>} />
         <Route path="/progress" element={<ProtectedStudent><Progress /></ProtectedStudent>} />
-        <Route path="/tools/curriculum-textbook-studio" element={<ProtectedTeacher><CurriculumTextbookStudio /></ProtectedTeacher>} />
+        <Route path="/tools/curriculum-textbook-studio" element={<ProtectedTeacher><ToolAccessGate toolId="curriculum-studio"><CurriculumTextbookStudio /></ToolAccessGate></ProtectedTeacher>} />
         <Route path="/teacher/dashboard" element={<ProtectedTeacher><Navigate to="/tools/curriculum-textbook-studio" replace /></ProtectedTeacher>} />
         <Route path="/teacher/tools" element={<ProtectedTeacher><TeacherTools /></ProtectedTeacher>} />
-        <Route path="/teacher/tools/song-generator/new" element={<ProtectedTeacher><SongGeneratorCreate /></ProtectedTeacher>} />
-        <Route path="/teacher/tools/song-generator" element={<ProtectedTeacher><SongGeneratorDashboard /></ProtectedTeacher>} />
-        <Route path="/teacher/tools/lesson-plan-generator" element={<ProtectedTeacher><LessonPlanGenerator /></ProtectedTeacher>} />
+        <Route path="/teacher/tools/song-generator/new" element={<ProtectedTeacher><ToolAccessGate toolId="song-generator"><SongGeneratorCreate /></ToolAccessGate></ProtectedTeacher>} />
+        <Route path="/teacher/tools/song-generator" element={<ProtectedTeacher><ToolAccessGate toolId="song-generator"><SongGeneratorDashboard /></ToolAccessGate></ProtectedTeacher>} />
+        <Route path="/teacher/tools/lesson-plan-generator" element={<ProtectedTeacher><ToolAccessGate toolId="lesson-plan"><LessonPlanGenerator /></ToolAccessGate></ProtectedTeacher>} />
         <Route path="/teacher/tools/:toolId" element={<ProtectedTeacher><TeacherToolPage /></ProtectedTeacher>} />
         <Route
           path="/teacher/chapter/:id"

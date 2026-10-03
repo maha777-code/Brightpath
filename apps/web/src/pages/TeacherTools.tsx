@@ -14,7 +14,6 @@ import {
   Search,
   Sparkles,
   Star,
-  X,
   Youtube,
 } from 'lucide-react';
 import type {
@@ -28,8 +27,9 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
+import { AIToolWizardModal } from '@/components/tools/AIToolWizardModal';
 import { TeacherToolLauncher } from '@/pages/TeacherToolPage';
-import { toolVisibleToRole } from '@/config/toolsRegistry';
+import { canUserAccessTool, getRegistryTool, toolVisibleToRole } from '@/config/toolsRegistry';
 
 type LibraryFilter = 'all' | 'favorites' | 'custom';
 type SortKey = 'popular' | 'newest' | 'alpha';
@@ -66,7 +66,8 @@ export default function TeacherTools() {
   const [sort, setSort] = useState<SortKey>('popular');
   const [error, setError] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<TeacherToolDefinition | null>(null);
-  const { role, planType } = useAuth();
+  const { role, planType, user, teacher, parent } = useAuth();
+  const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
   const [lockedPlan, setLockedPlan] = useState<AiToolPlan | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
@@ -98,7 +99,7 @@ export default function TeacherTools() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     let next = tools.filter((tool) => {
-      if (!toolVisibleToRole(tool.id, role)) return false;
+      if (!toolVisibleToRole(tool.id, role, email)) return false;
       if (focusArea !== 'all' && tool.focusArea !== focusArea) return false;
       if (library === 'favorites' && !favoriteIds.includes(tool.id)) return false;
       if (library === 'custom' && !tool.custom) return false;
@@ -117,7 +118,7 @@ export default function TeacherTools() {
       return b.popularity - a.popularity;
     });
     return next;
-  }, [tools, query, focusArea, library, sort, favoriteIds, role]);
+  }, [tools, query, focusArea, library, sort, favoriteIds, role, email]);
 
   const toggleFavorite = async (toolId: string) => {
     const wasFav = favoriteIds.includes(toolId);
@@ -130,17 +131,23 @@ export default function TeacherTools() {
     }
   };
 
+  const actor = { role, email };
   const canLaunch = (tool: TeacherToolDefinition) =>
     isTeacherToolEnabled(tool.id) &&
-    hasAiToolAccess({ role, planType, requiredPlan: tool.requiredPlan ?? 'pro' });
+    canUserAccessTool(actor, getRegistryTool(tool.id)?.allowedRoles ?? []) &&
+    hasAiToolAccess({ role, email, planType, requiredPlan: tool.requiredPlan ?? 'pro' });
 
   const openTool = (tool: TeacherToolDefinition) => {
     if (!isTeacherToolEnabled(tool.id)) return;
+    if (!canUserAccessTool(actor, getRegistryTool(tool.id)?.allowedRoles ?? [])) {
+      setError('Teacher access required');
+      return;
+    }
     if (tool.id === 'curriculum-studio' || tool.href === '/tools/curriculum-textbook-studio') {
       navigate('/tools/curriculum-textbook-studio');
       return;
     }
-    if (!hasAiToolAccess({ role, planType, requiredPlan: tool.requiredPlan ?? 'pro' })) {
+    if (!hasAiToolAccess({ role, email, planType, requiredPlan: tool.requiredPlan ?? 'pro' })) {
       setLockedPlan(tool.requiredPlan ?? 'pro');
       setCheckoutOpen(false);
       return;
@@ -337,59 +344,21 @@ export default function TeacherTools() {
       />
 
       {activeTool && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center p-4 sm:items-center">
+        <AIToolWizardModal isOpen onClose={() => setActiveTool(null)} toolName={activeTool.title}>
+          <TeacherToolLauncher
+            tool={activeTool}
+            embedded
+            favorited={favoriteIds.includes(activeTool.id)}
+            onToggleFavorite={() => void toggleFavorite(activeTool.id)}
+          />
           <button
             type="button"
-            className="absolute inset-0 bg-slate-950/70"
-            aria-label="Dismiss tool launcher"
-            onClick={() => setActiveTool(null)}
-          />
-          <div
-            className={
-              activeTool.id === 'quiz-generator'
-                ? 'relative z-10 max-h-[92dvh] w-full max-w-6xl overflow-y-auto rounded-3xl bg-white p-5 text-slate-800 shadow-2xl sm:p-8'
-                : 'relative z-10 td-card max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-3xl p-6 sm:p-8'
-            }
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="tool-launcher-title"
+            className="mt-4 text-sm font-semibold text-cyan-300 underline"
+            onClick={() => navigate(activeTool.href)}
           >
-            <div className="mb-3 flex items-start justify-end">
-              <h2 id="tool-launcher-title" className="sr-only">
-                {activeTool.title}
-              </h2>
-              <button
-                type="button"
-                className={
-                  activeTool.id === 'quiz-generator'
-                    ? 'rounded-full border border-slate-200 p-2 text-slate-500 hover:bg-slate-100'
-                    : 'rounded-full border border-white/15 p-2 text-cyan-100 hover:bg-white/10'
-                }
-                aria-label="Close tool launcher"
-                onClick={() => setActiveTool(null)}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <TeacherToolLauncher
-              tool={activeTool}
-              embedded
-              favorited={favoriteIds.includes(activeTool.id)}
-              onToggleFavorite={() => void toggleFavorite(activeTool.id)}
-            />
-            <button
-              type="button"
-              className={
-                activeTool.id === 'quiz-generator'
-                  ? 'mt-4 text-sm font-semibold text-cyan-300 underline'
-                  : 'mt-4 text-sm font-semibold text-cyan-200 underline'
-              }
-              onClick={() => navigate(activeTool.href)}
-            >
-              Open dedicated page
-            </button>
-          </div>
-        </div>
+            Open dedicated page
+          </button>
+        </AIToolWizardModal>
       )}
     </TeacherWorkspaceLayout>
   );

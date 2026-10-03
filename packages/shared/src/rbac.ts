@@ -178,13 +178,23 @@ export function isOwnerAccess(role: string | null | undefined): boolean {
   return role === 'org_admin' || role === 'owner' || role === 'super_admin';
 }
 
-/** Subscription gate for the AI tools library. Owners bypass every lock. */
+/** Only this account, or an OWNER / SUPER_ADMIN role, may run every AI tool. */
+export const PLATFORM_OWNER_EMAIL = 'owner@mindvault.academy';
+
+export function isPlatformOwner(role?: string | null, email?: string | null): boolean {
+  const normalized = role?.trim().toUpperCase().replace(/-/g, '_');
+  if (normalized === 'OWNER' || normalized === 'SUPER_ADMIN') return true;
+  return Boolean(email && email.trim().toLowerCase() === PLATFORM_OWNER_EMAIL);
+}
+
+/** Subscription gate for the AI tools library. The platform owner bypasses plan locks. */
 export function hasAiToolAccess(input: {
   role?: string | null;
+  email?: string | null;
   planType?: string | null;
   requiredPlan: AiToolPlan;
 }): boolean {
-  if (isOwnerAccess(input.role)) return true;
+  if (isPlatformOwner(input.role, input.email)) return true;
   if (input.requiredPlan === 'free') return true;
   const plan = input.planType ?? 'free';
   const center =

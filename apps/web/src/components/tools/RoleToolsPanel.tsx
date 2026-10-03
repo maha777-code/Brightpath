@@ -18,8 +18,9 @@ import {
 } from 'lucide-react';
 import { TEACHER_TOOLS_CATALOG } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
-import { toolsForAppRole, type ToolDefinition } from '@/config/toolsRegistry';
+import { canUserAccessTool, toolsForAppRole, type ToolDefinition } from '@/config/toolsRegistry';
 import { ToolRenderer } from '@/components/tools/ToolRenderer';
+import { AIToolWizardModal } from '@/components/tools/AIToolWizardModal';
 import { CURRICULUM_STUDIO_PATH } from '@/pages/tools/CurriculumTextbookStudio';
 
 function planPill(plan: ToolDefinition['targetPlan']): string {
@@ -47,16 +48,31 @@ const TOOL_ICONS: Record<string, ComponentType<{ className?: string }>> = {
 export function RoleToolsPanel({
   tone = 'light',
   showHeading = true,
-  hideOuterClose = false,
 }: {
   tone?: 'light' | 'dark';
   showHeading?: boolean;
+  /** Kept so existing callers compile. The wizard header owns close and expand. */
   hideOuterClose?: boolean;
 }) {
-  const { role } = useAuth();
+  const { role, user, teacher, parent } = useAuth();
+  const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
   const navigate = useNavigate();
-  const tools = toolsForAppRole(role);
+  const tools = toolsForAppRole(role, email);
   const [active, setActive] = useState<ToolDefinition | null>(null);
+  const [denied, setDenied] = useState('');
+  const launch = (tool: ToolDefinition) => {
+    if (!canUserAccessTool({ role, email }, tool.allowedRoles)) {
+      setDenied('Teacher access required');
+      setActive(null);
+      return;
+    }
+    setDenied('');
+    if (tool.id === 'curriculum-studio') {
+      navigate(CURRICULUM_STUDIO_PATH);
+      return;
+    }
+    setActive(tool);
+  };
   const dark = tone === 'dark';
 
   if (!tools.length) return null;
@@ -71,6 +87,9 @@ export function RoleToolsPanel({
           </p>
         </>
       ) : null}
+      {denied ? (
+        <p className={dark ? 'text-sm font-semibold text-rose-300' : 'text-sm font-semibold text-rose-600'}>{denied}</p>
+      ) : null}
       {dark ? (
         <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {tools.map((tool) => {
@@ -80,13 +99,7 @@ export function RoleToolsPanel({
               <button
                 key={tool.id}
                 type="button"
-                onClick={() => {
-                  if (tool.id === 'curriculum-studio') {
-                    navigate(CURRICULUM_STUDIO_PATH);
-                    return;
-                  }
-                  setActive(tool);
-                }}
+                onClick={() => launch(tool)}
                 className="group flex cursor-pointer appearance-none flex-col justify-between rounded-2xl border border-slate-800/80 bg-[#090e1a] p-5 text-left text-white shadow-lg transition-all duration-200 hover:border-cyan-500/40 hover:bg-[#0c1426]"
               >
                 <div>
@@ -126,13 +139,7 @@ export function RoleToolsPanel({
             <button
               key={tool.id}
               type="button"
-              onClick={() => {
-                if (tool.id === 'curriculum-studio') {
-                  navigate(CURRICULUM_STUDIO_PATH);
-                  return;
-                }
-                setActive(tool);
-              }}
+              onClick={() => launch(tool)}
               className="cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-50 p-4 text-left hover:border-indigo-300"
             >
               <span className="block text-sm font-bold">{tool.title}</span>
@@ -142,23 +149,9 @@ export function RoleToolsPanel({
         </div>
       )}
       {active ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="flex h-[88vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-slate-800 bg-[#040711] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-              <p className="text-sm font-bold text-white">{active.title}</p>
-              {hideOuterClose ? null : (
-                <button
-                  type="button"
-                  onClick={() => setActive(null)}
-                  className="cursor-pointer appearance-none rounded-lg border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-200"
-                >
-                  Close
-                </button>
-              )}
-            </div>
-            <ToolRenderer tool={active} embed onClose={() => setActive(null)} />
-          </div>
-        </div>
+        <AIToolWizardModal isOpen onClose={() => setActive(null)} toolName={active.title}>
+          <ToolRenderer tool={active} embed hideHeader onClose={() => setActive(null)} />
+        </AIToolWizardModal>
       ) : null}
     </section>
   );

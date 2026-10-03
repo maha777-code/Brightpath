@@ -79,7 +79,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         pageUrl: window.location.pathname,
       });
       setIsSubmitted(true);
-      setToast('Feedback sent. Thank you.');
+      setToast('Thank you for your feedback!');
       window.setTimeout(() => {
         setToast('');
         reset();

@@ -24,6 +24,8 @@ import { useDisplayUser } from '@/lib/displayUser';
 import { workspaceForRole } from '@/lib/workspaceRole';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { SharadaChatBadge } from '@/components/SharadaChatBadge';
+import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
+import { useDictation } from '@/hooks/useDictation';
 
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 
@@ -99,6 +101,10 @@ export function HomePage() {
   const [prompt, setPrompt] = useState('');
   const [reply, setReply] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const { listening, toggle } = useDictation((text) => {
+    setPrompt((current) => (current.trim() ? `${current.trim()} ${text}` : text));
+    setReply(null);
+  });
 
   const recommendedTools = useMemo(
     () =>
@@ -211,15 +217,19 @@ export function HomePage() {
                 />
                 <button
                   type="button"
-                  className="cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-cyan-400"
-                  aria-label="Use voice input"
-                  title="Use voice input"
-                  onClick={() =>
-                    setReply('Sharada: Voice input is ready in your next session. Type your request for now.')
-                  }
+                  className={voiceMicButtonClass(listening, 'rounded-full p-2.5')}
+                  aria-label={listening ? 'Stop recording' : 'Use voice input'}
+                  title={listening ? 'Stop recording' : 'Start voice input'}
+                  onClick={() => {
+                    const started = toggle();
+                    if (!started) {
+                      setReply('Voice input needs a browser that supports speech recognition.');
+                    }
+                  }}
                 >
                   <Mic className="h-5 w-5" />
                 </button>
+                {listening ? <VoiceListeningIndicator isListening onStopListening={toggle} /> : null}
                 <button
                   type="button"
                   className="ml-1 hidden cursor-pointer appearance-none items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-bold text-cyan-400 shadow-sm transition-all hover:bg-cyan-500/20 sm:inline-flex sm:text-sm"

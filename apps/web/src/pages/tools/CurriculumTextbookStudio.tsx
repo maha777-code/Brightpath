@@ -14,11 +14,14 @@ import { SubtopicManager } from '@/components/teacher/SubtopicManager';
 import { TeacherDoubtAssistant } from '@/components/teacher/TeacherDoubtAssistant';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { AIToolHeader } from '@/components/tools/AIToolHeader';
+import { canUserAccessTool, getRegistryTool } from '@/config/toolsRegistry';
 
 export const CURRICULUM_STUDIO_PATH = '/tools/curriculum-textbook-studio';
 
 export default function CurriculumTextbookStudio() {
-  const { role } = useAuth();
+  const { role, user, teacher, parent } = useAuth();
+  const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
+  const allowed = canUserAccessTool({ role, email }, getRegistryTool('curriculum-studio')?.allowedRoles ?? []);
   const [textbook, setTextbook] = useState<Textbook | null>(null);
   const [chapters, setChapters] = useState<TeacherChapter[]>([]);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
@@ -61,9 +64,9 @@ export default function CurriculumTextbookStudio() {
   }, []);
 
   useEffect(() => {
-    if (!role) return;
+    if (!role || !allowed) return;
     void load();
-  }, [role, load]);
+  }, [role, load, allowed]);
 
   const refreshChapter = async (chapterId: string) => {
     const res = await api.teacherChapter(chapterId);
@@ -78,6 +81,19 @@ export default function CurriculumTextbookStudio() {
       document.getElementById('td-enrichment')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   };
+
+  if (!allowed) {
+    return (
+      <TeacherWorkspaceLayout>
+        <main className="w-full max-w-lg px-6 py-10">
+          <div className="rounded-3xl border border-rose-500/30 bg-slate-900 p-8 text-white">
+            <h1 className="text-2xl font-bold">Curriculum & Textbook Studio</h1>
+            <p className="mt-2 text-sm font-semibold text-rose-300">Teacher access required</p>
+          </div>
+        </main>
+      </TeacherWorkspaceLayout>
+    );
+  }
 
   return (
     <TeacherWorkspaceLayout>
