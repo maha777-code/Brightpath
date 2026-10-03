@@ -23,6 +23,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useDisplayUser } from '@/lib/displayUser';
 import { workspaceForRole } from '@/lib/workspaceRole';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
+import { SharadaChatBadge } from '@/components/SharadaChatBadge';
 
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 
@@ -165,9 +166,9 @@ export function HomePage() {
           <h1 className="text-center text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
             Hi {firstName || workspace.greetingFallback}. <span className="text-slate-400">How can I help today?</span>
           </h1>
-          <p className="mb-6 mt-2 text-center text-lg font-medium text-slate-300">
-            Chat with Sharada, your AI assistant
-          </p>
+          <div className="mb-6 mt-2 flex justify-center">
+            <SharadaChatBadge onClick={() => navigate('/chat/sharada')} />
+          </div>
 
           <form
             className="mx-auto my-4 flex w-full flex-col justify-between space-y-3 rounded-[28px] border border-slate-700/50 bg-[#131b2e] p-4 text-left shadow-2xl transition-all duration-200 hover:border-slate-600 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20 md:w-[75%] sm:p-5"

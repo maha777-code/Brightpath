@@ -11,6 +11,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      selfDestroying: true,
       includeAssets: ['favicon.svg', 'favicon.ico', 'assets/mindvault-icon.png', 'assets/mindvault-logo.png'],
       manifest: {
         name: 'MindVault - Personalized AI Learning for Every Learner',

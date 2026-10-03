@@ -17,7 +17,7 @@
 }
 
 html {
-  font-size: 16px !important;
+  font-size: 12px !important;
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -45,7 +45,7 @@ li, ul, ol, nav, header, footer, main, section, article {
 
 html,
 body {
-  font-size: 16px !important;
+  font-size: 12px !important;
   line-height: 1.5;
   background: var(--bg-primary);
   color: var(--text-main);

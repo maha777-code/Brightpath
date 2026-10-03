@@ -1,11 +1,62 @@
 /** Absolute API origin, or same-host `/api` when no production API URL is configured. */
-export const API_BASE_URL = (
+const rawBaseUrl =
   import.meta.env.VITE_API_BASE_URL ||
   import.meta.env.VITE_API_URL ||
-  '/api'
-).replace(/\/$/, '');
+  'https://brightpath-2-4q2s.onrender.com';
+export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, '');
 
-const BASE = API_BASE_URL;
+const REQUEST_TIMEOUT_MS = 45_000;
+const COLD_START_MESSAGE =
+  'Server is waking up from a cold start. Please try again in a few seconds.';
+const WAKE_MESSAGE =
+  'Unable to reach server. If the server is spinning up, please wait 30 seconds and try again.';
+
+function apiUrl(endpoint: string): string {
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${API_BASE_URL}${path}`;
+}
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof Error && err.name === 'AbortError';
+}
+
+function isLocalHost(): boolean {
+  const host = typeof window !== 'undefined' ? window.location.hostname : '';
+  return host === 'localhost' || host === '127.0.0.1';
+}
+
+function networkMessage(err: unknown): string {
+  if (isLocalHost()) {
+    return 'Cannot reach the API server. From the project root run: npm run dev (starts web + api). Check http://localhost:3001/health';
+  }
+  if (isAbortError(err)) return COLD_START_MESSAGE;
+  return WAKE_MESSAGE;
+}
+
+/** Fetch with a 45s timeout and one retry so a sleeping Render service can finish booting. */
+export async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  const url = apiUrl(endpoint);
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      return await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+    } catch (err) {
+      lastError = err;
+      const retryable = !options.signal?.aborted && (isAbortError(err) || err instanceof TypeError);
+      if (attempt === 0 && retryable) continue;
+      console.error('API request failed', url, err);
+      throw new Error(networkMessage(err));
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+  throw new Error(networkMessage(lastError));
+}
 
 function authHeaders(json = true): HeadersInit {
   const token = localStorage.getItem('brightpath_token');
@@ -13,15 +64,6 @@ function authHeaders(json = true): HeadersInit {
     ...(json ? { 'Content-Type': 'application/json' } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
-}
-
-function unreachableMessage(): string {
-  const host = typeof window !== 'undefined' ? window.location.hostname : '';
-  const local = host === 'localhost' || host === '127.0.0.1';
-  if (local) {
-    return 'Cannot reach the API server. From the project root run: npm run dev (starts web + api). Check http://localhost:3001/health';
-  }
-  return 'Cannot reach the MindVault API. Sign-in is unavailable until the API server is connected to this site.';
 }
 
 function errorText(value: unknown): string | null {
@@ -73,14 +115,15 @@ async function parseError(res: Response): Promise<string> {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${BASE}${path}`, {
+    res = await apiFetch(path, {
       ...init,
       credentials: 'include',
       headers: { ...authHeaders(true), ...init?.headers },
     });
   } catch (err) {
     console.error('API request failed', path, err);
-    throw new Error(unreachableMessage());
+    if (err instanceof Error) throw err;
+    throw new Error(networkMessage(err));
   }
   if (!res.ok) throw new Error(await parseError(res));
   if (res.status === 204) return undefined as T;
@@ -90,7 +133,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     return JSON.parse(raw) as T;
   } catch (err) {
     console.error('API response was not JSON', path, err);
-    throw new Error(unreachableMessage());
+    throw new Error(networkMessage(err));
   }
 }
 
@@ -98,7 +141,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 async function requestFormData<T>(path: string, form: FormData): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${BASE}${path}`, {
+    res = await apiFetch(path, {
       method: 'POST',
       credentials: 'include',
       headers: authHeaders(false),
@@ -106,7 +149,8 @@ async function requestFormData<T>(path: string, form: FormData): Promise<T> {
     });
   } catch (err) {
     console.error('API upload failed', path, err);
-    throw new Error(unreachableMessage());
+    if (err instanceof Error) throw err;
+    throw new Error(networkMessage(err));
   }
   if (!res.ok) throw new Error(await parseError(res));
   if (res.status === 204) return undefined as T;

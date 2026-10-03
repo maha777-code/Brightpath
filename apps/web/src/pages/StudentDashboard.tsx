@@ -33,6 +33,7 @@ import { getRegistryTool, type ToolDefinition } from '@/config/toolsRegistry';
 import { ToolRenderer } from '@/components/tools/ToolRenderer';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
+import { SharadaChatBadge } from '@/components/SharadaChatBadge';
 
 const FONT = CYBER_FONT_STYLE;
 
@@ -277,7 +278,9 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
             <h1 className="text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
               Hi {firstName}. <span className="text-slate-400">How can I help today?</span>
             </h1>
-            <p className="text-lg font-medium text-slate-300">Chat with Sharada, your AI tutor & assistant</p>
+            <div className="flex justify-center">
+              <SharadaChatBadge onClick={() => navigate('/dashboard/ai-tutor')} />
+            </div>
             <form
               className="mx-auto flex w-full flex-col space-y-3 rounded-[28px] border border-slate-700/50 bg-[#131b2e] p-4 text-left shadow-2xl transition-all duration-200 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20 md:w-[75%] sm:p-5"
               onSubmit={(event) => {

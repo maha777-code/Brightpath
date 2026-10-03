@@ -165,8 +165,12 @@ export default function Register() {
       });
       navigate(result.path);
     } catch (err) {
-      console.error('Sign up failed:', err);
-      setError(err instanceof Error ? err.message : t('common.error'));
+      console.error('Auth request failed:', err);
+      const message = err instanceof Error ? err.message : '';
+      setError(
+        message ||
+          'Unable to reach server. If the server is spinning up, please wait 30 seconds and try again.',
+      );
     } finally {
       setBusy(false);
     }
