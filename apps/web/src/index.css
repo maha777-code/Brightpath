@@ -214,3 +214,17 @@ input::placeholder {
   background-size: 200% 100%;
   animation: codex-shimmer 3s infinite;
 }
+
+@keyframes bot-only-float {
+  0%,
+  100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.05);
+  }
+}
+
+.animate-bot-only-float {
+  animation: bot-only-float 3.5s ease-in-out infinite;
+}
