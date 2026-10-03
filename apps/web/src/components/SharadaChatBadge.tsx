@@ -10,25 +10,38 @@ export const SharadaChatBadge: React.FC<SharadaChatBadgeProps> = ({ onClick, cla
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex cursor-pointer appearance-none items-center gap-3 border-0 bg-transparent p-0 group select-none ${className}`}
+      className={`group inline-flex cursor-pointer appearance-none select-none items-center gap-3.5 rounded-2xl border border-slate-800/80 bg-slate-900/60 px-4 py-2 shadow-lg backdrop-blur-md transition-all duration-300 hover:border-cyan-500/50 hover:bg-slate-900/90 hover:shadow-cyan-500/10 ${className}`}
       aria-label="Chat with Sharada, your AI assistant"
     >
-      {/* Animated Avatar Container */}
-      <div className="relative h-8 w-8 flex-shrink-0 rounded-full bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-400 p-[2px] shadow-md transition-all duration-300 group-hover:scale-105 group-hover:shadow-pink-500/25 md:h-10 md:w-10">
-        {/* Avatar Image */}
+      {/* Robot Character Container */}
+      <div className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center md:h-14 md:w-14">
+        {/* Holographic Glowing Backdrop Aura */}
+        <div className="absolute inset-0 animate-pulse rounded-full bg-cyan-500/20 blur-md transition-all duration-500 group-hover:bg-cyan-400/35" />
+
+        {/* Animated 3D Robot Image */}
         <img
-          src="/sharada-avatar.png"
+          src="/sharada-robot.png"
           alt=""
-          className="h-full w-full rounded-full bg-slate-900 object-cover object-top"
+          className="animate-bot-float animate-bot-glow animate-bot-action relative z-10 h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.15]"
         />
-        {/* Active/Online Indicator Badge */}
-        <span className="absolute bottom-0 right-0 h-2.5 w-2.5 animate-pulse rounded-full border-2 border-slate-950 bg-emerald-500" />
+
+        {/* Live Active Signal Beacon */}
+        <span className="absolute bottom-0 right-0 z-20 flex h-3 w-3">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+          <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-slate-950 bg-cyan-500" />
+        </span>
       </div>
 
-      {/* Text Label */}
-      <span className="text-sm font-medium text-slate-200 transition-colors group-hover:text-pink-400 md:text-base">
-        Chat with Sharada, your AI assistant
-      </span>
+      {/* Cinematic Text & Action Prompt */}
+      <div className="flex flex-col text-left">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">AI Assistant</span>
+          <span className="h-1.5 w-1.5 animate-ping rounded-full bg-cyan-400" />
+        </div>
+        <span className="text-sm font-medium text-slate-100 transition-colors group-hover:text-cyan-300 md:text-base">
+          Chat with Sharada
+        </span>
+      </div>
     </button>
   );
 };

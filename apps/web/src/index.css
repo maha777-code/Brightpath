@@ -112,3 +112,53 @@ input::placeholder {
   background: #334155;
   border-radius: 999px;
 }
+
+@keyframes bot-float {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(2deg);
+  }
+}
+
+@keyframes bot-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.4)) drop-shadow(0 0 12px rgba(14, 165, 233, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.8)) drop-shadow(0 0 20px rgba(14, 165, 233, 0.5));
+  }
+}
+
+@keyframes bot-wave {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) rotate(-8deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(8deg);
+  }
+}
+
+.animate-bot-float {
+  animation:
+    bot-float 3.5s ease-in-out infinite,
+    bot-glow 2.5s ease-in-out infinite;
+}
+
+.animate-bot-glow {
+  /* glow is paired with float above; kept for explicit opt-in */
+  animation: bot-glow 2.5s ease-in-out infinite;
+}
+
+.group:hover .animate-bot-action {
+  animation:
+    bot-wave 0.6s ease-in-out infinite,
+    bot-glow 2.5s ease-in-out infinite;
+}
