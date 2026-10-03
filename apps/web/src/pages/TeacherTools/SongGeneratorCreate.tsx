@@ -11,6 +11,7 @@ import {
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AIToolHeader } from '@/components/tools/AIToolHeader';
 import { albumArtDataUrl, upsertLocalSong } from '@/lib/teacherSongs';
 
 function fallbackDraft(topic: string, gradeLevel: string, songStyle: string, customInstructions?: string): SongLyricsDraft {
@@ -125,6 +126,12 @@ export default function SongGeneratorCreate() {
 
   return (
     <DashboardLayout>
+      <AIToolHeader
+        toolName="Educational Song Generator"
+        description="Generate custom lyrics and a song on any topic."
+        className="px-5 pt-4 sm:px-8"
+        contentClassName="min-h-0"
+      >
       <div className="min-h-0 flex-1 overflow-y-auto bg-[#f3f4f8] text-slate-800">
         <div className="mx-auto max-w-3xl space-y-4 px-5 py-6 sm:px-8">
           <nav className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
@@ -298,6 +305,7 @@ export default function SongGeneratorCreate() {
           </section>
         </div>
       </div>
+      </AIToolHeader>
     </DashboardLayout>
   );
 }

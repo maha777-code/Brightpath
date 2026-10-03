@@ -98,7 +98,11 @@ export default function CurriculumTextbookStudio() {
   return (
     <TeacherWorkspaceLayout>
       <main className="w-full max-w-full space-y-8 px-5 py-6 sm:px-8 lg:px-12 lg:py-8">
-        <AIToolHeader toolName="Curriculum & Textbook Studio" />
+        <AIToolHeader
+          toolName="Curriculum & Textbook Studio"
+          description="Upload textbooks, enrich lessons, and approve AI answers before class."
+          contentClassName="space-y-8"
+        >
         <div className="td-card rounded-3xl p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -212,6 +216,7 @@ export default function CurriculumTextbookStudio() {
             />
           </>
         )}
+        </AIToolHeader>
       </main>
     </TeacherWorkspaceLayout>
   );

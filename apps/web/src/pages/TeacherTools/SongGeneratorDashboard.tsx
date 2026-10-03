@@ -347,10 +347,14 @@ export default function SongGeneratorDashboard({ embedded = false }: { embedded?
   if (embedded) return studio;
   return (
     <DashboardLayout>
-      <div className="px-5 pt-4 sm:px-8">
-        <AIToolHeader toolName="Educational Song Generator" />
-      </div>
-      {studio}
+      <AIToolHeader
+        toolName="Educational Song Generator"
+        description="Generate custom lyrics and a song on any topic."
+        className="px-5 pt-4 sm:px-8"
+        contentClassName="min-h-0"
+      >
+        {studio}
+      </AIToolHeader>
     </DashboardLayout>
   );
 }

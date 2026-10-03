@@ -1095,10 +1095,14 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
   if (embedded) return studio;
   return (
     <DashboardLayout>
-      <div className="px-5 pt-4 sm:px-8">
-        <AIToolHeader toolName="Lesson Plan Generator" />
-      </div>
-      {studio}
+      <AIToolHeader
+        toolName="Lesson Plan Generator"
+        description="Generate a lesson plan based on a standard, topic, or objective."
+        className="px-5 pt-4 sm:px-8"
+        contentClassName="min-h-0"
+      >
+        {studio}
+      </AIToolHeader>
     </DashboardLayout>
   );
 }

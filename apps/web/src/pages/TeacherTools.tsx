@@ -344,7 +344,12 @@ export default function TeacherTools() {
       />
 
       {activeTool && (
-        <AIToolWizardModal isOpen onClose={() => setActiveTool(null)} toolName={activeTool.title}>
+        <AIToolWizardModal
+          isOpen
+          onClose={() => setActiveTool(null)}
+          toolName={activeTool.title}
+          description={activeTool.description}
+        >
           <TeacherToolLauncher
             tool={activeTool}
             embedded

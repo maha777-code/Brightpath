@@ -1,18 +1,43 @@
-import { ChevronRight, X } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { AIToolSurface } from '@/components/tools/AIToolSurface';
 
 export function AIToolHeader({
   toolName,
-  category = 'Teacher Tools',
+  description,
   onClose,
+  children,
+  className = '',
+  contentClassName = '',
 }: {
   toolName: string;
+  description?: string;
   category?: string;
   onClose?: () => void;
+  children?: ReactNode;
+  className?: string;
+  contentClassName?: string;
 }) {
   const navigate = useNavigate();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!isExpanded) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsExpanded(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [isExpanded]);
 
   const handleClose = () => {
+    if (isExpanded) setIsExpanded(false);
     if (onClose) {
       onClose();
       return;
@@ -24,22 +49,27 @@ export function AIToolHeader({
     navigate('/teacher/tools');
   };
 
-  return (
-    <div className="mb-4 flex shrink-0 items-center justify-between border-b border-slate-800/80 pb-4">
-      <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-        <span>{category}</span>
-        <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
-        <span className="font-bold text-cyan-400">{toolName}</span>
-      </div>
-      <button
-        type="button"
-        onClick={handleClose}
-        aria-label="Close Tool"
-        className="group flex cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-slate-700/60 bg-slate-800/80 px-3 py-1.5 text-xs font-bold text-slate-300 transition-all hover:bg-rose-500/20 hover:text-rose-400"
-      >
-        <span>Close</span>
-        <X className="h-4 w-4 text-slate-400 transition-colors group-hover:text-rose-400" />
-      </button>
-    </div>
+  if (children == null) return null;
+
+  const surface = (
+    <AIToolSurface
+      title={toolName}
+      description={description}
+      expanded={isExpanded}
+      onToggleExpand={() => setIsExpanded((value) => !value)}
+      onClose={handleClose}
+      contentClassName={contentClassName}
+    >
+      {children}
+    </AIToolSurface>
   );
+
+  if (isExpanded) {
+    return createPortal(
+      <div className="fixed inset-0 z-[80] flex bg-slate-950/80 p-3 backdrop-blur-md md:p-4">{surface}</div>,
+      document.body,
+    );
+  }
+
+  return <div className={className}>{surface}</div>;
 }

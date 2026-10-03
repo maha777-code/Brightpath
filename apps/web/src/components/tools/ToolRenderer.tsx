@@ -19,7 +19,10 @@ interface ToolRendererProps {
 export function ToolRenderer({ tool, mode = 'production', embed = false, hideHeader = false, onClose }: ToolRendererProps) {
   const embedded = mode === 'admin-preview' || embed;
   const toolSuppliesHeader =
-    !embedded && (tool.componentKey === 'LessonPlanGenerator' || tool.componentKey === 'SongGenerator');
+    !embedded &&
+    (tool.componentKey === 'LessonPlanGenerator' ||
+      tool.componentKey === 'SongGenerator' ||
+      tool.componentKey === 'WorksheetGenerator');
 
   const renderActualTool = () => {
     switch (tool.componentKey) {
@@ -66,22 +69,29 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
           ) : null}
         </div>
       ) : null}
-      {hideHeader || toolSuppliesHeader ? null : (
-        <div className="shrink-0 px-4 pt-4 sm:px-6">
-          <AIToolHeader toolName={tool.title} onClose={onClose} />
+      {hideHeader || toolSuppliesHeader ? (
+        <div
+          className={
+            embedded && (tool.componentKey === 'QuizGenerator' || tool.componentKey === 'WorksheetGenerator')
+              ? 'min-h-0 flex-1 overflow-hidden'
+              : embedded
+                ? 'min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6'
+                : 'min-h-0 flex-1 overflow-hidden'
+          }
+        >
+          {renderActualTool()}
         </div>
+      ) : (
+        <AIToolHeader
+          toolName={tool.title}
+          description={tool.description}
+          onClose={onClose}
+          className="flex min-h-0 flex-1 flex-col px-4 pt-4 sm:px-6"
+          contentClassName="min-h-0 flex-1"
+        >
+          {renderActualTool()}
+        </AIToolHeader>
       )}
-      <div
-        className={
-          embedded && (tool.componentKey === 'QuizGenerator' || tool.componentKey === 'WorksheetGenerator')
-            ? 'min-h-0 flex-1 overflow-hidden'
-            : embedded
-              ? 'min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6'
-              : 'min-h-0 flex-1 overflow-hidden'
-        }
-      >
-        {renderActualTool()}
-      </div>
     </div>
   );
 }

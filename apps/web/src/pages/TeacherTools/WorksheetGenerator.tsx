@@ -176,7 +176,7 @@ type FormSnapshot = {
 
 function WorksheetTemplateSkeleton() {
   return (
-    <div className="flex h-full min-h-[28rem] flex-col space-y-6 rounded-xl border border-slate-800/80 bg-[#0a0f20] p-6 shadow-inner" aria-hidden>
+    <div className="relative flex min-h-[1000px] w-full flex-col space-y-6 rounded-2xl border border-slate-800/90 bg-slate-900/90 p-8 shadow-2xl md:p-12" aria-hidden>
       <div className="flex items-center justify-between border-b border-slate-800/80 pb-4 text-xs font-semibold text-slate-400">
         <span className="flex items-center gap-2">
           Name <span className="inline-block w-40 border-b border-slate-700/80 py-1" />
@@ -369,6 +369,7 @@ function WorksheetStudio({
   onOpenHistory,
   onTranslate,
   busy,
+  pane = false,
 }: {
   worksheet: WorksheetGeneratorResponse;
   payload: WorksheetGeneratorPayload;
@@ -377,6 +378,7 @@ function WorksheetStudio({
   onOpenHistory: () => void;
   onTranslate: (language: string) => Promise<void>;
   busy: boolean;
+  pane?: boolean;
 }) {
   const [title, setTitle] = useState(worksheet.title);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -493,7 +495,14 @@ function WorksheetStudio({
   };
 
   const handleScrollToBottom = () => {
-    const scroller = expanded ? expandedScrollRef.current : scrollContainerRef.current;
+    const paneScroller = pane
+      ? scrollContainerRef.current?.closest('[data-worksheet-scroll]')
+      : null;
+    const scroller = expanded
+      ? expandedScrollRef.current
+      : paneScroller instanceof HTMLElement
+        ? paneScroller
+        : scrollContainerRef.current;
     if (scroller) {
       scroller.scrollTo({
         top: scroller.scrollHeight,
@@ -598,19 +607,29 @@ function WorksheetStudio({
   );
 
   return (
-    <div className="ws-studio flex h-full min-h-0 flex-col overflow-hidden p-4">
+    <div
+      className={
+        pane
+          ? 'ws-studio flex w-full flex-col pb-12'
+          : 'ws-studio flex h-full min-h-0 flex-col overflow-hidden p-4'
+      }
+    >
       <header className="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-3">
-        <nav className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-slate-500">
-          <Link to="/teacher/tools" className="font-semibold text-cyan-700 hover:text-cyan-900">
-            Teacher Tools
-          </Link>
-          <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-          <button type="button" className="font-semibold text-slate-700 hover:text-cyan-700" onClick={onReset}>
-            Worksheet Generator
-          </button>
-          <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate font-semibold text-slate-900">{crumb}</span>
-        </nav>
+        {pane ? (
+          <p className="min-w-0 truncate text-xs font-semibold uppercase tracking-wider text-slate-400">{crumb}</p>
+        ) : (
+          <nav className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-slate-500">
+            <Link to="/teacher/tools" className="font-semibold text-cyan-700 hover:text-cyan-900">
+              Teacher Tools
+            </Link>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+            <button type="button" className="font-semibold text-slate-700 hover:text-cyan-700" onClick={onReset}>
+              Worksheet Generator
+            </button>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate font-semibold text-slate-900">{crumb}</span>
+          </nav>
+        )}
         <div className="flex flex-wrap items-start gap-2">
           <div className="flex items-center gap-1">
             <button
@@ -649,7 +668,13 @@ function WorksheetStudio({
         </div>
       </header>
 
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section
+        className={
+          pane
+            ? 'flex w-full min-h-[1000px] flex-col rounded-2xl border border-slate-800/90 bg-white text-slate-900 shadow-2xl'
+            : 'flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm'
+        }
+      >
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
           <div className="flex min-w-0 items-center gap-2">
             {editingTitle ? (
@@ -755,7 +780,11 @@ function WorksheetStudio({
           <div
             id="worksheet-document-container"
             ref={scrollContainerRef}
-            className="custom-scrollbar h-full max-h-[calc(100vh-280px)] w-full overflow-x-hidden overflow-y-auto scroll-smooth rounded-xl bg-slate-100 p-6"
+            className={
+              pane
+                ? 'w-full min-h-[1000px] bg-transparent p-2 sm:p-4'
+                : 'custom-scrollbar h-full max-h-[calc(100vh-280px)] w-full overflow-x-hidden overflow-y-auto scroll-smooth rounded-xl bg-slate-100 p-6'
+            }
           >
             {documentPaper}
           </div>
@@ -767,13 +796,15 @@ function WorksheetStudio({
               </div>
             </div>
           ) : null}
-          <button
-            type="button"
-            className="absolute left-1/2 top-1/2 z-10 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full bg-slate-900/90 px-4 py-2 text-sm font-medium text-white shadow-lg hover:bg-slate-800"
-            onClick={() => setExpanded(true)}
-          >
-            <Maximize2 className="h-4 w-4" /> Expand preview
-          </button>
+          {pane ? null : (
+            <button
+              type="button"
+              className="absolute left-1/2 top-1/2 z-10 inline-flex -translate-x-1/2 -translate-y-1/2 cursor-pointer appearance-none items-center gap-1.5 rounded-full bg-slate-900/90 px-4 py-2 text-sm font-medium text-white shadow-lg hover:bg-slate-800"
+              onClick={() => setExpanded(true)}
+            >
+              <Maximize2 className="h-4 w-4" /> Expand preview
+            </button>
+          )}
         </div>
       </section>
 
@@ -1126,42 +1157,11 @@ export function WorksheetGenerator({
 
   const words = countWords(topicOrText);
 
-  if (worksheet && submitted) {
-    return (
-      <>
-        <WorksheetStudio
-          worksheet={worksheet}
-          payload={submitted}
-          busy={busy}
-          onReset={resetAll}
-          onOpenHistory={() => setHistoryOpen(true)}
-          onFollowUp={(message, attachments) => {
-            void refineCurrent(message, attachments);
-          }}
-          onTranslate={translateCurrent}
-        />
-        <WorksheetHistoryDrawer
-          open={historyOpen}
-          onClose={() => setHistoryOpen(false)}
-          topic={submitted.topicOrText.split('\n')[0]}
-          fallbackItems={savedVersions}
-          activeId={worksheet.id}
-          onSelect={(item) => {
-            setWorksheet(withWorksheetId(item.worksheet));
-            setSubmitted(item.payload);
-            setGradeLevel(item.payload.gradeLevel);
-            setTopicOrText(item.payload.topicOrText);
-            setFiles(item.payload.attachments ?? []);
-          }}
-        />
-      </>
-    );
-  }
-
   return (
-    <div className="mx-auto flex min-h-[85vh] w-full max-w-7xl flex-col rounded-3xl border border-slate-800/80 bg-[#040711] p-6 font-sans text-slate-100 shadow-2xl">
-      <div className="flex min-h-0 flex-1 flex-col">
-        <nav className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-4 text-xs font-semibold text-slate-400">
+    <>
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-950 font-sans text-slate-100">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <nav className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800/80 bg-slate-900/90 px-6 py-3 text-xs text-slate-400 backdrop-blur-xl">
           <div className="flex flex-wrap items-center gap-2">
             <Link to="/teacher/tools" className="hover:text-white">
               Teacher Tools
@@ -1179,8 +1179,8 @@ export function WorksheetGenerator({
           </button>
         </nav>
 
-        <div className="mt-6 grid min-h-0 flex-1 grid-cols-1 gap-8 overflow-hidden lg:grid-cols-2">
-          <div className="flex h-full min-h-0 flex-col justify-between space-y-5 rounded-2xl border border-slate-800/80 bg-[#060911] p-6">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-y-auto lg:grid-cols-12 lg:overflow-hidden">
+          <div className="flex min-h-0 flex-col justify-between border-r border-slate-800/80 bg-slate-900/50 p-6 lg:col-span-5 lg:overflow-y-auto">
             <div className="flex min-h-0 flex-1 flex-col">
               <header className="flex shrink-0 flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1322,7 +1322,7 @@ export function WorksheetGenerator({
                 onClick={() => void generate()}
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {busy ? 'Generating Worksheet...' : 'Generate'}
+                {busy ? 'Generating Worksheet...' : 'Generate Worksheet'}
               </button>
               {error && (
                 <p className="mt-4 rounded-xl border border-rose-500/40 bg-rose-950/50 px-4 py-3 text-sm text-rose-200">
@@ -1332,21 +1332,35 @@ export function WorksheetGenerator({
             </div>
           </div>
 
-          <div className="custom-scrollbar flex h-full min-h-0 flex-col space-y-4 overflow-y-auto rounded-2xl border border-slate-800/90 bg-[#080d1a] p-6 shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-400">
+          <div
+            data-worksheet-scroll
+            className="custom-scrollbar flex min-h-0 flex-col items-center bg-slate-950/90 p-6 lg:col-span-7 lg:overflow-y-auto"
+          >
+            <div className="mb-4 flex w-full max-w-3xl items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Template Preview
               </span>
-              <span className="text-xs font-semibold text-slate-500">Live Preview Mode</span>
+              <span className="text-xs text-slate-500">Live Preview Mode</span>
             </div>
-            <div className="flex min-h-[400px] flex-1 flex-col">
-              {busy && !worksheet ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 text-slate-400">
+            <div className="w-full max-w-3xl space-y-8 pb-12">
+              {worksheet && submitted ? (
+                <WorksheetStudio
+                  pane
+                  worksheet={worksheet}
+                  payload={submitted}
+                  busy={busy}
+                  onReset={resetAll}
+                  onOpenHistory={() => setHistoryOpen(true)}
+                  onFollowUp={(message, attachments) => {
+                    void refineCurrent(message, attachments);
+                  }}
+                  onTranslate={translateCurrent}
+                />
+              ) : busy ? (
+                <div className="flex min-h-[1000px] w-full flex-col items-center justify-center gap-3 rounded-2xl border border-slate-800/90 bg-slate-900/90 text-slate-400 shadow-2xl">
                   <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
                   <p className="text-sm">Generating your worksheet…</p>
                 </div>
-              ) : worksheet ? (
-                <PrintableWorksheet worksheet={worksheet} title={worksheet.title} />
               ) : (
                 <WorksheetTemplateSkeleton />
               )}
@@ -1355,6 +1369,21 @@ export function WorksheetGenerator({
         </div>
       </div>
     </div>
+    <WorksheetHistoryDrawer
+      open={historyOpen}
+      onClose={() => setHistoryOpen(false)}
+      topic={(submitted?.topicOrText ?? topicOrText).split('\n')[0]}
+      fallbackItems={savedVersions}
+      activeId={worksheet?.id}
+      onSelect={(item) => {
+        setWorksheet(withWorksheetId(item.worksheet));
+        setSubmitted(item.payload);
+        setGradeLevel(item.payload.gradeLevel);
+        setTopicOrText(item.payload.topicOrText);
+        setFiles(item.payload.attachments ?? []);
+      }}
+    />
+    </>
   );
 }
 
