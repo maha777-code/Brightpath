@@ -153,7 +153,6 @@ input::placeholder {
 }
 
 .animate-bot-glow {
-  /* glow is paired with float above; kept for explicit opt-in */
   animation: bot-glow 2.5s ease-in-out infinite;
 }
 
@@ -161,4 +160,57 @@ input::placeholder {
   animation:
     bot-wave 0.6s ease-in-out infinite,
     bot-glow 2.5s ease-in-out infinite;
+}
+
+@keyframes codex-float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes codex-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes codex-radar {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+.animate-codex-float {
+  animation: codex-float 4s ease-in-out infinite;
+}
+
+.animate-codex-radar {
+  animation: codex-radar 2.5s ease-out infinite;
+}
+
+.bg-shimmer-cyan {
+  background: linear-gradient(
+    90deg,
+    rgba(56, 189, 248, 0) 0%,
+    rgba(56, 189, 248, 0.15) 50%,
+    rgba(56, 189, 248, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: codex-shimmer 3s infinite;
 }

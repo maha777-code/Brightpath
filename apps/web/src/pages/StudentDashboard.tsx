@@ -272,13 +272,10 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
       <main className="custom-scrollbar min-h-screen w-full flex-1 overflow-y-auto bg-[#040711] p-8 pt-20 md:pt-8">
         {view === 'home' ? (
           <section className="w-full space-y-6 pt-2 text-center">
-            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-sm font-black uppercase tracking-widest text-cyan-400">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-cyan-400" /> SYS_OK
-            </span>
-            <h1 className="text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
-              Hi {firstName}. <span className="text-slate-400">How can I help today?</span>
-            </h1>
-            <div className="flex justify-center">
+            <div className="mb-6 flex flex-col items-center justify-center text-center">
+              <h1 className="text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
+                Hi {firstName}. <span className="text-slate-400">How can I help today?</span>
+              </h1>
               <SharadaChatBadge onClick={() => navigate('/dashboard/ai-tutor')} />
             </div>
             <form

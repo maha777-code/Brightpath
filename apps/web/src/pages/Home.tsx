@@ -160,13 +160,10 @@ export function HomePage() {
         style={FONT}
       >
         <section className="w-full space-y-6 pt-2 text-center">
-          <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-sm font-black uppercase tracking-widest text-cyan-400">
-            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-cyan-400" /> SYS_OK
-          </span>
-          <h1 className="text-center text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
-            Hi {firstName || workspace.greetingFallback}. <span className="text-slate-400">How can I help today?</span>
-          </h1>
-          <div className="mb-6 mt-2 flex justify-center">
+          <div className="mb-6 flex flex-col items-center justify-center text-center">
+            <h1 className="text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
+              Hi {firstName || workspace.greetingFallback}. <span className="text-slate-400">How can I help today?</span>
+            </h1>
             <SharadaChatBadge onClick={() => navigate('/chat/sharada')} />
           </div>
 
