@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  ArrowDown,
   Bookmark,
   ChevronDown,
   ChevronRight,
   Copy,
+  Download,
   History,
   Languages,
   Lightbulb,
@@ -24,6 +24,7 @@ import {
   ThumbsDown,
   ThumbsUp,
   Volume2,
+  X,
 } from 'lucide-react';
 import {
   applyWorksheetFollowUp,
@@ -37,7 +38,7 @@ import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 import { WorksheetHistoryDrawer } from '@/components/tools/WorksheetHistoryDrawer';
-import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
+import { VoiceListeningIndicator } from '@/components/VoiceListeningIndicator';
 
 const GRADE_LEVELS = [
   'Kindergarten',
@@ -116,33 +117,34 @@ function sanitizePastedText(text: string): string {
     .normalize('NFC');
 }
 
+type SpeechResultItem = ArrayLike<{ transcript?: string }> & { isFinal?: boolean };
+
 type SpeechRec = {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
   start: () => void;
   stop: () => void;
-  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript?: string }>> }) => void) | null;
+  onstart: (() => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onresult: ((event: { resultIndex: number; results: ArrayLike<SpeechResultItem> }) => void) | null;
   onend: (() => void) | null;
 };
+
+function speechRecognitionCtor(): (new () => SpeechRec) | null {
+  const win = window as unknown as {
+    SpeechRecognition?: new () => SpeechRec;
+    webkitSpeechRecognition?: new () => SpeechRec;
+  };
+  return win.SpeechRecognition ?? win.webkitSpeechRecognition ?? null;
+}
 
 function useDictation(onAppend: (text: string) => void) {
   const [listening, setListening] = useState(false);
   const recRef = useRef<{ stop: () => void } | null>(null);
 
   const toggle = () => {
-    const Ctor =
-      (
-        window as unknown as {
-          SpeechRecognition?: new () => SpeechRec;
-          webkitSpeechRecognition?: new () => SpeechRec;
-        }
-      ).SpeechRecognition ??
-      (
-        window as unknown as {
-          webkitSpeechRecognition?: new () => SpeechRec;
-        }
-      ).webkitSpeechRecognition;
+    const Ctor = speechRecognitionCtor();
 
     if (!Ctor) return;
     if (listening) {
@@ -176,32 +178,93 @@ type FormSnapshot = {
 
 function WorksheetTemplateSkeleton() {
   return (
-    <div className="relative flex min-h-[1000px] w-full flex-col space-y-6 rounded-2xl border border-slate-800/90 bg-slate-900/90 p-8 shadow-2xl md:p-12" aria-hidden>
-      <div className="flex items-center justify-between border-b border-slate-800/80 pb-4 text-xs font-semibold text-slate-400">
-        <span className="flex items-center gap-2">
-          Name <span className="inline-block w-40 border-b border-slate-700/80 py-1" />
-        </span>
-        <span className="flex items-center gap-2">
-          Date <span className="inline-block w-24 border-b border-slate-700/80 py-1" />
-        </span>
+    <div className="w-full max-w-full space-y-6 rounded-2xl border border-slate-800/90 bg-slate-900/90 p-8 font-sans text-slate-200 shadow-2xl md:p-10" aria-hidden>
+      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="text-sm font-semibold text-slate-300">
+          Name: <span className="ml-2 inline-block w-44 border-b border-slate-700" />
+        </div>
+        <div className="text-sm font-semibold text-slate-300">
+          Date: <span className="ml-2 inline-block w-32 border-b border-slate-700" />
+        </div>
       </div>
-      <div className="space-y-1">
-        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Title</span>
-        <div className="h-5 w-3/4 animate-pulse rounded-md border border-cyan-500/20 bg-cyan-500/10" />
+
+      <div className="py-2 text-center">
+        <h2 className="text-2xl font-bold tracking-wide text-white">Worksheet Title</h2>
+        <div className="mx-auto mt-2 h-1 w-24 rounded-full bg-cyan-500/40" />
       </div>
-      <div className="space-y-2">
-        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Section</span>
-        <div className="h-3 w-full animate-pulse rounded-full bg-slate-800/60" />
-        <div className="h-3 w-5/6 animate-pulse rounded-full bg-slate-800/60" />
+
+      <div className="space-y-3 pt-2">
+        <h3 className="text-base font-bold uppercase tracking-wider text-cyan-400">Section</h3>
+        <div className="space-y-2 pl-2">
+          {[1, 2, 3, 4, 5].map((num) => (
+            <div key={`sa-${num}`} className="text-sm text-slate-300">
+              <p className="font-medium">{num}. ____________________________________________</p>
+            </div>
+          ))}
+        </div>
       </div>
-      <ol className="space-y-4 border-t border-slate-800/60 pt-4">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <li key={n} className="flex items-center gap-3">
-            <span className="w-4 text-xs font-bold text-slate-500">{n}.</span>
-            <span className="h-3 flex-1 animate-pulse rounded-full bg-slate-800/60" />
-          </li>
-        ))}
-      </ol>
+
+      <div className="space-y-3 pt-2">
+        <h3 className="text-base font-bold uppercase tracking-wider text-cyan-400">Section</h3>
+        <div className="space-y-4 pl-2">
+          {[1, 2, 3, 4, 5].map((qNum) => (
+            <div key={`mc-${qNum}`} className="space-y-1 text-sm text-slate-300">
+              <p className="font-semibold">{qNum}. Question prompt placeholder...</p>
+              <div className="grid grid-cols-2 gap-2 pl-4 text-xs text-slate-400">
+                <span>A. Option A</span>
+                <span>B. Option B</span>
+                <span>C. Option C</span>
+                <span>D. Option D</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3 pt-2">
+        <h3 className="text-base font-bold uppercase tracking-wider text-cyan-400">Section</h3>
+        <div className="space-y-2 pl-2">
+          {[1, 2, 3].map((num) => (
+            <div key={`ext-${num}`} className="space-y-1 text-sm text-slate-300">
+              <p className="font-medium">{num}. Extended answer prompt...</p>
+              <div className="h-6 border-b border-dashed border-slate-800" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3 pt-2">
+        <h3 className="text-base font-bold uppercase tracking-wider text-cyan-400">SectionLabel</h3>
+        <div className="grid grid-cols-1 gap-2 pl-2 text-sm text-slate-300 md:grid-cols-2">
+          {[1, 2, 3, 4, 5].map((num) => (
+            <div key={`sl-${num}`} className="rounded-lg border border-slate-800/60 bg-slate-950/40 p-2">
+              {num}. Label item description
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3 pt-2">
+        <h3 className="text-base font-bold uppercase tracking-wider text-cyan-400">Label</h3>
+        <div className="grid grid-cols-1 gap-2 pl-2 text-sm text-slate-300 md:grid-cols-2">
+          {[6, 7, 8, 9, 10].map((num) => (
+            <div key={`l-${num}`} className="rounded-lg border border-slate-800/60 bg-slate-950/40 p-2">
+              {num}. Label item description
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3 pt-2">
+        <h3 className="text-base font-bold uppercase tracking-wider text-cyan-400">Label</h3>
+        <div className="grid grid-cols-1 gap-2 pl-2 text-sm text-slate-300 md:grid-cols-2">
+          {[11, 12, 13].map((num) => (
+            <div key={`l2-${num}`} className="rounded-lg border border-slate-800/60 bg-slate-950/40 p-2">
+              {num}. Label item description
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -387,6 +450,7 @@ function WorksheetStudio({
   const [exportOpen, setExportOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [followUp, setFollowUp] = useState('');
   const [followUpFiles, setFollowUpFiles] = useState<string[]>([]);
@@ -399,6 +463,8 @@ function WorksheetStudio({
   const expandedScrollRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const followUpFileRef = useRef<HTMLInputElement>(null);
+  const followUpRecognitionRef = useRef<SpeechRec | null>(null);
+  const followUpTranscriptRef = useRef('');
   const crumb = topicCrumb(payload.topicOrText, worksheet.title);
   const pageCount = Math.max(2, 1 + worksheet.sections.length);
   const topicShort =
@@ -407,6 +473,13 @@ function WorksheetStudio({
   useEffect(() => {
     setTitle(worksheet.title);
   }, [worksheet.title]);
+
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis?.cancel();
+      followUpRecognitionRef.current?.stop();
+    };
+  }, []);
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -450,11 +523,48 @@ function WorksheetStudio({
     }, 250);
   };
 
-  const speak = () => {
-    const text = formatWorksheetPlainText({ ...worksheet, title });
+  const toggleSpeech = () => {
+    if (!('speechSynthesis' in window)) {
+      showToast('Text-to-speech is not supported in this browser.');
+      return;
+    }
+    if (isSpeaking || window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    const textToRead = formatWorksheetPlainText({ ...worksheet, title });
+    const utterance = new SpeechSynthesisUtterance(textToRead.slice(0, 4000));
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
     window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text.slice(0, 4000));
-    window.speechSynthesis.speak(utter);
+    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
+  };
+
+  const handleDownloadDoc = () => {
+    const previewElement = document.getElementById('worksheet-template-preview');
+    if (!previewElement) {
+      showToast('No generated worksheet content available to download.');
+      return;
+    }
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('Please allow popups to download the document PDF.');
+      return;
+    }
+    const safeTitle = title.replace(/[&<>"']/g, (ch) =>
+      ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : ch === '"' ? '&quot;' : '&#39;',
+    );
+    printWindow.document.write(
+      `<!DOCTYPE html><html><head><title>${safeTitle}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#1e293b}h1,h2{text-align:center;color:#0f172a}.header-line{display:flex;justify-content:space-between;border-bottom:2px solid #cbd5e1;padding-bottom:10px;margin-bottom:20px}.section{margin-top:20px;font-weight:bold;font-size:16px;border-bottom:1px solid #e2e8f0;padding-bottom:4px}.question{margin:12px 0;font-size:14px}.options{margin-left:20px;margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:8px}</style></head><body>${previewElement.innerHTML}${watermarkFooterHtml()}</body></html>`,
+    );
+    printWindow.document.close();
+    printWindow.focus();
+    window.setTimeout(() => {
+      printWindow.print();
+    }, 250);
+    printWindow.onafterprint = () => printWindow.close();
   };
 
   const share = async () => {
@@ -476,10 +586,21 @@ function WorksheetStudio({
   };
 
   const sendFeedback = (rating: 'positive' | 'negative') => {
-    setFeedback(rating);
-    showToast('Thank you for your feedback!');
+    const next = feedback === rating ? null : rating;
+    setFeedback(next);
+    if (!next) {
+      showToast('Rating cleared.');
+      return;
+    }
+    showToast(
+      next === 'positive'
+        ? 'Thanks for your positive rating!'
+        : 'Feedback recorded. We will improve this generator.',
+    );
     const worksheetId = worksheet.id || title;
-    void api.submitTeacherToolFeedback({ worksheetId, rating }).catch(() => undefined);
+    void api.submitTeacherToolFeedback({ worksheetId, rating: next }).catch(() => {
+      showToast('Feedback saved on this page.');
+    });
   };
 
   const handleTranslate = async (language: string) => {
@@ -494,58 +615,86 @@ function WorksheetStudio({
     }
   };
 
-  const handleScrollToBottom = () => {
-    const paneScroller = pane
-      ? scrollContainerRef.current?.closest('[data-worksheet-scroll]')
-      : null;
-    const scroller = expanded
-      ? expandedScrollRef.current
-      : paneScroller instanceof HTMLElement
-        ? paneScroller
-        : scrollContainerRef.current;
-    if (scroller) {
-      scroller.scrollTo({
-        top: scroller.scrollHeight,
-        behavior: 'smooth',
-      });
+  const toggleFollowUpVoice = () => {
+    const Ctor = speechRecognitionCtor();
+    if (!Ctor) {
+      showToast('Voice input is not supported in this browser. Please use Chrome or Edge.');
+      return;
+    }
+    if (listeningFollowUp) {
+      followUpRecognitionRef.current?.stop();
+      setListeningFollowUp(false);
+      return;
+    }
+
+    const recognition = new Ctor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    followUpTranscriptRef.current = followUp.trim() ? `${followUp.trim()} ` : '';
+
+    recognition.onstart = () => setListeningFollowUp(true);
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const result = event.results[i];
+        const transcript = result?.[0]?.transcript ?? '';
+        if (result?.isFinal) followUpTranscriptRef.current += `${transcript} `;
+        else interimTranscript += transcript;
+      }
+      setFollowUp((followUpTranscriptRef.current + interimTranscript).trimStart());
+    };
+    recognition.onerror = () => setListeningFollowUp(false);
+    recognition.onend = () => setListeningFollowUp(false);
+    followUpRecognitionRef.current = recognition;
+    try {
+      recognition.start();
+    } catch {
+      setListeningFollowUp(false);
+      showToast('Voice input is not supported in this browser. Please use Chrome or Edge.');
     }
   };
 
   const sendFollowUp = () => {
     const msg = followUp.trim();
     if (!msg || busy) return;
+    followUpRecognitionRef.current?.stop();
+    setListeningFollowUp(false);
     setFollowUp('');
     setPromptMenuOpen(false);
     onFollowUp(msg, followUpFiles);
     setFollowUpFiles([]);
   };
 
+  const glassIconButton =
+    'inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-700/60 bg-slate-900/80 p-2 text-slate-300 shadow-md transition-all hover:border-cyan-500/50 hover:text-cyan-400';
+
   const statusBar = (
-    <div className="mt-2 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
+    <div className="mt-2 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-4 text-sm text-emerald-300">
       <span className="font-medium">
         The {title} Studio document has been created successfully.
       </span>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
         <div className="relative">
           <button
             type="button"
-            className="rounded-lg p-1.5 text-emerald-900 hover:bg-emerald-100"
+            className={glassIconButton}
             aria-label="Translate worksheet"
-            title="Translate worksheet"
+            title="Translate Document"
             onClick={() => setIsTranslateModalOpen((v) => !v)}
           >
             <Languages className="h-4 w-4" />
           </button>
           {isTranslateModalOpen ? (
-            <div className="absolute bottom-full right-0 z-30 mb-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
-              <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div className="absolute bottom-full right-0 z-30 mb-2 w-56 overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900 py-1 shadow-xl">
+              <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Translate to
               </p>
               {TRANSLATE_LANGUAGES.map((language) => (
                 <button
                   key={language.id}
                   type="button"
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-700 hover:bg-cyan-50 hover:text-cyan-800"
+                  className="flex w-full cursor-pointer appearance-none items-center justify-between bg-transparent px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800 hover:text-cyan-300"
                   onClick={() => void handleTranslate(language.id)}
                 >
                   <span>{language.id}</span>
@@ -557,19 +706,26 @@ function WorksheetStudio({
         </div>
         <button
           type="button"
-          className="rounded-lg p-1.5 text-emerald-900 hover:bg-emerald-100"
-          aria-label="Read aloud"
-          onClick={speak}
+          className={
+            isSpeaking
+              ? 'inline-flex cursor-pointer appearance-none items-center justify-center animate-pulse rounded-xl border border-cyan-400 bg-cyan-500/20 p-2 text-cyan-400 transition-all'
+              : glassIconButton
+          }
+          aria-label={isSpeaking ? 'Stop reading' : 'Read aloud'}
+          title={isSpeaking ? 'Stop Reading' : 'Read Aloud'}
+          onClick={toggleSpeech}
         >
           <Volume2 className="h-4 w-4" />
         </button>
         <button
           type="button"
-          className={[
-            'rounded-lg p-1.5 hover:bg-emerald-100',
-            feedback === 'positive' ? 'text-cyan-600' : 'text-emerald-900',
-          ].join(' ')}
-          aria-label="Thumbs up"
+          className={
+            feedback === 'positive'
+              ? 'inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-emerald-400 bg-emerald-500/20 p-2 text-emerald-400 transition-all'
+              : 'inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-700/60 bg-slate-900/80 p-2 text-slate-300 shadow-md transition-all hover:border-emerald-500/50 hover:text-emerald-400'
+          }
+          aria-label="Helpful output"
+          title="Helpful output"
           aria-pressed={feedback === 'positive'}
           onClick={() => sendFeedback('positive')}
         >
@@ -577,11 +733,13 @@ function WorksheetStudio({
         </button>
         <button
           type="button"
-          className={[
-            'rounded-lg p-1.5 hover:bg-emerald-100',
-            feedback === 'negative' ? 'text-cyan-600' : 'text-emerald-900',
-          ].join(' ')}
-          aria-label="Thumbs down"
+          className={
+            feedback === 'negative'
+              ? 'inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-rose-400 bg-rose-500/20 p-2 text-rose-400 transition-all'
+              : 'inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-700/60 bg-slate-900/80 p-2 text-slate-300 shadow-md transition-all hover:border-rose-500/50 hover:text-rose-400'
+          }
+          aria-label="Needs improvement"
+          title="Needs improvement"
           aria-pressed={feedback === 'negative'}
           onClick={() => sendFeedback('negative')}
         >
@@ -589,19 +747,19 @@ function WorksheetStudio({
         </button>
         <button
           type="button"
-          className="rounded-lg bg-cyan-600 p-1.5 text-white shadow-sm hover:bg-cyan-700"
-          aria-label="Scroll to bottom"
-          title="Scroll to bottom"
-          onClick={handleScrollToBottom}
+          className="inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl bg-cyan-500 p-2.5 font-bold text-slate-950 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all hover:bg-cyan-400"
+          aria-label="Download worksheet"
+          title="Download Worksheet PDF / Doc"
+          onClick={handleDownloadDoc}
         >
-          <ArrowDown className="h-4 w-4" />
+          <Download className="h-4 w-4" />
         </button>
       </div>
     </div>
   );
 
   const documentPaper = (
-    <div ref={previewRef} className="mx-auto max-w-3xl rounded-lg bg-white p-2 shadow-md sm:p-4">
+    <div id="worksheet-template-preview" ref={previewRef} className="w-full max-w-full rounded-lg bg-white p-2 shadow-md sm:p-4">
       <PrintableWorksheet worksheet={worksheet} title={title} />
     </div>
   );
@@ -631,27 +789,30 @@ function WorksheetStudio({
           </nav>
         )}
         <div className="flex flex-wrap items-start gap-2">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-full border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50"
+              className="inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-700/60 bg-slate-900/80 p-2.5 text-slate-300 shadow-md transition-all hover:border-cyan-500/50 hover:text-cyan-400"
               aria-label="Share worksheet"
+              title="Share Worksheet"
               onClick={() => void share()}
             >
               <Share2 className="h-4 w-4" />
             </button>
             <button
               type="button"
-              className="rounded-full border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50"
+              className="inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-700/60 bg-slate-900/80 p-2.5 text-slate-300 shadow-md transition-all hover:border-cyan-500/50 hover:text-cyan-400"
               aria-label="Create new worksheet"
+              title="Add New"
               onClick={onReset}
             >
               <Plus className="h-4 w-4" />
             </button>
             <button
               type="button"
-              className="rounded-full border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50"
+              className="inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-700/60 bg-slate-900/80 p-2.5 text-slate-300 shadow-md transition-all hover:border-cyan-500/50 hover:text-cyan-400"
               aria-label="Version history"
+              title="Version history"
               onClick={onOpenHistory}
             >
               <History className="h-4 w-4" />
@@ -813,23 +974,29 @@ function WorksheetStudio({
       <div
         id="ws-follow-up"
         ref={chatContainerRef}
-        className="mt-3 shrink-0 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm"
+        className="mx-auto mt-3 w-full max-w-full shrink-0"
       >
+        {listeningFollowUp ? (
+          <div className="mb-2">
+            <VoiceListeningIndicator isListening onStopListening={toggleFollowUpVoice} />
+          </div>
+        ) : null}
         {followUpFiles.length > 0 && (
-          <ul className="mb-1 flex flex-wrap gap-1.5 px-1">
+          <ul className="mb-2 flex flex-wrap gap-1.5 px-1">
             {followUpFiles.map((name) => (
-              <li key={name} className="rounded-full bg-cyan-50 px-2.5 py-0.5 text-xs font-medium text-cyan-700">
+              <li key={name} className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 text-xs font-medium text-cyan-300">
                 {name}
               </li>
             ))}
           </ul>
         )}
-        <div className="flex items-end gap-2">
+        <div className="flex w-full items-end gap-2 rounded-2xl border border-slate-800/90 bg-slate-900/90 p-2 shadow-2xl backdrop-blur-xl transition-all focus-within:border-cyan-500/50 focus-within:ring-1 focus-within:ring-cyan-500/30">
           <button
             type="button"
-            className="mb-1 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-            aria-label="Attach extra context"
             onClick={() => followUpFileRef.current?.click()}
+            className="inline-flex shrink-0 cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-800 bg-slate-950/60 p-2.5 text-slate-400 transition-all hover:border-slate-700 hover:bg-slate-800 hover:text-cyan-400"
+            title="Attach File or Context"
+            aria-label="Attach extra context"
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -854,8 +1021,9 @@ function WorksheetStudio({
             }}
           />
           <textarea
-            className="max-h-28 min-h-[44px] flex-1 resize-y bg-transparent py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400"
-            placeholder="Continue the conversation..."
+            className="max-h-32 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-2.5 text-sm leading-relaxed text-slate-200 outline-none placeholder:text-slate-500"
+            style={{ color: '#e2e8f0', WebkitTextFillColor: '#e2e8f0' }}
+            placeholder="Continue the conversation or modify worksheet..."
             rows={1}
             value={followUp}
             onChange={(e) => setFollowUp(e.target.value)}
@@ -866,54 +1034,63 @@ function WorksheetStudio({
               }
             }}
           />
-          <button
-            type="button"
-            className={['mb-1', voiceMicButtonClass(listeningFollowUp, 'rounded-lg p-2')].join(' ')}
-            aria-label={listeningFollowUp ? 'Stop recording' : 'Voice recording'}
-            title={listeningFollowUp ? 'Stop recording' : 'Start voice input'}
-            onClick={() => setListeningFollowUp((v) => !v)}
-          >
-            <Mic className="h-4 w-4" />
-          </button>
-          {listeningFollowUp ? (
-            <VoiceListeningIndicator isListening onStopListening={() => setListeningFollowUp(false)} />
-          ) : null}
-          <div className="relative">
+          <div className="flex shrink-0 items-center gap-1.5 pb-0.5">
             <button
               type="button"
-              className="mb-1 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-              aria-label="Prompt assistant"
-              onClick={() => setPromptMenuOpen((v) => !v)}
+              onClick={toggleFollowUpVoice}
+              className={`inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl p-2 transition-all ${
+                listeningFollowUp
+                  ? 'animate-pulse border border-rose-500/50 bg-rose-500/20 text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.4)]'
+                  : 'border border-slate-800 bg-slate-950/60 text-slate-400 hover:border-cyan-500/40 hover:bg-cyan-500/20 hover:text-cyan-400'
+              }`}
+              title={listeningFollowUp ? 'Listening... Speak now' : 'Voice Input'}
+              aria-label={listeningFollowUp ? 'Stop recording' : 'Voice input'}
             >
-              <Lightbulb className="h-4 w-4" />
+              <Mic className="h-4 w-4" />
             </button>
-            {promptMenuOpen && (
-              <div className="absolute bottom-10 right-0 z-20 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
-                {PROMPT_SUGGESTIONS.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-cyan-50 hover:text-cyan-800"
-                    onClick={() => {
-                      setFollowUp(suggestion);
-                      setPromptMenuOpen(false);
-                    }}
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setPromptMenuOpen((v) => !v)}
+                className="inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-800 bg-slate-950/60 p-2 text-slate-400 transition-all hover:border-amber-500/40 hover:bg-amber-500/20 hover:text-amber-400"
+                title="Prompt Assistant Ideas"
+                aria-label="Prompt assistant"
+              >
+                <Lightbulb className="h-4 w-4" />
+              </button>
+              {promptMenuOpen && (
+                <div className="absolute bottom-12 right-0 z-20 w-72 overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900 py-1 shadow-xl">
+                  {PROMPT_SUGGESTIONS.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      className="block w-full cursor-pointer appearance-none bg-transparent px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800 hover:text-cyan-300"
+                      onClick={() => {
+                        setFollowUp(suggestion);
+                        setPromptMenuOpen(false);
+                      }}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={sendFollowUp}
+              disabled={busy || !followUp.trim()}
+              className={`inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl p-2.5 font-bold shadow-md transition-all ${
+                followUp.trim() && !busy
+                  ? 'bg-cyan-500 text-slate-950 shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:scale-105 hover:bg-cyan-400'
+                  : 'cursor-not-allowed border border-slate-700/50 bg-slate-800 text-slate-600'
+              }`}
+              title="Send Message"
+              aria-label="Send"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </button>
           </div>
-          <button
-            type="button"
-            disabled={busy || !followUp.trim()}
-            className="mb-1 rounded-full bg-cyan-600 p-2 text-white hover:bg-cyan-700 disabled:opacity-50"
-            aria-label="Send"
-            onClick={sendFollowUp}
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          </button>
         </div>
       </div>
       {expanded ? (
@@ -933,7 +1110,7 @@ function WorksheetStudio({
               ref={expandedScrollRef}
               className="custom-scrollbar min-h-0 flex-1 overflow-y-auto scroll-smooth bg-slate-100 p-6"
             >
-              <div className="mx-auto max-w-3xl rounded-lg bg-white p-2 shadow-md sm:p-4">
+              <div className="w-full max-w-full rounded-lg bg-white p-2 shadow-md sm:p-4">
                 <PrintableWorksheet worksheet={worksheet} title={title} />
               </div>
             </div>
@@ -1155,6 +1332,15 @@ export function WorksheetGenerator({
     }
   };
 
+  const navigate = useNavigate();
+  const handleClose = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate('/teacher/tools');
+  };
+
   const words = countWords(topicOrText);
 
   return (
@@ -1171,16 +1357,16 @@ export function WorksheetGenerator({
           </div>
           <button
             type="button"
-            className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-slate-700/60 bg-slate-800/80 px-3.5 py-1.5 text-xs font-bold text-slate-200 transition-all hover:bg-slate-700"
-            onClick={resetAll}
-            aria-label="Reset worksheet generator"
+            onClick={handleClose}
+            className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-slate-700/60 bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-300 transition-all hover:border-rose-500/40 hover:bg-rose-500/20 hover:text-rose-400"
           >
-            <RotateCcw className="h-3.5 w-3.5" /> Reset
+            <X className="h-4 w-4" />
+            <span>Close</span>
           </button>
         </nav>
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-y-auto lg:grid-cols-12 lg:overflow-hidden">
-          <div className="flex min-h-0 flex-col justify-between border-r border-slate-800/80 bg-slate-900/50 p-6 lg:col-span-5 lg:overflow-y-auto">
+          <div className="flex min-h-0 flex-col justify-between border-r border-slate-800/80 bg-slate-900/50 p-6 lg:col-span-4 lg:overflow-y-auto">
             <div className="flex min-h-0 flex-1 flex-col">
               <header className="flex shrink-0 flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1260,10 +1446,14 @@ export function WorksheetGenerator({
                     />
                     <button
                       type="button"
-                      className={`absolute right-0 top-0 ${voiceMicButtonClass(listening, 'rounded-xl p-2')}`}
-                      aria-label={listening ? 'Stop recording' : 'Start recording voice prompt'}
-                      title={listening ? 'Stop recording' : 'Start voice input'}
                       onClick={toggle}
+                      className={`absolute right-3 top-3 cursor-pointer appearance-none rounded-xl p-2 shadow-lg backdrop-blur-md transition-all duration-300 ${
+                        listening
+                          ? 'animate-pulse border border-rose-500/50 bg-rose-500/20 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
+                          : 'border border-slate-700/60 bg-slate-800/80 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)] hover:scale-105 hover:border-cyan-500/40 hover:bg-cyan-500/20 hover:text-cyan-300'
+                      }`}
+                      title={listening ? 'Listening...' : 'Click to speak'}
+                      aria-label={listening ? 'Stop recording' : 'Start recording voice prompt'}
                     >
                       <Mic className="h-4 w-4" />
                     </button>
@@ -1334,15 +1524,15 @@ export function WorksheetGenerator({
 
           <div
             data-worksheet-scroll
-            className="custom-scrollbar flex min-h-0 flex-col items-center bg-slate-950/90 p-6 lg:col-span-7 lg:overflow-y-auto"
+            className="custom-scrollbar flex min-h-0 w-full flex-col items-stretch bg-slate-950/90 p-6 lg:col-span-8 lg:overflow-y-auto"
           >
-            <div className="mb-4 flex w-full max-w-3xl items-center justify-between">
+            <div className="mb-4 flex w-full max-w-full items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Template Preview
               </span>
               <span className="text-xs text-slate-500">Live Preview Mode</span>
             </div>
-            <div className="w-full max-w-3xl space-y-8 pb-12">
+            <div className="w-full max-w-full space-y-8 pb-12">
               {worksheet && submitted ? (
                 <WorksheetStudio
                   pane
