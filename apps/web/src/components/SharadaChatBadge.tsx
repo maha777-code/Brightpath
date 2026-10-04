@@ -7,7 +7,7 @@ interface SharadaChatBadgeProps {
 
 export const SharadaChatBadge: React.FC<SharadaChatBadgeProps> = ({ onClick, className = '' }) => {
   return (
-    <div className={`group relative my-6 inline-flex items-center justify-center ${className}`}>
+    <div className={`group relative inline-flex items-center justify-center ${className}`}>
       {/* Enlarged 3D robot overlay, sitting outside the pill */}
       <div className="pointer-events-none absolute -left-8 -top-6 z-30 flex h-24 w-20 items-center justify-center md:h-28 md:w-24">
         <div className="absolute inset-2 rounded-full bg-cyan-400/25 blur-lg transition-all duration-300 group-hover:bg-cyan-400/45" />

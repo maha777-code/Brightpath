@@ -26,6 +26,7 @@ import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLay
 import { SharadaChatBadge } from '@/components/SharadaChatBadge';
 import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
 import { useDictation } from '@/hooks/useDictation';
+import { readSavedWorksheets } from '@/lib/savedWorksheets';
 
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 
@@ -100,6 +101,7 @@ export function HomePage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState('');
   const [reply, setReply] = useState<string | null>(null);
+  const [savedWorksheets, setSavedWorksheets] = useState(() => readSavedWorksheets());
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const { listening, toggle } = useDictation((text) => {
     setPrompt((current) => (current.trim() ? `${current.trim()} ${text}` : text));
@@ -120,6 +122,16 @@ export function HomePage() {
       }),
     [],
   );
+
+  useEffect(() => {
+    const refresh = () => setSavedWorksheets(readSavedWorksheets());
+    window.addEventListener('focus', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
 
   useEffect(() => {
     void api
@@ -166,15 +178,18 @@ export function HomePage() {
         style={FONT}
       >
         <section className="w-full space-y-6 pt-2 text-center">
-          <div className="mb-6 flex flex-col items-center justify-center text-center">
-            <h1 className="text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
-              Hi {firstName || workspace.greetingFallback}. <span className="text-slate-400">How can I help today?</span>
-            </h1>
-            <SharadaChatBadge onClick={() => navigate('/chat/sharada')} />
-          </div>
+          <h1 className="mb-8 text-center text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
+            Hi {firstName || workspace.greetingFallback}. <span className="text-slate-400">How can I help today?</span>
+          </h1>
 
+          <div className="mx-auto mb-10 flex w-full max-w-6xl flex-col items-center justify-center gap-5 md:flex-row">
+            <div className="flex shrink-0 items-center justify-center transition-transform hover:scale-105">
+              <SharadaChatBadge onClick={() => navigate('/chat/sharada')} />
+            </div>
+
+            <div className="w-full min-w-0 flex-1">
           <form
-            className="mx-auto my-4 flex w-full flex-col justify-between space-y-3 rounded-[28px] border border-slate-700/50 bg-[#131b2e] p-4 text-left shadow-2xl transition-all duration-200 hover:border-slate-600 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20 md:w-[75%] sm:p-5"
+            className="flex w-full flex-col justify-between space-y-3 rounded-[28px] border border-slate-700/50 bg-[#131b2e] p-4 text-left shadow-2xl transition-all duration-200 hover:border-slate-600 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20 sm:p-5"
             onSubmit={(event) => {
               event.preventDefault();
               sendPrompt();
@@ -257,10 +272,12 @@ export function HomePage() {
           </form>
 
           {reply ? (
-            <p className="mx-auto w-full rounded-xl border border-slate-800 bg-[#080d1a] px-4 py-3 text-left text-lg text-slate-300 md:w-[75%]">
+            <p className="mt-3 w-full rounded-xl border border-slate-800 bg-[#080d1a] px-4 py-3 text-left text-lg text-slate-300">
               {reply}
             </p>
           ) : null}
+            </div>
+          </div>
         </section>
 
         <div className="mt-10 grid w-full flex-1 grid-cols-1 gap-8 lg:grid-cols-3">
@@ -329,6 +346,33 @@ export function HomePage() {
               <span className="text-base text-slate-300">{workspace.activity}</span>
             </h2>
             <div className="mt-4 w-full space-y-4 rounded-2xl border border-slate-800/80 bg-[#080d1a] p-5 shadow-lg">
+              {savedWorksheets.map((item) => (
+                <div
+                  key={item.id}
+                  className="group cursor-pointer space-y-1.5 rounded-xl border border-amber-500/20 bg-[#0a0f20] p-4 transition-all hover:bg-slate-800/50"
+                  onClick={() =>
+                    navigate('/teacher/tools/worksheet-generator', { state: { savedWorksheetId: item.id } })
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      navigate('/teacher/tools/worksheet-generator', { state: { savedWorksheetId: item.id } });
+                    }
+                  }}
+                  role="link"
+                  tabIndex={0}
+                >
+                  <h4 className="line-clamp-1 text-lg font-bold text-slate-100 transition-colors group-hover:text-cyan-400">
+                    {item.title}
+                  </h4>
+                  <div className="flex items-center justify-between text-sm font-medium text-slate-400">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-amber-400" /> Saved worksheet
+                    </span>
+                    <span>{item.gradeLevel}</span>
+                  </div>
+                </div>
+              ))}
               {RECENT_ACTIVITY.map((act) => (
                 <div
                   key={act.id}

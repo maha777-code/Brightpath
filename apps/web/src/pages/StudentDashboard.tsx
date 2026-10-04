@@ -37,6 +37,7 @@ import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 import { SharadaChatBadge } from '@/components/SharadaChatBadge';
 import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
 import { useDictation } from '@/hooks/useDictation';
+import { readSavedWorksheets } from '@/lib/savedWorksheets';
 
 const FONT = CYBER_FONT_STYLE;
 
@@ -118,6 +119,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
   const [active, setActive] = useState<ToolDefinition | null>(null);
   const [toolDenied, setToolDenied] = useState('');
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [savedWorksheets, setSavedWorksheets] = useState(() => readSavedWorksheets());
   const [classCode, setClassCode] = useState('');
   const [joinMsg, setJoinMsg] = useState('');
   const [joining, setJoining] = useState(false);
@@ -132,6 +134,10 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
     [role, email],
   );
   const visibleTools = view === 'tools' ? tools : tools;
+
+  useEffect(() => {
+    setSavedWorksheets(readSavedWorksheets());
+  }, [view]);
 
   useEffect(() => {
     const field = textareaRef.current;
@@ -290,14 +296,16 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
       <main className="custom-scrollbar min-h-screen w-full flex-1 overflow-y-auto bg-[#040711] p-8 pt-20 md:pt-8">
         {view === 'home' ? (
           <section className="w-full space-y-6 pt-2 text-center">
-            <div className="mb-6 flex flex-col items-center justify-center text-center">
-              <h1 className="text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
-                Hi {firstName}. <span className="text-slate-400">How can I help today?</span>
-              </h1>
-              <SharadaChatBadge onClick={() => navigate('/dashboard/ai-tutor')} />
-            </div>
+            <h1 className="mb-8 text-center text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
+              Hi {firstName}. <span className="text-slate-400">How can I help today?</span>
+            </h1>
+            <div className="mx-auto mb-10 flex w-full max-w-6xl flex-col items-center justify-center gap-5 md:flex-row">
+              <div className="flex shrink-0 items-center justify-center transition-transform hover:scale-105">
+                <SharadaChatBadge onClick={() => navigate('/dashboard/ai-tutor')} />
+              </div>
+              <div className="w-full min-w-0 flex-1">
             <form
-              className="mx-auto flex w-full flex-col space-y-3 rounded-[28px] border border-slate-700/50 bg-[#131b2e] p-4 text-left shadow-2xl transition-all duration-200 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20 md:w-[75%] sm:p-5"
+              className="flex w-full flex-col space-y-3 rounded-[28px] border border-slate-700/50 bg-[#131b2e] p-4 text-left shadow-2xl transition-all duration-200 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20 sm:p-5"
               onSubmit={(event) => {
                 event.preventDefault();
                 sendPrompt();
@@ -363,7 +371,9 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                 </button>
               </div>
             </form>
-            {reply ? <p className="mx-auto w-full rounded-xl border border-slate-800 bg-[#080d1a] px-4 py-3 text-left text-slate-300 md:w-[75%]">{reply}</p> : null}
+            {reply ? <p className="mt-3 w-full rounded-xl border border-slate-800 bg-[#080d1a] px-4 py-3 text-left text-slate-300">{reply}</p> : null}
+              </div>
+            </div>
           </section>
         ) : (
           <section className="mb-8">
@@ -455,6 +465,40 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                 </div>
               </div>
               <div className="space-y-4 rounded-2xl border border-slate-800/80 bg-[#080d1a] p-5">
+                {savedWorksheets.map((item) => (
+                  <div
+                    key={item.id}
+                    role="link"
+                    tabIndex={0}
+                    className="cursor-pointer rounded-xl border border-amber-500/20 bg-[#0a0f20] p-4 hover:bg-slate-800/50"
+                    onClick={() => {
+                      try {
+                        sessionStorage.setItem('mindvault_open_saved_worksheet', item.id);
+                      } catch {
+                        /* ignore */
+                      }
+                      const tool = tools.find((entry) => entry.id === 'worksheet-generator');
+                      if (tool) openTool(tool);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') return;
+                      event.preventDefault();
+                      try {
+                        sessionStorage.setItem('mindvault_open_saved_worksheet', item.id);
+                      } catch {
+                        /* ignore */
+                      }
+                      const tool = tools.find((entry) => entry.id === 'worksheet-generator');
+                      if (tool) openTool(tool);
+                    }}
+                  >
+                    <h4 className="line-clamp-1 text-lg font-bold text-slate-100">{item.title}</h4>
+                    <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-400">
+                      <Clock className="h-4 w-4 text-amber-400" />
+                      Saved worksheet · {item.gradeLevel}
+                    </p>
+                  </div>
+                ))}
                 {learningPath.loading ? (
                   <p className="text-sm text-slate-400">Loading study sessions…</p>
                 ) : sessions.length === 0 ? (
