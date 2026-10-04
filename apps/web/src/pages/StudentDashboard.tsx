@@ -322,13 +322,10 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
 
       <main className="custom-scrollbar min-h-screen w-full flex-1 overflow-y-auto bg-[#040711] p-8 pt-20 md:pt-8">
         {view === 'home' ? (
-          <section className="w-full space-y-6 pt-2 text-center">
-            <h1 className="mb-8 text-center text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
-              Hi {firstName}. <span className="text-slate-400">How can I help today?</span>
-            </h1>
-            <SharadaPromptFrame onChat={() => navigate('/dashboard/ai-tutor')}>
+          <section className="w-full text-center">
+            <SharadaPromptFrame name={firstName} onChat={() => navigate('/dashboard/ai-tutor')}>
             <form
-              className="flex min-h-[140px] w-full flex-col justify-between rounded-3xl border border-slate-800/90 bg-slate-900/90 p-5 text-left shadow-2xl backdrop-blur-xl transition-all focus-within:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-500/20"
+              className="flex min-h-[150px] w-full flex-col justify-between rounded-3xl border border-slate-800/90 bg-gradient-to-b from-slate-900/90 via-slate-900/80 to-slate-950/90 p-5 text-left shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-all duration-300 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20"
               onSubmit={(event) => {
                 event.preventDefault();
                 sendPrompt();
@@ -349,8 +346,8 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                 className="custom-scrollbar min-h-[88px] w-full flex-1 resize-none overflow-y-auto border-none bg-transparent px-2 py-1 text-base text-slate-100 placeholder-slate-500 focus:outline-none md:text-lg"
                 style={FONT}
               />
-              <div className="mt-2 flex items-center justify-between border-t border-slate-800/60 pt-3">
-                <div className="flex items-center gap-3">
+              <div className="mt-2 flex items-center justify-between border-t border-slate-800/80 pt-3">
+                <div className="flex flex-wrap items-center gap-2.5">
                   <button
                     type="button"
                     className="cursor-pointer appearance-none rounded-xl border border-slate-800 bg-slate-950/80 p-2.5 text-slate-400 transition-all hover:border-slate-700 hover:text-cyan-400"
@@ -380,11 +377,11 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                     <span className={`rounded-lg p-1 ${listening ? 'bg-white/20 text-white' : 'bg-cyan-500/20 text-cyan-400'}`}>
                       <Mic className="h-4 w-4" />
                     </span>
-                    <span className="hidden font-semibold sm:inline">{listening ? 'Listening...' : 'Voice'}</span>
+                    <span className="font-semibold">{listening ? 'Listening...' : 'Voice'}</span>
                   </button>
                   <button
                     type="button"
-                    className="hidden cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-950/60 px-3.5 py-2 text-xs font-medium text-cyan-300 shadow-sm md:inline-flex"
+                    className="hidden cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-cyan-500/20 bg-cyan-950/40 px-3.5 py-2 text-xs font-medium text-cyan-300 shadow-sm md:inline-flex"
                     onClick={() => {
                       setPrompt('Generate a classroom image of ');
                       setReply(null);
@@ -396,10 +393,10 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                 <button
                   type="submit"
                   disabled={!prompt.trim()}
-                  className={`flex appearance-none items-center justify-center rounded-2xl border-0 p-3 font-bold shadow-md transition-all ${
+                  className={`flex appearance-none items-center justify-center rounded-2xl p-3 font-bold shadow-md transition-all duration-300 ${
                     prompt.trim()
-                      ? 'cursor-pointer bg-cyan-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-105 hover:bg-cyan-400'
-                      : 'cursor-not-allowed bg-slate-800 text-slate-600'
+                      ? 'cursor-pointer border-0 bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-105 hover:from-cyan-400 hover:to-blue-400'
+                      : 'cursor-not-allowed border border-slate-700/50 bg-slate-800/80 text-slate-600'
                   }`}
                   aria-label="Send message"
                 >

@@ -8,7 +8,6 @@ import {
   Mic,
   RotateCcw,
   Sparkles,
-  ArrowDown,
   Bookmark,
   Printer,
   Copy,
@@ -959,12 +958,12 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
 
   const studio = (
       <div
-        className="lesson-plan-studio flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0d131f] text-slate-100"
+        ref={scrollRef}
+        className="lesson-plan-studio custom-scrollbar flex h-full max-h-full min-h-0 w-full flex-1 flex-col overflow-y-auto bg-[#0d131f] text-slate-100"
         style={{ ...FONT, colorScheme: 'dark' }}
       >
         <style>{STUDIO_CONTRAST_CSS}</style>
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-8">
+        <div className="mx-auto w-full max-w-4xl space-y-6 px-5 py-6 pb-24 sm:px-8">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 flex-wrap items-center gap-3">
                 <p className="text-[18px] text-slate-300" style={FONT}>
@@ -1060,36 +1059,26 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
 
             {plan && lessonId ? <LessonPlanOutput key={lessonId} plan={plan} lessonId={lessonId} /> : null}
             {error ? (
-              <p className="mb-6 rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-rose-200">{error}</p>
+              <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-rose-200">{error}</p>
             ) : null}
-          </div>
-        </div>
 
-        <div className="relative shrink-0 bg-[#0d131f] px-5 pb-5 pt-3 sm:px-8">
-          <button
-            type="button"
-            className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-cyan-300 shadow-lg transition-colors hover:border-cyan-500 hover:text-white"
-            aria-label="Scroll down"
-            onClick={() => {
-              const el = scrollRef.current;
-              if (!el) return;
-              el.scrollBy({ top: Math.round(el.clientHeight * 0.72), behavior: 'smooth' });
-            }}
-          >
-            <ArrowDown className="h-5 w-5" />
-          </button>
-          <button
-            ref={generateRef}
-            type="button"
-            disabled={!canGenerate}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-600 py-3.5 text-lg font-medium text-white hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ ...FONT, fontSize: 20 }}
-            onClick={() => void generate()}
-          >
-            {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-            Generate
-          </button>
-        </div>
+            <div className="flex items-center justify-end gap-3 border-t border-slate-800/80 pt-4">
+              <button
+                ref={generateRef}
+                type="button"
+                disabled={!canGenerate}
+                className={`inline-flex cursor-pointer appearance-none items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-bold transition-all ${
+                  canGenerate
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:from-cyan-400 hover:to-blue-400'
+                    : 'cursor-not-allowed border border-slate-700/50 bg-slate-800 text-slate-500'
+                }`}
+                onClick={() => void generate()}
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                Generate Lesson Plan
+              </button>
+            </div>
+          </div>
       </div>
   );
   if (embedded) return studio;
@@ -1098,8 +1087,8 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
       <AIToolHeader
         toolName="Lesson Plan Generator"
         description="Generate a lesson plan based on a standard, topic, or objective."
-        className="px-5 pt-4 sm:px-8"
-        contentClassName="min-h-0"
+        className="flex h-full min-h-0 flex-1 flex-col px-4 pt-4 sm:px-6"
+        contentClassName="flex h-full min-h-0 flex-col"
       >
         {studio}
       </AIToolHeader>

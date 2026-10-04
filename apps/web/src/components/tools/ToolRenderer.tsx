@@ -74,9 +74,11 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
           className={
             embedded && (tool.componentKey === 'QuizGenerator' || tool.componentKey === 'WorksheetGenerator')
               ? 'min-h-0 flex-1 overflow-hidden'
-              : embedded
-                ? 'min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6'
-                : 'min-h-0 flex-1 overflow-hidden'
+              : embedded && tool.componentKey === 'LessonPlanGenerator'
+                ? 'flex min-h-0 flex-1 flex-col overflow-hidden'
+                : embedded
+                  ? 'min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-6'
+                  : 'min-h-0 flex-1 overflow-hidden'
           }
         >
           {renderActualTool()}
