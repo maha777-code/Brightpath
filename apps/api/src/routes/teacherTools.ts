@@ -185,11 +185,21 @@ router.post('/tools/quiz-generator', async (req: AuthRequest, res: Response) => 
   }
 });
 
-const worksheetBody = z.object({
-  gradeLevel: z.string().min(1).max(80),
-  topicOrText: z.string().min(1).max(400_000),
-  attachments: z.array(z.string().max(240)).max(20).optional(),
-});
+const worksheetBody = z
+  .object({
+    gradeLevel: z.string().min(1).max(80),
+    topicOrText: z.string().max(400_000),
+    attachments: z.array(z.string().max(240)).max(20).optional(),
+    attachedDocumentContext: z.string().max(400_000).optional(),
+    imageFiles: z.array(z.string().max(8_000_000)).max(4).optional(),
+  })
+  .refine(
+    (value) =>
+      value.topicOrText.trim().length > 0 ||
+      Boolean(value.attachedDocumentContext?.trim()) ||
+      Boolean(value.imageFiles?.length),
+    { message: 'Enter a topic or upload a document.' },
+  );
 
 const lessonPlanBody = z.object({
   gradeLevel: z.string().min(1).max(80),
@@ -203,8 +213,10 @@ const refineBody = z.object({
   worksheetId: z.string().max(80).optional(),
   gradeLevel: z.string().min(1).max(80),
   topicOrText: z.string().min(1).max(400_000),
-  instruction: z.string().min(1).max(20_000),
+  instruction: z.string().min(1).max(400_000),
   attachments: z.array(z.string().max(240)).max(20).optional(),
+  attachedDocumentContext: z.string().max(400_000).optional(),
+  imageFiles: z.array(z.string().max(8_000_000)).max(4).optional(),
   currentWorksheet: z
     .object({
       id: z.string().optional(),
@@ -275,9 +287,29 @@ async function ensureWorksheetTables(): Promise<void> {
   worksheetTablesReady = true;
 }
 
+function worksheetPayloadForHistory(payload: {
+  gradeLevel: string;
+  topicOrText: string;
+  attachments?: string[];
+  attachedDocumentContext?: string;
+  imageFiles?: string[];
+}) {
+  return {
+    gradeLevel: payload.gradeLevel,
+    topicOrText: payload.topicOrText,
+    attachments: payload.attachments,
+    attachedDocumentContext: payload.attachedDocumentContext,
+  };
+}
+
 async function saveWorksheetHistory(
   teacherId: string,
-  payload: { gradeLevel: string; topicOrText: string; attachments?: string[] },
+  payload: {
+    gradeLevel: string;
+    topicOrText: string;
+    attachments?: string[];
+    attachedDocumentContext?: string;
+  },
   worksheet: WorksheetGeneratorResponse,
 ): Promise<string> {
   const id = worksheet.id || randomUUID();
@@ -313,7 +345,7 @@ router.post('/tools/worksheet-generator', async (req: AuthRequest, res: Response
 
   try {
     const worksheet = await generateWorksheet(parsed.data);
-    const id = await saveWorksheetHistory(teacherId, parsed.data, worksheet).catch((err) => {
+    const id = await saveWorksheetHistory(teacherId, worksheetPayloadForHistory(parsed.data), worksheet).catch((err) => {
       console.error('[teacher/tools/worksheet-generator] history save failed', err);
       return randomUUID();
     });
@@ -466,15 +498,18 @@ router.post('/tools/worksheet-generator/refine', async (req: AuthRequest, res: R
       topicOrText: parsed.data.topicOrText,
       instruction: parsed.data.instruction,
       attachments: parsed.data.attachments,
+      attachedDocumentContext: parsed.data.attachedDocumentContext,
+      imageFiles: parsed.data.imageFiles,
       current: parsed.data.currentWorksheet,
     });
     const id = await saveWorksheetHistory(
       teacherId,
-      {
+      worksheetPayloadForHistory({
         gradeLevel: parsed.data.gradeLevel,
         topicOrText: `${parsed.data.topicOrText}\n\nTeacher follow-up: ${parsed.data.instruction}`,
         attachments: parsed.data.attachments,
-      },
+        attachedDocumentContext: parsed.data.attachedDocumentContext,
+      }),
       { ...worksheet, id: parsed.data.worksheetId },
     ).catch((err) => {
       console.error('[teacher/tools/worksheet-generator/refine] history save failed', err);

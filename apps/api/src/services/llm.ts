@@ -14,7 +14,7 @@ import type {
   EmailResponderResponse,
 } from '@brightpath/shared';
 import { applyWorksheetFollowUp, applyWorksheetTranslation, classifyUserIntent, emailResponderPrompt, fallbackEmailResponse, fallbackSharadaChat } from '@brightpath/shared';
-import { getActiveProvider } from '../lib/llm/provider.js';
+import { getActiveProvider, imagePartsFromDataUrls } from '../lib/llm/provider.js';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
 
@@ -194,9 +194,41 @@ Rules:
 - 2–4 sections after the passage (Comprehension, Vocabulary, Practice, Apply).
 - 8–12 numbered items total across all sections.
 - Each prompt is a complete student-facing question or task.
-- No markdown fences, no extra commentary.`;
+- No markdown fences, no extra commentary.
+- When ATTACHED DOCUMENT CONTEXT or images are provided, write the passage and every question from that source.
+- Do not use generic placeholders such as "In your own words, what is [user prompt]".
+- Pull real concepts, definitions, facts, and reading lines from the document or image.
+- Include comprehension items, multiple-choice options labeled A–D when a choice question fits, short-answer items, and practice tasks based on the source.
+- Use the user instruction only to choose the focus, chapter, or question types.`;
 
 export function fallbackWorksheet(input: WorksheetGeneratorPayload): WorksheetGeneratorResponse {
+  const documentText = input.attachedDocumentContext?.replace(/\s+/g, ' ').trim();
+  if (documentText) {
+    const topic = input.topicOrText.trim() || input.attachments?.[0] || 'the attached document';
+    const sentences = documentText
+      .split(/(?<=[.!?])\s+/)
+      .map((sentence) => sentence.trim())
+      .filter((sentence) => sentence.length > 40)
+      .slice(0, 6);
+    const passage = (sentences.slice(0, 4).join(' ') || documentText).slice(0, 1200);
+    const prompts = (sentences.length ? sentences : [passage]).slice(0, 6).map((sentence, index) => ({
+      id: index + 1,
+      prompt:
+        index % 2 === 0
+          ? `Using the source, explain this statement: "${sentence.slice(0, 180)}"`
+          : `What does the document say about: "${sentence.slice(0, 160)}"?`,
+    }));
+    return {
+      title: `${topic} Worksheet`,
+      gradeLevel: input.gradeLevel,
+      instructions: 'Read the passage taken from the attached document, then answer the questions.',
+      passage,
+      sections: [
+        { heading: 'Comprehension', items: prompts.slice(0, 3) },
+        { heading: 'Practice', items: prompts.slice(3).length ? prompts.slice(3) : prompts.slice(0, 1) },
+      ],
+    };
+  }
   const topic = input.topicOrText.trim() || 'this topic';
   const grade = input.gradeLevel;
   const war = /world\s*war|ww\s*2|wwii/i.test(topic);
@@ -305,6 +337,24 @@ export function normalizeWorksheetResponse(
   };
 }
 
+function worksheetSourcePrompt(input: WorksheetGeneratorPayload): string {
+  return [
+    `Grade level: ${input.gradeLevel}`,
+    input.topicOrText.trim()
+      ? `User instruction:\n${input.topicOrText.trim()}`
+      : 'User instruction: Create a worksheet from the attached document.',
+    input.attachments?.length ? `Attached file names: ${input.attachments.join(', ')}` : '',
+    input.attachedDocumentContext?.trim()
+      ? `ATTACHED DOCUMENT CONTEXT:\n${input.attachedDocumentContext.trim()}`
+      : '',
+    input.imageFiles?.length
+      ? `Attached images: ${input.imageFiles.length}. Read each image and use its visible text, labels, and diagrams as source material.`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
 export async function generateWorksheet(
   input: WorksheetGeneratorPayload,
 ): Promise<WorksheetGeneratorResponse> {
@@ -321,13 +371,8 @@ export async function generateWorksheet(
       sections?: unknown;
     }>({
       system: WORKSHEET_SYSTEM,
-      user: [
-        `Grade level: ${input.gradeLevel}`,
-        `Topic or source text:\n${input.topicOrText.trim()}`,
-        input.attachments?.length ? `Attached files: ${input.attachments.join(', ')}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n\n'),
+      user: worksheetSourcePrompt(input),
+      images: imagePartsFromDataUrls(input.imageFiles),
     });
     return normalizeWorksheetResponse(raw, input, fallback);
   } catch (err) {
@@ -341,6 +386,8 @@ export async function refineWorksheet(input: {
   topicOrText: string;
   instruction: string;
   attachments?: string[];
+  attachedDocumentContext?: string;
+  imageFiles?: string[];
   current?: WorksheetGeneratorResponse;
 }): Promise<WorksheetGeneratorResponse> {
   const base = input.current ?? fallbackWorksheet(input);
@@ -362,10 +409,17 @@ export async function refineWorksheet(input: {
         `Original topic or text:\n${input.topicOrText.trim()}`,
         `Teacher instruction:\n${input.instruction.trim()}`,
         input.attachments?.length ? `Attached files: ${input.attachments.join(', ')}` : '',
+        input.attachedDocumentContext?.trim()
+          ? `ATTACHED DOCUMENT CONTEXT:\n${input.attachedDocumentContext.trim()}`
+          : '',
+        input.imageFiles?.length
+          ? `Attached images: ${input.imageFiles.length}. Use the visible text and diagrams as source material.`
+          : '',
         `Current worksheet JSON:\n${JSON.stringify(base)}`,
       ]
         .filter(Boolean)
         .join('\n\n'),
+      images: imagePartsFromDataUrls(input.imageFiles),
     });
     return normalizeWorksheetResponse(raw, input, heuristic);
   } catch (err) {

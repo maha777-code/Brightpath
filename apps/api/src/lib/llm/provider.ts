@@ -1,8 +1,25 @@
 export type LlmProviderName = 'gemini' | 'openai';
 
+export interface LlmImagePart {
+  mimeType: string;
+  data: string;
+}
+
 export interface LlmJsonRequest {
   system: string;
   user: string;
+  images?: LlmImagePart[];
+}
+
+export function imagePartsFromDataUrls(dataUrls: string[] | undefined): LlmImagePart[] {
+  if (!dataUrls?.length) return [];
+  const parts: LlmImagePart[] = [];
+  for (const url of dataUrls.slice(0, 4)) {
+    const match = /^data:([^;,]+);base64,([A-Za-z0-9+/=\s]+)$/.exec(url);
+    if (!match?.[1]?.startsWith('image/')) continue;
+    parts.push({ mimeType: match[1], data: match[2].replace(/\s/g, '') });
+  }
+  return parts;
 }
 
 export interface LlmProvider {
@@ -223,9 +240,16 @@ async function callGeminiOnce<T>(
     generationConfig.responseMimeType = 'application/json';
   }
 
+  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+    { text: req.user },
+  ];
+  for (const image of req.images ?? []) {
+    parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
+  }
+
   const body = {
     systemInstruction: { parts: [{ text: req.system }] },
-    contents: [{ role: 'user', parts: [{ text: req.user }] }],
+    contents: [{ role: 'user', parts }],
     generationConfig,
   };
 
@@ -283,7 +307,18 @@ function createOpenAiProvider(apiKey: string): LlmProvider {
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: req.system },
-            { role: 'user', content: req.user },
+            {
+              role: 'user',
+              content: req.images?.length
+                ? [
+                    { type: 'text', text: req.user },
+                    ...req.images.map((image) => ({
+                      type: 'image_url',
+                      image_url: { url: `data:${image.mimeType};base64,${image.data}` },
+                    })),
+                  ]
+                : req.user,
+            },
           ],
         }),
       });

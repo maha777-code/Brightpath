@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Bookmark,
   ChevronDown,
   FolderHeart,
-  ChevronRight,
   Copy,
   Download,
+  FileText,
   History,
   Languages,
   Lightbulb,
@@ -41,8 +41,16 @@ import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 import { WorksheetHistoryDrawer } from '@/components/tools/WorksheetHistoryDrawer';
+import { ToolBreadcrumb } from '@/components/tools/ToolBreadcrumb';
 import { VoiceListeningIndicator } from '@/components/VoiceListeningIndicator';
 import { readSavedWorksheets, writeSavedWorksheets, type SavedWorksheet } from '@/lib/savedWorksheets';
+import {
+  documentContext,
+  documentImages,
+  documentsFromPayload,
+  extractDocumentText,
+  type AttachedDocument,
+} from '@/lib/extractDocumentText';
 
 const GRADE_LEVELS = [
   'Kindergarten',
@@ -177,7 +185,7 @@ function useDictation(onAppend: (text: string) => void) {
 type FormSnapshot = {
   gradeLevel: string;
   topicOrText: string;
-  files: string[];
+  files: AttachedDocument[];
 };
 
 function WorksheetTemplateSkeleton() {
@@ -428,6 +436,41 @@ function PrintableWorksheet({
   );
 }
 
+function AttachedFileBadges({
+  files,
+  onRemove,
+}: {
+  files: AttachedDocument[];
+  onRemove: (id: string) => void;
+}) {
+  if (!files.length) return null;
+  return (
+    <div className="mb-3 flex flex-wrap gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2">
+      {files.map((file) => (
+        <div
+          key={file.id}
+          className="flex items-center gap-2 rounded-lg border border-slate-700/80 bg-slate-900 px-3 py-1.5 text-xs text-cyan-300"
+        >
+          <FileText className="h-3.5 w-3.5 text-cyan-400" />
+          <span className="max-w-[200px] truncate font-medium">{file.name}</span>
+          {file.isProcessing ? (
+            <Loader2 className="h-3 w-3 animate-spin text-amber-400" />
+          ) : (
+            <button
+              type="button"
+              onClick={() => onRemove(file.id)}
+              className="ml-1 cursor-pointer appearance-none border-0 bg-transparent p-0 text-slate-500 hover:text-rose-400"
+              aria-label={`Remove ${file.name}`}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function WorksheetStudio({
   worksheet,
   payload,
@@ -443,7 +486,12 @@ function WorksheetStudio({
   worksheet: WorksheetGeneratorResponse;
   payload: WorksheetGeneratorPayload;
   onReset: () => void;
-  onFollowUp: (message: string, attachments?: string[]) => void;
+  onFollowUp: (
+    message: string,
+    attachments?: string[],
+    documentContext?: string,
+    imageFiles?: string[],
+  ) => void;
   onOpenHistory: () => void;
   onTranslate: (language: string) => Promise<void>;
   onLoadSaved: (item: SavedWorksheet) => void;
@@ -463,7 +511,7 @@ function WorksheetStudio({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [followUp, setFollowUp] = useState('');
-  const [followUpFiles, setFollowUpFiles] = useState<string[]>([]);
+  const [followUpFiles, setFollowUpFiles] = useState<AttachedDocument[]>([]);
   const [listeningFollowUp, setListeningFollowUp] = useState(false);
   const [promptMenuOpen, setPromptMenuOpen] = useState(false);
   const [isTranslateModalOpen, setIsTranslateModalOpen] = useState(false);
@@ -718,13 +766,39 @@ function WorksheetStudio({
 
   const sendFollowUp = () => {
     const msg = followUp.trim();
-    if (!msg || busy) return;
+    const ready = followUpFiles.filter((file) => !file.isProcessing);
+    const context = documentContext(ready);
+    const images = documentImages(ready);
+    if (followUpFiles.some((file) => file.isProcessing)) return;
+    if ((!msg && !context && images.length === 0) || busy) return;
     followUpRecognitionRef.current?.stop();
     setListeningFollowUp(false);
     setFollowUp('');
     setPromptMenuOpen(false);
-    onFollowUp(msg, followUpFiles);
+    onFollowUp(msg || 'Revise the worksheet using the attached document.', ready.map((file) => file.name), context, images);
     setFollowUpFiles([]);
+  };
+
+  const addFollowUpFiles = async (list: FileList | null) => {
+    if (!list?.length) return;
+    for (const file of Array.from(list)) {
+      const id = `follow_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      setFollowUpFiles((prev) => [...prev, { id, name: file.name, extractedText: '', isProcessing: true }]);
+      try {
+        const extracted = await extractDocumentText(file);
+        setFollowUpFiles((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? { ...item, extractedText: extracted.text, imageDataUrl: extracted.imageDataUrl, isProcessing: false }
+              : item,
+          ),
+        );
+        showToast(`Read ${file.name}`);
+      } catch (err) {
+        setFollowUpFiles((prev) => prev.filter((item) => item.id !== id));
+        showToast(err instanceof Error ? err.message : `Could not extract text from ${file.name}`);
+      }
+    }
   };
 
   const glassIconButton =
@@ -837,17 +911,10 @@ function WorksheetStudio({
         {pane ? (
           <p className="min-w-0 truncate text-xs font-semibold uppercase tracking-wider text-slate-400">{crumb}</p>
         ) : (
-          <nav className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-slate-500">
-            <Link to="/teacher/tools" className="font-semibold text-cyan-700 hover:text-cyan-900">
-              Teacher Tools
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-            <button type="button" className="font-semibold text-slate-700 hover:text-cyan-700" onClick={onReset}>
-              Worksheet Generator
-            </button>
-            <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate font-semibold text-slate-900">{crumb}</span>
-          </nav>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <ToolBreadcrumb toolName="Worksheet Generator" />
+            <span className="truncate text-xs font-medium text-slate-500">{crumb}</span>
+          </div>
         )}
         <div className="flex flex-wrap items-start gap-2">
           <div className="flex items-center gap-2">
@@ -1056,13 +1123,10 @@ function WorksheetStudio({
           </div>
         ) : null}
         {followUpFiles.length > 0 && (
-          <ul className="mb-2 flex flex-wrap gap-1.5 px-1">
-            {followUpFiles.map((name) => (
-              <li key={name} className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 text-xs font-medium text-cyan-300">
-                {name}
-              </li>
-            ))}
-          </ul>
+          <AttachedFileBadges
+            files={followUpFiles}
+            onRemove={(id) => setFollowUpFiles((prev) => prev.filter((file) => file.id !== id))}
+          />
         )}
         <div className="flex w-full items-end gap-2 rounded-2xl border border-slate-800/90 bg-slate-900/90 p-2 shadow-2xl backdrop-blur-xl transition-all focus-within:border-cyan-500/50 focus-within:ring-1 focus-within:ring-cyan-500/30">
           <button
@@ -1077,20 +1141,11 @@ function WorksheetStudio({
           <input
             ref={followUpFileRef}
             type="file"
-            accept=".pdf,.docx,.txt,application/pdf,text/plain"
+            accept=".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,application/pdf,image/*"
             multiple
             className="hidden"
             onChange={(e) => {
-              const list = e.target.files;
-              if (list?.length) {
-                setFollowUpFiles((prev) => {
-                  const next = [...prev];
-                  for (const file of Array.from(list)) {
-                    if (!next.includes(file.name)) next.push(file.name);
-                  }
-                  return next;
-                });
-              }
+              void addFollowUpFiles(e.target.files);
               e.currentTarget.value = '';
             }}
           />
@@ -1153,9 +1208,13 @@ function WorksheetStudio({
             <button
               type="button"
               onClick={sendFollowUp}
-              disabled={busy || !followUp.trim()}
+              disabled={
+                busy ||
+                followUpFiles.some((file) => file.isProcessing) ||
+                (!followUp.trim() && !documentContext(followUpFiles) && documentImages(followUpFiles).length === 0)
+              }
               className={`inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl p-2.5 font-bold shadow-md transition-all ${
-                followUp.trim() && !busy
+                !busy && (followUp.trim() || documentContext(followUpFiles) || documentImages(followUpFiles).length)
                   ? 'bg-cyan-500 text-slate-950 shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:scale-105 hover:bg-cyan-400'
                   : 'cursor-not-allowed border border-slate-700/50 bg-slate-800 text-slate-600'
               }`}
@@ -1285,7 +1344,8 @@ export function WorksheetGenerator({
 }) {
   const [gradeLevel, setGradeLevel] = useState('9th grade');
   const [topicOrText, setTopicOrText] = useState('');
-  const [files, setFiles] = useState<string[]>([]);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedDocument[]>([]);
+  const [fileNotice, setFileNotice] = useState<string | null>(null);
   const [showExemplar, setShowExemplar] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -1321,7 +1381,7 @@ export function WorksheetGenerator({
   const snapshot = (): FormSnapshot => ({
     gradeLevel,
     topicOrText,
-    files,
+    files: attachedFiles,
   });
 
   const pushHistory = () => {
@@ -1334,13 +1394,13 @@ export function WorksheetGenerator({
       if (!last) {
         setGradeLevel('9th grade');
         setTopicOrText('');
-        setFiles([]);
+        setAttachedFiles([]);
         setShowExemplar(false);
         return prev;
       }
       setGradeLevel(last.gradeLevel);
       setTopicOrText(last.topicOrText);
-      setFiles(last.files);
+      setAttachedFiles(last.files);
       return prev.slice(0, -1);
     });
   };
@@ -1348,7 +1408,7 @@ export function WorksheetGenerator({
   const resetAll = () => {
     setGradeLevel('9th grade');
     setTopicOrText('');
-    setFiles([]);
+    setAttachedFiles([]);
     setShowExemplar(false);
     setAssistantOpen(false);
     setError(null);
@@ -1366,7 +1426,7 @@ export function WorksheetGenerator({
       title: stored.title,
       gradeLevel: request.gradeLevel,
       topicOrText: request.topicOrText,
-      payload: request,
+      payload: { ...request, imageFiles: undefined },
       worksheet: stored,
     };
     setSavedVersions((prev) => {
@@ -1377,14 +1437,21 @@ export function WorksheetGenerator({
     return stored;
   };
 
-  const overLimit = countWords(topicOrText) > WORD_LIMIT;
+  const sourceWords = countWords(`${topicOrText}\n${documentContext(attachedFiles)}`);
+  const overLimit = sourceWords > WORD_LIMIT;
+  const filesProcessing = attachedFiles.some((file) => file.isProcessing);
+  const attachedContext = documentContext(attachedFiles);
+  const attachedImages = documentImages(attachedFiles);
+  const hasSource = Boolean(topicOrText.trim() || attachedContext || attachedImages.length);
   const payload: WorksheetGeneratorPayload = useMemo(
     () => ({
       gradeLevel,
       topicOrText: topicOrText.trim(),
-      attachments: files,
+      attachments: attachedFiles.map((file) => file.name),
+      attachedDocumentContext: attachedContext || undefined,
+      imageFiles: attachedImages.length ? attachedImages : undefined,
     }),
-    [gradeLevel, topicOrText, files],
+    [gradeLevel, topicOrText, attachedFiles, attachedContext, attachedImages],
   );
 
   const { listening, toggle } = useDictation((text) => {
@@ -1401,20 +1468,33 @@ export function WorksheetGenerator({
     setTopicOrText(sanitizePastedText(topicOrText.slice(0, start) + pasted + topicOrText.slice(end)));
   };
 
-  const addFiles = (list: FileList | null) => {
+  const addFiles = async (list: FileList | null) => {
     if (!list?.length) return;
-    setFiles((prev) => {
-      const next = [...prev];
-      for (const file of Array.from(list)) {
-        if (!next.includes(file.name)) next.push(file.name);
+    for (const file of Array.from(list)) {
+      const id = `file_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      setAttachedFiles((prev) => [...prev, { id, name: file.name, extractedText: '', isProcessing: true }]);
+      try {
+        const extracted = await extractDocumentText(file);
+        setAttachedFiles((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? { ...item, extractedText: extracted.text, imageDataUrl: extracted.imageDataUrl, isProcessing: false }
+              : item,
+          ),
+        );
+        setFileNotice(`Read ${file.name}`);
+        setError(null);
+      } catch (err) {
+        setAttachedFiles((prev) => prev.filter((item) => item.id !== id));
+        setFileNotice(null);
+        setError(err instanceof Error ? err.message : `Could not extract text from ${file.name}`);
       }
-      return next;
-    });
+    }
   };
 
   const generate = async (override?: WorksheetGeneratorPayload) => {
     const request = override ?? payload;
-    if (!request.topicOrText) return;
+    if (!request.topicOrText && !request.attachedDocumentContext && !request.imageFiles?.length) return;
     if (!override && overLimit) return;
     if (!override) pushHistory();
     setBusy(true);
@@ -1432,7 +1512,12 @@ export function WorksheetGenerator({
     }
   };
 
-  const refineCurrent = async (message: string, attachments?: string[]) => {
+  const refineCurrent = async (
+    message: string,
+    attachments?: string[],
+    followUpContext?: string,
+    imageFiles?: string[],
+  ) => {
     if (!submitted || !worksheet) return;
     setBusy(true);
     setError(null);
@@ -1440,6 +1525,8 @@ export function WorksheetGenerator({
       ...submitted,
       topicOrText: `${submitted.topicOrText}\n\nTeacher follow-up: ${message}`,
       attachments: attachments?.length ? [...(submitted.attachments ?? []), ...attachments] : submitted.attachments,
+      attachedDocumentContext: [submitted.attachedDocumentContext, followUpContext].filter(Boolean).join('\n\n') || undefined,
+      imageFiles,
     };
     try {
       const next = rememberVersion(
@@ -1450,6 +1537,8 @@ export function WorksheetGenerator({
           topicOrText: submitted.topicOrText,
           instruction: message,
           attachments: request.attachments,
+          attachedDocumentContext: followUpContext,
+          imageFiles,
           currentWorksheet: worksheet,
         }),
       );
@@ -1490,7 +1579,7 @@ export function WorksheetGenerator({
     setSubmitted(item.payload);
     setGradeLevel(item.payload.gradeLevel);
     setTopicOrText(item.payload.topicOrText);
-    setFiles(item.payload.attachments ?? []);
+    setAttachedFiles(documentsFromPayload(item.payload));
   };
 
   useEffect(() => {
@@ -1516,20 +1605,14 @@ export function WorksheetGenerator({
     navigate('/teacher/tools');
   };
 
-  const words = countWords(topicOrText);
+  const words = sourceWords;
 
   return (
     <>
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-950 font-sans text-slate-100">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <nav className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800/80 bg-slate-900/90 px-6 py-3 text-xs text-slate-400 backdrop-blur-xl">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link to="/teacher/tools" className="hover:text-white">
-              Teacher Tools
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
-            <span className="font-bold text-cyan-400">Worksheet Generator</span>
-          </div>
+          <ToolBreadcrumb toolName="Worksheet Generator" />
           <button
             type="button"
             onClick={handleClose}
@@ -1634,21 +1717,17 @@ export function WorksheetGenerator({
                     </button>
                   </div>
                   {listening ? <VoiceListeningIndicator isListening onStopListening={toggle} /> : null}
-                  {files.length > 0 && (
-                    <ul className="mt-2 flex flex-wrap gap-1.5 border-t border-slate-800/80 pt-2">
-                      {files.map((name) => (
-                        <li
-                          key={name}
-                          className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-slate-100"
-                        >
-                          {name}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <AttachedFileBadges
+                    files={attachedFiles}
+                    onRemove={(id) => setAttachedFiles((prev) => prev.filter((file) => file.id !== id))}
+                  />
+                  {fileNotice ? <p className="text-xs font-medium text-cyan-300">{fileNotice}</p> : null}
                   <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-800/80 pt-2">
                     <div className="relative">
-                      <AddFileMenu onFiles={addFiles} />
+                      <AddFileMenu
+                        onFiles={(list) => void addFiles(list)}
+                        accept=".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,application/pdf,image/*"
+                      />
                     </div>
                     <p
                       className={
@@ -1682,7 +1761,7 @@ export function WorksheetGenerator({
               </div>
               <button
                 type="button"
-                disabled={busy || !payload.topicOrText || overLimit}
+                disabled={busy || filesProcessing || !hasSource || overLimit}
                 className="inline-flex w-full cursor-pointer appearance-none items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3.5 text-sm font-black uppercase tracking-wider text-slate-950 shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => void generate()}
               >
@@ -1716,8 +1795,8 @@ export function WorksheetGenerator({
                   busy={busy}
                   onReset={resetAll}
                   onOpenHistory={() => setHistoryOpen(true)}
-                  onFollowUp={(message, attachments) => {
-                    void refineCurrent(message, attachments);
+                  onFollowUp={(message, attachments, context, images) => {
+                    void refineCurrent(message, attachments, context, images);
                   }}
                   onTranslate={translateCurrent}
                   onLoadSaved={loadSavedWorksheet}
@@ -1749,7 +1828,7 @@ export function WorksheetGenerator({
         setSubmitted(item.payload);
         setGradeLevel(item.payload.gradeLevel);
         setTopicOrText(item.payload.topicOrText);
-        setFiles(item.payload.attachments ?? []);
+        setAttachedFiles(documentsFromPayload(item.payload));
       }}
     />
     </>

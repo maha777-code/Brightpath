@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Maximize2, Minimize2, Sparkles, X } from 'lucide-react';
+import { ToolBreadcrumb } from '@/components/tools/ToolBreadcrumb';
 
 export function AIToolSurface({
   title,
@@ -27,7 +28,9 @@ export function AIToolSurface({
       <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-blue-600/10 blur-3xl" />
 
-      <div className="relative z-10 flex shrink-0 items-center justify-between gap-3 border-b border-slate-800/90 bg-slate-900/60 px-6 py-5">
+      <div className="relative z-10 flex shrink-0 flex-col gap-3 border-b border-slate-800/90 bg-slate-900/60 px-6 py-4">
+        <ToolBreadcrumb toolName={title} />
+        <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div className="shrink-0 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-400">
             <Sparkles className="h-5 w-5" />
@@ -60,6 +63,7 @@ export function AIToolSurface({
           >
             <X className="h-5 w-5" />
           </button>
+        </div>
         </div>
       </div>
 

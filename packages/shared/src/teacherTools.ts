@@ -208,6 +208,10 @@ export interface WorksheetGeneratorPayload {
   gradeLevel: string;
   topicOrText: string;
   attachments?: string[];
+  /** Extracted text from uploaded PDF, DOCX, or text files. */
+  attachedDocumentContext?: string;
+  /** Image data URLs sent to the model. Omitted from saved history. */
+  imageFiles?: string[];
 }
 
 export interface WorksheetItem {
@@ -305,6 +309,8 @@ export interface WorksheetRefinePayload {
   topicOrText: string;
   instruction: string;
   attachments?: string[];
+  attachedDocumentContext?: string;
+  imageFiles?: string[];
   currentWorksheet?: WorksheetGeneratorResponse;
 }
 

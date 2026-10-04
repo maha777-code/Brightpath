@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 import { getTeacherToolById, hasAiToolAccess, type AiToolPlan, type TeacherToolDefinition } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { isTeacherToolEnabled } from '@/lib/teacherToolAvailability';
@@ -33,14 +32,6 @@ export function TeacherToolLauncher({
     return (
       <TeacherWorkspaceLayout>
         <main className="w-full max-w-7xl px-6 py-6 lg:px-10 lg:py-8">
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <Link
-              to="/teacher/tools"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-200 hover:text-white"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back to AI Tools Suite
-            </Link>
-          </div>
           <div className="card-cyber p-5 sm:p-8">{quiz}</div>
         </main>
       </TeacherWorkspaceLayout>
@@ -59,16 +50,6 @@ export function TeacherToolLauncher({
 
   const body = (
     <div className="space-y-5">
-      {!embedded && (
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            to="/teacher/tools"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-200 hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back to AI Tools Suite
-          </Link>
-        </div>
-      )}
       {rendered}
     </div>
   );
