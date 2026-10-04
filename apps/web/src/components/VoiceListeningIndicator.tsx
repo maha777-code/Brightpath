@@ -43,6 +43,14 @@ export const VoiceListeningIndicator: React.FC<VoiceListeningIndicatorProps> = (
   );
 };
 
+export function voicePromptButtonClass(listening: boolean) {
+  const base =
+    'inline-flex cursor-pointer appearance-none items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-medium shadow-lg transition-all duration-300';
+  return listening
+    ? `${base} animate-pulse border border-rose-400/50 bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.4)]`
+    : `${base} border border-cyan-500/30 bg-slate-950/90 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.15)] hover:border-cyan-400 hover:bg-cyan-950/40 hover:text-cyan-200`;
+}
+
 export function voiceMicButtonClass(listening: boolean, layout = 'rounded-xl p-2') {
   return listening
     ? `cursor-pointer appearance-none animate-pulse border border-rose-500/40 bg-rose-500/20 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)] ${layout}`

@@ -11,7 +11,6 @@ import {
   Music,
   Pencil,
   Presentation,
-  Search,
   Sparkles,
   Star,
   Youtube,
@@ -28,11 +27,9 @@ import { useAuth } from '@/context/AuthContext';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { AIToolWizardModal } from '@/components/tools/AIToolWizardModal';
+import { ToolsFilterBar, type ToolsLibraryFilter, type ToolsSortKey } from '@/components/tools/ToolsFilterBar';
 import { TeacherToolLauncher } from '@/pages/TeacherToolPage';
 import { canUserAccessTool, getRegistryTool, toolVisibleToRole } from '@/config/toolsRegistry';
-
-type LibraryFilter = 'all' | 'favorites' | 'custom';
-type SortKey = 'popular' | 'newest' | 'alpha';
 
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   'book-open': BookOpen,
@@ -62,8 +59,8 @@ export default function TeacherTools() {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [query, setQuery] = useState('');
   const [focusArea, setFocusArea] = useState<TeacherToolFocusArea | 'all'>('all');
-  const [library, setLibrary] = useState<LibraryFilter>('all');
-  const [sort, setSort] = useState<SortKey>('popular');
+  const [library, setLibrary] = useState<ToolsLibraryFilter>('all');
+  const [sort, setSort] = useState<ToolsSortKey>('popular');
   const [error, setError] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<TeacherToolDefinition | null>(null);
   const { role, planType, user, teacher, parent } = useAuth();
@@ -179,52 +176,23 @@ export default function TeacherTools() {
           </div>
         </div>
 
-        <div className="td-card flex flex-col gap-3 rounded-3xl p-4 sm:p-5">
-          <label className="relative block">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-200/70" />
-            <input
-              className="td-input w-full rounded-2xl py-3 pl-11 pr-4 text-base"
-              placeholder="Search all teacher tools..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Search all teacher tools"
-            />
-          </label>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <select
-              className="td-input rounded-2xl px-4 py-3 text-sm font-semibold"
-              value={focusArea}
-              onChange={(e) => setFocusArea(e.target.value as TeacherToolFocusArea | 'all')}
-              aria-label="Discover tools by focus area"
-            >
-              <option value="all">Discover tools by focus area</option>
-              <option value="curriculum">Curriculum</option>
-              <option value="content">Content creation</option>
-              <option value="assessment">Assessment</option>
-              <option value="communication">Communication</option>
-            </select>
-            <select
-              className="td-input rounded-2xl px-4 py-3 text-sm font-semibold"
-              value={library}
-              onChange={(e) => setLibrary(e.target.value as LibraryFilter)}
-              aria-label="Favorites"
-            >
-              <option value="all">All tools</option>
-              <option value="favorites">Favorites</option>
-              <option value="custom">Custom</option>
-            </select>
-            <select
-              className="td-input rounded-2xl px-4 py-3 text-sm font-semibold"
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              aria-label="Sort by"
-            >
-              <option value="popular">Sort by: Most popular</option>
-              <option value="newest">Newest</option>
-              <option value="alpha">Alphabetical</option>
-            </select>
-          </div>
-        </div>
+        <ToolsFilterBar
+          query={query}
+          onQueryChange={setQuery}
+          focusArea={focusArea}
+          onFocusAreaChange={setFocusArea}
+          library={library}
+          onLibraryChange={setLibrary}
+          sort={sort}
+          onSortChange={setSort}
+          searchPlaceholder="Search all tools..."
+          onClear={() => {
+            setQuery('');
+            setFocusArea('all');
+            setLibrary('all');
+            setSort('popular');
+          }}
+        />
 
         {error && (
           <p className="rounded-lg border border-rose-500/40 bg-rose-950/40 p-4 text-sm tracking-tight text-rose-200">

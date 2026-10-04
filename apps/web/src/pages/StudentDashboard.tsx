@@ -21,7 +21,7 @@ import {
   Star,
   X,
 } from 'lucide-react';
-import { AGE_GROUP_LABELS, getTeacherToolById, streakFlames } from '@brightpath/shared';
+import { AGE_GROUP_LABELS, getTeacherToolById, streakFlames, type TeacherToolFocusArea } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
@@ -35,7 +35,8 @@ import { AIToolWizardModal } from '@/components/tools/AIToolWizardModal';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 import { SharadaPromptFrame } from '@/components/SharadaChatBadge';
-import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
+import { ToolsFilterBar, type ToolsLibraryFilter, type ToolsSortKey } from '@/components/tools/ToolsFilterBar';
+import { voicePromptButtonClass } from '@/components/VoiceListeningIndicator';
 import { useDictation } from '@/hooks/useDictation';
 import { readSavedWorksheets } from '@/lib/savedWorksheets';
 
@@ -65,6 +66,9 @@ type StudentTool = {
   icon: ComponentType<{ className?: string }>;
   href?: string;
   registry?: ToolDefinition;
+  focusArea?: TeacherToolFocusArea;
+  popularity: number;
+  newestRank: number;
 };
 
 function studentTools(): StudentTool[] {
@@ -74,6 +78,8 @@ function studentTools(): StudentTool[] {
     description: 'Ask questions, review concepts, and get instant homework help.',
     icon: Brain,
     href: '/dashboard/ai-tutor',
+    popularity: 1000,
+    newestRank: 0,
   };
   const catalog = RECOMMENDED_IDS.flatMap((id) => {
     const tool = getTeacherToolById(id);
@@ -95,6 +101,9 @@ function studentTools(): StudentTool[] {
         description: tool.description,
         icon: ICONS[tool.icon] ?? Sparkles,
         registry,
+        focusArea: tool.focusArea,
+        popularity: tool.popularity,
+        newestRank: tool.newestRank,
       } satisfies StudentTool,
     ];
   });
@@ -119,6 +128,10 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
   const [active, setActive] = useState<ToolDefinition | null>(null);
   const [toolDenied, setToolDenied] = useState('');
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFocusArea, setSelectedFocusArea] = useState<TeacherToolFocusArea | 'all'>('all');
+  const [favoritesFilter, setFavoritesFilter] = useState<ToolsLibraryFilter>('all');
+  const [sortBy, setSortBy] = useState<ToolsSortKey>('popular');
   const [savedWorksheets, setSavedWorksheets] = useState(() => readSavedWorksheets());
   const [classCode, setClassCode] = useState('');
   const [joinMsg, setJoinMsg] = useState('');
@@ -133,7 +146,21 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
     () => studentTools().filter((tool) => !tool.registry || canUserAccessTool({ role, email }, tool.registry.allowedRoles)),
     [role, email],
   );
-  const visibleTools = view === 'tools' ? tools : tools;
+  const visibleTools = useMemo(() => {
+    if (view !== 'tools') return tools;
+    const q = searchQuery.trim().toLowerCase();
+    const next = tools.filter((tool) => {
+      if (selectedFocusArea !== 'all' && tool.focusArea !== selectedFocusArea) return false;
+      if (favoritesFilter === 'favorites' && !favoriteIds.includes(tool.id)) return false;
+      if (!q) return true;
+      return tool.title.toLowerCase().includes(q) || tool.description.toLowerCase().includes(q);
+    });
+    return [...next].sort((a, b) => {
+      if (sortBy === 'alpha') return a.title.localeCompare(b.title);
+      if (sortBy === 'newest') return a.newestRank - b.newestRank;
+      return b.popularity - a.popularity;
+    });
+  }, [view, tools, searchQuery, selectedFocusArea, favoritesFilter, sortBy, favoriteIds]);
 
   useEffect(() => {
     setSavedWorksheets(readSavedWorksheets());
@@ -301,7 +328,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
             </h1>
             <SharadaPromptFrame onChat={() => navigate('/dashboard/ai-tutor')}>
             <form
-              className="flex min-h-[120px] w-full flex-col justify-between rounded-3xl border border-slate-800/90 bg-slate-900/90 p-4 text-left shadow-2xl backdrop-blur-xl transition-all focus-within:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-500/20 md:min-h-[140px]"
+              className="flex min-h-[140px] w-full flex-col justify-between rounded-3xl border border-slate-800/90 bg-slate-900/90 p-5 text-left shadow-2xl backdrop-blur-xl transition-all focus-within:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-500/20"
               onSubmit={(event) => {
                 event.preventDefault();
                 sendPrompt();
@@ -322,11 +349,11 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                 className="custom-scrollbar min-h-[88px] w-full flex-1 resize-none overflow-y-auto border-none bg-transparent px-2 py-1 text-base text-slate-100 placeholder-slate-500 focus:outline-none md:text-lg"
                 style={FONT}
               />
-              <div className="mt-2 flex items-center justify-between border-t border-slate-800/60 pt-2">
-                <div className="flex items-center gap-2">
+              <div className="mt-2 flex items-center justify-between border-t border-slate-800/60 pt-3">
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    className="cursor-pointer appearance-none rounded-xl border border-slate-800 bg-slate-950/60 p-2.5 text-slate-400 transition-all hover:border-slate-700 hover:text-cyan-400"
+                    className="cursor-pointer appearance-none rounded-xl border border-slate-800 bg-slate-950/80 p-2.5 text-slate-400 transition-all hover:border-slate-700 hover:text-cyan-400"
                     aria-label="Add file or attachment"
                     title="Attach file"
                     onClick={() => fileRef.current?.click()}
@@ -342,20 +369,22 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                   />
                   <button
                     type="button"
-                    className={voiceMicButtonClass(listening, 'rounded-xl p-2.5')}
+                    className={voicePromptButtonClass(listening)}
                     aria-label={listening ? 'Stop recording' : 'Use voice input'}
-                    title={listening ? 'Stop recording' : 'Voice Input'}
+                    title="Voice Input"
                     onClick={() => {
                       const started = toggle();
                       if (!started) setReply('Voice input needs a browser that supports speech recognition.');
                     }}
                   >
-                    <Mic className="h-5 w-5" />
+                    <span className={`rounded-lg p-1 ${listening ? 'bg-white/20 text-white' : 'bg-cyan-500/20 text-cyan-400'}`}>
+                      <Mic className="h-4 w-4" />
+                    </span>
+                    <span className="hidden font-semibold sm:inline">{listening ? 'Listening...' : 'Voice'}</span>
                   </button>
-                  {listening ? <VoiceListeningIndicator isListening onStopListening={toggle} /> : null}
                   <button
                     type="button"
-                    className="ml-1 hidden cursor-pointer appearance-none items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-bold text-cyan-400 shadow-sm transition-all hover:bg-cyan-500/20 sm:inline-flex sm:text-sm"
+                    className="hidden cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-950/60 px-3.5 py-2 text-xs font-medium text-cyan-300 shadow-sm md:inline-flex"
                     onClick={() => {
                       setPrompt('Generate a classroom image of ');
                       setReply(null);
@@ -369,7 +398,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                   disabled={!prompt.trim()}
                   className={`flex appearance-none items-center justify-center rounded-2xl border-0 p-3 font-bold shadow-md transition-all ${
                     prompt.trim()
-                      ? 'cursor-pointer bg-cyan-500 text-slate-950 shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:scale-105 hover:bg-cyan-400'
+                      ? 'cursor-pointer bg-cyan-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-105 hover:bg-cyan-400'
                       : 'cursor-not-allowed bg-slate-800 text-slate-600'
                   }`}
                   aria-label="Send message"
@@ -390,6 +419,26 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
 
         <div className={`grid w-full grid-cols-1 gap-8 ${view === 'home' ? 'mt-10 lg:grid-cols-3' : ''}`}>
           <div className={view === 'home' ? 'space-y-5 lg:col-span-2' : 'space-y-5'}>
+            {view === 'tools' ? (
+              <ToolsFilterBar
+                query={searchQuery}
+                onQueryChange={setSearchQuery}
+                focusArea={selectedFocusArea}
+                onFocusAreaChange={setSelectedFocusArea}
+                library={favoritesFilter}
+                onLibraryChange={setFavoritesFilter}
+                sort={sortBy}
+                onSortChange={setSortBy}
+                searchPlaceholder="Search all tools..."
+                showCustom={false}
+                onClear={() => {
+                  setSearchQuery('');
+                  setSelectedFocusArea('all');
+                  setFavoritesFilter('all');
+                  setSortBy('popular');
+                }}
+              />
+            ) : null}
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-base text-slate-300">
                 <strong className="mr-1 text-xl font-black text-white">
@@ -408,6 +457,11 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
               ) : null}
             </div>
             {toolDenied ? <p className="text-sm font-semibold text-rose-300">{toolDenied}</p> : null}
+            {view === 'tools' && visibleTools.length === 0 ? (
+              <p className="rounded-2xl border border-slate-800 bg-slate-900/80 p-8 text-center text-sm text-slate-300">
+                No tools match these filters.
+              </p>
+            ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {visibleTools.map((tool) => {
                 const Icon = tool.icon;
@@ -452,6 +506,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                 );
               })}
             </div>
+            )}
           </div>
 
           {view === 'home' ? (

@@ -28,17 +28,15 @@ export function SharadaBotAvatar({ onClick, className = '' }: SharadaChatBadgePr
     <button
       type="button"
       onClick={onClick}
-      className={`group relative flex shrink-0 cursor-pointer appearance-none items-center justify-center border-0 bg-transparent p-0 ${className}`}
+      className={`relative flex shrink-0 cursor-pointer appearance-none items-center justify-center border-0 bg-transparent p-0 ${className}`}
       aria-label="Chat with Sharada"
     >
-      <span className="absolute -inset-2 rounded-full bg-cyan-500/20 blur-xl transition-all group-hover:bg-cyan-500/30" />
-      <span className="relative z-10 block transition-transform duration-200 group-hover:scale-110">
-        <img
-          src="/sharada-robot.png"
-          alt="Sharada AI Assistant"
-          className="animate-cartoon-bot h-20 w-20 object-contain drop-shadow-[0_8px_16px_rgba(6,182,212,0.6)] md:h-24 md:w-24"
-        />
-      </span>
+      <span className="pointer-events-none absolute -inset-3 rounded-full bg-cyan-500/25 blur-2xl" />
+      <img
+        src="/sharada-robot.png"
+        alt="Sharada AI Assistant"
+        className="animate-cinematic-bot relative z-10 h-[80px] w-[80px] object-contain drop-shadow-[0_10px_20px_rgba(6,182,212,0.3)] md:h-[112px] md:w-[112px]"
+      />
     </button>
   );
 }
@@ -51,11 +49,13 @@ export function SharadaPromptFrame({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto my-8 flex w-full max-w-6xl flex-col items-center gap-3 px-4">
-      <SharadaAssistantPill onClick={onChat} />
-      <div className="mt-2 flex w-full flex-col items-center gap-4 md:flex-row">
+    <div className="my-8 flex w-full flex-col items-center justify-center px-4">
+      <div className="mb-4">
+        <SharadaAssistantPill onClick={onChat} />
+      </div>
+      <div className="flex w-[min(85vw,100%)] items-center gap-4 md:gap-6">
         <SharadaBotAvatar onClick={onChat} />
-        <div className="w-full min-w-0 flex-1">{children}</div>
+        <div className="min-w-0 flex-1">{children}</div>
       </div>
     </div>
   );
