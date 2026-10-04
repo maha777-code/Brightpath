@@ -23,7 +23,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useDisplayUser } from '@/lib/displayUser';
 import { workspaceForRole } from '@/lib/workspaceRole';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
-import { SharadaChatBadge } from '@/components/SharadaChatBadge';
+import { SharadaPromptFrame } from '@/components/SharadaChatBadge';
 import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
 import { useDictation } from '@/hooks/useDictation';
 import { readSavedWorksheets } from '@/lib/savedWorksheets';
@@ -144,7 +144,7 @@ export function HomePage() {
     const field = textareaRef.current;
     if (!field) return;
     field.style.height = 'auto';
-    field.style.height = `${Math.min(field.scrollHeight, 200)}px`;
+    field.style.height = `${Math.max(88, Math.min(field.scrollHeight, 220))}px`;
   }, [prompt]);
 
   const toggleFavorite = async (toolId: string) => {
@@ -182,14 +182,9 @@ export function HomePage() {
             Hi {firstName || workspace.greetingFallback}. <span className="text-slate-400">How can I help today?</span>
           </h1>
 
-          <div className="mx-auto mb-10 flex w-full max-w-6xl flex-col items-center justify-center gap-5 md:flex-row">
-            <div className="flex shrink-0 items-center justify-center transition-transform hover:scale-105">
-              <SharadaChatBadge onClick={() => navigate('/chat/sharada')} />
-            </div>
-
-            <div className="w-full min-w-0 flex-1">
+          <SharadaPromptFrame onChat={() => navigate('/chat/sharada')}>
           <form
-            className="flex w-full flex-col justify-between space-y-3 rounded-[28px] border border-slate-700/50 bg-[#131b2e] p-4 text-left shadow-2xl transition-all duration-200 hover:border-slate-600 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20 sm:p-5"
+            className="flex min-h-[120px] w-full flex-col justify-between rounded-3xl border border-slate-800/90 bg-slate-900/90 p-4 text-left shadow-2xl backdrop-blur-xl transition-all focus-within:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-500/20 md:min-h-[140px]"
             onSubmit={(event) => {
               event.preventDefault();
               sendPrompt();
@@ -197,7 +192,7 @@ export function HomePage() {
           >
             <textarea
               ref={textareaRef}
-              rows={1}
+              rows={3}
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               onKeyDown={(event) => {
@@ -207,19 +202,19 @@ export function HomePage() {
                 }
               }}
               placeholder="Ask Sharada or enter prompt..."
-              className="custom-scrollbar max-h-[200px] w-full resize-none overflow-y-auto border-none bg-transparent p-0 font-sans text-base font-normal leading-relaxed text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-0 sm:text-lg"
+              className="custom-scrollbar min-h-[88px] w-full flex-1 resize-none overflow-y-auto border-none bg-transparent px-2 py-1 font-sans text-base font-normal leading-relaxed text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-0 md:text-lg"
               style={FONT}
             />
-            <div className="flex items-center justify-between pt-1">
-              <div className="flex items-center gap-1.5">
+            <div className="mt-2 flex items-center justify-between border-t border-slate-800/60 pt-2">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
+                  className="cursor-pointer appearance-none rounded-xl border border-slate-800 bg-slate-950/60 p-2.5 text-slate-400 transition-all hover:border-slate-700 hover:text-cyan-400"
                   aria-label="Add file or attachment"
-                  title="Add file or attachment"
+                  title="Attach file"
                   onClick={() => fileRef.current?.click()}
                 >
-                  <Plus className="h-5 w-5" />
+                  <Plus className="h-4 w-4" />
                 </button>
                 <input
                   ref={fileRef}
@@ -232,9 +227,9 @@ export function HomePage() {
                 />
                 <button
                   type="button"
-                  className={voiceMicButtonClass(listening, 'rounded-full p-2.5')}
+                  className={voiceMicButtonClass(listening, 'rounded-xl p-2.5')}
                   aria-label={listening ? 'Stop recording' : 'Use voice input'}
-                  title={listening ? 'Stop recording' : 'Start voice input'}
+                  title={listening ? 'Stop recording' : 'Voice Input'}
                   onClick={() => {
                     const started = toggle();
                     if (!started) {
@@ -259,10 +254,10 @@ export function HomePage() {
               <button
                 type="submit"
                 disabled={!prompt.trim()}
-                className={`flex appearance-none items-center justify-center rounded-full border-0 p-3 font-extrabold transition-all duration-200 ${
+                className={`flex appearance-none items-center justify-center rounded-2xl border-0 p-3 font-bold shadow-md transition-all duration-200 ${
                   prompt.trim()
-                    ? 'scale-105 cursor-pointer bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/30 hover:bg-cyan-300 active:scale-95'
-                    : 'cursor-not-allowed bg-slate-800 text-slate-500'
+                    ? 'cursor-pointer bg-cyan-500 text-slate-950 shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:scale-105 hover:bg-cyan-400'
+                    : 'cursor-not-allowed bg-slate-800 text-slate-600'
                 }`}
                 aria-label="Send message"
               >
@@ -276,8 +271,7 @@ export function HomePage() {
               {reply}
             </p>
           ) : null}
-            </div>
-          </div>
+          </SharadaPromptFrame>
         </section>
 
         <div className="mt-10 grid w-full flex-1 grid-cols-1 gap-8 lg:grid-cols-3">

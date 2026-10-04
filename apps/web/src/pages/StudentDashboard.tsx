@@ -34,7 +34,7 @@ import { ToolRenderer } from '@/components/tools/ToolRenderer';
 import { AIToolWizardModal } from '@/components/tools/AIToolWizardModal';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
-import { SharadaChatBadge } from '@/components/SharadaChatBadge';
+import { SharadaPromptFrame } from '@/components/SharadaChatBadge';
 import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
 import { useDictation } from '@/hooks/useDictation';
 import { readSavedWorksheets } from '@/lib/savedWorksheets';
@@ -143,7 +143,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
     const field = textareaRef.current;
     if (!field) return;
     field.style.height = 'auto';
-    field.style.height = `${Math.min(field.scrollHeight, 200)}px`;
+    field.style.height = `${Math.max(88, Math.min(field.scrollHeight, 220))}px`;
   }, [prompt]);
 
   const streakLabel =
@@ -299,13 +299,9 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
             <h1 className="mb-8 text-center text-5xl font-black leading-tight tracking-tight text-white lg:text-6xl">
               Hi {firstName}. <span className="text-slate-400">How can I help today?</span>
             </h1>
-            <div className="mx-auto mb-10 flex w-full max-w-6xl flex-col items-center justify-center gap-5 md:flex-row">
-              <div className="flex shrink-0 items-center justify-center transition-transform hover:scale-105">
-                <SharadaChatBadge onClick={() => navigate('/dashboard/ai-tutor')} />
-              </div>
-              <div className="w-full min-w-0 flex-1">
+            <SharadaPromptFrame onChat={() => navigate('/dashboard/ai-tutor')}>
             <form
-              className="flex w-full flex-col space-y-3 rounded-[28px] border border-slate-700/50 bg-[#131b2e] p-4 text-left shadow-2xl transition-all duration-200 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20 sm:p-5"
+              className="flex min-h-[120px] w-full flex-col justify-between rounded-3xl border border-slate-800/90 bg-slate-900/90 p-4 text-left shadow-2xl backdrop-blur-xl transition-all focus-within:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-500/20 md:min-h-[140px]"
               onSubmit={(event) => {
                 event.preventDefault();
                 sendPrompt();
@@ -313,7 +309,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
             >
               <textarea
                 ref={textareaRef}
-                rows={1}
+                rows={3}
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
                 onKeyDown={(event) => {
@@ -323,18 +319,19 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                   }
                 }}
                 placeholder="Ask Sharada or enter prompt..."
-                className="custom-scrollbar max-h-[200px] w-full resize-none overflow-y-auto border-none bg-transparent p-0 text-base text-slate-100 placeholder-slate-400 focus:outline-none sm:text-lg"
+                className="custom-scrollbar min-h-[88px] w-full flex-1 resize-none overflow-y-auto border-none bg-transparent px-2 py-1 text-base text-slate-100 placeholder-slate-500 focus:outline-none md:text-lg"
                 style={FONT}
               />
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
+              <div className="mt-2 flex items-center justify-between border-t border-slate-800/60 pt-2">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className="cursor-pointer appearance-none rounded-full border-0 bg-transparent p-2.5 text-slate-300 hover:bg-slate-800 hover:text-white"
+                    className="cursor-pointer appearance-none rounded-xl border border-slate-800 bg-slate-950/60 p-2.5 text-slate-400 transition-all hover:border-slate-700 hover:text-cyan-400"
                     aria-label="Add file or attachment"
+                    title="Attach file"
                     onClick={() => fileRef.current?.click()}
                   >
-                    <Plus className="h-5 w-5" />
+                    <Plus className="h-4 w-4" />
                   </button>
                   <input
                     ref={fileRef}
@@ -345,9 +342,9 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                   />
                   <button
                     type="button"
-                    className={voiceMicButtonClass(listening, 'rounded-full p-2.5')}
+                    className={voiceMicButtonClass(listening, 'rounded-xl p-2.5')}
                     aria-label={listening ? 'Stop recording' : 'Use voice input'}
-                    title={listening ? 'Stop recording' : 'Start voice input'}
+                    title={listening ? 'Stop recording' : 'Voice Input'}
                     onClick={() => {
                       const started = toggle();
                       if (!started) setReply('Voice input needs a browser that supports speech recognition.');
@@ -356,14 +353,24 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                     <Mic className="h-5 w-5" />
                   </button>
                   {listening ? <VoiceListeningIndicator isListening onStopListening={toggle} /> : null}
+                  <button
+                    type="button"
+                    className="ml-1 hidden cursor-pointer appearance-none items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-bold text-cyan-400 shadow-sm transition-all hover:bg-cyan-500/20 sm:inline-flex sm:text-sm"
+                    onClick={() => {
+                      setPrompt('Generate a classroom image of ');
+                      setReply(null);
+                    }}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" /> New! Ask Sharada to generate images
+                  </button>
                 </div>
                 <button
                   type="submit"
                   disabled={!prompt.trim()}
-                  className={`flex appearance-none items-center justify-center rounded-full border-0 p-3 transition-all ${
+                  className={`flex appearance-none items-center justify-center rounded-2xl border-0 p-3 font-bold shadow-md transition-all ${
                     prompt.trim()
-                      ? 'cursor-pointer bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/30 hover:bg-cyan-300'
-                      : 'cursor-not-allowed bg-slate-800 text-slate-500'
+                      ? 'cursor-pointer bg-cyan-500 text-slate-950 shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:scale-105 hover:bg-cyan-400'
+                      : 'cursor-not-allowed bg-slate-800 text-slate-600'
                   }`}
                   aria-label="Send message"
                 >
@@ -372,8 +379,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
               </div>
             </form>
             {reply ? <p className="mt-3 w-full rounded-xl border border-slate-800 bg-[#080d1a] px-4 py-3 text-left text-slate-300">{reply}</p> : null}
-              </div>
-            </div>
+            </SharadaPromptFrame>
           </section>
         ) : (
           <section className="mb-8">

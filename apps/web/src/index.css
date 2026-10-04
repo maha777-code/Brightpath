@@ -229,6 +229,30 @@ input::placeholder {
   animation: bot-only-float 3.5s ease-in-out infinite;
 }
 
+@keyframes cartoon-jump-rotate {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  20% {
+    transform: translateY(-12px) rotate(-8deg) scale(1.05);
+  }
+  40% {
+    transform: translateY(0) rotate(0deg) scale(0.98);
+  }
+  60% {
+    transform: translateY(-18px) rotate(8deg) scale(1.08);
+  }
+  80% {
+    transform: translateY(-4px) rotate(-3deg) scale(1.02);
+  }
+}
+
+.animate-cartoon-bot {
+  animation: cartoon-jump-rotate 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform-origin: center bottom;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

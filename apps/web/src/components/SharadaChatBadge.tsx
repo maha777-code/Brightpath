@@ -1,53 +1,67 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 
 interface SharadaChatBadgeProps {
   onClick?: () => void;
   className?: string;
 }
 
-export const SharadaChatBadge: React.FC<SharadaChatBadgeProps> = ({ onClick, className = '' }) => {
+export function SharadaAssistantPill({ onClick }: { onClick?: () => void }) {
   return (
-    <div className={`group relative inline-flex items-center justify-center ${className}`}>
-      {/* Enlarged 3D robot overlay, sitting outside the pill */}
-      <div className="pointer-events-none absolute -left-8 -top-6 z-30 flex h-24 w-20 items-center justify-center md:h-28 md:w-24">
-        <div className="absolute inset-2 rounded-full bg-cyan-400/25 blur-lg transition-all duration-300 group-hover:bg-cyan-400/45" />
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex cursor-pointer appearance-none items-center gap-2 rounded-full border border-slate-800/90 bg-slate-900/90 px-4 py-1.5 shadow-lg backdrop-blur-md"
+      aria-label="Chat with Sharada, your AI assistant"
+    >
+      <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-cyan-400">
+        AI Assistant
+        <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
+      </span>
+      <span className="font-bold text-slate-600">•</span>
+      <span className="text-xs font-semibold text-slate-100">Chat with Sharada</span>
+    </button>
+  );
+}
 
-        <div className="h-full w-full transition-transform duration-300 group-hover:scale-110">
-          <img
-            src="/sharada-robot.png"
-            alt=""
-            className="animate-bot-only-float h-full w-full object-contain drop-shadow-[0_8px_16px_rgba(6,182,212,0.6)]"
-          />
-        </div>
+export function SharadaBotAvatar({ onClick, className = '' }: SharadaChatBadgeProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group relative flex shrink-0 cursor-pointer appearance-none items-center justify-center border-0 bg-transparent p-0 ${className}`}
+      aria-label="Chat with Sharada"
+    >
+      <span className="absolute -inset-2 rounded-full bg-cyan-500/20 blur-xl transition-all group-hover:bg-cyan-500/30" />
+      <span className="relative z-10 block transition-transform duration-200 group-hover:scale-110">
+        <img
+          src="/sharada-robot.png"
+          alt="Sharada AI Assistant"
+          className="animate-cartoon-bot h-20 w-20 object-contain drop-shadow-[0_8px_16px_rgba(6,182,212,0.6)] md:h-24 md:w-24"
+        />
+      </span>
+    </button>
+  );
+}
 
-        <span className="absolute bottom-2 right-2 z-40 flex h-3 w-3">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
-          <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-slate-950 bg-cyan-400" />
-        </span>
+export function SharadaPromptFrame({
+  onChat,
+  children,
+}: {
+  onChat?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="mx-auto my-8 flex w-full max-w-6xl flex-col items-center gap-3 px-4">
+      <SharadaAssistantPill onClick={onChat} />
+      <div className="mt-2 flex w-full flex-col items-center gap-4 md:flex-row">
+        <SharadaBotAvatar onClick={onChat} />
+        <div className="w-full min-w-0 flex-1">{children}</div>
       </div>
-
-      <button
-        type="button"
-        onClick={onClick}
-        className="relative inline-flex cursor-pointer appearance-none items-center overflow-visible rounded-2xl border border-cyan-500/35 bg-slate-950/80 py-3 pl-16 pr-6 shadow-[0_0_25px_rgba(6,182,212,0.2)] backdrop-blur-xl transition-all duration-300 hover:border-cyan-400/80 hover:shadow-[0_0_35px_rgba(6,182,212,0.4)] md:pl-20"
-        aria-label="Chat with Sharada, your AI assistant"
-      >
-        <div className="bg-shimmer-cyan pointer-events-none absolute inset-0 rounded-2xl" />
-
-        <div className="relative z-10 flex select-none flex-col text-left">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 transition-colors group-hover:text-cyan-300 md:text-xs">
-              AI Assistant
-            </span>
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />
-          </div>
-          <span className="whitespace-nowrap text-sm font-bold text-slate-100 transition-colors group-hover:text-white md:text-base">
-            Chat with Sharada
-          </span>
-        </div>
-      </button>
     </div>
   );
-};
+}
+
+/** @deprecated Use SharadaPromptFrame. Kept so older imports still render the bot. */
+export const SharadaChatBadge = SharadaBotAvatar;
 
 export default SharadaChatBadge;
