@@ -71,7 +71,8 @@ const GRADE_LEVELS = [
 
 const WORD_LIMIT = 75_000;
 const EXEMPLAR_TOPIC = 'Mitosis';
-const HISTORY_KEY = 'brightpath_worksheet_history';
+const HISTORY_KEY = 'mindvault_worksheet_history';
+const LEGACY_HISTORY_KEY = 'brightpath_worksheet_history';
 const PROMPT_SUGGESTIONS = [
   'Make questions harder',
   'Add 5 more multiple-choice questions',
@@ -90,14 +91,33 @@ const TRANSLATE_LANGUAGES = [
   { id: 'Portuguese', native: 'Português' },
 ] as const;
 
-function loadLocalVersions(): WorksheetHistoryItem[] {
+function readHistoryKey(key: string): unknown[] {
   try {
-    const raw = localStorage.getItem(HISTORY_KEY);
+    const raw = localStorage.getItem(key);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
+}
+
+function loadLocalVersions(): WorksheetHistoryItem[] {
+  const seen = new Set<string>();
+  const items: WorksheetHistoryItem[] = [];
+  for (const raw of [...readHistoryKey(HISTORY_KEY), ...readHistoryKey(LEGACY_HISTORY_KEY)]) {
+    if (!raw || typeof raw !== 'object') continue;
+    const item = raw as WorksheetHistoryItem;
+    if (!item.worksheet || !item.payload || !item.id || seen.has(item.id)) continue;
+    seen.add(item.id);
+    items.push({
+      ...item,
+      createdAt: item.createdAt || new Date().toISOString(),
+      title: item.title || item.worksheet.title || 'Untitled Worksheet',
+      gradeLevel: item.gradeLevel || item.payload.gradeLevel || 'N/A',
+      topicOrText: item.topicOrText || item.payload.topicOrText || '',
+    });
+  }
+  return items.slice(0, 30);
 }
 
 function persistLocalVersions(items: WorksheetHistoryItem[]) {
@@ -292,13 +312,26 @@ function gradeBadge(grade: string): string {
   return grade.replace(/\s+grade$/i, '-grade').replace(/^(\d+)/, (_, n) => n);
 }
 
+function cleanQuestionText(rawText: string): string {
+  if (!rawText) return '';
+  const cleaned = rawText.replace(/^(\d+[\.\)]\s*)+/g, '').trim();
+  return cleaned || rawText.trim();
+}
+
 function formatWorksheetPlainText(worksheet: WorksheetGeneratorResponse): string {
+  let number = 1;
   const parts = [
     worksheet.title,
     worksheet.instructions ?? '',
     worksheet.passage ? `Reading Passage\n${worksheet.passage}` : '',
     ...worksheet.sections.map((section) => {
-      const items = section.items.map((item, i) => `${i + 1}. ${item.prompt}`).join('\n');
+      const items = section.items
+        .map((item) => {
+          const line = `${number}. ${cleanQuestionText(item.prompt)}`;
+          number += 1;
+          return line;
+        })
+        .join('\n');
       return `${section.heading}\n${items}`;
     }),
   ];
@@ -411,24 +444,24 @@ function PrintableWorksheet({
             <h2 className="mb-3 border-b border-slate-300 pb-1 text-base font-bold text-slate-900">
               {section.heading}
             </h2>
-            <ol className="space-y-4">
+            <div className="space-y-4">
               {section.items.map((item) => {
                 const n = number;
                 number += 1;
                 return (
-                  <li key={`${item.id}-${n}`} className="text-sm leading-relaxed">
-                    <p>
-                      <span className="mr-2 font-semibold">{n}.</span>
-                      {item.prompt}
+                  <div key={`${item.id}-${n}`} className="pl-1 text-sm leading-relaxed text-slate-700">
+                    <p className="font-medium">
+                      <span className="mr-1.5 font-bold text-slate-900">{n}.</span>
+                      {cleanQuestionText(item.prompt)}
                     </p>
                     <div className="mt-3 space-y-3 pl-6">
                       <div className="h-px bg-slate-300" />
                       <div className="h-px bg-slate-300" />
                     </div>
-                  </li>
+                  </div>
                 );
               })}
-            </ol>
+            </div>
           </section>
         ))}
       </div>
@@ -524,13 +557,46 @@ function WorksheetStudio({
   const followUpRecognitionRef = useRef<SpeechRec | null>(null);
   const followUpTranscriptRef = useRef('');
   const crumb = topicCrumb(payload.topicOrText, worksheet.title);
-  const pageCount = Math.max(2, 1 + worksheet.sections.length);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const topicShort =
     payload.topicOrText.trim().split(/\n/)[0]?.trim().slice(0, 48) || worksheet.title;
 
   useEffect(() => {
     setTitle(worksheet.title);
   }, [worksheet.title]);
+
+  useEffect(() => {
+    const paper = previewRef.current;
+    if (!paper) return;
+    const pageHeight = 1056;
+    const update = () => {
+      const pages = Math.max(1, Math.ceil(paper.scrollHeight / pageHeight));
+      setTotalPages(pages);
+      const scroller =
+        (paper.closest('[data-worksheet-scroll]') as HTMLElement | null) ?? scrollContainerRef.current;
+      if (!scroller) {
+        setCurrentPage(1);
+        return;
+      }
+      const paperStart =
+        paper.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+      const intoPaper = Math.max(0, scroller.scrollTop - paperStart);
+      setCurrentPage(Math.min(pages, Math.max(1, Math.floor(intoPaper / pageHeight) + 1)));
+    };
+    update();
+    const scroller =
+      (paper.closest('[data-worksheet-scroll]') as HTMLElement | null) ?? scrollContainerRef.current;
+    scroller?.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    const observer = new ResizeObserver(update);
+    observer.observe(paper);
+    return () => {
+      scroller?.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+      observer.disconnect();
+    };
+  }, [worksheet, title]);
 
   useEffect(() => {
     const id = worksheet.id;
@@ -939,8 +1005,8 @@ function WorksheetStudio({
             <button
               type="button"
               className="inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-700/60 bg-slate-900/80 p-2.5 text-slate-300 shadow-md transition-all hover:border-cyan-500/50 hover:text-cyan-400"
-              aria-label="Version history"
-              title="Version history"
+              aria-label="Worksheet Generation History"
+              title="Worksheet Generation History"
               onClick={onOpenHistory}
             >
               <History className="h-4 w-4" />
@@ -1073,9 +1139,11 @@ function WorksheetStudio({
           </div>
         </div>
 
-        <p className="shrink-0 px-4 pt-3 text-xs font-medium text-slate-500">
-          Page 1/{pageCount}
-          {copied ? <span className="ml-2 text-emerald-600">Copied</span> : null}
+        <p className="shrink-0 px-4 pt-3">
+          <span className="rounded-md border border-slate-800 bg-slate-900/60 px-2.5 py-1 text-xs font-semibold text-slate-400">
+            Page {currentPage}/{totalPages}
+          </span>
+          {copied ? <span className="ml-2 text-xs font-medium text-emerald-600">Copied</span> : null}
         </p>
 
         <div className="relative min-h-0 flex-1">
@@ -1356,6 +1424,7 @@ export function WorksheetGenerator({
   const [, setHistory] = useState<FormSnapshot[]>([]);
   const [savedVersions, setSavedVersions] = useState<WorksheetHistoryItem[]>(loadLocalVersions);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyToast, setHistoryToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (favoritedProp !== undefined) return;
@@ -1418,23 +1487,38 @@ export function WorksheetGenerator({
     setHistoryOpen(false);
   };
 
+  const showHistoryToast = (message: string) => {
+    setHistoryToast(message);
+    window.setTimeout(() => setHistoryToast((current) => (current === message ? null : current)), 2800);
+  };
+
   const rememberVersion = (request: WorksheetGeneratorPayload, next: WorksheetGeneratorResponse) => {
-    const stored = { ...next, id: crypto.randomUUID() };
+    const stored = { ...next, id: next.id || `ws_hist_${Date.now()}` };
+    const generatedAt = new Date().toISOString();
     const item: WorksheetHistoryItem = {
       id: stored.id as string,
-      createdAt: new Date().toISOString(),
-      title: stored.title,
-      gradeLevel: request.gradeLevel,
-      topicOrText: request.topicOrText,
+      createdAt: generatedAt,
+      title: stored.title || 'Untitled Worksheet',
+      gradeLevel: request.gradeLevel || 'N/A',
+      topicOrText: request.topicOrText || '',
       payload: { ...request, imageFiles: undefined },
       worksheet: stored,
     };
     setSavedVersions((prev) => {
-      const merged = [item, ...prev.filter((row) => row.id !== item.id)].slice(0, 30);
-      persistLocalVersions(merged);
-      return merged;
+      const updated = [item, ...prev.filter((row) => row.title !== item.title && row.id !== item.id)].slice(0, 30);
+      persistLocalVersions(updated);
+      return updated;
     });
     return stored;
+  };
+
+  const deleteHistoryItem = (id: string) => {
+    setSavedVersions((prev) => {
+      const updated = prev.filter((row) => row.id !== id);
+      persistLocalVersions(updated);
+      return updated;
+    });
+    showHistoryToast('Removed from history');
   };
 
   const sourceWords = countWords(`${topicOrText}\n${documentContext(attachedFiles)}`);
@@ -1820,8 +1904,7 @@ export function WorksheetGenerator({
     <WorksheetHistoryDrawer
       open={historyOpen}
       onClose={() => setHistoryOpen(false)}
-      topic={(submitted?.topicOrText ?? topicOrText).split('\n')[0]}
-      fallbackItems={savedVersions}
+      items={savedVersions}
       activeId={worksheet?.id}
       onSelect={(item) => {
         setWorksheet(withWorksheetId(item.worksheet));
@@ -1829,8 +1912,16 @@ export function WorksheetGenerator({
         setGradeLevel(item.payload.gradeLevel);
         setTopicOrText(item.payload.topicOrText);
         setAttachedFiles(documentsFromPayload(item.payload));
+        setHistoryOpen(false);
+        showHistoryToast(`Loaded "${item.title}" from history`);
       }}
+      onDelete={deleteHistoryItem}
     />
+    {historyToast ? (
+      <div className="pointer-events-none fixed bottom-6 left-1/2 z-[90] -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
+        {historyToast}
+      </div>
+    ) : null}
     </>
   );
 }

@@ -1,137 +1,94 @@
-import { useEffect, useMemo, useState } from 'react';
-import { History, Loader2, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { History, Trash2, X } from 'lucide-react';
 import type { WorksheetHistoryItem } from '@brightpath/shared';
-import { api } from '@/lib/api';
 
 function formatWhen(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return 'Saved version';
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return date.toLocaleString();
 }
 
 export function WorksheetHistoryDrawer({
   open,
   onClose,
-  topic,
-  fallbackItems = [],
+  items,
   activeId,
   onSelect,
+  onDelete,
 }: {
   open: boolean;
   onClose: () => void;
-  topic?: string;
-  fallbackItems?: WorksheetHistoryItem[];
+  items: WorksheetHistoryItem[];
   activeId?: string;
   onSelect: (item: WorksheetHistoryItem) => void;
+  onDelete: (id: string) => void;
 }) {
-  const [items, setItems] = useState<WorksheetHistoryItem[]>(fallbackItems);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    void api
-      .worksheetHistory(topic)
-      .then((res) => {
-        if (!cancelled) setItems(res.items);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setItems([]);
-          setError(null);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, topic]);
-
-  const list = useMemo(() => {
-    const seen = new Set<string>();
-    return [...items, ...fallbackItems].filter((item) => {
-      if (seen.has(item.id)) return false;
-      seen.add(item.id);
-      return true;
-    });
-  }, [items, fallbackItems]);
-
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <button
-        type="button"
-        className="absolute inset-0 bg-slate-950/40"
-        aria-label="Close version history"
-        onClick={onClose}
-      />
-      <aside className="relative flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
-        <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-          <div className="flex items-center gap-2 text-slate-800">
-            <History className="h-4 w-4 text-violet-600" />
-            <h2 className="text-sm font-semibold">Version history</h2>
+  return createPortal(
+    <div className="fixed inset-0 z-[80] flex justify-end bg-slate-950/80 backdrop-blur-md" onClick={onClose}>
+      <div
+        className="flex h-full w-full max-w-md flex-col border-l border-slate-800 bg-slate-900 p-6 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div className="flex items-center gap-2 text-lg font-bold text-cyan-400">
+            <History className="h-5 w-5" />
+            <span>Generation History</span>
           </div>
           <button
             type="button"
-            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
-            aria-label="Close"
             onClick={onClose}
+            className="cursor-pointer appearance-none rounded-lg border-0 bg-transparent p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+            aria-label="Close generation history"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
-        </header>
-        <div className="min-h-0 flex-1 overflow-y-auto p-3">
-          {loading ? (
-            <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading versions…
-            </div>
-          ) : list.length === 0 ? (
-            <p className="px-2 py-8 text-center text-sm text-slate-500">
-              {error ?? 'Generate a worksheet to start a version history.'}
-            </p>
+        </div>
+
+        <div className="flex-1 space-y-3 overflow-y-auto py-4">
+          {items.length === 0 ? (
+            <div className="py-12 text-center text-sm text-slate-500">No generated worksheets in history yet.</div>
           ) : (
-            <ul className="space-y-2">
-              {list.map((item) => {
-                const active = item.id === activeId;
-                return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      className={[
-                        'w-full rounded-xl border px-3 py-3 text-left transition-colors',
-                        active
-                          ? 'border-violet-300 bg-violet-50'
-                          : 'border-slate-200 bg-white hover:border-violet-200 hover:bg-slate-50',
-                      ].join(' ')}
-                      onClick={() => {
-                        onSelect(item);
-                        onClose();
-                      }}
-                    >
-                      <p className="truncate text-sm font-semibold text-slate-900">{item.title}</p>
-                      <p className="mt-0.5 truncate text-xs text-slate-500">{item.topicOrText}</p>
-                      <p className="mt-1 text-xs font-medium text-violet-700">
-                        {item.gradeLevel} · {formatWhen(item.createdAt)}
-                      </p>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            items.map((item) => (
+              <div
+                key={item.id}
+                className={`group flex items-center justify-between rounded-xl border bg-slate-950/60 p-4 transition-all hover:border-cyan-500/40 ${
+                  item.id === activeId ? 'border-cyan-500/50' : 'border-slate-800'
+                }`}
+              >
+                <div className="min-w-0 flex-1 space-y-1 pr-2">
+                  <h4 className="line-clamp-1 text-sm font-bold text-slate-200 group-hover:text-cyan-400">{item.title}</h4>
+                  <p className="truncate text-xs text-slate-500">
+                    {item.gradeLevel} • {item.topicOrText.split('\n')[0] || 'Generated Worksheet'}
+                  </p>
+                  <p className="text-[10px] text-slate-600">{formatWhen(item.createdAt)}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onSelect(item)}
+                    className="cursor-pointer appearance-none rounded-lg border-0 bg-cyan-500/10 px-2 py-2 text-xs font-semibold text-cyan-400 transition-all hover:bg-cyan-500 hover:text-slate-950"
+                    title="Restore this worksheet"
+                  >
+                    Restore
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(item.id)}
+                    className="cursor-pointer appearance-none rounded-lg border-0 bg-transparent p-1.5 text-slate-500 transition-colors hover:text-rose-400"
+                    title="Delete from history"
+                    aria-label={`Delete ${item.title} from history`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))
           )}
         </div>
-      </aside>
-    </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

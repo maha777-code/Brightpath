@@ -194,6 +194,7 @@ Rules:
 - 2–4 sections after the passage (Comprehension, Vocabulary, Practice, Apply).
 - 8–12 numbered items total across all sections.
 - Each prompt is a complete student-facing question or task.
+- Do not put number prefixes inside prompt text. Never start a prompt with "1.", "2.", "1)", "1. 1.", or "1. 5.". The app numbers questions itself.
 - No markdown fences, no extra commentary.
 - When ATTACHED DOCUMENT CONTEXT or images are provided, write the passage and every question from that source.
 - Do not use generic placeholders such as "In your own words, what is [user prompt]".
@@ -317,7 +318,8 @@ export function normalizeWorksheetResponse(
     const rawItems = Array.isArray(s.items) ? s.items : [];
     const items = rawItems.slice(0, 12).map((item) => {
       const it = (item ?? {}) as { id?: unknown; prompt?: unknown; question?: unknown };
-      const prompt = String(it.prompt ?? it.question ?? '').trim() || `Practice item ${nextId}`;
+      const rawPrompt = String(it.prompt ?? it.question ?? '').trim();
+      const prompt = rawPrompt.replace(/^(\d+[\.\)]\s*)+/g, '').trim() || rawPrompt || `Practice item ${nextId}`;
       const id = typeof it.id === 'number' ? it.id : nextId;
       nextId += 1;
       return { id, prompt };
