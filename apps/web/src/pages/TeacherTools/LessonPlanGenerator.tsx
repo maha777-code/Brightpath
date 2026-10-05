@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   ChevronDown,
   FileText,
@@ -11,9 +12,24 @@ import {
   Bookmark,
   Printer,
   Copy,
-  Download,
   Pencil,
   Edit3,
+  X,
+  Star,
+  Paperclip,
+  ChevronLeft,
+  ChevronRight,
+  Share2,
+  History,
+  Languages,
+  Volume2,
+  ThumbsUp,
+  ThumbsDown,
+  Plus,
+  ArrowUp,
+  ExternalLink,
+  Maximize2,
+  Check,
 } from 'lucide-react';
 import {
   LESSON_PLAN_GRADE_LEVELS,
@@ -26,7 +42,24 @@ import { AIToolHeader } from '@/components/tools/AIToolHeader';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
+import { VoiceListeningIndicator } from '@/components/VoiceListeningIndicator';
+import {
+  documentContext,
+  documentImages,
+  extractDocumentText,
+  type AttachedDocument,
+} from '@/lib/extractDocumentText';
+import {
+  loadFavoriteIds,
+  loadLessonHistory,
+  loadSavedLessonPlans,
+  persistFavoriteIds,
+  saveLessonPlanToHistory,
+  saveLessonPlanToResources,
+  type LessonPlanHistoryItem,
+} from '@/lib/lessonPlanStorage';
+
+const FILE_ACCEPT = '.pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.gif,.webp,application/pdf,image/*';
 
 const WORD_LIMIT = 75_000;
 const FONT: CSSProperties = {
@@ -167,9 +200,9 @@ type FormState = {
   topic: string;
   criteria: string;
   standards: string;
-  topicFiles: string[];
-  criteriaFiles: string[];
-  standardsFiles: string[];
+  topicFiles: AttachedDocument[];
+  criteriaFiles: AttachedDocument[];
+  standardsFiles: AttachedDocument[];
 };
 
 type FieldKey = 'topic' | 'criteria' | 'standards';
@@ -221,7 +254,8 @@ function useDictation(onAppend: (text: string) => void) {
 }
 
 function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse {
-  const topic = input.topic.trim() || 'this topic';
+  const topic = input.topic.trim() || input.attachments?.[0] || 'this topic';
+  const excerpt = input.attachedDocumentContext?.replace(/\s+/g, ' ').trim().slice(0, 280);
   return {
     title: `${topic.split('\n')[0]?.slice(0, 72) || topic} — Lesson Plan`,
     gradeLevel: input.gradeLevel,
@@ -230,7 +264,12 @@ function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse {
       ? input.standards.split(/[;,\n]/).map((s) => s.trim()).filter(Boolean)
       : [`Aligned to ${input.gradeLevel} classroom objectives`],
     durationMinutes: 50,
-    materials: ['Whiteboard or slide deck', 'Student notebooks', 'Exit ticket slips'],
+    materials: [
+      ...(input.attachments?.length ? [`Attached source: ${input.attachments.join(', ')}`] : []),
+      'Whiteboard or slide deck',
+      'Student notebooks',
+      'Exit ticket slips',
+    ],
     sections: [
       {
         heading: 'Warm-up',
@@ -240,7 +279,12 @@ function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse {
       {
         heading: 'Mini-lesson',
         minutes: 12,
-        activities: ['Model the core idea with a worked example.', 'Check for understanding with two cold-call questions.'],
+        activities: [
+          excerpt
+            ? `Model the core idea using this source excerpt: "${excerpt}"`
+            : 'Model the core idea with a worked example.',
+          'Check for understanding with two cold-call questions.',
+        ],
       },
       {
         heading: 'Guided / group practice',
@@ -267,6 +311,43 @@ function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse {
 }
 
 const BOOKMARK_KEY = 'brightpath_lesson_plan_bookmarks';
+
+const SUPPORTED_LANGUAGES = [
+  { code: 'hi', name: 'Hindi' },
+  { code: 'es', name: 'Spanish' },
+  { code: 'fr', name: 'French' },
+  { code: 'de', name: 'German' },
+  { code: 'ta', name: 'Tamil' },
+  { code: 'te', name: 'Telugu' },
+  { code: 'kn', name: 'Kannada' },
+  { code: 'mr', name: 'Marathi' },
+] as const;
+
+interface PromptMeta {
+  topic: string;
+  gradeLevel: string;
+  standards?: string;
+  criteria?: string;
+  fileNames: string[];
+}
+
+function lessonSummary(plan: LessonPlanResponse, topic: string): { summary: string; keyPoints: string[] } {
+  const subject = (topic.split('\n')[0]?.trim().slice(0, 140) || plan.title).replace(/[.\s]+$/, '');
+  const procedure = plan.sections
+    .slice(0, 3)
+    .map((section) => `${section.heading.toLowerCase()} (${section.activities[0] || 'a classroom task'})`)
+    .join(', ');
+  return {
+    summary: `I've created a concise, classroom-ready lesson plan for ${subject}. It is written for ${plan.gradeLevel} and fits one class period of about ${plan.durationMinutes} minutes, with a clear objective, an assessment, and a procedure students can follow.`,
+    keyPoints: [
+      `Starting with a clear objective: ${plan.objective}`,
+      `Including an assessment that checks understanding: ${plan.assessment}`,
+      procedure
+        ? `Building the period as ${procedure}.`
+        : 'Building instruction through warm-up, practice, and a closing check.',
+    ],
+  };
+}
 
 function loadBookmarks(): string[] {
   try {
@@ -434,332 +515,679 @@ function exportToDocx(markdown: string, title: string) {
   downloadBlob(new Blob(['\ufeff', doc], { type: 'application/msword' }), `${fileStem(title)}.doc`);
 }
 
-function LessonPlanOutput({ plan, lessonId }: { plan: LessonPlanResponse; lessonId: string }) {
+const ICON_BTN =
+  'inline-flex cursor-pointer appearance-none items-center justify-center rounded-lg border-0 bg-transparent p-2 text-slate-400 shadow-none transition-colors hover:bg-slate-800 hover:text-white';
+
+function HistoryDrawer({
+  open,
+  onClose,
+  onSelect,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSelect: (item: LessonPlanHistoryItem) => void;
+}) {
+  const [saved, setSaved] = useState<LessonPlanHistoryItem[]>([]);
+  const [recent, setRecent] = useState<LessonPlanHistoryItem[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    setSaved(loadSavedLessonPlans());
+    setRecent(loadLessonHistory());
+  }, [open]);
+  if (!open) return null;
+  const renderItem = (item: LessonPlanHistoryItem) => (
+    <button
+      key={item.id}
+      type="button"
+      onClick={() => onSelect(item)}
+      className="w-full cursor-pointer appearance-none rounded-xl border border-slate-800 bg-slate-950/80 p-4 text-left text-slate-200 shadow-none transition-all hover:border-cyan-500/50 hover:bg-slate-900"
+    >
+      <div className="mb-1 text-xs font-semibold text-cyan-400">{item.gradeLevel}</div>
+      <div className="line-clamp-2 text-sm font-bold">{item.title || item.topicPrompt}</div>
+      <div className="mt-2 text-[11px] text-slate-500">{new Date(item.createdAt).toLocaleString()}</div>
+    </button>
+  );
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="h-full w-full max-w-md space-y-6 overflow-y-auto border-l border-slate-800 bg-slate-900 p-6"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+            <History className="h-5 w-5 text-cyan-400" /> Saved Plans
+          </h2>
+          <button type="button" onClick={onClose} className={ICON_BTN} aria-label="Close history">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <section className="space-y-3">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">My Resources</h3>
+          {saved.length === 0 ? (
+            <p className="text-sm text-slate-500">No lesson plans saved to My Resources yet.</p>
+          ) : (
+            saved.map(renderItem)
+          )}
+        </section>
+        <section className="space-y-3">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">Recent</h3>
+          {recent.length === 0 ? (
+            <p className="text-sm text-slate-500">No generated lesson plans yet.</p>
+          ) : (
+            recent.map(renderItem)
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function LessonPlanResult({
+  plan,
+  lessonId,
+  prompt,
+  busy,
+  onFollowUp,
+  onNew,
+  onHistory,
+}: {
+  plan: LessonPlanResponse;
+  lessonId: string;
+  prompt: PromptMeta;
+  busy: boolean;
+  onFollowUp: (instruction: string, files: AttachedDocument[]) => void;
+  onNew: () => void;
+  onHistory: () => void;
+}) {
+  const [showPrompt, setShowPrompt] = useState(true);
   const [lessonTitle, setLessonTitle] = useState(plan.title);
   const [editingTitle, setEditingTitle] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(() => loadBookmarks().includes(lessonId));
+  const [isFavorite, setIsFavorite] = useState(() => loadFavoriteIds().includes(lessonId));
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [translateOpen, setTranslateOpen] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [page, setPage] = useState(0);
   const [draft, setDraft] = useState(plan);
-  const [toast, setToast] = useState<string | null>(null);
-  const printRef = useRef<HTMLDivElement>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
+  const [speaking, setSpeaking] = useState(false);
+  const [followUp, setFollowUp] = useState('');
+  const [followUpFiles, setFollowUpFiles] = useState<AttachedDocument[]>([]);
   const exportRef = useRef<HTMLDivElement>(null);
+  const translateRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { listening, toggle } = useDictation((text) => {
+    setFollowUp((current) => (current.trim() ? `${current.trim()} ${text}` : text));
+  });
 
   useEffect(() => {
     setLessonTitle(plan.title);
     setDraft(plan);
+    setPage(0);
     setIsEditing(false);
   }, [plan]);
 
   useEffect(() => {
-    if (!isExportOpen) return;
+    if (!isExportOpen && !translateOpen) return;
     const onPointer = (event: MouseEvent) => {
       if (!exportRef.current?.contains(event.target as Node)) setIsExportOpen(false);
+      if (!translateRef.current?.contains(event.target as Node)) setTranslateOpen(false);
     };
     document.addEventListener('mousedown', onPointer);
     return () => document.removeEventListener('mousedown', onPointer);
-  }, [isExportOpen]);
+  }, [isExportOpen, translateOpen]);
 
-  const lessonPlanContent = formatLessonPlanMarkdown(draft, lessonTitle);
+  useEffect(() => () => window.speechSynthesis?.cancel(), []);
 
-  const showToast = (message: string) => {
-    setToast(message);
-    window.setTimeout(() => setToast(null), 2800);
+  const showNotice = (message: string) => {
+    setNotice(message);
+    window.setTimeout(() => setNotice(null), 2800);
   };
 
-  const handlePrint = () => {
-    openPrintWindow(lessonTitle, planToPrintBody(draft, lessonTitle));
-  };
+  const markdown = formatLessonPlanMarkdown(draft, lessonTitle);
+  const summary = lessonSummary(draft, prompt.topic);
+  const sectionPages: number[][] = [];
+  for (let index = 0; index < draft.sections.length; index += 2) {
+    sectionPages.push([index, Math.min(draft.sections.length, index + 2)]);
+  }
+  const pages = ['overview', 'details', ...sectionPages.map((_, index) => `sections-${index}`)];
+  const safePage = Math.min(page, pages.length - 1);
+  const currentKind = pages[safePage] ?? 'overview';
+
+  const handlePrint = () => openPrintWindow(lessonTitle, planToPrintBody(draft, lessonTitle));
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(lessonPlanContent);
-      showToast('Lesson plan copied to clipboard!');
+      await navigator.clipboard.writeText(markdown);
+      showNotice('Lesson plan copied.');
     } catch {
-      showToast('Failed to copy content.');
+      showNotice('Could not copy the lesson plan.');
     }
   };
 
-  const handleBookmark = async () => {
-    const next = !isBookmarked;
-    setIsBookmarked(next);
-    const ids = loadBookmarks();
-    persistBookmarks(next ? [...ids.filter((id) => id !== lessonId), lessonId] : ids.filter((id) => id !== lessonId));
+  const handleShare = async () => {
+    const shareText = `${lessonTitle}\n\n${markdown}`;
     try {
-      await api.bookmarkLessonPlan(lessonId, next, lessonTitle);
+      if (navigator.share) {
+        await navigator.share({ title: lessonTitle, text: shareText });
+        showNotice('Share sheet opened.');
+        return;
+      }
+      await navigator.clipboard.writeText(shareText);
+      showNotice('Lesson plan copied to share.');
     } catch {
-      /* local bookmark still saved */
+      showNotice('Share was cancelled.');
     }
-    showToast(next ? 'Saved to bookmarks' : 'Removed from bookmarks');
   };
 
-  const handleExportPDF = () => {
-    exportToPDF(draft, lessonTitle);
-    setIsExportOpen(false);
+  const currentHistoryItem = (): LessonPlanHistoryItem => ({
+    id: lessonId,
+    title: lessonTitle,
+    createdAt: new Date().toISOString(),
+    gradeLevel: draft.gradeLevel,
+    topicPrompt: prompt.topic,
+    standardsSet: prompt.standards,
+    additionalCriteria: prompt.criteria,
+    attachedFiles: prompt.fileNames.map((name) => ({ name })),
+    content: markdown,
+    plan: { ...draft, title: lessonTitle },
+  });
+
+  const handleBookmark = () => {
+    const added = saveLessonPlanToResources(currentHistoryItem());
+    setIsBookmarked(true);
+    persistBookmarks([...loadBookmarks().filter((id) => id !== lessonId), lessonId]);
+    showNotice(added ? 'Saved to My Resources.' : 'Already saved in My Resources.');
+    onHistory();
   };
 
-  const handleExportDocx = () => {
-    exportToDocx(lessonPlanContent, lessonTitle);
-    setIsExportOpen(false);
-  };
-
-  const handleExportGoogleDocs = async () => {
+  const handleTranslateContent = async (lang: { code: string; name: string }) => {
+    setTranslateOpen(false);
+    setIsTranslating(true);
     try {
-      await navigator.clipboard.writeText(lessonPlanContent);
-      window.open('https://docs.google.com/document/create', '_blank', 'noopener,noreferrer');
-      showToast('Copied. Paste into the new Google Doc (Ctrl+V).');
+      const translated = await api.translateLessonPlan({
+        targetLanguage: lang.name,
+        plan: { ...draft, title: lessonTitle },
+      });
+      setDraft(translated);
+      setLessonTitle(translated.title);
+      setSelectedLanguage(lang.name);
+      setPage(0);
+      showNotice(`Translated lesson plan to ${lang.name}.`);
     } catch {
-      showToast('Could not open Google Docs.');
+      showNotice('Failed to translate the lesson plan.');
+    } finally {
+      setIsTranslating(false);
     }
-    setIsExportOpen(false);
   };
+
+  const handleFavorite = () => {
+    const next = !isFavorite;
+    setIsFavorite(next);
+    const ids = loadFavoriteIds();
+    persistFavoriteIds(next ? [...ids.filter((id) => id !== lessonId), lessonId] : ids.filter((id) => id !== lessonId));
+    showNotice(next ? 'Added to favorites.' : 'Removed from favorites.');
+  };
+
+  const handleReadAloud = () => {
+    if (!('speechSynthesis' in window)) {
+      showNotice('Read aloud is not available in this browser.');
+      return;
+    }
+    if (speaking || window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(`${lessonTitle}. ${draft.objective} ${draft.assessment}`);
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleFeedback = (value: 'up' | 'down') => {
+    const next = feedback === value ? null : value;
+    setFeedback(next);
+    const items = loadLessonHistory();
+    const match = items.find((item) => item.id === lessonId);
+    if (match) saveLessonPlanToHistory({ ...match, feedback: next ?? undefined, title: lessonTitle, plan: draft });
+    showNotice(next === 'up' ? 'Marked as helpful.' : next === 'down' ? 'Marked as needs improvement.' : 'Feedback cleared.');
+  };
+
+  const addFollowUpFiles = async (list: FileList | null) => {
+    if (!list?.length) return;
+    for (const file of Array.from(list)) {
+      const id = `follow_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      setFollowUpFiles((prev) => [...prev, { id, name: file.name, extractedText: '', isProcessing: true }]);
+      try {
+        const extracted = await extractDocumentText(file);
+        setFollowUpFiles((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? { ...item, extractedText: extracted.text, imageDataUrl: extracted.imageDataUrl, isProcessing: false }
+              : item,
+          ),
+        );
+      } catch (err) {
+        setFollowUpFiles((prev) => prev.filter((item) => item.id !== id));
+        showNotice(err instanceof Error ? err.message : `Could not read ${file.name}`);
+      }
+    }
+  };
+
+  const sendFollowUp = () => {
+    const instruction = followUp.trim();
+    if (!instruction || followUpFiles.some((file) => file.isProcessing) || busy) return;
+    onFollowUp(instruction, followUpFiles);
+    setFollowUp('');
+    setFollowUpFiles([]);
+  };
+
+  const overviewBody = (
+    <div className="space-y-4 text-sm leading-relaxed text-slate-300">
+      <h3 className="text-center text-lg font-bold text-slate-100">{lessonTitle}</h3>
+      <p className="font-semibold text-slate-200">Learning Objective</p>
+      {isEditing ? (
+        <textarea className={EDIT_FIELD_CLASS} style={EDIT_FIELD_STYLE} rows={3} value={draft.objective} onChange={(e) => setDraft({ ...draft, objective: e.target.value })} />
+      ) : (
+        <p className="text-slate-400">{draft.objective}</p>
+      )}
+      <p className="font-semibold text-slate-200">Assessments</p>
+      {isEditing ? (
+        <textarea className={EDIT_FIELD_CLASS} style={EDIT_FIELD_STYLE} rows={3} value={draft.assessment} onChange={(e) => setDraft({ ...draft, assessment: e.target.value })} />
+      ) : (
+        <p className="text-slate-400">{draft.assessment}</p>
+      )}
+    </div>
+  );
+
+  const detailsBody = (
+    <div className="space-y-4 text-sm leading-relaxed text-slate-300">
+      <p className="font-semibold text-slate-200">Standards</p>
+      {isEditing ? (
+        <textarea className={EDIT_FIELD_CLASS} style={EDIT_FIELD_STYLE} rows={3} value={draft.standards.join('\n')} onChange={(e) => setDraft({ ...draft, standards: e.target.value.split('\n') })} />
+      ) : (
+        <p className="text-slate-400">{nonempty(draft.standards).join('; ') || 'Aligned to the selected grade level.'}</p>
+      )}
+      <p className="font-semibold text-slate-200">Materials</p>
+      {isEditing ? (
+        <textarea className={EDIT_FIELD_CLASS} style={EDIT_FIELD_STYLE} rows={3} value={draft.materials.join('\n')} onChange={(e) => setDraft({ ...draft, materials: e.target.value.split('\n') })} />
+      ) : (
+        <p className="text-slate-400">{nonempty(draft.materials).join(', ')}</p>
+      )}
+      <p className="font-semibold text-slate-200">Differentiation</p>
+      {isEditing ? (
+        <textarea className={EDIT_FIELD_CLASS} style={EDIT_FIELD_STYLE} rows={3} value={draft.differentiation} onChange={(e) => setDraft({ ...draft, differentiation: e.target.value })} />
+      ) : (
+        <p className="text-slate-400">{draft.differentiation}</p>
+      )}
+    </div>
+  );
+
+  const sectionsBody = (range: number[]) => (
+    <div className="space-y-5 text-sm leading-relaxed text-slate-300">
+      {draft.sections.slice(range[0], range[1]).map((section, offset) => {
+        const index = (range[0] ?? 0) + offset;
+        return (
+          <section key={`${section.heading}-${index}`}>
+            {isEditing ? (
+              <input
+                className={`${EDIT_FIELD_CLASS} mb-2 p-2 font-semibold text-slate-100`}
+                style={EDIT_FIELD_STYLE}
+                value={section.heading}
+                onChange={(e) => {
+                  const sections = draft.sections.map((item, i) => (i === index ? { ...item, heading: e.target.value } : item));
+                  setDraft({ ...draft, sections });
+                }}
+              />
+            ) : (
+              <h3 className="font-semibold text-slate-100">
+                {section.heading}
+                {section.minutes ? ` (${section.minutes} min)` : ''}
+              </h3>
+            )}
+            {isEditing ? (
+              <textarea
+                className={EDIT_FIELD_CLASS}
+                style={EDIT_FIELD_STYLE}
+                rows={4}
+                value={section.activities.join('\n')}
+                onChange={(e) => {
+                  const sections = draft.sections.map((item, i) =>
+                    i === index ? { ...item, activities: e.target.value.split('\n') } : item,
+                  );
+                  setDraft({ ...draft, sections });
+                }}
+              />
+            ) : (
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-slate-400">
+                {nonempty(section.activities).map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+
+  const pageBody =
+    currentKind === 'overview'
+      ? overviewBody
+      : currentKind === 'details'
+        ? detailsBody
+        : sectionsBody(sectionPages[Number(currentKind.replace('sections-', ''))] ?? [0, draft.sections.length]);
 
   return (
-    <div className="mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/90 shadow-xl">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-slate-800 bg-slate-900/90 px-4 py-3 sm:px-6">
-        <div className="flex min-w-0 items-center gap-2">
-          <button
-            type="button"
-            className="shrink-0 text-slate-400 hover:text-cyan-400"
-            aria-label="Rename lesson plan"
-            title="Rename lesson plan"
-            onClick={() => setEditingTitle(true)}
-          >
-            <Pencil className="h-4 w-4" />
+    <div className="relative mx-auto flex w-[min(82%,100%)] flex-col space-y-6 px-2 py-6 pb-24">
+      <div className="pointer-events-none absolute left-1/2 top-0 h-[280px] w-[min(700px,100%)] -translate-x-1/2 rounded-full bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-teal-500/10 blur-3xl" />
+      <div className="relative z-10 flex items-center justify-between rounded-2xl border border-slate-800/80 bg-slate-900/80 p-4 shadow-lg backdrop-blur-md">
+        <div className="flex min-w-0 items-center gap-2 text-base font-semibold text-slate-200">
+          <FileText className="h-5 w-5 shrink-0 text-cyan-400" />
+          <span>Lesson Plan</span>
+          <button type="button" onClick={handleFavorite} className={ICON_BTN} title={isFavorite ? 'Remove favorite' : 'Favorite'} aria-pressed={isFavorite}>
+            <Star className={`h-4 w-4 ${isFavorite ? 'fill-amber-400 text-amber-400' : ''}`} />
           </button>
-          {editingTitle ? (
-            <input
-              type="text"
-              className={`${EDIT_FIELD_CLASS} min-w-0 flex-1 p-2 text-lg font-semibold`}
-              style={EDIT_FIELD_STYLE}
-              value={lessonTitle}
-              onChange={(e) => setLessonTitle(e.target.value)}
-              onBlur={() => setEditingTitle(false)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === 'Escape') setEditingTitle(false);
-              }}
-              autoFocus
-            />
-          ) : (
-            <h2
-              className="truncate text-lg font-semibold text-slate-100"
-              onClick={() => setEditingTitle(true)}
-              title="Rename lesson plan"
-            >
-              {lessonTitle}
-            </h2>
-          )}
+          <button type="button" onClick={() => void handleShare()} className={ICON_BTN} title="Share">
+            <Share2 className="h-4 w-4" />
+          </button>
+          <button type="button" onClick={onHistory} className={ICON_BTN} title="History">
+            <History className="h-4 w-4" />
+          </button>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void handleBookmark()}
-            title="Bookmark lesson plan"
-            className={`rounded-lg border bg-slate-950 p-2 transition-colors ${
-              isBookmarked
-                ? 'border-amber-500/50 text-amber-400'
-                : 'border-slate-700 text-slate-300 hover:text-white'
-            }`}
-          >
-            <Bookmark className="h-4 w-4" fill={isBookmarked ? 'currentColor' : 'none'} />
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={onNew} className="cursor-pointer appearance-none border-0 bg-transparent text-xs font-semibold text-slate-400 hover:text-cyan-300">
+            New
           </button>
           <button
             type="button"
-            onClick={handlePrint}
-            title="Print lesson plan"
-            className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-slate-300 transition-colors hover:border-cyan-500 hover:text-white"
+            onClick={() => setShowPrompt((open) => !open)}
+            className="inline-flex cursor-pointer appearance-none items-center gap-1.5 border-0 bg-transparent text-xs font-semibold text-slate-400 transition-colors hover:text-cyan-400"
+            aria-expanded={showPrompt}
           >
-            <Printer className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleCopy()}
-            title="Copy text"
-            className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-slate-300 transition-colors hover:border-cyan-500 hover:text-white"
-          >
-            <Copy className="h-4 w-4" />
-          </button>
-          <div className="relative" ref={exportRef}>
-            <button
-              type="button"
-              onClick={() => setIsExportOpen((open) => !open)}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm font-medium text-slate-200 transition-colors hover:border-cyan-500 hover:text-white"
-            >
-              <Download className="h-4 w-4 text-cyan-400" />
-              <span>Export</span>
-              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-            </button>
-            {isExportOpen ? (
-              <div role="menu" className={`${MENU_PANEL_CLASS} absolute right-0 top-full mt-2 w-52`}>
-                <StudioMenuItem icon={<FileText className="h-4 w-4 text-cyan-400" />} onClick={handleExportPDF}>
-                  Export as PDF
-                </StudioMenuItem>
-                <StudioMenuItem icon={<FileCode className="h-4 w-4 text-cyan-400" />} onClick={handleExportDocx}>
-                  Export as Word (.docx)
-                </StudioMenuItem>
-                <StudioMenuItem
-                  icon={<Globe className="h-4 w-4 text-cyan-400" />}
-                  onClick={() => void handleExportGoogleDocs()}
-                >
-                  Export to Google Docs
-                </StudioMenuItem>
-              </div>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsEditing((value) => !value)}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
-              isEditing
-                ? 'border-cyan-500 bg-cyan-600 text-white'
-                : 'border-slate-700 bg-slate-950 text-slate-200 hover:border-cyan-500 hover:text-white'
-            }`}
-          >
-            <Edit3 className="h-4 w-4" />
-            <span>{isEditing ? 'Done Editing' : 'Edit'}</span>
+            <span>{showPrompt ? 'Hide prompt' : 'Show prompt'}</span>
+            <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showPrompt ? 'rotate-180' : ''}`} />
           </button>
         </div>
       </div>
 
-      <article ref={printRef} className="p-6 text-slate-100" style={FONT}>
-        <p className="text-slate-300">
-          {draft.gradeLevel} · {draft.durationMinutes} minutes
-        </p>
-        <div className="mt-4">
-          <span className="font-semibold">Objective: </span>
-          {isEditing ? (
-            <textarea
-              className={`${EDIT_FIELD_CLASS} mt-1 min-h-[4rem]`}
-              style={EDIT_FIELD_STYLE}
-              value={draft.objective}
-              onChange={(e) => setDraft({ ...draft, objective: e.target.value })}
-              rows={3}
-            />
-          ) : (
-            <p className="mt-1 text-base leading-relaxed text-slate-200">{draft.objective}</p>
-          )}
+      {showPrompt ? (
+        <div className="relative z-10 grid grid-cols-1 gap-3 rounded-2xl border border-slate-800/80 bg-slate-900/70 p-5 text-sm text-slate-300 shadow-lg backdrop-blur-md md:grid-cols-2">
+          <div>
+            <span className="font-medium text-slate-400">Topic, Standard, or Objective:</span>{' '}
+            <span className="font-semibold text-slate-100">{prompt.topic}</span>
+            {prompt.fileNames.length > 0 ? (
+              <span className="ml-2 inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-950 px-2 py-0.5 text-xs font-medium text-cyan-300">
+                <Paperclip className="h-3 w-3" /> {prompt.fileNames.length} file{prompt.fileNames.length === 1 ? '' : 's'}
+              </span>
+            ) : null}
+          </div>
+          <div>
+            <span className="font-medium text-slate-400">Grade Level:</span>{' '}
+            <span className="font-semibold text-slate-100">{prompt.gradeLevel}</span>
+          </div>
+          {prompt.standards ? (
+            <div>
+              <span className="font-medium text-slate-400">Standards Set to Align to:</span>{' '}
+              <span className="font-semibold text-slate-100">{prompt.standards}</span>
+            </div>
+          ) : null}
+          {prompt.criteria ? (
+            <div>
+              <span className="font-medium text-slate-400">Additional Criteria:</span>{' '}
+              <span className="font-semibold text-slate-100">{prompt.criteria}</span>
+            </div>
+          ) : null}
         </div>
-        <div className="mt-2">
-          <span className="font-semibold">Standards: </span>
-          {isEditing ? (
-            <textarea
-              className={`${EDIT_FIELD_CLASS} mt-1 min-h-[3rem]`}
-              style={EDIT_FIELD_STYLE}
-              value={draft.standards.join('\n')}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  standards: e.target.value.split('\n'),
-                })
-              }
-              rows={3}
-            />
-          ) : (
-            <p className="mt-1 text-base leading-relaxed text-slate-200">{draft.standards.join('; ')}</p>
-          )}
-        </div>
-        <div className="mt-2">
-          <span className="font-semibold">Materials: </span>
-          {isEditing ? (
-            <textarea
-              className={`${EDIT_FIELD_CLASS} mt-1 min-h-[3rem]`}
-              style={EDIT_FIELD_STYLE}
-              value={draft.materials.join('\n')}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  materials: e.target.value.split('\n'),
-                })
-              }
-              rows={3}
-            />
-          ) : (
-            <p className="mt-1 text-base leading-relaxed text-slate-200">{draft.materials.join(', ')}</p>
-          )}
-        </div>
-        <div className="mt-5 space-y-4">
-          {draft.sections.map((section, index) => (
-            <section key={`${section.heading}-${index}`}>
-              {isEditing ? (
-                <input
-                  type="text"
-                  className={`${EDIT_FIELD_CLASS} mb-2 p-2 text-[20px] font-semibold text-cyan-200`}
-                  style={{ ...EDIT_FIELD_STYLE, ...LABEL_FONT, WebkitTextFillColor: '#ddd6fe' }}
-                  value={section.heading}
-                  onChange={(e) => {
-                    const sections = draft.sections.map((item, i) =>
-                      i === index ? { ...item, heading: e.target.value } : item,
-                    );
-                    setDraft({ ...draft, sections });
-                  }}
-                />
-              ) : (
-                <h3 className="text-[20px] font-semibold text-cyan-200" style={LABEL_FONT}>
-                  {section.heading}
-                  {section.minutes ? ` (${section.minutes} min)` : ''}
-                </h3>
-              )}
-              {isEditing ? (
-                <textarea
-                  className={`${EDIT_FIELD_CLASS} min-h-[5rem]`}
-                  style={EDIT_FIELD_STYLE}
-                  value={section.activities.join('\n')}
-                  onChange={(e) => {
-                    const sections = draft.sections.map((item, i) =>
-                      i === index
-                        ? {
-                            ...item,
-                            activities: e.target.value.split('\n'),
-                          }
-                        : item,
-                    );
-                    setDraft({ ...draft, sections });
-                  }}
-                  rows={4}
-                />
-              ) : (
-                <ul className="mt-1 list-disc space-y-1 pl-6 text-slate-200">
-                  {section.activities.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          ))}
-        </div>
-        <div className="mt-5">
-          <span className="font-semibold">Assessment: </span>
-          {isEditing ? (
-            <textarea
-              className={`${EDIT_FIELD_CLASS} mt-1 min-h-[3rem]`}
-              style={EDIT_FIELD_STYLE}
-              value={draft.assessment}
-              onChange={(e) => setDraft({ ...draft, assessment: e.target.value })}
-              rows={3}
-            />
-          ) : (
-            <p className="mt-1 text-base leading-relaxed text-slate-200">{draft.assessment}</p>
-          )}
-        </div>
-        <div className="mt-2">
-          <span className="font-semibold">Differentiation: </span>
-          {isEditing ? (
-            <textarea
-              className={`${EDIT_FIELD_CLASS} mt-1 min-h-[3rem]`}
-              style={EDIT_FIELD_STYLE}
-              value={draft.differentiation}
-              onChange={(e) => setDraft({ ...draft, differentiation: e.target.value })}
-              rows={3}
-            />
-          ) : (
-            <p className="mt-1 text-base leading-relaxed text-slate-200">{draft.differentiation}</p>
-          )}
-        </div>
-      </article>
+      ) : null}
 
-      {toast ? (
-        <div className="border-t border-slate-800 bg-slate-950 px-6 py-2 text-sm text-cyan-200">{toast}</div>
+      <div className="relative z-10 rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 via-slate-900/80 to-slate-950/90 p-6 shadow-2xl backdrop-blur-xl md:p-8">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+          <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-200">
+            <button type="button" className={ICON_BTN} title="Rename" aria-label="Rename lesson plan" onClick={() => setEditingTitle(true)}>
+              <Pencil className="h-4 w-4 text-cyan-400" />
+            </button>
+            {editingTitle ? (
+              <input
+                className={`${EDIT_FIELD_CLASS} min-w-0 flex-1 p-2 text-sm font-semibold`}
+                style={EDIT_FIELD_STYLE}
+                value={lessonTitle}
+                autoFocus
+                onChange={(e) => setLessonTitle(e.target.value)}
+                onBlur={() => setEditingTitle(false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === 'Escape') setEditingTitle(false);
+                }}
+              />
+            ) : (
+              <span className="truncate">{lessonTitle}</span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button type="button" onClick={() => void handleBookmark()} className={ICON_BTN} title="Bookmark" aria-pressed={isBookmarked}>
+              <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-amber-400 text-amber-400' : ''}`} />
+            </button>
+            <button type="button" onClick={handlePrint} className={ICON_BTN} title="Print">
+              <Printer className="h-4 w-4" />
+            </button>
+            <button type="button" onClick={() => void handleCopy()} className={ICON_BTN} title="Copy">
+              <Copy className="h-4 w-4" />
+            </button>
+            <div className="relative" ref={exportRef}>
+              <button
+                type="button"
+                onClick={() => setIsExportOpen((open) => !open)}
+                className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                <span>Export</span>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+              {isExportOpen ? (
+                <div className={`${MENU_PANEL_CLASS} absolute right-0 z-20 mt-2 w-52`}>
+                  <StudioMenuItem icon={<FileText className="h-4 w-4 text-cyan-400" />} onClick={() => { exportToPDF(draft, lessonTitle); setIsExportOpen(false); }}>
+                    Export as PDF
+                  </StudioMenuItem>
+                  <StudioMenuItem icon={<FileCode className="h-4 w-4 text-cyan-400" />} onClick={() => { exportToDocx(markdown, lessonTitle); setIsExportOpen(false); }}>
+                    Export as Word (.docx)
+                  </StudioMenuItem>
+                  <StudioMenuItem
+                    icon={<Globe className="h-4 w-4 text-cyan-400" />}
+                    onClick={() => {
+                      void navigator.clipboard.writeText(markdown).then(() => {
+                        window.open('https://docs.google.com/document/create', '_blank', 'noopener,noreferrer');
+                        showNotice('Copied. Paste into the new Google Doc.');
+                      });
+                      setIsExportOpen(false);
+                    }}
+                  >
+                    Export to Google Docs
+                  </StudioMenuItem>
+                </div>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsEditing((value) => !value)}
+              className={`inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                isEditing
+                  ? 'border-cyan-400 bg-cyan-500 text-slate-950'
+                  : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20'
+              }`}
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+              <span>{isEditing ? 'Done' : 'Edit'}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="relative min-h-[380px] rounded-xl border border-slate-800/80 bg-slate-950/80 p-6 md:p-8">
+          <div className="mb-4 flex items-center justify-end gap-2 text-xs text-slate-400">
+            <button type="button" className={ICON_BTN} aria-label="Previous page" disabled={safePage <= 0} onClick={() => setPage((value) => Math.max(0, value - 1))}>
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span>Page {safePage + 1} of {pages.length}</span>
+            <button type="button" className={ICON_BTN} aria-label="Next page" disabled={safePage >= pages.length - 1} onClick={() => setPage((value) => Math.min(pages.length - 1, value + 1))}>
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+          {isTranslating ? (
+            <div className="flex items-center justify-center gap-2 py-16 text-sm font-semibold text-cyan-300">
+              <Loader2 className="h-5 w-5 animate-spin" /> Translating lesson plan...
+            </div>
+          ) : (
+            pageBody
+          )}
+          <div className="mt-8 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setExpanded(true)}
+              className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-200 shadow-xl hover:bg-slate-800"
+            >
+              <Maximize2 className="h-4 w-4" /> Expand preview
+            </button>
+          </div>
+          {busy ? (
+            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-slate-950/70">
+              <span className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm text-white">
+                <Loader2 className="h-4 w-4 animate-spin" /> Updating lesson plan…
+              </span>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="space-y-3 text-sm leading-relaxed text-slate-300">
+        <p>{summary.summary}</p>
+        <ol className="list-decimal space-y-1.5 pl-5">
+          {summary.keyPoints.map((point) => (
+            <li key={point}>{point}</li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="flex items-center gap-3">
+          <div className="relative" ref={translateRef}>
+            <button
+              type="button"
+              onClick={() => setTranslateOpen((open) => !open)}
+              disabled={isTranslating}
+              className="inline-flex cursor-pointer appearance-none items-center gap-1.5 border-0 bg-transparent text-xs font-semibold text-slate-400 hover:text-cyan-300 disabled:opacity-60"
+            >
+              <Languages className="h-4 w-4 text-cyan-400" />
+              <span>Translate ({selectedLanguage})</span>
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            {translateOpen ? (
+              <div className="absolute bottom-8 left-0 z-30 w-48 space-y-1 rounded-xl border border-slate-800 bg-slate-900 p-2 text-xs shadow-2xl">
+                <div className="mb-1 border-b border-slate-800 px-2 py-1 font-bold text-slate-500">Select Language</div>
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => void handleTranslateContent(lang)}
+                    className="flex w-full cursor-pointer appearance-none items-center justify-between rounded-lg border-0 bg-transparent px-2 py-1.5 text-left text-slate-200 hover:bg-slate-800"
+                  >
+                    <span>{lang.name}</span>
+                    {selectedLanguage === lang.name ? <Check className="h-3.5 w-3.5 text-cyan-400" /> : null}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <button type="button" onClick={handleReadAloud} className="inline-flex cursor-pointer appearance-none items-center gap-1 border-0 bg-transparent text-slate-400 hover:text-white">
+            <Volume2 className="h-4 w-4" /> {speaking ? 'Stop' : 'Listen'}
+          </button>
+        </div>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => handleFeedback('up')} className={`${ICON_BTN} ${feedback === 'up' ? 'text-emerald-400' : ''}`} title="Helpful">
+            <ThumbsUp className="h-4 w-4" />
+          </button>
+          <button type="button" onClick={() => handleFeedback('down')} className={`${ICON_BTN} ${feedback === 'down' ? 'text-rose-400' : ''}`} title="Needs improvement">
+            <ThumbsDown className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {notice ? <p className="rounded-xl border border-cyan-500/30 bg-cyan-950/40 px-4 py-2 text-sm text-cyan-200">{notice}</p> : null}
+
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 shadow-xl">
+        {followUpFiles.length > 0 ? (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {followUpFiles.map((file) => (
+              <span key={file.id} className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/30 bg-cyan-950/60 px-2 py-1 text-xs text-cyan-300">
+                {file.isProcessing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Paperclip className="h-3 w-3" />}
+                {file.name}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        <input
+          value={followUp}
+          onChange={(e) => setFollowUp(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') sendFollowUp();
+          }}
+          placeholder="Continue the conversation..."
+          className="w-full border-0 bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-500"
+          style={{ color: '#e2e8f0', WebkitTextFillColor: '#e2e8f0' }}
+        />
+        <div className="mt-2 flex items-center justify-between border-t border-slate-800/60 pt-2">
+          <button type="button" onClick={() => fileRef.current?.click()} className={ICON_BTN} title="Attach a file" aria-label="Attach a file">
+            <Plus className="h-4 w-4" />
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            className="hidden"
+            accept={FILE_ACCEPT}
+            multiple
+            onChange={(event) => {
+              void addFollowUpFiles(event.target.files);
+              event.currentTarget.value = '';
+            }}
+          />
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={toggle} className={ICON_BTN} title={listening ? 'Stop recording' : 'Voice input'} aria-label="Voice input">
+              <Mic className={`h-4 w-4 ${listening ? 'text-cyan-300' : ''}`} />
+            </button>
+            <button
+              type="button"
+              onClick={sendFollowUp}
+              disabled={!followUp.trim() || busy}
+              className="inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl bg-cyan-500 p-2 text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
+              aria-label="Send"
+            >
+              <ArrowUp className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {expanded ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setExpanded(false)}>
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950 p-8" onClick={(event) => event.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-100">{lessonTitle}</h2>
+              <button type="button" onClick={() => setExpanded(false)} className={ICON_BTN} aria-label="Close preview">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-6 text-sm text-slate-300">
+              {overviewBody}
+              {detailsBody}
+              {sectionsBody([0, draft.sections.length])}
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );
@@ -770,15 +1198,17 @@ function StudioComposer({
   onChange,
   placeholder,
   files,
-  onFiles,
+  onAddFiles,
+  onRemoveFile,
   assistantHint,
   minHeight = 168,
 }: {
   value: string;
   onChange: (next: string) => void;
   placeholder: string;
-  files: string[];
-  onFiles: (names: string[]) => void;
+  files: AttachedDocument[];
+  onAddFiles: (list: FileList | null) => void;
+  onRemoveFile: (id: string) => void;
   assistantHint?: string;
   minHeight?: number;
 }) {
@@ -790,19 +1220,27 @@ function StudioComposer({
   const overLimit = words > WORD_LIMIT;
 
   return (
-    <div className="relative rounded-2xl border border-slate-800 bg-slate-900/90 p-5 shadow-xl" style={FONT}>
-      <div className="relative">
+    <div
+      className="w-full space-y-4 rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-xl backdrop-blur-xl transition-all duration-300 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20"
+      style={FONT}
+    >
+      <div className="flex items-start gap-3">
         <button
           type="button"
-          title={listening ? 'Stop recording' : 'Start voice input'}
-          className={`absolute left-3 top-3 z-10 ${voiceMicButtonClass(listening, 'rounded-lg p-2 shadow-md')}`}
+          title={listening ? 'Listening... Click to stop' : 'Click to dictate prompt with voice'}
+          className={`flex shrink-0 cursor-pointer appearance-none items-center justify-center rounded-xl p-2.5 shadow-md transition-all duration-300 ${
+            listening
+              ? 'animate-pulse border border-rose-400/60 bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.45)] ring-2 ring-rose-400/30'
+              : 'border border-cyan-500/30 bg-slate-950/90 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.15)] hover:scale-105 hover:border-cyan-400 hover:bg-cyan-950/50 hover:text-cyan-300'
+          }`}
           aria-label={listening ? 'Stop recording' : 'Dictate with microphone'}
+          aria-pressed={listening}
           onClick={toggle}
         >
-          <Mic className="h-4 w-4" />
+          <Mic className={`h-4 w-4 ${listening ? 'animate-bounce text-white' : 'text-cyan-400'}`} />
         </button>
         <textarea
-          className="w-full resize-y rounded-xl border border-slate-700/80 bg-slate-950 p-3 pl-14 text-base text-slate-100 placeholder:text-slate-500 placeholder:font-normal placeholder:italic placeholder:opacity-60 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+          className="w-full flex-1 resize-y bg-transparent px-1 text-base leading-relaxed text-slate-100 outline-none placeholder:font-normal placeholder:italic placeholder:text-slate-500 placeholder:opacity-60"
           style={{ ...FONT, minHeight }}
           placeholder={placeholder}
           value={value}
@@ -813,24 +1251,33 @@ function StudioComposer({
       </div>
       {listening ? <VoiceListeningIndicator className="mt-3" isListening onStopListening={toggle} /> : null}
       {files.length > 0 ? (
-        <ul className="mt-3 flex flex-wrap gap-1.5">
-          {files.map((name) => (
-            <li
-              key={name}
-              className="rounded-full border border-slate-700 bg-slate-950 px-2.5 py-0.5 text-sm text-slate-200"
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-800 pt-3">
+          {files.map((file) => (
+            <div
+              key={file.id}
+              className="flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-950/60 px-3 py-1.5 text-xs text-cyan-300 shadow-sm"
             >
-              {name}
-            </li>
+              {file.isProcessing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-400" />
+              ) : (
+                <FileText className="h-3.5 w-3.5 text-cyan-400" />
+              )}
+              <span className="max-w-[180px] truncate font-medium">{file.name}</span>
+              <button
+                type="button"
+                onClick={() => onRemoveFile(file.id)}
+                className="appearance-none p-0.5 text-slate-400 transition-colors hover:text-rose-400"
+                title="Remove file"
+                aria-label={`Remove ${file.name}`}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : null}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <AddFileMenu
-          onFiles={(list) => {
-            const names = Array.from(list ?? []).map((file) => file.name);
-            if (names.length) onFiles([...files, ...names]);
-          }}
-        />
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800/80 pt-3 text-xs text-slate-400">
+        <AddFileMenu accept={FILE_ACCEPT} onFiles={onAddFiles} />
         <div className="flex flex-wrap items-center gap-4">
           <span className={overLimit ? 'text-xs font-medium text-rose-300' : 'text-xs text-slate-400'}>
             Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
@@ -838,7 +1285,7 @@ function StudioComposer({
           {assistantHint ? (
             <button
               type="button"
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-slate-900 px-3 py-1.5 text-sm font-medium text-cyan-300 shadow-sm transition-colors hover:border-cyan-500 hover:text-white"
+              className="inline-flex cursor-pointer appearance-none items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-950/60 px-4 py-2 text-sm font-semibold text-cyan-300 shadow-sm transition-all hover:border-cyan-400"
               onClick={() => setAssistantOpen((v) => !v)}
             >
               <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
@@ -857,18 +1304,23 @@ function StudioComposer({
 }
 
 export default function LessonPlanGenerator({ embedded = false }: { embedded?: boolean }) {
+  const location = useLocation();
   const [gradeLevel, setGradeLevel] = useState('9th grade');
   const [topic, setTopic] = useState('');
   const [criteria, setCriteria] = useState('');
   const [standards, setStandards] = useState('');
-  const [topicFiles, setTopicFiles] = useState<string[]>([]);
-  const [criteriaFiles, setCriteriaFiles] = useState<string[]>([]);
-  const [standardsFiles, setStandardsFiles] = useState<string[]>([]);
+  const [topicFiles, setTopicFiles] = useState<AttachedDocument[]>([]);
+  const [criteriaFiles, setCriteriaFiles] = useState<AttachedDocument[]>([]);
+  const [standardsFiles, setStandardsFiles] = useState<AttachedDocument[]>([]);
+  const [isExtractingFile, setIsExtractingFile] = useState(false);
+  const [fileNotice, setFileNotice] = useState<string | null>(null);
   const [, setHistory] = useState<FormState[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<LessonPlanResponse | null>(null);
   const [lessonId, setLessonId] = useState<string | null>(null);
+  const [activePrompt, setActivePrompt] = useState<PromptMeta | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const generateRef = useRef<HTMLButtonElement>(null);
 
@@ -925,36 +1377,130 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
     setError(null);
   };
 
+  const fileSetters = {
+    topic: setTopicFiles,
+    criteria: setCriteriaFiles,
+    standards: setStandardsFiles,
+  } as const;
+
+  const attachFiles = async (field: FieldKey, list: FileList | null) => {
+    if (!list?.length) return;
+    pushHistory();
+    setIsExtractingFile(true);
+    setError(null);
+    const added: string[] = [];
+    for (const [index, file] of Array.from(list).entries()) {
+      const id = `file_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 6)}`;
+      const setFiles = fileSetters[field];
+      setFiles((prev) => [...prev, { id, name: file.name, extractedText: '', isProcessing: true }]);
+      try {
+        const extracted = await extractDocumentText(file);
+        setFiles((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? { ...item, extractedText: extracted.text, imageDataUrl: extracted.imageDataUrl, isProcessing: false }
+              : item,
+          ),
+        );
+        added.push(file.name);
+      } catch (err) {
+        setFiles((prev) => prev.filter((item) => item.id !== id));
+        setFileNotice(null);
+        setError(err instanceof Error ? err.message : `Could not extract text from ${file.name}`);
+      }
+    }
+    if (added.length) setFileNotice(`${added.length} file${added.length === 1 ? '' : 's'} attached`);
+    setIsExtractingFile(false);
+  };
+
+  const removeFile = (field: FieldKey, id: string) => {
+    pushHistory();
+    fileSetters[field]((prev) => prev.filter((file) => file.id !== id));
+    setFileNotice(null);
+  };
+
+  const attachedFiles = [...topicFiles, ...criteriaFiles, ...standardsFiles];
+  const filesProcessing = isExtractingFile || attachedFiles.some((file) => file.isProcessing);
   const overLimit =
     countWords(topic) > WORD_LIMIT || countWords(criteria) > WORD_LIMIT || countWords(standards) > WORD_LIMIT;
-  const canGenerate = topic.trim().length > 2 && Boolean(gradeLevel) && !overLimit && !busy;
+  const canGenerate = topic.trim().length > 2 && Boolean(gradeLevel) && !overLimit && !busy && !filesProcessing;
 
-  const generate = async () => {
-    if (!canGenerate) return;
+  const publishPlan = (result: LessonPlanResponse, payload: LessonPlanPayload, fileNames: string[], criteriaText: string) => {
+    const id = crypto.randomUUID();
+    setLessonId(id);
+    setPlan(result);
+    setActivePrompt({
+      topic: payload.topic,
+      gradeLevel: payload.gradeLevel,
+      standards: payload.standards,
+      criteria: criteriaText || undefined,
+      fileNames,
+    });
+    saveLessonPlanToHistory({
+      id,
+      title: result.title,
+      createdAt: new Date().toISOString(),
+      gradeLevel: payload.gradeLevel,
+      topicPrompt: payload.topic,
+      standardsSet: payload.standards,
+      additionalCriteria: criteriaText || undefined,
+      attachedFiles: fileNames.map((name) => ({ name })),
+      content: formatLessonPlanMarkdown(result, result.title),
+      plan: result,
+    });
+  };
+
+  const generate = async (extra?: { instruction?: string; files?: AttachedDocument[] }) => {
+    if (!extra && !canGenerate) return;
+    if (extra && (topic.trim().length < 3 || busy)) return;
     setBusy(true);
     setError(null);
+    const files = [...attachedFiles, ...(extra?.files ?? [])];
+    const criteriaText = [criteria.trim(), extra?.instruction?.trim()].filter(Boolean).join('\n\n');
+    const images = documentImages(files);
     const payload: LessonPlanPayload = {
       gradeLevel,
       topic: topic.trim(),
-      additionalCriteria: criteria.trim() || undefined,
+      additionalCriteria: criteriaText || undefined,
       standards: standards.trim() || undefined,
-      attachments: [...topicFiles, ...criteriaFiles, ...standardsFiles],
+      attachments: files.map((file) => file.name),
+      attachedDocumentContext: documentContext(files) || undefined,
+      imageFiles: images.length ? images : undefined,
     };
     try {
-      const result = await api.generateLessonPlan(payload);
-      const id = crypto.randomUUID();
-      setLessonId(id);
-      setPlan(result);
-      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+      publishPlan(await api.generateLessonPlan(payload), payload, files.map((file) => file.name), criteriaText);
     } catch {
-      const id = crypto.randomUUID();
-      setLessonId(id);
-      setPlan(fallbackLessonPlan(payload));
-      setError(null);
+      publishPlan(fallbackLessonPlan(payload), payload, files.map((file) => file.name), criteriaText);
     } finally {
       setBusy(false);
     }
   };
+
+  const openHistoryItem = (item: LessonPlanHistoryItem) => {
+    setPlan(item.plan);
+    setLessonId(item.id);
+    setGradeLevel(item.gradeLevel);
+    setTopic(item.topicPrompt);
+    setCriteria(item.additionalCriteria ?? '');
+    setStandards(item.standardsSet ?? '');
+    setActivePrompt({
+      topic: item.topicPrompt,
+      gradeLevel: item.gradeLevel,
+      standards: item.standardsSet,
+      criteria: item.additionalCriteria,
+      fileNames: (item.attachedFiles ?? []).map((file) => file.name),
+    });
+    setHistoryOpen(false);
+  };
+
+  const openedSaved = useRef(false);
+  useEffect(() => {
+    if (openedSaved.current) return;
+    const saved = (location.state as { savedPlan?: LessonPlanHistoryItem } | null)?.savedPlan;
+    if (!saved?.plan) return;
+    openedSaved.current = true;
+    openHistoryItem(saved);
+  }, [location.state]);
 
   const studio = (
       <div
@@ -963,7 +1509,22 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
         style={{ ...FONT, colorScheme: 'dark' }}
       >
         <style>{STUDIO_CONTRAST_CSS}</style>
-        <div className="mx-auto w-full max-w-4xl space-y-6 px-5 py-6 pb-24 sm:px-8">
+        {plan && lessonId && activePrompt ? (
+          <LessonPlanResult
+            key={lessonId}
+            plan={plan}
+            lessonId={lessonId}
+            prompt={activePrompt}
+            busy={busy}
+            onFollowUp={(instruction, files) => void generate({ instruction, files })}
+            onNew={() => {
+              setPlan(null);
+              setLessonId(null);
+            }}
+            onHistory={() => setHistoryOpen(true)}
+          />
+        ) : (
+        <div className="mx-auto flex w-full max-w-[70rem] flex-col space-y-8 px-5 py-6 pb-24 sm:px-8">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 flex-wrap items-center gap-3">
                 <p className="text-[18px] text-slate-300" style={FONT}>
@@ -971,6 +1532,16 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen(true)}
+                  title="Lesson plan history"
+                  aria-label="Lesson plan history"
+                  className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm font-medium text-cyan-300 hover:border-cyan-500 hover:text-white"
+                >
+                  <History className="h-4 w-4" />
+                  History
+                </button>
                 <button
                   type="button"
                   onClick={handleReset}
@@ -1023,9 +1594,10 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
                 onChange={(next) => updateField('topic', next)}
                 placeholder={TOPIC_PLACEHOLDER}
                 files={topicFiles}
-                onFiles={setTopicFiles}
+                onAddFiles={(list) => void attachFiles('topic', list)}
+                onRemoveFile={(id) => removeFile('topic', id)}
                 minHeight={200}
-                assistantHint="Name the standard, topic, or learning objective. Paste the full wording if you want alignment to a specific framework (NGSS, CCSS, TEKS, and others)."
+                assistantHint="Name the standard, topic, or learning objective. Paste the full wording if you want alignment to a specific framework (NGSS, CCSS, TEKS, and others). Attached PDFs, Word files, text, and images are read into the lesson."
               />
             </div>
 
@@ -1038,7 +1610,8 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
                 onChange={(next) => updateField('criteria', next)}
                 placeholder={CRITERIA_PLACEHOLDER}
                 files={criteriaFiles}
-                onFiles={setCriteriaFiles}
+                onAddFiles={(list) => void attachFiles('criteria', list)}
+                onRemoveFile={(id) => removeFile('criteria', id)}
                 assistantHint="Add class context: prior lesson, grouping, materials, timing, or instructional must-haves."
               />
             </div>
@@ -1052,12 +1625,17 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
                 onChange={(next) => updateField('standards', next)}
                 placeholder={STANDARDS_PLACEHOLDER}
                 files={standardsFiles}
-                onFiles={setStandardsFiles}
+                onAddFiles={(list) => void attachFiles('standards', list)}
+                onRemoveFile={(id) => removeFile('standards', id)}
                 minHeight={140}
               />
             </div>
 
-            {plan && lessonId ? <LessonPlanOutput key={lessonId} plan={plan} lessonId={lessonId} /> : null}
+            {fileNotice ? (
+              <p className="rounded-xl border border-cyan-500/30 bg-cyan-950/40 px-4 py-3 text-sm text-cyan-200">
+                {fileNotice}
+              </p>
+            ) : null}
             {error ? (
               <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-rose-200">{error}</p>
             ) : null}
@@ -1074,11 +1652,13 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
                 }`}
                 onClick={() => void generate()}
               >
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Generate Lesson Plan
+                {busy || filesProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {filesProcessing ? 'Reading files...' : 'Generate Lesson Plan'}
               </button>
             </div>
           </div>
+        )}
+        <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} onSelect={openHistoryItem} />
       </div>
   );
   if (embedded) return studio;

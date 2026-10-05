@@ -271,7 +271,12 @@ export interface LessonPlanPayload {
   topic: string;
   additionalCriteria?: string;
   standards?: string;
+  /** File names, for display and citation. */
   attachments?: string[];
+  /** Extracted text from uploaded PDF, DOCX, or text files. */
+  attachedDocumentContext?: string;
+  /** Image data URLs sent to the model for vision. */
+  imageFiles?: string[];
 }
 
 export interface LessonPlanSection {

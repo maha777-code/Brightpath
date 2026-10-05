@@ -15,7 +15,7 @@ import {
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
-import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, generateSharadaChat, generateEmailResponse } from '../services/llm.js';
+import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, translateLessonPlan, generateSharadaChat, generateEmailResponse } from '../services/llm.js';
 import { randomUUID } from 'node:crypto';
 
 const favoriteBody = z.object({
@@ -207,6 +207,8 @@ const lessonPlanBody = z.object({
   additionalCriteria: z.string().max(400_000).optional(),
   standards: z.string().max(400_000).optional(),
   attachments: z.array(z.string().max(240)).max(20).optional(),
+  attachedDocumentContext: z.string().max(400_000).optional(),
+  imageFiles: z.array(z.string().max(8_000_000)).max(4).optional(),
 });
 
 const refineBody = z.object({
@@ -353,6 +355,45 @@ router.post('/tools/worksheet-generator', async (req: AuthRequest, res: Response
   } catch (err) {
     console.error('[teacher/tools/worksheet-generator] failed', err);
     res.status(500).json({ error: 'Failed to generate worksheet' });
+  }
+});
+
+const lessonTranslateBody = z.object({
+  targetLanguage: z.string().min(1).max(40),
+  plan: z.object({
+    title: z.string().min(1).max(400),
+    gradeLevel: z.string().min(1).max(80),
+    objective: z.string().max(8_000),
+    standards: z.array(z.string().max(500)).max(20),
+    durationMinutes: z.number().min(1).max(300),
+    materials: z.array(z.string().max(500)).max(30),
+    sections: z.array(z.object({
+      heading: z.string().max(200),
+      minutes: z.number().optional(),
+      activities: z.array(z.string().max(2_000)).max(20),
+    })).max(12),
+    assessment: z.string().max(4_000),
+    differentiation: z.string().max(4_000),
+  }),
+});
+
+/** POST /teacher/tools/lesson-plan-generator/translate */
+router.post('/tools/lesson-plan-generator/translate', async (req: AuthRequest, res: Response) => {
+  if (!req.teacherId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  const parsed = lessonTranslateBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'A lesson plan and target language are required' });
+    return;
+  }
+  try {
+    const plan = await translateLessonPlan(parsed.data);
+    res.json(plan);
+  } catch (err) {
+    console.error('[teacher/tools/lesson-plan-generator/translate] failed', err);
+    res.status(500).json({ error: 'Failed to translate lesson plan' });
   }
 });
 

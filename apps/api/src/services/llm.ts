@@ -563,11 +563,31 @@ Rules:
 - Honor additional criteria (grouping, prior lesson, materials).
 - Align to named standards when provided.
 - Keep activities specific and teachable in one class period.
+- When attached reference documents or images are provided, analyze them and build the lesson from their concepts, passages, data, exercises, vocabulary, and chapter details. Do not ignore the attachments or replace them with generic content. Name the source files in Materials.
 `;
 
+function lessonPlanReferenceBlock(input: LessonPlanPayload): string {
+  const context = input.attachedDocumentContext?.trim();
+  const imageCount = input.imageFiles?.length ?? 0;
+  if (!context && !imageCount) return '';
+  const parts = [
+    'CRITICAL ATTACHED REFERENCE DOCUMENTS & SOURCE MATERIALS:',
+    'The user provided the reference document(s) below. You MUST analyze them and directly incorporate their concepts, passages, data, exercises, vocabulary, or chapter details into the lesson plan. Cite the source file names in Materials.',
+  ];
+  if (context) parts.push(context);
+  if (imageCount) {
+    parts.push(
+      `Attached images: ${imageCount}. Read each image and use its visible text, labels, diagrams, and exercises as source material.`,
+    );
+  }
+  return parts.join('\n\n');
+}
+
 export function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse {
-  const topic = input.topic.trim() || 'this topic';
+  const topic = input.topic.trim() || input.attachments?.[0] || 'this topic';
   const firstLine = topic.split('\n')[0]?.trim() || topic;
+  const sourceNames = (input.attachments ?? []).map((name) => name.trim()).filter(Boolean);
+  const excerpt = input.attachedDocumentContext?.replace(/\s+/g, ' ').trim().slice(0, 280);
   return {
     title: `${firstLine.slice(0, 72)} — Lesson Plan`,
     gradeLevel: input.gradeLevel,
@@ -576,7 +596,12 @@ export function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse
       ? input.standards.split(/[;,\n]/).map((s) => s.trim()).filter(Boolean)
       : [`Aligned to ${input.gradeLevel} classroom objectives`],
     durationMinutes: 50,
-    materials: ['Whiteboard or slide deck', 'Student notebooks', 'Exit ticket slips'],
+    materials: [
+      ...(sourceNames.length ? [`Attached source: ${sourceNames.join(', ')}`] : []),
+      'Whiteboard or slide deck',
+      'Student notebooks',
+      'Exit ticket slips',
+    ],
     sections: [
       {
         heading: 'Warm-up',
@@ -586,7 +611,12 @@ export function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse
       {
         heading: 'Mini-lesson',
         minutes: 12,
-        activities: ['Model the core idea with a worked example.', 'Check for understanding with two targeted questions.'],
+        activities: [
+          excerpt
+            ? `Model the core idea using this source excerpt: "${excerpt}"`
+            : 'Model the core idea with a worked example.',
+          'Check for understanding with two targeted questions.',
+        ],
       },
       {
         heading: 'Guided / group practice',
@@ -650,6 +680,26 @@ function normalizeLessonPlan(
   };
 }
 
+export async function translateLessonPlan(input: {
+  targetLanguage: string;
+  plan: LessonPlanResponse;
+}): Promise<LessonPlanResponse> {
+  const llm = getActiveProvider();
+  if (!llm) throw new Error('Translation model is not configured');
+  const raw = await llm.completeJson<Record<string, unknown>>({
+    system: `${LESSON_PLAN_SYSTEM}
+Translate every user-facing string into ${input.targetLanguage}.
+Keep the same JSON keys, numeric minutes, section count, and activity count.
+Do not add commentary or change the lesson's meaning.`,
+    user: `Target language: ${input.targetLanguage}\n\nLesson plan JSON:\n${JSON.stringify(input.plan)}`,
+  });
+  return normalizeLessonPlan(
+    raw,
+    { gradeLevel: input.plan.gradeLevel, topic: input.plan.title },
+    input.plan,
+  );
+}
+
 export async function generateLessonPlan(input: LessonPlanPayload): Promise<LessonPlanResponse> {
   const fallback = fallbackLessonPlan(input);
   const llm = getActiveProvider();
@@ -660,13 +710,16 @@ export async function generateLessonPlan(input: LessonPlanPayload): Promise<Less
       system: LESSON_PLAN_SYSTEM,
       user: [
         `Grade level: ${input.gradeLevel}`,
-        `Topic, standard, or objective:\n${input.topic.trim()}`,
-        input.additionalCriteria?.trim() ? `Additional criteria:\n${input.additionalCriteria.trim()}` : '',
-        input.standards?.trim() ? `Standards set to align to:\n${input.standards.trim()}` : '',
-        input.attachments?.length ? `Attached files: ${input.attachments.join(', ')}` : '',
+        `MAIN TOPIC / STANDARD / OBJECTIVE:\n${input.topic.trim()}`,
+        input.additionalCriteria?.trim()
+          ? `ADDITIONAL CRITERIA & CONSTRAINTS:\n${input.additionalCriteria.trim()}`
+          : '',
+        input.standards?.trim() ? `STANDARDS SET TO ALIGN TO:\n${input.standards.trim()}` : '',
+        lessonPlanReferenceBlock(input),
       ]
         .filter(Boolean)
         .join('\n\n'),
+      images: imagePartsFromDataUrls(input.imageFiles),
     });
     return normalizeLessonPlan(raw, input, fallback);
   } catch (err) {

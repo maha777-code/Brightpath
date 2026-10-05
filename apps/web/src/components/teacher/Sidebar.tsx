@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Home, LayoutGrid, LogOut, Menu, X } from 'lucide-react';
+import { Bookmark, Home, LayoutGrid, LogOut, Menu, X } from 'lucide-react';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -23,6 +23,13 @@ const WORKSPACE_ITEMS = [
     detail: 'All Tools Hub',
     icon: LayoutGrid,
     match: (pathname: string) => pathname.startsWith('/teacher/tools'),
+  },
+  {
+    to: '/teacher/resources/lesson-plans',
+    label: 'My Resources',
+    detail: 'Saved lesson plans',
+    icon: Bookmark,
+    match: (pathname: string) => pathname.startsWith('/teacher/resources'),
   },
 ] as const;
 

@@ -12,3 +12,6 @@ packages/*/dist
 
 .vercel
 .env*
+
+# Local motion videos exceed GitHub's file size limit
+video/*.mp4

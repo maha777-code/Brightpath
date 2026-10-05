@@ -29,6 +29,7 @@ import TeacherToolPage from '@/pages/TeacherToolPage';
 import SongGeneratorDashboard from '@/pages/TeacherTools/SongGeneratorDashboard';
 import SongGeneratorCreate from '@/pages/TeacherTools/SongGeneratorCreate';
 import LessonPlanGenerator from '@/pages/TeacherTools/LessonPlanGenerator';
+import SavedLessonPlans from '@/pages/SavedLessonPlans';
 import TeacherChapterManagePage from '@/pages/TeacherChapterManagePage';
 import SchoolDashboard from '@/pages/SchoolDashboard';
 import OwnerDashboard from '@/pages/admin/OwnerDashboard';
@@ -280,6 +281,7 @@ export default function App() {
         <Route path="/teacher/tools/song-generator/new" element={<ProtectedTeacher><ToolAccessGate toolId="song-generator"><SongGeneratorCreate /></ToolAccessGate></ProtectedTeacher>} />
         <Route path="/teacher/tools/song-generator" element={<ProtectedTeacher><ToolAccessGate toolId="song-generator"><SongGeneratorDashboard /></ToolAccessGate></ProtectedTeacher>} />
         <Route path="/teacher/tools/lesson-plan-generator" element={<ProtectedTeacher><ToolAccessGate toolId="lesson-plan"><LessonPlanGenerator /></ToolAccessGate></ProtectedTeacher>} />
+        <Route path="/teacher/resources/lesson-plans" element={<ProtectedTeacher><SavedLessonPlans /></ProtectedTeacher>} />
         <Route path="/teacher/tools/:toolId" element={<ProtectedTeacher><TeacherToolPage /></ProtectedTeacher>} />
         <Route
           path="/teacher/chapter/:id"

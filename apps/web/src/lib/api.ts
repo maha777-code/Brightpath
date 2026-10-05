@@ -617,6 +617,12 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  translateLessonPlan: (body: { targetLanguage: string; plan: LessonPlanResponse }) =>
+    request<LessonPlanResponse>('/teacher/tools/lesson-plan-generator/translate', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   sharadaChat: (body: SharadaChatRequest) =>
     request<SharadaChatResponse>('/teacher/sharada/chat', {
       method: 'POST',
