@@ -1,155 +1,184 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
-import { CATEGORY_PLANS_DATA, type AccountCategory } from '@brightpath/shared';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
+import { PRICING_FILTERS, PRICING_PLANS, buttonVariantClass, type PricingPlan } from '@/pages/pricingData';
 
-type PricingTab = 'all' | AccountCategory;
+function formatPrice(plan: PricingPlan, currency: 'INR' | 'USD', isAnnual: boolean) {
+  const priceObj = currency === 'INR' ? plan.priceINR : plan.priceUSD;
+  const rawPrice = isAnnual ? priceObj.annualMonthly : priceObj.monthly;
 
-const TABS: { id: PricingTab; label: string }[] = [
-  { id: 'all', label: 'All Plans' },
-  { id: 'student', label: 'Students' },
-  { id: 'teacher', label: 'Teachers' },
-  { id: 'tutor_center', label: 'Tutor Centers' },
-  { id: 'school', label: 'Schools' },
-  { id: 'parent', label: 'Parents' },
-];
+  if (typeof rawPrice === 'string') return rawPrice;
+  if (rawPrice === 0) return 'Free';
 
-function rupees(amount: number) {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return currency === 'INR' ? `₹${rawPrice.toLocaleString('en-IN')}` : `$${rawPrice}`;
 }
 
-const buttonClass =
-  'inline-flex w-full cursor-pointer appearance-none items-center justify-center gap-2 rounded-xl border-2 px-4 py-3.5 text-base font-extrabold transition-all';
-
-const ctaClass: Record<AccountCategory, string> = {
-  student: 'border-transparent bg-cyan-400 text-slate-950 hover:bg-cyan-300',
-  teacher: 'border-transparent bg-purple-500 text-white hover:bg-purple-400',
-  tutor_center: 'border-transparent bg-emerald-400 text-slate-950 hover:bg-emerald-300',
-  school: 'border-transparent bg-blue-500 text-white hover:bg-blue-400',
-  parent: 'border-transparent bg-amber-400 text-slate-950 hover:bg-amber-300',
-};
+function billingCaption(plan: PricingPlan, currency: 'INR' | 'USD', isAnnual: boolean) {
+  const rawPrice = isAnnual
+    ? (currency === 'INR' ? plan.priceINR.annualMonthly : plan.priceUSD.annualMonthly)
+    : (currency === 'INR' ? plan.priceINR.monthly : plan.priceUSD.monthly);
+  if (typeof rawPrice === 'string') return 'Tailored quote';
+  if (rawPrice === 0) return 'No charge';
+  return isAnnual ? 'Per month, billed annually' : 'Billed monthly';
+}
 
 export default function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(true);
-  const [tab, setTab] = useState<PricingTab>('all');
-  const plans = useMemo(
-    () => (tab === 'all' ? CATEGORY_PLANS_DATA : CATEGORY_PLANS_DATA.filter((plan) => plan.category === tab)),
-    [tab],
+  const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
+  const [activeRole, setActiveRole] = useState<string>('All Plans');
+  const filteredPlans = useMemo(
+    () =>
+      activeRole === 'All Plans'
+        ? PRICING_PLANS
+        : PRICING_PLANS.filter((plan) => plan.roleCategory === activeRole || plan.roleCategory === 'Enterprise'),
+    [activeRole],
   );
 
   return (
-    <div id="pricing" className="flex min-h-screen w-full flex-col bg-[#090d16] px-6 py-10 text-slate-100 sm:px-10 lg:px-16">
-      <header className="flex w-full items-center justify-between pb-8">
+    <div id="pricing" className="flex min-h-screen w-full flex-col items-center bg-slate-950 px-4 py-10 text-slate-100 md:px-8">
+      <header className="mb-8 flex w-full max-w-[1400px] items-center justify-between">
         <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
-        <Link to="/login" className="text-base font-semibold text-slate-300 underline underline-offset-4 hover:text-white">
+        <Link to="/login" className="text-sm font-semibold text-slate-300 underline underline-offset-4 hover:text-white">
           Log in
         </Link>
       </header>
 
-      <div className="mb-8 w-full space-y-4 text-center">
-        <span className="inline-block rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3.5 py-1.5 text-sm font-bold uppercase tracking-widest text-cyan-400">
+      <div className="mb-8 max-w-3xl space-y-3 text-center">
+        <span className="inline-block rounded-full border border-cyan-800 bg-cyan-950 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cyan-400">
           Flexible Pricing
         </span>
-        <h1 className="text-5xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl">
-          A plan for every role.
-        </h1>
-        <p className="mx-auto max-w-3xl text-lg text-slate-400">
+        <h1 className="text-4xl font-extrabold text-white md:text-5xl">A plan for every role.</h1>
+        <p className="text-sm text-slate-400">
           Students, teachers, tutor centers, schools, and parents each get a catalog built for how they use MindVault.
         </p>
+      </div>
 
-        <div className="flex items-center justify-center gap-4 pt-2">
-          <span className={`text-xl font-medium ${!isAnnual ? 'text-white' : 'text-slate-300'}`}>Monthly</span>
+      <div className="mb-8 flex flex-wrap items-center justify-center gap-6">
+        <div className="flex items-center rounded-xl border border-slate-800 bg-slate-900 p-1" role="group" aria-label="Currency">
           <button
             type="button"
-            aria-pressed={isAnnual}
-            aria-label={isAnnual ? 'Show monthly prices' : 'Show annual prices'}
-            onClick={() => setIsAnnual((value) => !value)}
-            className="relative h-9 w-16 cursor-pointer appearance-none rounded-full border border-slate-700 bg-slate-800 p-1"
+            onClick={() => setCurrency('INR')}
+            aria-pressed={currency === 'INR'}
+            className={`cursor-pointer appearance-none rounded-lg border-0 px-3 py-1.5 text-xs font-bold transition-all ${
+              currency === 'INR' ? 'bg-cyan-500 text-slate-950 shadow' : 'bg-transparent text-slate-400 hover:text-white'
+            }`}
           >
-            <span
-              className="block h-7 w-7 rounded-full bg-cyan-400 transition-transform"
-              style={{ transform: isAnnual ? 'translateX(1.75rem)' : 'translateX(0px)' }}
-            />
+            🇮🇳 INR (₹)
           </button>
-          <span className={`flex items-center gap-3 text-xl font-bold ${isAnnual ? 'text-white' : 'text-slate-300'}`}>
-            Billed annually
-            <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-sm font-extrabold uppercase tracking-wide text-cyan-400">
-              2 months included
-            </span>
-          </span>
+          <button
+            type="button"
+            onClick={() => setCurrency('USD')}
+            aria-pressed={currency === 'USD'}
+            className={`cursor-pointer appearance-none rounded-lg border-0 px-3 py-1.5 text-xs font-bold transition-all ${
+              currency === 'USD' ? 'bg-cyan-500 text-slate-950 shadow' : 'bg-transparent text-slate-400 hover:text-white'
+            }`}
+          >
+            🌐 USD ($)
+          </button>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-2 pt-2" role="tablist" aria-label="Plan categories">
-          {TABS.map((item) => {
-            const selected = tab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                onClick={() => setTab(item.id)}
-                className={`cursor-pointer appearance-none rounded-full border px-4 py-2 text-sm font-bold ${
-                  selected
-                    ? 'border-cyan-400/60 bg-cyan-400 text-slate-950'
-                    : 'border-slate-700 bg-[#101422] text-slate-300 hover:border-slate-500 hover:text-white'
-                }`}
-              >
-                {item.label}
-              </button>
-            );
-          })}
+        <div className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2">
+          <span className={`text-xs font-semibold ${!isAnnual ? 'text-white' : 'text-slate-400'}`}>Monthly</span>
+          <button
+            type="button"
+            onClick={() => setIsAnnual((current) => !current)}
+            aria-pressed={isAnnual}
+            aria-label={isAnnual ? 'Annual billing selected' : 'Monthly billing selected'}
+            className={`h-6 w-12 cursor-pointer appearance-none rounded-full border-0 p-1 transition-colors ${isAnnual ? 'bg-cyan-500' : 'bg-slate-700'}`}
+          >
+            <span className={`block h-4 w-4 rounded-full bg-slate-950 transition-transform ${isAnnual ? 'translate-x-6' : 'translate-x-0'}`} />
+          </button>
+          <div className="flex items-center gap-1.5">
+            <span className={`text-xs font-semibold ${isAnnual ? 'text-white' : 'text-slate-400'}`}>Annual</span>
+            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-extrabold text-emerald-400">
+              SAVE 20%
+            </span>
+          </div>
         </div>
       </div>
 
-      <main className="w-full flex-1 rounded-3xl border border-slate-800/80 bg-[#0d1322] p-6 sm:p-8 lg:p-10">
-        <div className={`grid w-full grid-cols-1 items-stretch gap-6 ${plans.length > 1 ? 'md:grid-cols-2 xl:grid-cols-3' : 'mx-auto max-w-md'}`}>
-          {plans.map((plan) => {
-            const shown = isAnnual ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice;
-            return (
-              <article
-                key={plan.category}
-                className="flex h-full flex-col justify-between rounded-2xl border border-slate-800/90 bg-[#0b0f1a] p-8 shadow-xl"
-              >
-                <div>
-                  <span className={`inline-block rounded-full border px-3 py-1 text-xs font-extrabold uppercase tracking-wider ${plan.badgeColor}`}>
-                    {plan.badge}
+      <div className="mb-10 flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/80 p-1.5" role="tablist" aria-label="Plan categories">
+        {PRICING_FILTERS.map((category) => {
+          const selected = activeRole === category;
+          return (
+            <button
+              key={category}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              onClick={() => setActiveRole(category)}
+              className={`cursor-pointer appearance-none rounded-xl border-0 px-4 py-2 text-xs font-semibold transition-all ${
+                selected ? 'bg-cyan-500 text-slate-950 shadow-md' : 'bg-transparent text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              {category}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="grid w-full max-w-[1400px] grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {filteredPlans.map((plan) => {
+          const priceLabel = formatPrice(plan, currency, isAnnual);
+          const showPeriod = priceLabel !== 'Free' && priceLabel !== 'Custom';
+          return (
+          <article
+            key={plan.id}
+            className={`relative flex flex-col justify-between rounded-3xl border bg-slate-900/90 p-6 shadow-xl backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] ${
+              plan.isPro ? 'border-cyan-500/50 shadow-[0_0_25px_rgba(6,182,212,0.15)]' : 'border-slate-800 hover:border-slate-700'
+            }`}
+          >
+            <div>
+              <div className="mb-4 flex items-center justify-between">
+                <span
+                  className={`rounded-lg px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest ${
+                    plan.isPro ? 'border border-cyan-500/40 bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  {plan.badge}
+                </span>
+                {plan.isPro ? (
+                  <span className="rounded-full border border-amber-800/60 bg-amber-950/60 px-2 py-0.5 text-[10px] font-bold text-amber-400">
+                    PRO TIER
                   </span>
-                  <h2 className="mt-4 text-2xl font-black text-white">{plan.categoryLabel}</h2>
-                  <div className="mt-6 text-5xl font-black text-white">{rupees(shown)}</div>
-                  <p className="mb-6 mt-2 text-sm text-slate-400">
-                    {isAnnual ? `${rupees(plan.yearlyPrice)} billed yearly` : 'INR / month'}
-                  </p>
-                  <p className="mb-8 min-h-[72px] text-base leading-normal text-slate-300">{plan.description}</p>
-                  <Link to={plan.ctaHref} className={`${buttonClass} ${ctaClass[plan.category]}`}>
-                    {plan.cta} <ArrowUpRight className="h-5 w-5" />
-                  </Link>
-                  <div className="mt-10 space-y-4">
-                    <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Key features include:</p>
-                    {plan.features.map((item) => (
-                      <div key={item} className="flex items-start gap-3 text-base text-slate-200">
-                        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-cyan-400" />
-                        <span>{item}</span>
-                      </div>
-                    ))}
-                  </div>
+                ) : null}
+              </div>
+
+              <h2 className="mb-2 text-xl font-bold text-white">{plan.title}</h2>
+
+              <div className="mb-3">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-extrabold text-white md:text-4xl">{priceLabel}</span>
+                  {showPeriod ? <span className="text-xs font-medium text-slate-400">/ month</span> : null}
                 </div>
-              </article>
-            );
-          })}
-        </div>
-        <p className="mt-8 text-center text-base text-slate-400">
-          Need custom seat counts?{' '}
-          <Link to="/contact" className="font-bold text-cyan-400 hover:underline">
-            Contact our sales team
-          </Link>
-        </p>
-      </main>
+                <p className="mt-0.5 text-[11px] text-slate-500">{billingCaption(plan, currency, isAnnual)}</p>
+              </div>
+
+              <p className="mb-6 min-h-[48px] text-xs leading-relaxed text-slate-300">{plan.description}</p>
+
+              <Link
+                to={plan.href}
+                className={`mb-6 flex w-full cursor-pointer appearance-none items-center justify-center gap-1.5 rounded-xl border py-3 text-xs font-bold shadow-md transition-all ${buttonVariantClass[plan.buttonVariant]}`}
+              >
+                {plan.buttonText}
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+
+              <div className="space-y-2.5 border-t border-slate-800/80 pt-4">
+                <span className="mb-3 block text-[11px] font-bold uppercase tracking-wider text-slate-400">Key Features Include:</span>
+                {plan.features.map((feature) => (
+                  <div key={feature} className="flex items-start gap-2.5 text-xs text-slate-300">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" />
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </article>
+          );
+        })}
+      </div>
     </div>
   );
 }
