@@ -68,9 +68,9 @@ export default function Login() {
       <div className="w-full max-w-md space-y-6 rounded-3xl border border-slate-800/80 bg-slate-900/80 p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] backdrop-blur-xl md:p-10">
         <div className="bp-login-logo flex justify-center pb-2">
           <BrandLogo
-            variant="full"
+            variant="stacked"
             to="/"
-            imgClassName="h-28 w-auto object-contain rounded-xl"
+            imgClassName="h-40 w-auto object-contain"
           />
         </div>
 

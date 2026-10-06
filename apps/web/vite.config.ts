@@ -12,17 +12,17 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       selfDestroying: true,
-      includeAssets: ['favicon.svg', 'favicon.ico', 'assets/mindvault-icon.png', 'assets/mindvault-logo.png'],
+      includeAssets: ['favicon.ico', 'assets/brand/*.png'],
       manifest: {
         name: 'MindVault - Personalized AI Learning for Every Learner',
         short_name: 'MindVault',
-        theme_color: '#0a1628',
-        background_color: '#0a0f1d',
+        theme_color: '#040711',
+        background_color: '#040711',
         display: 'standalone',
         start_url: '/',
         icons: [
-          { src: 'assets/mindvault-icon.png', sizes: '512x512', type: 'image/png' },
-          { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' },
+          { src: 'assets/brand/mindvault-icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'assets/brand/mindvault-icon-512.png', sizes: '512x512', type: 'image/png' },
         ],
       },
     }),

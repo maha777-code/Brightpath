@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useDisplayUser } from '@/lib/displayUser';
 import { workspaceForRole } from '@/lib/workspaceRole';
-import { BrandLogo } from '@/components/Navigation/BrandLogo';
+import { BRAND_ASSETS, BrandLogo } from '@/components/Navigation/BrandLogo';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 
 const WORKSPACE_ITEMS = [
@@ -55,7 +55,7 @@ export function TeacherSidebar() {
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
-        <span className="ml-3 text-sm font-semibold tracking-tight text-slate-100">MindVault</span>
+        <img src={BRAND_ASSETS.full} alt="MindVault" className="ml-3 h-7 w-auto object-contain" />
       </div>
 
       {open && (
