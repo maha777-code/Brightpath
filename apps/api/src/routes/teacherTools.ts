@@ -415,7 +415,12 @@ router.post('/tools/lesson-plan-generator', async (req: AuthRequest, res: Respon
     const plan = await generateLessonPlan(parsed.data);
     res.json(plan);
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to generate lesson plan';
     console.error('[teacher/tools/lesson-plan-generator] failed', err);
+    if (/readable chapter content/i.test(message)) {
+      res.status(422).json({ error: message });
+      return;
+    }
     res.status(500).json({ error: 'Failed to generate lesson plan' });
   }
 });

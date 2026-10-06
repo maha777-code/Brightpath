@@ -33,6 +33,8 @@ import {
 } from 'lucide-react';
 import {
   LESSON_PLAN_GRADE_LEVELS,
+  classroomLessonPlanFallback,
+  cleanLessonSource,
   type LessonPlanPayload,
   type LessonPlanResponse,
 } from '@brightpath/shared';
@@ -254,60 +256,7 @@ function useDictation(onAppend: (text: string) => void) {
 }
 
 function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse {
-  const topic = input.topic.trim() || input.attachments?.[0] || 'this topic';
-  const excerpt = input.attachedDocumentContext?.replace(/\s+/g, ' ').trim().slice(0, 280);
-  return {
-    title: `${topic.split('\n')[0]?.slice(0, 72) || topic} — Lesson Plan`,
-    gradeLevel: input.gradeLevel,
-    objective: `Students will explain ${topic.slice(0, 120)} with an example and apply it in a short group task.`,
-    standards: input.standards
-      ? input.standards.split(/[;,\n]/).map((s) => s.trim()).filter(Boolean)
-      : [`Aligned to ${input.gradeLevel} classroom objectives`],
-    durationMinutes: 50,
-    materials: [
-      ...(input.attachments?.length ? [`Attached source: ${input.attachments.join(', ')}`] : []),
-      'Whiteboard or slide deck',
-      'Student notebooks',
-      'Exit ticket slips',
-    ],
-    sections: [
-      {
-        heading: 'Warm-up',
-        minutes: 5,
-        activities: [`Activate prior knowledge related to ${topic.slice(0, 80)}.`, 'Share one idea with a partner.'],
-      },
-      {
-        heading: 'Mini-lesson',
-        minutes: 12,
-        activities: [
-          excerpt
-            ? `Model the core idea using this source excerpt: "${excerpt}"`
-            : 'Model the core idea with a worked example.',
-          'Check for understanding with two cold-call questions.',
-        ],
-      },
-      {
-        heading: 'Guided / group practice',
-        minutes: 18,
-        activities: [
-          input.additionalCriteria?.trim() || 'Students complete a collaborative task using the objective.',
-          'Teacher circulates with a success-criteria checklist.',
-        ],
-      },
-      {
-        heading: 'Independent practice',
-        minutes: 8,
-        activities: ['Students apply the idea to one new example in writing.'],
-      },
-      {
-        heading: 'Closing',
-        minutes: 7,
-        activities: ['Exit ticket: explain the idea in one sentence and give one example.'],
-      },
-    ],
-    assessment: 'Exit ticket plus teacher observation during group work.',
-    differentiation: 'Provide sentence starters for emerging writers; extension asks students to connect the idea to a real-world case.',
-  };
+  return classroomLessonPlanFallback(input);
 }
 
 const BOOKMARK_KEY = 'brightpath_lesson_plan_bookmarks';
@@ -332,20 +281,17 @@ interface PromptMeta {
 }
 
 function lessonSummary(plan: LessonPlanResponse, topic: string): { summary: string; keyPoints: string[] } {
-  const subject = (topic.split('\n')[0]?.trim().slice(0, 140) || plan.title).replace(/[.\s]+$/, '');
-  const procedure = plan.sections
-    .slice(0, 3)
-    .map((section) => `${section.heading.toLowerCase()} (${section.activities[0] || 'a classroom task'})`)
-    .join(', ');
+  const subject = (plan.title || topic.split('\n')[0]?.trim() || 'this lesson').replace(/[.\s]+$/, '');
+  const keySection = plan.sections.find((section) => /key points/i.test(section.heading));
+  const points = (keySection?.activities ?? []).map((item) => item.trim()).filter(Boolean).slice(0, 5);
   return {
-    summary: `I've created a concise, classroom-ready lesson plan for ${subject}. It is written for ${plan.gradeLevel} and fits one class period of about ${plan.durationMinutes} minutes, with a clear objective, an assessment, and a procedure students can follow.`,
-    keyPoints: [
-      `Starting with a clear objective: ${plan.objective}`,
-      `Including an assessment that checks understanding: ${plan.assessment}`,
-      procedure
-        ? `Building the period as ${procedure}.`
-        : 'Building instruction through warm-up, practice, and a closing check.',
-    ],
+    summary: `I've created a classroom-ready lesson plan for ${subject}. It is written for ${plan.gradeLevel} and fits one class period of about ${plan.durationMinutes} minutes, with an objective, assessment, guided stations, independent practice, and homework.`,
+    keyPoints: points.length
+      ? points
+      : [
+          `Learning objective: ${plan.objective}`,
+          `Assessment: ${plan.assessment}`,
+        ],
   };
 }
 
@@ -1221,17 +1167,17 @@ function StudioComposer({
 
   return (
     <div
-      className="w-full space-y-4 rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-xl backdrop-blur-xl transition-all duration-300 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20"
+      className="flex w-full flex-col gap-4 rounded-2xl border border-slate-800/90 bg-slate-900/80 p-5 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:border-cyan-500/80 focus-within:ring-2 focus-within:ring-cyan-500/20"
       style={FONT}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3.5">
         <button
           type="button"
-          title={listening ? 'Listening... Click to stop' : 'Click to dictate prompt with voice'}
+          title={listening ? 'Listening... Click to stop' : 'Voice Input'}
           className={`flex shrink-0 cursor-pointer appearance-none items-center justify-center rounded-xl p-2.5 shadow-md transition-all duration-300 ${
             listening
               ? 'animate-pulse border border-rose-400/60 bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.45)] ring-2 ring-rose-400/30'
-              : 'border border-cyan-500/30 bg-slate-950/90 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.15)] hover:scale-105 hover:border-cyan-400 hover:bg-cyan-950/50 hover:text-cyan-300'
+              : 'border border-cyan-500/30 bg-slate-950/90 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.15)] hover:scale-105 hover:border-cyan-400 hover:bg-cyan-950/60 hover:text-cyan-300'
           }`}
           aria-label={listening ? 'Stop recording' : 'Dictate with microphone'}
           aria-pressed={listening}
@@ -1240,7 +1186,7 @@ function StudioComposer({
           <Mic className={`h-4 w-4 ${listening ? 'animate-bounce text-white' : 'text-cyan-400'}`} />
         </button>
         <textarea
-          className="w-full flex-1 resize-y bg-transparent px-1 text-base leading-relaxed text-slate-100 outline-none placeholder:font-normal placeholder:italic placeholder:text-slate-500 placeholder:opacity-60"
+          className="w-full flex-1 resize-y bg-transparent pt-0.5 text-sm leading-relaxed text-slate-100 outline-none placeholder:text-slate-500/80 md:text-base"
           style={{ ...FONT, minHeight }}
           placeholder={placeholder}
           value={value}
@@ -1279,7 +1225,7 @@ function StudioComposer({
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800/80 pt-3 text-xs text-slate-400">
         <AddFileMenu accept={FILE_ACCEPT} onFiles={onAddFiles} />
         <div className="flex flex-wrap items-center gap-4">
-          <span className={overLimit ? 'text-xs font-medium text-rose-300' : 'text-xs text-slate-400'}>
+          <span className={overLimit ? 'font-mono text-[11px] font-medium text-rose-300' : 'font-mono text-[11px] text-slate-500'}>
             Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
           </span>
           {assistantHint ? (
@@ -1458,19 +1404,22 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
     const files = [...attachedFiles, ...(extra?.files ?? [])];
     const criteriaText = [criteria.trim(), extra?.instruction?.trim()].filter(Boolean).join('\n\n');
     const images = documentImages(files);
+    const source = cleanLessonSource(documentContext(files), topic.trim());
     const payload: LessonPlanPayload = {
       gradeLevel,
       topic: topic.trim(),
       additionalCriteria: criteriaText || undefined,
       standards: standards.trim() || undefined,
       attachments: files.map((file) => file.name),
-      attachedDocumentContext: documentContext(files) || undefined,
+      attachedDocumentContext: source.cleanedText || undefined,
       imageFiles: images.length ? images : undefined,
     };
     try {
       publishPlan(await api.generateLessonPlan(payload), payload, files.map((file) => file.name), criteriaText);
-    } catch {
-      publishPlan(fallbackLessonPlan(payload), payload, files.map((file) => file.name), criteriaText);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to generate the lesson plan.';
+      if (/readable chapter content/i.test(message)) setError(message);
+      else publishPlan(fallbackLessonPlan(payload), payload, files.map((file) => file.name), criteriaText);
     } finally {
       setBusy(false);
     }
@@ -1524,7 +1473,7 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
             onHistory={() => setHistoryOpen(true)}
           />
         ) : (
-        <div className="mx-auto flex w-full max-w-[70rem] flex-col space-y-8 px-5 py-6 pb-24 sm:px-8">
+        <div className="mx-auto flex w-[90%] max-w-[1500px] flex-col space-y-8 py-6 pb-24">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 flex-wrap items-center gap-3">
                 <p className="text-[18px] text-slate-300" style={FONT}>
@@ -1585,9 +1534,10 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
               </div>
             </label>
 
-            <div className="mb-8">
-              <span className="mb-2 block font-semibold text-slate-100" style={LABEL_FONT}>
-                Topic, Standard, or Objective: <span className="text-rose-400">*</span>
+            <div className="w-full space-y-2.5">
+              <span className="flex items-center gap-1.5 text-base font-bold text-slate-100">
+                <span>Topic, Standard, or Objective:</span>
+                <span className="font-bold text-rose-500">*</span>
               </span>
               <StudioComposer
                 value={topic}
@@ -1601,10 +1551,8 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
               />
             </div>
 
-            <div className="mb-8">
-              <span className="mb-2 block font-semibold text-slate-100" style={LABEL_FONT}>
-                Additional Criteria:
-              </span>
+            <div className="w-full space-y-2.5">
+              <span className="text-base font-bold text-slate-100">Additional Criteria:</span>
               <StudioComposer
                 value={criteria}
                 onChange={(next) => updateField('criteria', next)}
@@ -1616,10 +1564,8 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
               />
             </div>
 
-            <div className="mb-10">
-              <span className="mb-2 block font-semibold text-slate-100" style={LABEL_FONT}>
-                Standards Set to Align to:
-              </span>
+            <div className="w-full space-y-2.5">
+              <span className="text-base font-bold text-slate-100">Standards Set to Align to:</span>
               <StudioComposer
                 value={standards}
                 onChange={(next) => updateField('standards', next)}
@@ -1640,20 +1586,16 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
               <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-rose-200">{error}</p>
             ) : null}
 
-            <div className="flex items-center justify-end gap-3 border-t border-slate-800/80 pt-4">
+            <div className="flex w-full justify-center pt-4">
               <button
                 ref={generateRef}
                 type="button"
                 disabled={!canGenerate}
-                className={`inline-flex cursor-pointer appearance-none items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-bold transition-all ${
-                  canGenerate
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:from-cyan-400 hover:to-blue-400'
-                    : 'cursor-not-allowed border border-slate-700/50 bg-slate-800 text-slate-500'
-                }`}
+                className="flex w-full cursor-pointer appearance-none items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-400 to-cyan-500 px-6 py-4 text-base font-bold text-slate-950 shadow-[0_0_25px_rgba(6,182,212,0.3)] transition-all duration-300 hover:from-cyan-400 hover:to-teal-300 hover:shadow-[0_0_35px_rgba(6,182,212,0.5)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 md:text-lg"
                 onClick={() => void generate()}
               >
-                {busy || filesProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {filesProcessing ? 'Reading files...' : 'Generate Lesson Plan'}
+                {busy || filesProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5 fill-slate-950" />}
+                <span>{filesProcessing ? 'Reading files...' : busy ? 'Generating Lesson Plan...' : 'Generate Lesson Plan'}</span>
               </button>
             </div>
           </div>

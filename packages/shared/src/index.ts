@@ -548,3 +548,9 @@ export {
   categoryPlanById,
 } from './categoryPlans.js';
 export type { AccountCategory, CategoryPlan } from './categoryPlans.js';
+export {
+  cleanLessonSource,
+  classroomLessonPlanFallback,
+  lessonSubjectLabel,
+} from './lessonDocument.js';
+export type { LessonSourceBrief } from './lessonDocument.js';

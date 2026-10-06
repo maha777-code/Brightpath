@@ -76,7 +76,7 @@ async function extractPdf(file: File): Promise<string> {
     const page = await pdf.getPage(pageNumber);
     const content = await page.getTextContent();
     const line = content.items.map(textItem).join(' ').replace(/\s+/g, ' ').trim();
-    if (line) pages.push(`--- Page ${pageNumber} ---\n${line}`);
+    if (line) pages.push(line);
   }
   if (!pages.length) {
     throw new Error(
@@ -100,7 +100,7 @@ export async function extractDocumentText(file: File): Promise<{ text: string; i
     throw new Error(`${file.name} is an older Word file. Save it as .docx and upload it again.`);
   }
   if (type === 'application/pdf' || name.endsWith('.pdf')) {
-    return { text: capText(await extractPdf(file)) };
+    return { text: (await extractPdf(file)).slice(0, 120_000) };
   }
   if (
     type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||

@@ -9,6 +9,8 @@ export interface LlmJsonRequest {
   system: string;
   user: string;
   images?: LlmImagePart[];
+  /** Defaults to 0.5. Lesson plans use a lower value for a stable structure. */
+  temperature?: number;
 }
 
 export function imagePartsFromDataUrls(dataUrls: string[] | undefined): LlmImagePart[] {
@@ -235,7 +237,7 @@ async function callGeminiOnce<T>(
 ): Promise<T> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  const generationConfig: Record<string, unknown> = { temperature: 0.5 };
+  const generationConfig: Record<string, unknown> = { temperature: req.temperature ?? 0.5 };
   if (jsonMode) {
     generationConfig.responseMimeType = 'application/json';
   }
@@ -303,7 +305,7 @@ function createOpenAiProvider(apiKey: string): LlmProvider {
         },
         body: JSON.stringify({
           model,
-          temperature: 0.5,
+          temperature: req.temperature ?? 0.5,
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: req.system },

@@ -13,7 +13,7 @@ import type {
   EmailResponderRequest,
   EmailResponderResponse,
 } from '@brightpath/shared';
-import { applyWorksheetFollowUp, applyWorksheetTranslation, classifyUserIntent, emailResponderPrompt, fallbackEmailResponse, fallbackSharadaChat } from '@brightpath/shared';
+import { applyWorksheetFollowUp, applyWorksheetTranslation, classroomLessonPlanFallback, classifyUserIntent, cleanLessonSource, emailResponderPrompt, fallbackEmailResponse, fallbackSharadaChat, lessonSubjectLabel } from '@brightpath/shared';
 import { getActiveProvider, imagePartsFromDataUrls } from '../lib/llm/provider.js';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
@@ -540,107 +540,73 @@ export async function generateSongLyrics(input: SongLyricsPayload): Promise<Song
   }
 }
 
-const LESSON_PLAN_SYSTEM = `You are an expert K–12 instructional planner. Generate a classroom-ready lesson plan.
+const LESSON_PLAN_SYSTEM = `You are an expert AI curriculum designer. Read the DOCUMENT CONTENT and write an in-depth lesson plan based exclusively on the subject matter, concepts, experiments, and terminology in that document.
+
+CRITICAL CONSTRAINTS:
+1. DO NOT use generic placeholders such as "Generate lesson plan for chapter 1", "Explain the idea", or "Model the core idea using this source excerpt".
+2. DO NOT include publisher names, copyright notices, street addresses, prices, ISBNs, or page numbers.
+3. EXTRACT the real title, scientific concepts, vocabulary, definitions, and lab activities from the DOCUMENT CONTENT.
+4. If the teacher says "Chapter 1", identify what that chapter is about from the document (for example, "Matter in Our Surroundings: Particles, States, and Phase Changes") and teach that.
+5. Every objective, key point, station, and homework task must name ideas that appear in the document.
 
 Return JSON only in this exact shape:
 {
-  "title": "string",
+  "title": "Actual subject or chapter title — Grade level",
   "gradeLevel": "string",
-  "objective": "string",
-  "standards": ["string"],
+  "objective": "Students will be able to ... (one precise Bloom's Taxonomy statement)",
+  "standards": ["CODE: full standard description"],
   "durationMinutes": 50,
-  "materials": ["string"],
+  "materials": ["classroom material, not a file dump"],
   "sections": [
-    { "heading": "Warm-up", "minutes": 5, "activities": ["string"] }
+    { "heading": "Key Points", "activities": ["3 to 5 core takeaways"] },
+    { "heading": "Opening", "minutes": 8, "activities": ["prior-knowledge hook", "real-world question", "why this lesson matters"] },
+    { "heading": "Introduction to New Material", "minutes": 12, "activities": ["step-by-step walkthrough", "core model", "key distinction", "Common Misconception: ...", "Correction: ..."] },
+    { "heading": "Guided Practice", "minutes": 15, "activities": ["Station 1 (Name): instructions and probing questions", "Station 2 (Name): ...", "Station 3 (Name): ...", "Teacher Role: circulation, safety, and what to observe"] },
+    { "heading": "Independent Practice", "minutes": 8, "activities": ["a new real-world scenario with a sketch or writing prompt"] },
+    { "heading": "Closing", "minutes": 5, "activities": ["summary or sentence frame", "link to the next topic"] },
+    { "heading": "Extension / Above-Grade Challenge", "activities": ["a harder scenario for fast finishers"] },
+    { "heading": "Homework", "activities": ["one clear task that reinforces today's concept"] }
   ],
-  "assessment": "string",
-  "differentiation": "string"
+  "assessment": "formative or summative task, success criteria, and the student deliverable",
+  "differentiation": "Below grade level: ...\\nOn grade level: ...\\nAbove grade level: ..."
 }
 
-Rules:
-- Match the requested grade level.
-- Include warm-up, mini-lesson, guided/group practice, independent practice, and closing.
-- Honor additional criteria (grouping, prior lesson, materials).
-- Align to named standards when provided.
-- Keep activities specific and teachable in one class period.
-- When attached reference documents or images are provided, analyze them and build the lesson from their concepts, passages, data, exercises, vocabulary, and chapter details. Do not ignore the attachments or replace them with generic content. Name the source files in Materials.
-`;
+Use those section headings exactly, in that order. Every activity must name the real concept, not the filename.`;
 
-function lessonPlanReferenceBlock(input: LessonPlanPayload): string {
-  const context = input.attachedDocumentContext?.trim();
+const LEAKED_SOURCE = /===\s*ATTACHED FILE CONTENT(?:\s*\([^)]*\))?\s*===|---\s*Page\s+\d+\s+---|government of karnataka|@?ktbs|not to be republished/gi;
+
+function scrubLessonText(value: string): string {
+  return value.replace(LEAKED_SOURCE, '').replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function lessonPlanUserPrompt(input: LessonPlanPayload, source = cleanLessonSource(input.attachedDocumentContext, input.topic)): string {
+  const subject = lessonSubjectLabel(input.topic, source);
   const imageCount = input.imageFiles?.length ?? 0;
-  if (!context && !imageCount) return '';
-  const parts = [
-    'CRITICAL ATTACHED REFERENCE DOCUMENTS & SOURCE MATERIALS:',
-    'The user provided the reference document(s) below. You MUST analyze them and directly incorporate their concepts, passages, data, exercises, vocabulary, or chapter details into the lesson plan. Cite the source file names in Materials.',
-  ];
-  if (context) parts.push(context);
-  if (imageCount) {
-    parts.push(
-      `Attached images: ${imageCount}. Read each image and use its visible text, labels, diagrams, and exercises as source material.`,
-    );
-  }
-  return parts.join('\n\n');
+  return [
+    '=== USER REQUEST ===',
+    `Grade Level: ${input.gradeLevel}`,
+    `User Input / Request: ${input.topic.trim()}`,
+    `Additional Criteria: ${input.additionalCriteria?.trim() || 'None provided'}`,
+    `Standards to Align: ${input.standards?.trim() || 'Use only standards named by the teacher or printed in the document. Do not invent a code.'}`,
+    `Chapter title already identified: ${source.chapterTitle || subject}`,
+    source.terms.length ? `Key terms already identified: ${source.terms.join(', ')}` : '',
+    '',
+    '=== EXTRACTED DOCUMENT CONTENT (ANALYSIS MANDATORY) ===',
+    source.cleanedText || 'NO FILE ATTACHED',
+    '',
+    '=== INSTRUCTIONS ===',
+    '1. Analyze only the EXTRACTED DOCUMENT CONTENT above.',
+    '2. Identify the core topic, scientific models, definitions, lab ideas, and a misconception that fits this chapter.',
+    `3. The lesson title must be the real chapter subject ("${subject}"), never the teacher's filename or the words "generate lesson plan".`,
+    '4. Return the JSON object from the system instruction. Ground every section in the document.',
+    imageCount ? `5. ${imageCount} image(s) are attached. Use their labels and diagrams as part of the document.` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 export function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse {
-  const topic = input.topic.trim() || input.attachments?.[0] || 'this topic';
-  const firstLine = topic.split('\n')[0]?.trim() || topic;
-  const sourceNames = (input.attachments ?? []).map((name) => name.trim()).filter(Boolean);
-  const excerpt = input.attachedDocumentContext?.replace(/\s+/g, ' ').trim().slice(0, 280);
-  return {
-    title: `${firstLine.slice(0, 72)} — Lesson Plan`,
-    gradeLevel: input.gradeLevel,
-    objective: `Students will explain ${firstLine.slice(0, 140)} with an example and apply it in a short collaborative task.`,
-    standards: input.standards
-      ? input.standards.split(/[;,\n]/).map((s) => s.trim()).filter(Boolean)
-      : [`Aligned to ${input.gradeLevel} classroom objectives`],
-    durationMinutes: 50,
-    materials: [
-      ...(sourceNames.length ? [`Attached source: ${sourceNames.join(', ')}`] : []),
-      'Whiteboard or slide deck',
-      'Student notebooks',
-      'Exit ticket slips',
-    ],
-    sections: [
-      {
-        heading: 'Warm-up',
-        minutes: 5,
-        activities: [`Activate prior knowledge related to ${firstLine.slice(0, 80)}.`, 'Turn and talk: what do you already know?'],
-      },
-      {
-        heading: 'Mini-lesson',
-        minutes: 12,
-        activities: [
-          excerpt
-            ? `Model the core idea using this source excerpt: "${excerpt}"`
-            : 'Model the core idea with a worked example.',
-          'Check for understanding with two targeted questions.',
-        ],
-      },
-      {
-        heading: 'Guided / group practice',
-        minutes: 18,
-        activities: [
-          input.additionalCriteria?.trim() || 'Students complete a collaborative task using the lesson objective.',
-          'Teacher circulates with a success-criteria checklist.',
-        ],
-      },
-      {
-        heading: 'Independent practice',
-        minutes: 8,
-        activities: ['Students apply the idea to one new example in writing.'],
-      },
-      {
-        heading: 'Closing',
-        minutes: 7,
-        activities: ['Exit ticket: explain the idea in one sentence and give one example.'],
-      },
-    ],
-    assessment: 'Exit ticket plus teacher observation during group work.',
-    differentiation:
-      'Provide sentence starters for emerging writers; extension asks students to connect the idea to a real-world case.',
-  };
+  return classroomLessonPlanFallback(input);
 }
 
 function asStringList(value: unknown): string[] {
@@ -657,26 +623,28 @@ function normalizeLessonPlan(
   const sectionsRaw = Array.isArray(raw.sections) ? raw.sections : [];
   const sections = sectionsRaw.map((item) => {
     const rec = (item ?? {}) as Record<string, unknown>;
-    const activities = asStringList(rec.activities);
+    const activities = asStringList(rec.activities).map(scrubLessonText).filter(Boolean);
     return {
-      heading: String(rec.heading ?? '').trim() || 'Section',
+      heading: scrubLessonText(String(rec.heading ?? '')) || 'Section',
       minutes: typeof rec.minutes === 'number' ? rec.minutes : undefined,
       activities: activities.length ? activities : ['Complete the planned classroom task.'],
     };
   });
-  const standards = asStringList(raw.standards);
-  const materials = asStringList(raw.materials);
+  const standards = asStringList(raw.standards).map(scrubLessonText).filter(Boolean);
+  const materials = asStringList(raw.materials).map(scrubLessonText).filter((item) => item && !/attached file content/i.test(item));
+  const title = scrubLessonText(String(raw.title ?? ''));
+  const genericTitle = !title || /generate lesson plan|explain the idea/i.test(title);
   return {
-    title: String(raw.title ?? '').trim() || fallback.title,
+    title: genericTitle ? fallback.title : title,
     gradeLevel: String(raw.gradeLevel ?? '').trim() || input.gradeLevel,
-    objective: String(raw.objective ?? '').trim() || fallback.objective,
+    objective: scrubLessonText(String(raw.objective ?? '')) || fallback.objective,
     standards: standards.length ? standards : fallback.standards,
     durationMinutes:
       typeof raw.durationMinutes === 'number' ? raw.durationMinutes : fallback.durationMinutes,
     materials: materials.length ? materials : fallback.materials,
     sections: sections.length ? sections : fallback.sections,
-    assessment: String(raw.assessment ?? '').trim() || fallback.assessment,
-    differentiation: String(raw.differentiation ?? '').trim() || fallback.differentiation,
+    assessment: scrubLessonText(String(raw.assessment ?? '')) || fallback.assessment,
+    differentiation: scrubLessonText(String(raw.differentiation ?? '')) || fallback.differentiation,
   };
 }
 
@@ -701,6 +669,12 @@ Do not add commentary or change the lesson's meaning.`,
 }
 
 export async function generateLessonPlan(input: LessonPlanPayload): Promise<LessonPlanResponse> {
+  const source = cleanLessonSource(input.attachedDocumentContext, input.topic);
+  const fileWasAttached = Boolean(input.attachedDocumentContext?.trim() || input.attachments?.length);
+  if (fileWasAttached && !source.readable && !(input.imageFiles?.length)) {
+    throw new Error('Could not find readable chapter content in the attached file.');
+  }
+
   const fallback = fallbackLessonPlan(input);
   const llm = getActiveProvider();
   if (!llm) return fallback;
@@ -708,21 +682,13 @@ export async function generateLessonPlan(input: LessonPlanPayload): Promise<Less
   try {
     const raw = await llm.completeJson<Record<string, unknown>>({
       system: LESSON_PLAN_SYSTEM,
-      user: [
-        `Grade level: ${input.gradeLevel}`,
-        `MAIN TOPIC / STANDARD / OBJECTIVE:\n${input.topic.trim()}`,
-        input.additionalCriteria?.trim()
-          ? `ADDITIONAL CRITERIA & CONSTRAINTS:\n${input.additionalCriteria.trim()}`
-          : '',
-        input.standards?.trim() ? `STANDARDS SET TO ALIGN TO:\n${input.standards.trim()}` : '',
-        lessonPlanReferenceBlock(input),
-      ]
-        .filter(Boolean)
-        .join('\n\n'),
+      user: lessonPlanUserPrompt(input, source),
       images: imagePartsFromDataUrls(input.imageFiles),
+      temperature: 0.2,
     });
     return normalizeLessonPlan(raw, input, fallback);
   } catch (err) {
+    if (err instanceof Error && /readable chapter content/i.test(err.message)) throw err;
     console.error('[llm] lesson plan generation failed', err);
     return fallback;
   }

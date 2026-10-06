@@ -1,7 +1,14 @@
-/** Absolute API origin, or same-host `/api` when no production API URL is configured. */
+function localDevApi(): string {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return '';
+  const host = window.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1' ? 'http://localhost:3001' : '';
+}
+
+/** Absolute API origin. Localhost dev talks to the local API so lesson-plan changes are the ones being tested. */
 const rawBaseUrl =
   import.meta.env.VITE_API_BASE_URL ||
   import.meta.env.VITE_API_URL ||
+  localDevApi() ||
   'https://brightpath-2-4q2s.onrender.com';
 export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, '');
 
@@ -34,15 +41,17 @@ function networkMessage(err: unknown): string {
 }
 
 /** Fetch with a 45s timeout and one retry so a sleeping Render service can finish booting. */
-export async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
+export async function apiFetch(endpoint: string, options: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
   const url = apiUrl(endpoint);
+  const { timeoutMs: timeoutOverride, ...fetchOptions } = options;
+  const timeoutMs = timeoutOverride ?? REQUEST_TIMEOUT_MS;
   let lastError: unknown;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await fetch(url, {
-        ...options,
+        ...fetchOptions,
         signal: controller.signal,
       });
     } catch (err) {
@@ -112,7 +121,7 @@ async function parseError(res: Response): Promise<string> {
   return res.statusText || 'Request failed';
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
   let res: Response;
   try {
     res = await apiFetch(path, {
@@ -615,6 +624,7 @@ export const api = {
     request<LessonPlanResponse>('/teacher/tools/lesson-plan-generator', {
       method: 'POST',
       body: JSON.stringify(body),
+      timeoutMs: 120_000,
     }),
 
   translateLessonPlan: (body: { targetLanguage: string; plan: LessonPlanResponse }) =>
