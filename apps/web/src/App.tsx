@@ -7,6 +7,8 @@ import Home from '@/pages/Home';
 import SharadaChat from '@/pages/SharadaChat';
 import Landing from '@/pages/Landing';
 import PricingPage from '@/pages/PricingPage';
+import BillingSuccess from '@/pages/BillingSuccess';
+import { safeNextPath } from '@/lib/nextPath';
 import Login from '@/pages/Auth/Login';
 import { CyberLayout } from '@/components/layout/CyberLayout';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
@@ -109,8 +111,9 @@ function RedirectSharadaChat() {
 
 function LoginGate() {
   const { role, parent, teacher, user } = useAuth();
+  const location = useLocation();
   if (role && isAppRole(role) && (user || parent || teacher)) {
-    return <Navigate to={homePathForRole(role)} replace />;
+    return <Navigate to={safeNextPath(location.search) ?? homePathForRole(role)} replace />;
   }
   return <Login />;
 }
@@ -223,7 +226,7 @@ export default function App() {
         />
         <Route
           path="/billing/success"
-          element={<div className="page"><h1 className="page-title">Payment successful</h1><p className="page-subtitle">Your subscription is active. You can close this tab.</p></div>}
+          element={<BillingSuccess />}
         />
         <Route
           path="/billing/cancel"

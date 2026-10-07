@@ -695,3 +695,26 @@ model ProductFeedback {
   @@index([userRole, createdAt])
   @@index([userId])
 }
+
+model DodoSubscription {
+  subscriptionId         String    @id
+  customerId             String
+  productId              String
+  planId                 String
+  status                 String
+  platformUserId         String?
+  organizationId         String?
+  cancelAtNextBillingDate Boolean  @default(false)
+  nextBillingDate        DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @default(now())
+
+  @@index([platformUserId])
+  @@index([organizationId])
+}
+
+model DodoWebhookEvent {
+  webhookId  String   @id
+  eventType  String
+  receivedAt DateTime @default(now())
+}

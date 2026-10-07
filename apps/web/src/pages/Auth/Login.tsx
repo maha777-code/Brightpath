@@ -1,10 +1,11 @@
 import { useState, type CSSProperties } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
+import { safeNextPath } from '@/lib/nextPath';
 
 const FONT: CSSProperties = CYBER_FONT_STYLE;
 
@@ -18,6 +19,7 @@ export default function Login() {
   const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -37,7 +39,7 @@ export default function Login() {
       if (savedName) localStorage.setItem('user_name', savedName);
       const savedSchool = result.teacher?.schoolName?.trim();
       if (savedSchool) localStorage.setItem('user_school', savedSchool);
-      navigate(result.path);
+      navigate(safeNextPath(location.search) ?? result.path);
     } catch (err) {
       console.error('Auth request failed:', err);
       const message = err instanceof Error ? err.message : '';

@@ -16,6 +16,7 @@ import userRoutes from './routes/user.js';
 import curriculumRoutes from './routes/curriculum.js';
 import teacherRoutes from './routes/teacher.js';
 import paymentsRoutes, { handleStripeWebhook } from './routes/payments.js';
+import dodoRoutes, { handleDodoWebhook } from './routes/dodo.js';
 import adminRoutes from './routes/admin.js';
 import orgBrandingRoutes from './routes/orgBranding.js';
 import aiRoutes from './routes/ai.js';
@@ -72,6 +73,7 @@ app.post(
   express.raw({ type: 'application/json' }),
   (req, res) => void handleStripeWebhook(req as AuthRequest, res),
 );
+app.post('/payments/dodo/webhook', express.raw({ type: '*/*' }), (req, res) => void handleDodoWebhook(req, res));
 
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
@@ -133,6 +135,7 @@ app.use('/tutor', tutorRoutes);
 app.use('/user', userRoutes);
 app.use('/curriculum', curriculumRoutes);
 app.use('/teacher', teacherRoutes);
+app.use('/payments/dodo', dodoRoutes);
 app.use('/payments', paymentsRoutes);
 app.use('/admin', adminRoutes);
 app.use('/org', orgBrandingRoutes);

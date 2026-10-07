@@ -125,9 +125,46 @@ async function ensureProductFeedbackTable(): Promise<void> {
   );
 }
 
+/** Billing tables are created directly so production (no auto db push) can take Dodo webhooks. */
+async function ensureDodoTables(): Promise<void> {
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "DodoSubscription" (
+      "subscriptionId" TEXT NOT NULL,
+      "customerId" TEXT NOT NULL,
+      "productId" TEXT NOT NULL,
+      "planId" TEXT NOT NULL,
+      "status" TEXT NOT NULL,
+      "platformUserId" TEXT,
+      "organizationId" TEXT,
+      "cancelAtNextBillingDate" BOOLEAN NOT NULL DEFAULT false,
+      "nextBillingDate" TIMESTAMP(3),
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "DodoSubscription_pkey" PRIMARY KEY ("subscriptionId")
+    )
+  `);
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "DodoSubscription_platformUserId_idx" ON "DodoSubscription"("platformUserId")`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "DodoSubscription_organizationId_idx" ON "DodoSubscription"("organizationId")`,
+  );
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "DodoWebhookEvent" (
+      "webhookId" TEXT NOT NULL,
+      "eventType" TEXT NOT NULL,
+      "receivedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "DodoWebhookEvent_pkey" PRIMARY KEY ("webhookId")
+    )
+  `);
+}
+
 export async function ensureDatabaseSchema(): Promise<void> {
   await ensureProductFeedbackTable().catch((err) => {
     console.warn('ProductFeedback table was not created:', err instanceof Error ? err.message : err);
+  });
+  await ensureDodoTables().catch((err) => {
+    console.warn('Dodo billing tables were not created:', err instanceof Error ? err.message : err);
   });
 
   if (!autoPushEnabled()) {

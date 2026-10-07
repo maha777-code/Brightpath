@@ -411,6 +411,19 @@ export const api = {
       { method: 'POST', body: JSON.stringify(body) },
     ),
 
+  createDodoCheckout: (body: { planId: string; currency: 'INR' | 'USD'; interval: 'monthly' | 'annual' }) =>
+    request<{ checkoutUrl: string; sessionId: string }>('/payments/dodo/checkout', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  dodoSubscription: (planId: string) =>
+    request<{ planId: string; status: string; nextBillingDate: string | null }>(
+      `/payments/dodo/subscription?planId=${encodeURIComponent(planId)}`,
+    ),
+
+  openDodoPortal: () => request<{ url: string }>('/payments/dodo/portal', { method: 'POST' }),
+
   paymentStatus: () =>
     request<{
       scope: string;

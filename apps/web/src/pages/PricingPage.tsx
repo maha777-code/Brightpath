@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowUpRight, CheckCircle2, Loader2 } from 'lucide-react';
+import { isCheckoutPlanId } from '@brightpath/shared';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
+import { useAuth } from '@/context/AuthContext';
+import { api } from '@/lib/api';
 import { PRICING_FILTERS, PRICING_PLANS, buttonVariantClass, type PricingPlan } from '@/pages/pricingData';
 
 function formatPrice(plan: PricingPlan, currency: 'INR' | 'USD', isAnnual: boolean) {
@@ -27,6 +30,46 @@ export default function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(true);
   const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
   const [activeRole, setActiveRole] = useState<string>('All Plans');
+  const [busyPlan, setBusyPlan] = useState<string | null>(null);
+  const [planError, setPlanError] = useState<{ planId: string; message: string } | null>(null);
+  const [portalBusy, setPortalBusy] = useState(false);
+  const [portalError, setPortalError] = useState('');
+  const { role } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubscribe = async (plan: PricingPlan) => {
+    if (!isCheckoutPlanId(plan.id)) return;
+    if (!role) {
+      navigate(`/login?next=${encodeURIComponent('/pricing')}`);
+      return;
+    }
+    setPlanError(null);
+    setBusyPlan(plan.id);
+    try {
+      const { checkoutUrl } = await api.createDodoCheckout({
+        planId: plan.id,
+        currency,
+        interval: isAnnual ? 'annual' : 'monthly',
+      });
+      window.location.assign(checkoutUrl);
+    } catch (err) {
+      setPlanError({ planId: plan.id, message: err instanceof Error ? err.message : 'Checkout could not be started.' });
+      setBusyPlan(null);
+    }
+  };
+
+  const openBillingPortal = async () => {
+    setPortalError('');
+    setPortalBusy(true);
+    try {
+      const { url } = await api.openDodoPortal();
+      window.location.assign(url);
+    } catch (err) {
+      setPortalError(err instanceof Error ? err.message : 'Billing portal could not be opened.');
+      setPortalBusy(false);
+    }
+  };
+
   const filteredPlans = useMemo(
     () =>
       activeRole === 'All Plans'
@@ -39,9 +82,24 @@ export default function PricingPage() {
     <div id="pricing" className="flex min-h-screen w-full flex-col items-center bg-slate-950 px-4 py-10 text-slate-100 md:px-8">
       <header className="mb-8 flex w-full max-w-[1400px] items-center justify-between">
         <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
-        <Link to="/login" className="text-sm font-semibold text-slate-300 underline underline-offset-4 hover:text-white">
-          Log in
-        </Link>
+        {role ? (
+          <div className="flex flex-col items-end gap-1">
+            <button
+              type="button"
+              onClick={() => void openBillingPortal()}
+              disabled={portalBusy}
+              className="flex cursor-pointer appearance-none items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-cyan-500/60 hover:text-white disabled:cursor-wait disabled:opacity-60"
+            >
+              {portalBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Manage billing
+            </button>
+            {portalError ? <p className="text-xs text-rose-300">{portalError}</p> : null}
+          </div>
+        ) : (
+          <Link to="/login?next=%2Fpricing" className="text-sm font-semibold text-slate-300 underline underline-offset-4 hover:text-white">
+            Log in
+          </Link>
+        )}
       </header>
 
       <div className="mb-8 max-w-3xl space-y-3 text-center">
@@ -157,13 +215,41 @@ export default function PricingPage() {
 
               <p className="mb-6 min-h-[48px] text-xs leading-relaxed text-slate-300">{plan.description}</p>
 
-              <Link
-                to={plan.href}
-                className={`mb-6 flex w-full cursor-pointer appearance-none items-center justify-center gap-1.5 rounded-xl border py-3 text-xs font-bold shadow-md transition-all ${buttonVariantClass[plan.buttonVariant]}`}
-              >
-                {plan.buttonText}
-                <ArrowUpRight className="h-4 w-4" />
-              </Link>
+              {isCheckoutPlanId(plan.id) ? (
+                <div className="mb-6">
+                  <button
+                    type="button"
+                    onClick={() => void handleSubscribe(plan)}
+                    disabled={busyPlan !== null}
+                    className={`flex w-full cursor-pointer appearance-none items-center justify-center gap-1.5 rounded-xl border py-3 text-xs font-bold shadow-md transition-all disabled:cursor-wait disabled:opacity-70 ${buttonVariantClass[plan.buttonVariant]}`}
+                  >
+                    {busyPlan === plan.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Opening checkout…
+                      </>
+                    ) : (
+                      <>
+                        {plan.buttonText}
+                        <ArrowUpRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                  {planError?.planId === plan.id ? (
+                    <p role="alert" className="mt-2 text-[11px] leading-snug text-rose-300">
+                      {planError.message}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <Link
+                  to={plan.href}
+                  className={`mb-6 flex w-full cursor-pointer appearance-none items-center justify-center gap-1.5 rounded-xl border py-3 text-xs font-bold shadow-md transition-all ${buttonVariantClass[plan.buttonVariant]}`}
+                >
+                  {plan.buttonText}
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              )}
 
               <div className="space-y-2.5 border-t border-slate-800/80 pt-4">
                 <span className="mb-3 block text-[11px] font-bold uppercase tracking-wider text-slate-400">Key Features Include:</span>
