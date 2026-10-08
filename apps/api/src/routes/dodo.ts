@@ -9,6 +9,7 @@ import {
   dodoProductEnvKey,
   type AppRole,
   type CheckoutPlan,
+  type CheckoutPlanId,
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
@@ -143,16 +144,49 @@ router.get('/subscription', requireAuth, async (req: AuthRequest, res) => {
     res.status(400).json({ error: 'Unknown plan.' });
     return;
   }
-  const row = await prisma.dodoSubscription.findFirst({
-    where: { ...ownerWhere(CHECKOUT_PLANS[planId.data], req), planId: planId.data },
-    orderBy: { updatedAt: 'desc' },
-  });
+  const plan = CHECKOUT_PLANS[planId.data];
+  const findRow = () =>
+    prisma.dodoSubscription.findFirst({
+      where: { ...ownerWhere(plan, req), planId: planId.data },
+      orderBy: { updatedAt: 'desc' },
+    });
+  let row = await findRow();
+
+  const subscriptionId = typeof req.query.subscriptionId === 'string' ? req.query.subscriptionId.trim() : '';
+  if (subscriptionId && row?.subscriptionId !== subscriptionId && req.platformUserId) {
+    try {
+      await syncFromDodo(subscriptionId, planId.data, req.platformUserId);
+      row = await findRow();
+    } catch (err) {
+      console.error(`Dodo subscription ${subscriptionId} lookup failed:`, err);
+    }
+  }
+
   res.json({
     planId: planId.data,
     status: row?.status ?? 'pending',
     nextBillingDate: row?.nextBillingDate ?? null,
   });
 });
+
+/**
+ * Pulls a subscription straight from Dodo when the customer returns from checkout, so access doesn't
+ * depend solely on webhook delivery. Only the id comes from the browser; ownership and status come from Dodo.
+ */
+async function syncFromDodo(subscriptionId: string, planId: CheckoutPlanId, platformUserId: string) {
+  const dodo = getDodo();
+  if (!dodo) return;
+  const sub = await dodo.subscriptions.retrieve(subscriptionId);
+  if (planForDodoProduct(sub.product_id)?.planId !== planId) return;
+
+  const user = await prisma.platformUser.findUnique({ where: { id: platformUserId } });
+  if (!user) return;
+  const metaUserId = typeof sub.metadata?.platformUserId === 'string' ? sub.metadata.platformUserId : null;
+  const emailMatches = sub.customer?.email?.trim().toLowerCase() === user.email.trim().toLowerCase();
+  if (metaUserId ? metaUserId !== user.id : !emailMatches) return;
+
+  await prisma.$transaction((tx) => syncSubscription(tx, sub as DodoSubscriptionData));
+}
 
 router.post('/portal', requireAuth, async (req: AuthRequest, res) => {
   const dodo = getDodo();

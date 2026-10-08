@@ -17,6 +17,7 @@ export default function BillingSuccess() {
   const { refresh, homePath, role, loading } = useAuth();
   const planId = params.get('plan');
   const plan = isCheckoutPlanId(planId) ? CHECKOUT_PLANS[planId] : null;
+  const subscriptionId = params.get('subscription_id');
   const returnedFailed = FAILED_STATUSES.includes(params.get('status') ?? '');
   const [phase, setPhase] = useState<Phase>(returnedFailed ? 'failed' : plan ? 'confirming' : 'delayed');
 
@@ -33,7 +34,7 @@ export default function BillingSuccess() {
     const poll = async () => {
       attempts += 1;
       try {
-        const { status } = await api.dodoSubscription(plan.id);
+        const { status } = await api.dodoSubscription(plan.id, subscriptionId);
         if (cancelled) return;
         if (status === 'active' || status === 'past_due') {
           await refresh();
@@ -57,7 +58,7 @@ export default function BillingSuccess() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [plan, returnedFailed, role, loading, refresh]);
+  }, [plan, subscriptionId, returnedFailed, role, loading, refresh]);
 
   const title = plan?.title ?? 'your plan';
   const content: Record<Phase, { icon: React.ReactNode; heading: string; body: string }> = {

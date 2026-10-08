@@ -417,9 +417,12 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  dodoSubscription: (planId: string) =>
+  dodoSubscription: (planId: string, subscriptionId?: string | null) =>
     request<{ planId: string; status: string; nextBillingDate: string | null }>(
-      `/payments/dodo/subscription?planId=${encodeURIComponent(planId)}`,
+      `/payments/dodo/subscription?${new URLSearchParams({
+        planId,
+        ...(subscriptionId ? { subscriptionId } : {}),
+      })}`,
     ),
 
   openDodoPortal: () => request<{ url: string }>('/payments/dodo/portal', { method: 'POST' }),

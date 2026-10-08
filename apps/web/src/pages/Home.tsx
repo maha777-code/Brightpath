@@ -47,7 +47,7 @@ const HOME_TOOL_LABELS: Record<(typeof HOME_TOOL_IDS)[number], string> = {
   'curriculum-studio': 'Curriculum & Textbook Studio',
   'worksheet-generator': 'Worksheet Generator',
   'lesson-plan': 'Lesson Plan',
-  'family-email': 'Professional Email',
+  'family-email': 'Email Responder',
   'quiz-generator': 'Multiple Choice Quiz',
   'presentation-generator': 'Presentation Generator',
   'text-rewriter': 'Text Rewriter',
