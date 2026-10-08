@@ -6,12 +6,13 @@ import {
   CHECKOUT_PLANS,
   CHECKOUT_PLAN_IDS,
   DEFAULT_PLAN_FOR_ROLE,
+  dodoProductEnvKey,
   type AppRole,
   type CheckoutPlan,
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
-import { dodoProductId, dodoWebhookKey, getDodo, planForDodoProduct } from '../lib/dodo.js';
+import { dodoProductId, dodoProductProblem, dodoWebhookKey, getDodo, planForDodoProduct } from '../lib/dodo.js';
 
 type WebhookEvent = ReturnType<DodoPayments['webhooks']['unwrap']>;
 type SubscriptionEvent = Extract<WebhookEvent, { type: `subscription.${string}` }>;
@@ -71,16 +72,25 @@ router.post('/checkout', requireAuth, async (req: AuthRequest, res) => {
 
   const dodo = getDodo();
   if (!dodo) {
-    res.status(503).json({ error: 'Payments are not configured yet. Set DODO_PAYMENTS_API_KEY.' });
+    console.error('Dodo checkout unavailable: DODO_PAYMENTS_API_KEY is not set');
+    res.status(503).json({ error: 'Online payments are temporarily unavailable. Please try again later.' });
     return;
   }
   const productId = dodoProductId(planId, currency, interval);
   if (!productId) {
+    console.error(`Dodo checkout unavailable: ${dodoProductEnvKey(planId, currency, interval)} is not set`);
     res.status(503).json({ error: `${plan.title} (${currency}, ${interval}) is not available for purchase yet.` });
     return;
   }
 
   try {
+    const problem = await dodoProductProblem(dodo, productId, currency, interval);
+    if (problem) {
+      console.error(`Dodo checkout blocked for ${dodoProductEnvKey(planId, currency, interval)}: ${problem}`);
+      res.status(503).json({ error: `${plan.title} (${currency}, ${interval}) is not available for purchase yet.` });
+      return;
+    }
+
     const live = await prisma.dodoSubscription.findFirst({
       where: { ...ownerWhere(plan, req), status: { in: LIVE_STATUSES } },
     });
@@ -99,6 +109,8 @@ router.post('/checkout', requireAuth, async (req: AuthRequest, res) => {
 
     const session = await dodo.checkoutSessions.create({
       product_cart: [{ product_id: productId, quantity: 1 }],
+      billing_currency: currency,
+      ...(currency === 'INR' ? { billing_address: { country: 'IN' as const } } : {}),
       customer: previous
         ? { customer_id: previous.customerId }
         : { email: user.email, name: user.name?.trim() || user.email },
@@ -145,7 +157,8 @@ router.get('/subscription', requireAuth, async (req: AuthRequest, res) => {
 router.post('/portal', requireAuth, async (req: AuthRequest, res) => {
   const dodo = getDodo();
   if (!dodo) {
-    res.status(503).json({ error: 'Payments are not configured yet.' });
+    console.error('Dodo portal unavailable: DODO_PAYMENTS_API_KEY is not set');
+    res.status(503).json({ error: 'Billing management is temporarily unavailable. Please try again later.' });
     return;
   }
   const owners = [

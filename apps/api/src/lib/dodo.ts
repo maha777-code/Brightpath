@@ -36,6 +36,43 @@ export function dodoProductId(planId: CheckoutPlanId, currency: BillingCurrency,
   return process.env[dodoProductEnvKey(planId, currency, cycle)]?.trim() || null;
 }
 
+const PRODUCT_CHECK_TTL_MS = 5 * 60 * 1000;
+const productChecks = new Map<string, { problem: string | null; checkedAt: number }>();
+
+/**
+ * Returns why a configured product can't be sold as this plan, or null if it matches.
+ * Catches swapped env vars and products whose term equals their billing cycle (Dodo expires those after one charge).
+ */
+export async function dodoProductProblem(
+  dodo: DodoPayments,
+  productId: string,
+  currency: BillingCurrency,
+  cycle: BillingCycle,
+): Promise<string | null> {
+  const key = `${productId}:${currency}:${cycle}`;
+  const cached = productChecks.get(key);
+  if (cached && Date.now() - cached.checkedAt < PRODUCT_CHECK_TTL_MS) return cached.problem;
+
+  const product = await dodo.products.retrieve(productId);
+  const price = product.price;
+  const expectedInterval = cycle === 'annual' ? 'Year' : 'Month';
+  let problem: string | null = null;
+  if (price.type !== 'recurring_price') {
+    problem = `${product.name} is not a subscription product`;
+  } else if (price.currency !== currency) {
+    problem = `${product.name} is priced in ${price.currency}, expected ${currency}`;
+  } else if (price.payment_frequency_count !== 1 || price.payment_frequency_interval !== expectedInterval) {
+    problem = `${product.name} bills every ${price.payment_frequency_count} ${price.payment_frequency_interval}, expected 1 ${expectedInterval}`;
+  } else if (
+    price.subscription_period_interval === price.payment_frequency_interval &&
+    price.subscription_period_count <= price.payment_frequency_count
+  ) {
+    problem = `${product.name} has a subscription period equal to its billing cycle, so it would expire after one charge`;
+  }
+  productChecks.set(key, { problem, checkedAt: Date.now() });
+  return problem;
+}
+
 export interface DodoProductRef {
   planId: CheckoutPlanId;
   currency: BillingCurrency;

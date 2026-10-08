@@ -23,7 +23,10 @@ function billingCaption(plan: PricingPlan, currency: 'INR' | 'USD', isAnnual: bo
     : (currency === 'INR' ? plan.priceINR.monthly : plan.priceUSD.monthly);
   if (typeof rawPrice === 'string') return 'Tailored quote';
   if (rawPrice === 0) return 'No charge';
-  return isAnnual ? 'Per month, billed annually' : 'Billed monthly';
+  if (!isAnnual) return 'Billed monthly';
+  const yearly = Math.round(rawPrice * 12 * 100) / 100;
+  const yearlyLabel = currency === 'INR' ? `₹${yearly.toLocaleString('en-IN')}` : `$${yearly.toLocaleString('en-US')}`;
+  return `${yearlyLabel} billed yearly`;
 }
 
 export default function PricingPage() {
