@@ -22,7 +22,8 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
     !embedded &&
     (tool.componentKey === 'LessonPlanGenerator' ||
       tool.componentKey === 'SongGenerator' ||
-      tool.componentKey === 'WorksheetGenerator');
+      tool.componentKey === 'WorksheetGenerator' ||
+      tool.id === 'family-email');
 
   const renderActualTool = () => {
     switch (tool.componentKey) {
@@ -45,7 +46,7 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
           </div>
         );
       default:
-        if (tool.id === 'family-email') return <EmailResponder />;
+        if (tool.id === 'family-email') return <EmailResponder embedded={embedded} />;
         return <CustomDynamicTool tool={tool} />;
     }
   };
@@ -78,7 +79,9 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
                 ? 'flex min-h-0 flex-1 flex-col overflow-hidden'
                 : embedded
                   ? 'min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-6'
-                  : 'min-h-0 flex-1 overflow-hidden'
+                  : tool.id === 'family-email'
+                    ? 'min-h-0 flex-1 overflow-y-auto'
+                    : 'min-h-0 flex-1 overflow-hidden'
           }
         >
           {renderActualTool()}

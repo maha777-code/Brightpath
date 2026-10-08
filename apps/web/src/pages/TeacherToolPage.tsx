@@ -48,6 +48,15 @@ export function TeacherToolLauncher({
     return rendered;
   }
 
+  if (tool.id === 'family-email') {
+    if (embedded) return rendered;
+    return (
+      <TeacherWorkspaceLayout>
+        <main className="w-full px-6 py-6 lg:px-10 lg:py-8">{rendered}</main>
+      </TeacherWorkspaceLayout>
+    );
+  }
+
   const body = (
     <div className="space-y-5">
       {rendered}

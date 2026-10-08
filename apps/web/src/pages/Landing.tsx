@@ -92,8 +92,8 @@ function HeroAITutorCard() {
         className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/80 shadow-[0_0_40px_rgba(6,182,212,0.15)]"
       >
         <img
-          src="/ai-tutor.png?v=3"
-          alt="AI Tutor Dynamic Knowledge Model"
+          src="/ai-tutor.png?v=4"
+          alt="MindVault AI assistant with teaching tools"
           className="h-auto w-full rounded-2xl object-cover transition-transform duration-700 group-hover:scale-105"
         />
       </motion.div>
