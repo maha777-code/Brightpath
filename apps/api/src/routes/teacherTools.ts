@@ -708,6 +708,8 @@ const emailResponderBody = z.object({
   incomingEmail: z.string().min(1).max(200000),
   responseIntent: z.string().min(1).max(200000),
   attachments: z.array(z.string().max(240)).max(12).optional(),
+  followUp: z.string().max(8000).optional(),
+  currentEmail: z.string().max(200000).optional(),
 });
 
 /** POST /teacher/tools/email-responder */

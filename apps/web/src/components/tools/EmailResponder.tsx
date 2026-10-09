@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronRight, Copy, Download, Loader2, Mic, Printer, Sparkles, Star } from 'lucide-react';
+import { Bookmark, ChevronDown, ChevronRight, Copy, Download, History, Languages, Loader2, Mic, Plus, Printer, Share2, Sparkles, Star, ThumbsDown, ThumbsUp, Volume2, ArrowUp } from 'lucide-react';
 import { fallbackEmailResponse, type EmailResponderRequest } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -26,6 +26,13 @@ const EXEMPLAR_INTENT =
 
 const INTENT_PLACEHOLDER = 'i.e. that sounds great... let’s schedule some time... help me understand...';
 
+const TRANSLATE_LANGUAGES = ['Hindi', 'Kannada', 'Spanish', 'French', 'Arabic', 'English'];
+
+const DEFAULT_SUGGESTIONS = [
+  'Make this email shorter and more casual while keeping it professional.',
+  'Draft a follow-up email confirming the next step and what to discuss.',
+];
+
 type SpeechRec = {
   lang: string;
   interimResults: boolean;
@@ -46,6 +53,9 @@ type SavedGeneration = {
   attachments: string[];
   email: string;
   exemplar: boolean;
+  suggestions: string[];
+  feedback?: 'up' | 'down' | null;
+  saved?: boolean;
 };
 
 type HistoryBucket = 'Today' | 'Yesterday' | 'Last 7 days' | 'Older';
@@ -105,7 +115,9 @@ function loadHistory(userId: string): SavedGeneration[] {
     const raw = localStorage.getItem(historyKey(userId));
     if (!raw) return [];
     const parsed = JSON.parse(raw) as SavedGeneration[];
-    return Array.isArray(parsed) ? parsed.filter((item) => item?.id && item.email) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((item) => item?.id && item.email).map((item) => ({ ...item, suggestions: item.suggestions?.length ? item.suggestions : DEFAULT_SUGGESTIONS }))
+      : [];
   } catch {
     return [];
   }
@@ -189,6 +201,11 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [translateOpen, setTranslateOpen] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [followUp, setFollowUp] = useState('');
+  const [notice, setNotice] = useState('');
   const [history, setHistory] = useState<SavedGeneration[]>([]);
   const [active, setActive] = useState<SavedGeneration | null>(null);
 
@@ -203,6 +220,7 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
     setHistory(loadHistory(userId));
   }, [userId]);
 
+  const followDictation = useDictation((text) => setFollowUp((current) => (current ? `${current} ${text}` : text)));
   const incomingDictation = useDictation((text) => setIncomingEmail((current) => (current ? `${current} ${text}` : text)));
   const intentDictation = useDictation((text) => setResponseIntent((current) => (current ? `${current} ${text}` : text)));
   const authorDictation = useDictation((text) => setAuthorName((current) => (current ? `${current} ${text}` : text)));
@@ -232,42 +250,89 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
     setIncomingFiles([]);
     setIntentFiles([]);
     setExemplarOn(false);
+    setFollowUp('');
+    setNotice('');
+    setTranslateOpen(false);
+    window.speechSynthesis?.cancel();
+    setSpeaking(false);
   };
 
-  const generate = async () => {
-    if (!canGenerate) return;
+  const remember = (record: SavedGeneration) => {
+    const next = [record, ...loadHistory(userId).filter((item) => item.id !== record.id)].slice(0, HISTORY_LIMIT);
+    saveHistory(userId, next);
+    setHistory(next);
+    setActive(record);
+  };
+
+  const patchActive = (patch: Partial<SavedGeneration>) => {
+    if (!active) return;
+    const record = { ...active, ...patch };
+    const next = loadHistory(userId).map((item) => (item.id === record.id ? record : item));
+    saveHistory(userId, next);
+    setHistory(next);
+    setActive(record);
+  };
+
+  const showNotice = (message: string) => {
+    setNotice(message);
+    window.setTimeout(() => setNotice(''), 1800);
+  };
+
+  const draftEmail = async (followInstruction?: string) => {
+    const revising = Boolean(followInstruction?.trim() && active);
+    if (!revising && !canGenerate) return;
+    const source = active;
     const body: EmailResponderRequest = {
-      authorName: authorName.trim() || undefined,
-      incomingEmail: incomingEmail.trim(),
-      responseIntent: responseIntent.trim(),
-      attachments: [...incomingFiles, ...intentFiles],
+      authorName: (revising ? source?.authorName : authorName)?.trim() || undefined,
+      incomingEmail: (revising ? source?.incomingEmail : incomingEmail)?.trim() ?? '',
+      responseIntent: revising
+        ? `Revise the current draft.\n\nInstruction:\n${followInstruction!.trim()}\n\nCurrent draft:\n${source?.email ?? ''}\n\nOriginal intent:\n${source?.responseIntent ?? ''}`
+        : responseIntent.trim(),
+      attachments: revising ? source?.attachments : [...incomingFiles, ...intentFiles],
+      followUp: followInstruction?.trim() || undefined,
+      currentEmail: revising ? source?.email : undefined,
     };
     setBusy(true);
     let emailText = '';
+    let suggestions = DEFAULT_SUGGESTIONS;
     try {
       const result = await api.generateEmailResponse(body);
       emailText = result.email;
+      if (result.suggestions?.length) suggestions = result.suggestions.slice(0, 2);
     } catch {
       emailText = fallbackEmailResponse(body).email;
+      suggestions = fallbackEmailResponse(body).suggestions;
     } finally {
       setBusy(false);
     }
-    const record: SavedGeneration = {
+    if (revising && source) {
+      remember({
+        ...source,
+        title: emailTitle(emailText),
+        email: emailText,
+        suggestions,
+        createdAt: new Date().toISOString(),
+      });
+      return;
+    }
+    remember({
       id: crypto.randomUUID(),
       title: emailTitle(emailText),
       createdAt: new Date().toISOString(),
       authorName: authorName.trim(),
       incomingEmail: body.incomingEmail,
-      responseIntent: body.responseIntent,
+      responseIntent: responseIntent.trim(),
       attachments: body.attachments ?? [],
       email: emailText,
       exemplar: exemplarOn,
-    };
-    const next = [record, ...loadHistory(userId)].slice(0, HISTORY_LIMIT);
-    saveHistory(userId, next);
-    setHistory(next);
-    setActive(record);
+      suggestions,
+    });
     setShowPrompt(false);
+    setFollowUp('');
+  };
+
+  const generate = () => {
+    void draftEmail();
   };
 
   const copyEmail = () => {
@@ -291,13 +356,74 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
 
   const printEmail = () => {
     if (!active) return;
-    const popup = window.open('', '_blank', 'noopener,noreferrer');
-    if (!popup) return;
-    popup.document.write(`<pre style="font-family:Segoe UI,sans-serif;white-space:pre-wrap">${escapeHtml(active.email)}</pre>`);
-    popup.document.close();
-    popup.focus();
-    popup.print();
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;width:0;height:0;border:0;right:0;bottom:0';
+    document.body.appendChild(frame);
+    const doc = frame.contentDocument;
+    const win = frame.contentWindow;
+    if (!doc || !win) {
+      frame.remove();
+      return;
+    }
+    doc.open();
+    doc.write(`<!DOCTYPE html><html><head><title>${escapeHtml(active.title)}</title></head><body><pre style="font-family:Segoe UI,sans-serif;white-space:pre-wrap;font-size:14px">${escapeHtml(active.email)}</pre></body></html>`);
+    doc.close();
+    win.focus();
+    win.print();
+    window.setTimeout(() => frame.remove(), 1000);
   };
+
+  const shareEmail = async () => {
+    const text = active?.email ?? '';
+    if (!text) {
+      showNotice('Generate an email before sharing.');
+      return;
+    }
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: active?.title || 'Email Responder', text });
+        return;
+      } catch {
+        return;
+      }
+    }
+    await navigator.clipboard.writeText(text);
+    showNotice('Email copied to share.');
+  };
+
+  const readAloud = () => {
+    if (!active || !('speechSynthesis' in window)) {
+      showNotice('Read aloud is not available in this browser.');
+      return;
+    }
+    if (speaking || window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(active.email);
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const saveEmail = () => {
+    if (!active) return;
+    patchActive({ saved: true });
+    showNotice('Email saved.');
+  };
+
+  const rateEmail = (value: 'up' | 'down') => {
+    if (!active) return;
+    const next = active.feedback === value ? null : value;
+    patchActive({ feedback: next });
+    showNotice(next === 'up' ? 'Marked as helpful.' : next === 'down' ? 'Marked as needs improvement.' : 'Feedback cleared.');
+  };
+
+  const iconButtonClass = 'cursor-pointer appearance-none rounded-lg border-0 bg-transparent p-2 text-slate-400 hover:bg-slate-800 hover:text-white';
 
   const star = (
     <button
@@ -348,34 +474,46 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
     </aside>
   );
 
+  const pageTools = (
+    <div className="flex items-center gap-1">
+      <button type="button" className={iconButtonClass} aria-label="Share email" onClick={() => void shareEmail()}>
+        <Share2 className="h-4 w-4" />
+      </button>
+      <button type="button" className={iconButtonClass} aria-label="New email" onClick={startNew}>
+        <Plus className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        className={`${iconButtonClass} ${historyOpen ? 'text-cyan-300' : ''}`}
+        aria-label="History"
+        aria-pressed={historyOpen}
+        onClick={() => setHistoryOpen((open) => !open)}
+      >
+        <History className="h-4 w-4" />
+      </button>
+    </div>
+  );
+
   if (active) {
     return (
       <div className="flex w-full flex-col gap-6 pb-10 text-slate-100 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1">
           {embedded ? null : <EmailBreadcrumb detail={active.title} onTool={startNew} />}
+          <div className="mb-2 flex justify-end">{pageTools}</div>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-[#121826] px-4 py-3">
             <div className="flex items-center gap-2">
               <h1 className="text-base font-bold text-white">Email Responder</h1>
               {star}
             </div>
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={startNew}
-                className="cursor-pointer appearance-none border-0 bg-transparent text-sm font-semibold text-slate-400 hover:text-cyan-300"
-              >
-                New
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPrompt((open) => !open)}
-                className="inline-flex cursor-pointer appearance-none items-center gap-1.5 border-0 bg-transparent text-sm font-semibold text-slate-300 hover:text-white"
-                aria-expanded={showPrompt}
-              >
-                {showPrompt ? 'Hide prompt' : 'Show prompt'}
-                <ChevronDown className={`h-4 w-4 transition-transform ${showPrompt ? 'rotate-180' : ''}`} />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowPrompt((open) => !open)}
+              className="inline-flex cursor-pointer appearance-none items-center gap-1.5 border-0 bg-transparent text-sm font-semibold text-slate-300 hover:text-white"
+              aria-expanded={showPrompt}
+            >
+              {showPrompt ? 'Hide prompt' : 'Show prompt'}
+              <ChevronDown className={`h-4 w-4 transition-transform ${showPrompt ? 'rotate-180' : ''}`} />
+            </button>
           </div>
 
           {showPrompt ? (
@@ -394,30 +532,110 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
               </span>
             ) : null}
             <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-100">{active.email}</pre>
-            <div className="mt-5 flex items-center gap-1 border-t border-slate-800 pt-3">
-              <button type="button" onClick={copyEmail} className="cursor-pointer appearance-none rounded-lg border-0 bg-transparent p-2 text-slate-400 hover:bg-slate-800 hover:text-white" aria-label={copied ? 'Copied' : 'Copy email'}>
-                <Copy className="h-4 w-4" />
-              </button>
-              <button type="button" onClick={downloadEmail} className="cursor-pointer appearance-none rounded-lg border-0 bg-transparent p-2 text-slate-400 hover:bg-slate-800 hover:text-white" aria-label="Download email as text">
-                <Download className="h-4 w-4" />
-              </button>
-              <button type="button" onClick={printEmail} className="cursor-pointer appearance-none rounded-lg border-0 bg-transparent p-2 text-slate-400 hover:bg-slate-800 hover:text-white" aria-label="Print email">
-                <Printer className="h-4 w-4" />
-              </button>
-              {copied ? <span className="ml-1 text-xs font-semibold text-emerald-300">Copied</span> : null}
+            <div className="mt-5 flex items-center justify-between gap-2 border-t border-slate-800 pt-3">
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={copyEmail} className={iconButtonClass} aria-label={copied ? 'Copied' : 'Copy email'}>
+                  <Copy className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={downloadEmail} className={iconButtonClass} aria-label="Download email as text">
+                  <Download className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={printEmail} className={iconButtonClass} aria-label="Print email">
+                  <Printer className="h-4 w-4" />
+                </button>
+                <div className="relative">
+                  <button type="button" onClick={() => setTranslateOpen((open) => !open)} className={iconButtonClass} aria-label="Translate email" aria-expanded={translateOpen}>
+                    <Languages className="h-4 w-4" />
+                  </button>
+                  {translateOpen ? (
+                    <div className="absolute bottom-10 left-0 z-20 min-w-36 rounded-xl border border-slate-700 bg-slate-900 p-1 shadow-xl">
+                      {TRANSLATE_LANGUAGES.map((language) => (
+                        <button
+                          key={language}
+                          type="button"
+                          className="block w-full cursor-pointer appearance-none rounded-lg border-0 bg-transparent px-3 py-1.5 text-left text-sm text-slate-200 hover:bg-slate-800"
+                          onClick={() => {
+                            setTranslateOpen(false);
+                            void draftEmail(`Translate this entire email into ${language}. Keep the Subject line and a professional tone.`);
+                          }}
+                        >
+                          {language}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                <button type="button" onClick={readAloud} className={`${iconButtonClass} ${speaking ? 'text-cyan-300' : ''}`} aria-label={speaking ? 'Stop reading' : 'Read email aloud'}>
+                  <Volume2 className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={saveEmail} className={`${iconButtonClass} ${active.saved ? 'text-amber-300' : ''}`} aria-label="Save email" aria-pressed={Boolean(active.saved)}>
+                  <Bookmark className="h-4 w-4" fill={active.saved ? 'currentColor' : 'none'} />
+                </button>
+                {copied ? <span className="ml-1 text-xs font-semibold text-emerald-300">Copied</span> : null}
+              </div>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => rateEmail('up')} className={`${iconButtonClass} ${active.feedback === 'up' ? 'text-emerald-300' : ''}`} aria-label="Helpful" aria-pressed={active.feedback === 'up'}>
+                  <ThumbsUp className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={() => rateEmail('down')} className={`${iconButtonClass} ${active.feedback === 'down' ? 'text-rose-300' : ''}`} aria-label="Needs improvement" aria-pressed={active.feedback === 'down'}>
+                  <ThumbsDown className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </section>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {(active.suggestions.length ? active.suggestions : DEFAULT_SUGGESTIONS).slice(0, 2).map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                disabled={busy}
+                onClick={() => void draftEmail(suggestion)}
+                className="cursor-pointer appearance-none rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-left text-sm font-medium text-slate-200 hover:border-slate-500 disabled:cursor-wait disabled:opacity-60"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+
+          <form
+            className="mt-4 rounded-2xl border border-slate-800 bg-[#121826] p-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!followUp.trim() || busy) return;
+              void draftEmail(followUp);
+            }}
+          >
+            <textarea
+              value={followUp}
+              onChange={(event) => setFollowUp(event.target.value)}
+              placeholder="Continue the conversation..."
+              className="min-h-20 w-full resize-y border-0 bg-transparent p-2 text-sm text-white outline-none placeholder:text-slate-500"
+            />
+            <div className="mt-1 flex items-center justify-between">
+              <button type="button" className={iconButtonClass} aria-label="Dictate a follow-up" onClick={followDictation.toggle}>
+                <Mic className="h-4 w-4" />
+              </button>
+              <button type="submit" disabled={!followUp.trim() || busy} className="cursor-pointer appearance-none rounded-full border-0 bg-slate-700 p-2 text-white hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Send follow-up">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+              </button>
+            </div>
+          </form>
+          <p className="mt-3 text-center text-xs text-slate-500">Review AI output for accuracy. Follow school policies.</p>
+          {notice ? <p className="mt-2 text-center text-xs font-semibold text-emerald-300">{notice}</p> : null}
         </div>
 
-        {historyPanel}
+        {historyOpen ? historyPanel : null}
       </div>
     );
   }
 
   return (
     <div className="flex w-full flex-col gap-6 pb-10 text-slate-100 lg:flex-row lg:items-start">
-      <div className="flex min-w-0 flex-1 flex-col gap-5">
+      <div className="min-w-0 flex-1">
       {embedded ? null : <EmailBreadcrumb />}
+      <div className="mb-3 flex justify-end">{pageTools}</div>
+      <div className="flex w-4/5 flex-col gap-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -544,8 +762,10 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
         {busy ? 'Generating...' : 'Generate'}
       </button>
+      {notice ? <p className="text-center text-xs font-semibold text-emerald-300">{notice}</p> : null}
       </div>
-      {history.length > 0 ? historyPanel : null}
+      </div>
+      {historyOpen ? historyPanel : null}
     </div>
   );
 }

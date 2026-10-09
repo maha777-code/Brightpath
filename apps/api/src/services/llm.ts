@@ -800,13 +800,19 @@ export async function generateEmailResponse(input: EmailResponderRequest): Promi
   if (!llm) return fallback;
 
   try {
-    const raw = await llm.completeJson<{ email?: string }>({
-      system: 'You draft professional school emails. Return JSON only in this shape: {"email":"Subject: ...\\n\\nfull email body"}. Do not wrap the email in code fences.',
+    const raw = await llm.completeJson<{ email?: string; suggestions?: string[] }>({
+      system: 'You draft professional school emails from the user\'s original email and the points they want to communicate. Return JSON only: {"email":"Subject: ...\\n\\nfull email body","suggestions":["short follow-up the user might ask","another follow-up"]}. suggestions must be exactly two plain sentences. Do not wrap the email in code fences.',
       user: emailResponderPrompt(input),
     });
     const email = String(raw.email ?? '').trim();
     if (!email) return fallback;
-    return { email: /^subject:/i.test(email) ? email : `Subject: Following up on your email\n\n${email}` };
+    const suggestions = Array.isArray(raw.suggestions)
+      ? raw.suggestions.map((item) => String(item).trim()).filter(Boolean).slice(0, 2)
+      : [];
+    return {
+      email: /^subject:/i.test(email) ? email : `Subject: Following up on your email\n\n${email}`,
+      suggestions: suggestions.length === 2 ? suggestions : fallback.suggestions,
+    };
   } catch (err) {
     console.error('[llm] email responder failed', err);
     return fallback;

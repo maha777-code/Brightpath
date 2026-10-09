@@ -1023,16 +1023,23 @@ export interface EmailResponderRequest {
   incomingEmail: string;
   responseIntent: string;
   attachments?: string[];
+  /** When set, revise currentEmail instead of drafting from scratch. */
+  followUp?: string;
+  currentEmail?: string;
 }
 
 export interface EmailResponderResponse {
   email: string;
+  suggestions: string[];
 }
 
 export function emailResponderPrompt(input: EmailResponderRequest): string {
   const author = input.authorName?.trim() || 'Teacher';
   const files = (input.attachments ?? []).map((name) => name.trim()).filter(Boolean);
   const fileNote = files.length ? `\nAttached files to consider: ${files.join(', ')}` : '';
+  const revision = input.followUp?.trim()
+    ? `\n\nCurrent draft to revise:\n"""\n${(input.currentEmail ?? '').trim()}\n"""\n\nFollow-up instruction from the user. Apply this to the current draft:\n"""\n${input.followUp.trim()}\n"""`
+    : '';
   return `You are a professional educational communication assistant. Draft a polished, empathetic, and professional email response based on these inputs:
 
 Sender / Author Name: ${author}
@@ -1044,7 +1051,7 @@ ${input.incomingEmail.trim()}
 Key Points / Intent to Communicate in Response:
 """
 ${input.responseIntent.trim()}
-"""${fileNote}
+"""${fileNote}${revision}
 
 Instructions:
 1. Ensure the tone is professional, warm, clear, and polite.
@@ -1059,6 +1066,10 @@ export function fallbackEmailResponse(input: EmailResponderRequest): EmailRespon
   const subjectLine = original.match(/^subject:\s*(.+)$/im)?.[1]?.trim();
   const subject = subjectLine ? `Re: ${subjectLine}` : 'Following up on your email';
   return {
+    suggestions: [
+      'Make this email shorter and more casual while keeping it professional.',
+      'Draft a follow-up email confirming the next step and what to discuss.',
+    ],
     email: `Subject: ${subject}
 
 Hello,
