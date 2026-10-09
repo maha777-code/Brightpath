@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useDisplayUser } from '@/lib/displayUser';
 import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { toolBreadcrumbCategory } from '@/components/tools/ToolBreadcrumb';
-import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
+import { VoiceListeningIndicator } from '@/components/VoiceListeningIndicator';
 
 const WORD_LIMIT = 75_000;
 const HISTORY_LIMIT = 50;
@@ -141,6 +141,26 @@ function historyBucket(iso: string): HistoryBucket {
 
 function escapeHtml(value: string) {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function prettyIconClass(active = false, tone: 'cyan' | 'amber' | 'emerald' | 'rose' = 'cyan') {
+  const activeTone = {
+    cyan: 'border-cyan-300/70 bg-cyan-500/20 text-cyan-100 shadow-[0_0_16px_rgba(34,211,238,0.35)]',
+    amber: 'border-amber-300/70 bg-amber-500/20 text-amber-100 shadow-[0_0_16px_rgba(251,191,36,0.35)]',
+    emerald: 'border-emerald-300/70 bg-emerald-500/20 text-emerald-100 shadow-[0_0_16px_rgba(52,211,153,0.35)]',
+    rose: 'border-rose-300/70 bg-rose-500/20 text-rose-100 shadow-[0_0_16px_rgba(251,113,133,0.35)]',
+  }[tone];
+  return `inline-flex h-9 w-9 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border transition-all duration-200 hover:-translate-y-0.5 ${
+    active
+      ? activeTone
+      : 'border-slate-600/80 bg-slate-900/80 text-slate-200 shadow-sm hover:border-cyan-300/70 hover:bg-slate-800 hover:text-cyan-50 hover:shadow-[0_0_16px_rgba(34,211,238,0.28)]'
+  }`;
+}
+
+function prettyMicClass(listening: boolean) {
+  return listening
+    ? 'inline-flex h-12 w-12 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border border-rose-200/80 bg-gradient-to-br from-rose-400 to-fuchsia-600 text-white shadow-[0_0_24px_rgba(244,63,94,0.6)] ring-4 ring-rose-500/25 animate-pulse'
+    : 'inline-flex h-12 w-12 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border border-cyan-200/70 bg-gradient-to-br from-cyan-300 via-cyan-500 to-blue-600 text-white shadow-[0_0_22px_rgba(34,211,238,0.55)] ring-4 ring-cyan-400/20 transition-transform duration-200 hover:scale-105 hover:shadow-[0_0_28px_rgba(34,211,238,0.7)]';
 }
 
 function FieldToolbar({ words, onFiles }: { words: number; onFiles: (files: FileList | null) => void }) {
@@ -423,17 +443,15 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
     showNotice(next === 'up' ? 'Marked as helpful.' : next === 'down' ? 'Marked as needs improvement.' : 'Feedback cleared.');
   };
 
-  const iconButtonClass = 'cursor-pointer appearance-none rounded-lg border-0 bg-transparent p-2 text-slate-400 hover:bg-slate-800 hover:text-white';
-
   const star = (
     <button
       type="button"
-      className={`cursor-pointer appearance-none border-0 bg-transparent p-0 ${favorited ? 'text-amber-400' : 'text-slate-500 hover:text-amber-400'}`}
+      className={prettyIconClass(favorited, 'amber')}
       aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
       aria-pressed={favorited}
       onClick={toggleFavorite}
     >
-      <Star className="h-5 w-5" fill={favorited ? 'currentColor' : 'none'} />
+      <Star className="h-4 w-4" fill={favorited ? 'currentColor' : 'none'} />
     </button>
   );
 
@@ -475,16 +493,16 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
   );
 
   const pageTools = (
-    <div className="flex items-center gap-1">
-      <button type="button" className={iconButtonClass} aria-label="Share email" onClick={() => void shareEmail()}>
+    <div className="flex items-center gap-2">
+      <button type="button" className={prettyIconClass()} aria-label="Share email" onClick={() => void shareEmail()}>
         <Share2 className="h-4 w-4" />
       </button>
-      <button type="button" className={iconButtonClass} aria-label="New email" onClick={startNew}>
+      <button type="button" className={prettyIconClass()} aria-label="New email" onClick={startNew}>
         <Plus className="h-4 w-4" />
       </button>
       <button
         type="button"
-        className={`${iconButtonClass} ${historyOpen ? 'text-cyan-300' : ''}`}
+        className={prettyIconClass(historyOpen, 'cyan')}
         aria-label="History"
         aria-pressed={historyOpen}
         onClick={() => setHistoryOpen((open) => !open)}
@@ -494,9 +512,42 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
     </div>
   );
 
+  const followUpComposer = (
+    <form
+      className="mx-auto w-full max-w-2xl rounded-3xl border border-cyan-400/30 bg-[#0b1220] p-3 shadow-[0_0_32px_rgba(34,211,238,0.14)]"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!followUp.trim() || busy) return;
+        void draftEmail(followUp);
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <button type="button" className={prettyMicClass(followDictation.listening)} aria-label="Dictate a follow-up" aria-pressed={followDictation.listening} onClick={followDictation.toggle}>
+          <Mic className={`h-5 w-5 ${followDictation.listening ? 'animate-bounce' : ''}`} />
+        </button>
+        <textarea
+          value={followUp}
+          onChange={(event) => setFollowUp(event.target.value)}
+          placeholder="Continue the conversation..."
+          className="min-h-14 flex-1 resize-y border-0 bg-transparent px-1 py-2 text-sm text-white outline-none placeholder:text-slate-400"
+        />
+        <button
+          type="submit"
+          disabled={!followUp.trim() || busy}
+          className="inline-flex h-12 w-12 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border border-cyan-200/40 bg-gradient-to-br from-cyan-300 to-blue-600 text-white shadow-[0_0_18px_rgba(34,211,238,0.4)] transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+          aria-label="Send follow-up"
+        >
+          {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+        </button>
+      </div>
+      {followDictation.listening ? <VoiceListeningIndicator className="mt-3" isListening onStopListening={followDictation.toggle} /> : null}
+    </form>
+  );
+
   if (active) {
     return (
-      <div className="flex w-full flex-col gap-6 pb-10 text-slate-100 lg:flex-row lg:items-start">
+      <div className="flex w-full flex-col gap-5 pb-8 text-slate-100">
+        <div className="flex w-full flex-col gap-6 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1">
           {embedded ? null : <EmailBreadcrumb detail={active.title} onTool={startNew} />}
           <div className="mb-2 flex justify-end">{pageTools}</div>
@@ -533,18 +584,18 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
             ) : null}
             <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-100">{active.email}</pre>
             <div className="mt-5 flex items-center justify-between gap-2 border-t border-slate-800 pt-3">
-              <div className="flex items-center gap-1">
-                <button type="button" onClick={copyEmail} className={iconButtonClass} aria-label={copied ? 'Copied' : 'Copy email'}>
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={copyEmail} className={prettyIconClass(copied, 'emerald')} aria-label={copied ? 'Copied' : 'Copy email'}>
                   <Copy className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={downloadEmail} className={iconButtonClass} aria-label="Download email as text">
+                <button type="button" onClick={downloadEmail} className={prettyIconClass()} aria-label="Download email as text">
                   <Download className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={printEmail} className={iconButtonClass} aria-label="Print email">
+                <button type="button" onClick={printEmail} className={prettyIconClass()} aria-label="Print email">
                   <Printer className="h-4 w-4" />
                 </button>
                 <div className="relative">
-                  <button type="button" onClick={() => setTranslateOpen((open) => !open)} className={iconButtonClass} aria-label="Translate email" aria-expanded={translateOpen}>
+                  <button type="button" onClick={() => setTranslateOpen((open) => !open)} className={prettyIconClass(translateOpen, 'cyan')} aria-label="Translate email" aria-expanded={translateOpen}>
                     <Languages className="h-4 w-4" />
                   </button>
                   {translateOpen ? (
@@ -565,19 +616,19 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
                     </div>
                   ) : null}
                 </div>
-                <button type="button" onClick={readAloud} className={`${iconButtonClass} ${speaking ? 'text-cyan-300' : ''}`} aria-label={speaking ? 'Stop reading' : 'Read email aloud'}>
+                <button type="button" onClick={readAloud} className={prettyIconClass(speaking, 'cyan')} aria-label={speaking ? 'Stop reading' : 'Read email aloud'}>
                   <Volume2 className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={saveEmail} className={`${iconButtonClass} ${active.saved ? 'text-amber-300' : ''}`} aria-label="Save email" aria-pressed={Boolean(active.saved)}>
+                <button type="button" onClick={saveEmail} className={prettyIconClass(Boolean(active.saved), 'amber')} aria-label="Save email" aria-pressed={Boolean(active.saved)}>
                   <Bookmark className="h-4 w-4" fill={active.saved ? 'currentColor' : 'none'} />
                 </button>
                 {copied ? <span className="ml-1 text-xs font-semibold text-emerald-300">Copied</span> : null}
               </div>
-              <div className="flex items-center gap-1">
-                <button type="button" onClick={() => rateEmail('up')} className={`${iconButtonClass} ${active.feedback === 'up' ? 'text-emerald-300' : ''}`} aria-label="Helpful" aria-pressed={active.feedback === 'up'}>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => rateEmail('up')} className={prettyIconClass(active.feedback === 'up', 'emerald')} aria-label="Helpful" aria-pressed={active.feedback === 'up'}>
                   <ThumbsUp className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => rateEmail('down')} className={`${iconButtonClass} ${active.feedback === 'down' ? 'text-rose-300' : ''}`} aria-label="Needs improvement" aria-pressed={active.feedback === 'down'}>
+                <button type="button" onClick={() => rateEmail('down')} className={prettyIconClass(active.feedback === 'down', 'rose')} aria-label="Needs improvement" aria-pressed={active.feedback === 'down'}>
                   <ThumbsDown className="h-4 w-4" />
                 </button>
               </div>
@@ -598,34 +649,13 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
             ))}
           </div>
 
-          <form
-            className="mt-4 rounded-2xl border border-slate-800 bg-[#121826] p-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!followUp.trim() || busy) return;
-              void draftEmail(followUp);
-            }}
-          >
-            <textarea
-              value={followUp}
-              onChange={(event) => setFollowUp(event.target.value)}
-              placeholder="Continue the conversation..."
-              className="min-h-20 w-full resize-y border-0 bg-transparent p-2 text-sm text-white outline-none placeholder:text-slate-500"
-            />
-            <div className="mt-1 flex items-center justify-between">
-              <button type="button" className={iconButtonClass} aria-label="Dictate a follow-up" onClick={followDictation.toggle}>
-                <Mic className="h-4 w-4" />
-              </button>
-              <button type="submit" disabled={!followUp.trim() || busy} className="cursor-pointer appearance-none rounded-full border-0 bg-slate-700 p-2 text-white hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Send follow-up">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
-              </button>
-            </div>
-          </form>
-          <p className="mt-3 text-center text-xs text-slate-500">Review AI output for accuracy. Follow school policies.</p>
-          {notice ? <p className="mt-2 text-center text-xs font-semibold text-emerald-300">{notice}</p> : null}
         </div>
 
         {historyOpen ? historyPanel : null}
+        </div>
+        {followUpComposer}
+        <p className="text-center text-xs text-slate-500">Review AI output for accuracy. Follow school policies.</p>
+        {notice ? <p className="text-center text-xs font-semibold text-emerald-300">{notice}</p> : null}
       </div>
     );
   }
@@ -635,7 +665,7 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
       <div className="min-w-0 flex-1">
       {embedded ? null : <EmailBreadcrumb />}
       <div className="mb-3 flex justify-end">{pageTools}</div>
-      <div className="flex w-4/5 flex-col gap-5">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -658,12 +688,12 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
         <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-[#0b101d] px-3 py-2.5 focus-within:border-cyan-500/60">
           <button
             type="button"
-            className={voiceMicButtonClass(authorDictation.listening, 'rounded-lg p-2')}
+            className={prettyMicClass(authorDictation.listening)}
             aria-label={authorDictation.listening ? 'Stop recording' : 'Dictate author name'}
             title={authorDictation.listening ? 'Stop recording' : 'Start voice input'}
             onClick={authorDictation.toggle}
           >
-            <Mic className="h-4 w-4" />
+            <Mic className={`h-5 w-5 ${authorDictation.listening ? 'animate-bounce' : ''}`} />
           </button>
           <input
             value={authorName}
@@ -683,11 +713,11 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
           <div className="flex gap-2">
             <button
               type="button"
-              className={`h-9 shrink-0 ${voiceMicButtonClass(incomingDictation.listening, 'rounded-lg p-2')}`}
+              className={prettyMicClass(incomingDictation.listening)}
               aria-label={incomingDictation.listening ? 'Stop recording' : 'Dictate the email you received'}
               onClick={incomingDictation.toggle}
             >
-              <Mic className="h-4 w-4" />
+              <Mic className={`h-5 w-5 ${incomingDictation.listening ? 'animate-bounce' : ''}`} />
             </button>
             <textarea
               value={incomingEmail}
@@ -722,11 +752,11 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
           <div className="flex gap-2">
             <button
               type="button"
-              className={`h-9 shrink-0 ${voiceMicButtonClass(intentDictation.listening, 'rounded-lg p-2')}`}
+              className={prettyMicClass(intentDictation.listening)}
               aria-label={intentDictation.listening ? 'Stop recording' : 'Dictate your response'}
               onClick={intentDictation.toggle}
             >
-              <Mic className="h-4 w-4" />
+              <Mic className={`h-5 w-5 ${intentDictation.listening ? 'animate-bounce' : ''}`} />
             </button>
             <textarea
               value={responseIntent}

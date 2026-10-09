@@ -47,7 +47,7 @@ export function AIToolSurface({
             <button
               type="button"
               onClick={onToggleExpand}
-              className="cursor-pointer appearance-none rounded-xl border border-cyan-500/20 bg-slate-950/40 p-2 text-slate-300 transition-all hover:border-cyan-400/40 hover:text-cyan-300"
+              className="inline-flex h-10 w-10 cursor-pointer appearance-none items-center justify-center rounded-full border border-cyan-400/40 bg-slate-950/70 text-cyan-100 shadow-[0_0_16px_rgba(34,211,238,0.2)] transition-all hover:-translate-y-0.5 hover:border-cyan-300 hover:text-white hover:shadow-[0_0_18px_rgba(34,211,238,0.4)]"
               title={expanded ? 'Collapse to modal' : 'Expand to full screen'}
               aria-label={expanded ? 'Collapse view' : 'Expand view'}
             >
@@ -57,7 +57,7 @@ export function AIToolSurface({
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer appearance-none rounded-xl border border-slate-700/80 bg-slate-950/40 p-2 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
+            className="inline-flex h-10 w-10 cursor-pointer appearance-none items-center justify-center rounded-full border border-slate-500/80 bg-slate-950/70 text-slate-100 shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-300/70 hover:text-rose-100 hover:shadow-[0_0_16px_rgba(251,113,133,0.3)]"
             title="Close tool"
             aria-label="Close tool modal"
           >

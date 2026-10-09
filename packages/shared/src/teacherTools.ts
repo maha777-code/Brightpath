@@ -1040,7 +1040,7 @@ export function emailResponderPrompt(input: EmailResponderRequest): string {
   const revision = input.followUp?.trim()
     ? `\n\nCurrent draft to revise:\n"""\n${(input.currentEmail ?? '').trim()}\n"""\n\nFollow-up instruction from the user. Apply this to the current draft:\n"""\n${input.followUp.trim()}\n"""`
     : '';
-  return `You are a professional educational communication assistant. Draft a polished, empathetic, and professional email response based on these inputs:
+  return `You are a professional educational communication assistant. Write the email the author would actually send. Use only facts from the message they received and the points they asked you to communicate. Turn a short note such as "that sounds great, let's set up a time" into a complete reply.
 
 Sender / Author Name: ${author}
 Original Email Received:
@@ -1048,16 +1048,22 @@ Original Email Received:
 ${input.incomingEmail.trim()}
 """
 
-Key Points / Intent to Communicate in Response:
+What the author wants to say:
 """
 ${input.responseIntent.trim()}
 """${fileNote}${revision}
 
-Instructions:
-1. Ensure the tone is professional, warm, clear, and polite.
-2. Address all key points requested in the communication intent.
-3. Include a suitable subject line starting with "Subject: ".
-4. Sign off with "${author}".`;
+Write three short paragraphs after the greeting:
+1. Thank them and answer their ask. Repeat their specific details in their words: who they are, their school or university, and the project or study they named.
+2. If they want to meet, name two or three topics worth covering that follow from their email (for a research partnership, that can include goals, timeline, and any approvals their note implies). Offer a 30-minute call and propose two specific windows, such as Tuesday afternoon and Thursday morning next week, then say you can be flexible if they share other times. If they do not want a meeting, carry out the requested next step instead.
+3. Close in one warm sentence about working together.
+
+Rules:
+- Do not invent calendar links, URLs, phone numbers, dates, times, room names, or placeholders such as [Insert Calendly Link].
+- Do not mention a product, school, or person that is not in the inputs.
+- Sound like a person, not a template. No "I would be delighted to explore potential collaboration opportunities."
+- Start with "Subject: " and a subject that names their actual request.
+- Sign off with "${author}".`;
 }
 
 export function fallbackEmailResponse(input: EmailResponderRequest): EmailResponderResponse {

@@ -794,6 +794,15 @@ export async function generateSharadaChat(input: SharadaChatRequest): Promise<Sh
   }
 }
 
+/** Drops a paragraph that invents a calendar link or a fill-in placeholder the user never provided. */
+function dropInventedScheduling(email: string): string {
+  return email
+    .split(/\n{2,}/)
+    .filter((part) => !/\[[^\]]*(insert|link|calendly|url)[^\]]*\]|calendly\.com|\[insert\b/i.test(part))
+    .join('\n\n')
+    .trim();
+}
+
 export async function generateEmailResponse(input: EmailResponderRequest): Promise<EmailResponderResponse> {
   const fallback = fallbackEmailResponse(input);
   const llm = getActiveProvider();
@@ -801,10 +810,10 @@ export async function generateEmailResponse(input: EmailResponderRequest): Promi
 
   try {
     const raw = await llm.completeJson<{ email?: string; suggestions?: string[] }>({
-      system: 'You draft professional school emails from the user\'s original email and the points they want to communicate. Return JSON only: {"email":"Subject: ...\\n\\nfull email body","suggestions":["short follow-up the user might ask","another follow-up"]}. suggestions must be exactly two plain sentences. Do not wrap the email in code fences.',
+      system: 'You write the exact email a teacher or school leader will send. Ground every sentence in the incoming message and the user\'s notes. Never add a scheduling link, URL, or [placeholder]. Return JSON only: {"email":"Subject: ...\\n\\nfull email body","suggestions":["short follow-up the user might ask","another follow-up"]}. suggestions must be exactly two plain sentences. Do not wrap the email in code fences.',
       user: emailResponderPrompt(input),
     });
-    const email = String(raw.email ?? '').trim();
+    const email = dropInventedScheduling(String(raw.email ?? '').trim());
     if (!email) return fallback;
     const suggestions = Array.isArray(raw.suggestions)
       ? raw.suggestions.map((item) => String(item).trim()).filter(Boolean).slice(0, 2)
