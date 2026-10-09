@@ -1454,7 +1454,7 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
       <div
         ref={scrollRef}
         className="lesson-plan-studio custom-scrollbar flex h-full max-h-full min-h-0 w-full flex-1 flex-col overflow-y-auto bg-[#0d131f] text-slate-100"
-        style={{ ...FONT, colorScheme: 'dark' }}
+        style={FONT}
       >
         <style>{STUDIO_CONTRAST_CSS}</style>
         {plan && lessonId && activePrompt ? (

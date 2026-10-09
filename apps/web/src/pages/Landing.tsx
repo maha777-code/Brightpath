@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Clock, GitFork, TrendingUp, ChevronDown, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
+import { ThemeToggle } from '@/context/ColorTheme';
 import { CardStackSection } from '@/components/CardStackSection';
 import { CtaBanner } from '@/components/CtaBanner';
 import { Footer } from '@/components/Footer';
@@ -511,9 +512,12 @@ export default function Landing() {
             </Link>
           </nav>
 
-          <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--nav">
-            Get Started For Free
-          </Link>
+          <div className="flex items-center justify-self-end gap-3">
+            <ThemeToggle />
+            <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--nav">
+              Get Started For Free
+            </Link>
+          </div>
         </div>
       </header>
 

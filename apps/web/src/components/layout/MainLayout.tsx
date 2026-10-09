@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { TeacherSidebar } from '@/components/teacher/Sidebar';
+import { ThemeToggle } from '@/context/ColorTheme';
 import '@/styles/teacher-dashboard.css';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 
@@ -10,6 +12,7 @@ export function MainLayout({
   children: ReactNode;
   fillViewport?: boolean;
 }) {
+  const { pathname } = useLocation();
   return (
     <div
       className={[
@@ -25,6 +28,13 @@ export function MainLayout({
           fillViewport ? 'flex min-h-0 flex-col overflow-hidden' : '',
         ].join(' ')}
       >
+        {pathname === '/' ? (
+          <div className="pointer-events-none absolute right-4 top-4 z-[90]">
+            <div className="pointer-events-auto">
+              <ThemeToggle />
+            </div>
+          </div>
+        ) : null}
         {children}
       </div>
     </div>
