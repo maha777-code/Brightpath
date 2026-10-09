@@ -2,7 +2,7 @@ import type { LessonPlanPayload, LessonPlanResponse } from './teacherTools.js';
 
 /** Chapter body sent to the model after front matter is removed. */
 const CHAPTER_BODY_CAP = 15_000;
-const SCAN_CAP = 120_000;
+const SCAN_CAP = 180_000;
 const MIN_READABLE_LETTERS = 100;
 
 const FILE_MARKER =
@@ -60,6 +60,72 @@ function tidyTopic(topic: string): string {
     .trim();
 }
 
+const HINT_STOP = new Set([
+  'lesson',
+  'plan',
+  'generate',
+  'grade',
+  'with',
+  'from',
+  'this',
+  'that',
+  'using',
+  'about',
+  'make',
+  'create',
+  'students',
+  'student',
+  'chapter',
+  'unit',
+  'class',
+  'based',
+  'file',
+  'please',
+  'would',
+  'should',
+  'their',
+  'your',
+  'into',
+  'have',
+  'them',
+]);
+
+/** Keep the part of the file that matches the teacher's request. */
+function focusOnRequest(text: string, topicHint?: string): string {
+  const hint = tidyTopic(topicHint ?? '');
+  const numbered = hint.match(/\b(?:chapter|unit|lesson)\s+(\d+)\b/i);
+  if (numbered) {
+    const re = new RegExp(`\\b(?:chapter|unit|lesson)\\s+0*${numbered[1]}\\b`, 'i');
+    const index = text.search(re);
+    if (index >= 0) return text.slice(index);
+  }
+
+  const words = hint
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((word) => word.length > 3 && !HINT_STOP.has(word));
+  if (words.length) {
+    const lines = text.split('\n');
+    let bestIndex = -1;
+    let bestScore = 0;
+    for (let index = 0; index < lines.length; index += 1) {
+      const lower = lines[index]?.toLowerCase() ?? '';
+      const score = words.reduce((sum, word) => sum + (lower.includes(word) ? 1 : 0), 0);
+      if (score > bestScore) {
+        bestScore = score;
+        bestIndex = index;
+      }
+    }
+    const needed = words.length === 1 ? 1 : 2;
+    if (bestIndex >= 0 && bestScore >= needed) {
+      const start = lines.slice(0, Math.max(0, bestIndex - 2)).join('\n').length;
+      return text.slice(start);
+    }
+  }
+
+  return isolateChapter(text);
+}
+
 /** First substantial "Chapter N" block, skipping table-of-contents lines. */
 function isolateChapter(text: string): string {
   const re = /\bchapter\s+\d+\b/gi;
@@ -100,7 +166,7 @@ export function cleanLessonSource(raw: string | undefined, topicHint?: string): 
     kept.push(line);
   }
 
-  const chapter = isolateChapter(kept.join('\n').replace(/\n{3,}/g, '\n\n').trim());
+  const chapter = focusOnRequest(kept.join('\n').replace(/\n{3,}/g, '\n\n').trim(), topicHint);
   const brief = extractLessonBrief(chapter || tidyTopic(topicHint ?? ''));
   const cleanedText = chapter.slice(0, CHAPTER_BODY_CAP);
   return {
@@ -149,8 +215,8 @@ function extractLessonBrief(text: string): Omit<LessonSourceBrief, 'cleanedText'
 
 export function lessonSubjectLabel(topic: string, brief: LessonSourceBrief): string {
   const typed = tidyTopic(topic.split('\n')[0] ?? '');
-  const generic = !typed || /generate lesson plan|explain the idea|^chapter\s+\d+\b/i.test(typed);
-  if (brief.chapterTitle && (generic || brief.chapterTitle.length > typed.length)) return brief.chapterTitle;
+  const generic = !typed || /generate lesson plan|explain the idea|^chapter\s+\d+\s*$/i.test(typed);
+  if (generic && brief.chapterTitle) return brief.chapterTitle;
   return (typed || brief.chapterTitle || 'the assigned concept').slice(0, 160);
 }
 

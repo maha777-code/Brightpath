@@ -34,7 +34,6 @@ import {
 import {
   LESSON_PLAN_GRADE_LEVELS,
   classroomLessonPlanFallback,
-  cleanLessonSource,
   type LessonPlanPayload,
   type LessonPlanResponse,
 } from '@brightpath/shared';
@@ -1404,21 +1403,21 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
     const files = [...attachedFiles, ...(extra?.files ?? [])];
     const criteriaText = [criteria.trim(), extra?.instruction?.trim()].filter(Boolean).join('\n\n');
     const images = documentImages(files);
-    const source = cleanLessonSource(documentContext(files), topic.trim());
+    const fileText = documentContext(files).slice(0, 180_000);
     const payload: LessonPlanPayload = {
       gradeLevel,
       topic: topic.trim(),
       additionalCriteria: criteriaText || undefined,
       standards: standards.trim() || undefined,
       attachments: files.map((file) => file.name),
-      attachedDocumentContext: source.cleanedText || undefined,
+      attachedDocumentContext: fileText || undefined,
       imageFiles: images.length ? images : undefined,
     };
     try {
       publishPlan(await api.generateLessonPlan(payload), payload, files.map((file) => file.name), criteriaText);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to generate the lesson plan.';
-      if (/readable chapter content/i.test(message)) setError(message);
+      if (/readable chapter content|could not read the attached file/i.test(message)) setError(message);
       else publishPlan(fallbackLessonPlan(payload), payload, files.map((file) => file.name), criteriaText);
     } finally {
       setBusy(false);

@@ -145,15 +145,15 @@ function escapeHtml(value: string) {
 
 function prettyIconClass(active = false, tone: 'cyan' | 'amber' | 'emerald' | 'rose' = 'cyan') {
   const activeTone = {
-    cyan: 'border-cyan-300/70 bg-cyan-500/20 text-cyan-100 shadow-[0_0_16px_rgba(34,211,238,0.35)]',
-    amber: 'border-amber-300/70 bg-amber-500/20 text-amber-100 shadow-[0_0_16px_rgba(251,191,36,0.35)]',
-    emerald: 'border-emerald-300/70 bg-emerald-500/20 text-emerald-100 shadow-[0_0_16px_rgba(52,211,153,0.35)]',
-    rose: 'border-rose-300/70 bg-rose-500/20 text-rose-100 shadow-[0_0_16px_rgba(251,113,133,0.35)]',
+    cyan: 'border-cyan-300 bg-cyan-500/15 text-cyan-100',
+    amber: 'border-amber-300 bg-amber-500/15 text-amber-100',
+    emerald: 'border-emerald-300 bg-emerald-500/15 text-emerald-100',
+    rose: 'border-rose-300 bg-rose-500/15 text-rose-100',
   }[tone];
-  return `inline-flex h-9 w-9 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border transition-all duration-200 hover:-translate-y-0.5 ${
+  return `inline-flex h-9 w-9 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border-2 bg-[#0b1220] transition-all duration-200 hover:-translate-y-0.5 ${
     active
       ? activeTone
-      : 'border-slate-600/80 bg-slate-900/80 text-slate-200 shadow-sm hover:border-cyan-300/70 hover:bg-slate-800 hover:text-cyan-50 hover:shadow-[0_0_16px_rgba(34,211,238,0.28)]'
+      : 'border-slate-300 text-slate-100 hover:border-cyan-300 hover:text-cyan-50'
   }`;
 }
 
@@ -514,7 +514,7 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
 
   const followUpComposer = (
     <form
-      className="mx-auto w-full max-w-2xl rounded-3xl border border-cyan-400/30 bg-[#0b1220] p-3 shadow-[0_0_32px_rgba(34,211,238,0.14)]"
+      className="w-full rounded-3xl border border-cyan-400/30 bg-[#0b1220] p-3 shadow-[0_0_32px_rgba(34,211,238,0.14)]"
       onSubmit={(event) => {
         event.preventDefault();
         if (!followUp.trim() || busy) return;
@@ -550,7 +550,8 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
         <div className="flex w-full flex-col gap-6 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1">
           {embedded ? null : <EmailBreadcrumb detail={active.title} onTool={startNew} />}
-          <div className="mb-2 flex justify-end">{pageTools}</div>
+          <div className="mx-auto flex w-4/5 min-w-0 flex-col gap-4">
+          <div className="flex justify-end">{pageTools}</div>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-[#121826] px-4 py-3">
             <div className="flex items-center gap-2">
               <h1 className="text-base font-bold text-white">Email Responder</h1>
@@ -563,7 +564,9 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
               aria-expanded={showPrompt}
             >
               {showPrompt ? 'Hide prompt' : 'Show prompt'}
-              <ChevronDown className={`h-4 w-4 transition-transform ${showPrompt ? 'rotate-180' : ''}`} />
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-slate-300 text-slate-100">
+                <ChevronDown className={`h-4 w-4 transition-transform ${showPrompt ? 'rotate-180' : ''}`} />
+              </span>
             </button>
           </div>
 
@@ -649,13 +652,14 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
             ))}
           </div>
 
+          {followUpComposer}
+          <p className="text-center text-xs text-slate-500">Review AI output for accuracy. Follow school policies.</p>
+          {notice ? <p className="text-center text-xs font-semibold text-emerald-300">{notice}</p> : null}
+          </div>
         </div>
 
         {historyOpen ? historyPanel : null}
         </div>
-        {followUpComposer}
-        <p className="text-center text-xs text-slate-500">Review AI output for accuracy. Follow school policies.</p>
-        {notice ? <p className="text-center text-xs font-semibold text-emerald-300">{notice}</p> : null}
       </div>
     );
   }
@@ -665,7 +669,7 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
       <div className="min-w-0 flex-1">
       {embedded ? null : <EmailBreadcrumb />}
       <div className="mb-3 flex justify-end">{pageTools}</div>
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+      <div className="mx-auto flex w-4/5 min-w-0 flex-col gap-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">

@@ -91,7 +91,11 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
           toolName={tool.title}
           description={tool.description}
           onClose={onClose}
-          className="flex min-h-0 flex-1 flex-col px-4 pt-4 sm:px-6"
+          className={
+            tool.id === 'quiz-generator'
+              ? 'flex h-full min-h-0 w-full flex-col'
+              : 'flex min-h-0 flex-1 flex-col px-4 pt-4 sm:px-6'
+          }
           contentClassName="min-h-0 flex-1"
         >
           {renderActualTool()}

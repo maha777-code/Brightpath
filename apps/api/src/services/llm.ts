@@ -540,14 +540,16 @@ export async function generateSongLyrics(input: SongLyricsPayload): Promise<Song
   }
 }
 
-const LESSON_PLAN_SYSTEM = `You are an expert AI curriculum designer. Read the DOCUMENT CONTENT and write an in-depth lesson plan based exclusively on the subject matter, concepts, experiments, and terminology in that document.
+const LESSON_PLAN_SYSTEM = `You are an expert AI curriculum designer. Write an in-depth lesson plan that does what the teacher asked.
+
+When a document is attached, analyze that file and use it. The teacher's request decides the focus, grade, timing, and kind of lesson. The file supplies the concepts, definitions, examples, experiments, and vocabulary. Do not ignore either one. If the teacher names a chapter, topic, skill, or activity, teach that part of the file and do not drift into a different chapter. If no file is attached, write the lesson from the request alone.
 
 CRITICAL CONSTRAINTS:
 1. DO NOT use generic placeholders such as "Generate lesson plan for chapter 1", "Explain the idea", or "Model the core idea using this source excerpt".
 2. DO NOT include publisher names, copyright notices, street addresses, prices, ISBNs, or page numbers.
-3. EXTRACT the real title, scientific concepts, vocabulary, definitions, and lab activities from the DOCUMENT CONTENT.
-4. If the teacher says "Chapter 1", identify what that chapter is about from the document (for example, "Matter in Our Surroundings: Particles, States, and Phase Changes") and teach that.
-5. Every objective, key point, station, and homework task must name ideas that appear in the document.
+3. When a file is attached, extract the real title, concepts, vocabulary, definitions, and lab activities that match the teacher's request.
+4. If the teacher says "Chapter 1" or names a topic, find that part of the document and teach it.
+5. Every objective, key point, station, and homework task must follow the request and, when a file is attached, name ideas from that file.
 
 Return JSON only in this exact shape:
 {
@@ -595,11 +597,12 @@ function lessonPlanUserPrompt(input: LessonPlanPayload, source = cleanLessonSour
     source.cleanedText || 'NO FILE ATTACHED',
     '',
     '=== INSTRUCTIONS ===',
-    '1. Analyze only the EXTRACTED DOCUMENT CONTENT above.',
-    '2. Identify the core topic, scientific models, definitions, lab ideas, and a misconception that fits this chapter.',
-    `3. The lesson title must be the real chapter subject ("${subject}"), never the teacher's filename or the words "generate lesson plan".`,
-    '4. Return the JSON object from the system instruction. Ground every section in the document.',
-    imageCount ? `5. ${imageCount} image(s) are attached. Use their labels and diagrams as part of the document.` : '',
+    '1. Read the user request first. The lesson must do what the teacher asked, including any additional criteria.',
+    '2. If document content is present, analyze it and use the concepts, definitions, examples, and activities that match the request.',
+    '3. If the request names a chapter, topic, skill, or activity, stay on that part of the file.',
+    `4. The lesson title must name the requested subject ("${subject}"), never the filename or the words "generate lesson plan".`,
+    '5. Return the JSON object from the system instruction.',
+    imageCount ? `6. ${imageCount} image(s) are attached. Read their labels and diagrams as part of the source.` : '',
   ]
     .filter(Boolean)
     .join('\n');
@@ -669,10 +672,15 @@ Do not add commentary or change the lesson's meaning.`,
 }
 
 export async function generateLessonPlan(input: LessonPlanPayload): Promise<LessonPlanResponse> {
-  const source = cleanLessonSource(input.attachedDocumentContext, input.topic);
-  const fileWasAttached = Boolean(input.attachedDocumentContext?.trim() || input.attachments?.length);
-  if (fileWasAttached && !source.readable && !(input.imageFiles?.length)) {
-    throw new Error('Could not find readable chapter content in the attached file.');
+  const rawDocument = input.attachedDocumentContext?.trim() ?? '';
+  const source = cleanLessonSource(rawDocument, input.topic);
+  const documentForModel = source.readable
+    ? source.cleanedText
+    : rawDocument.replace(/===\s*ATTACHED FILE CONTENT(?:\s*\([^)]*\))?\s*===|---\s*Page\s+\d+\s+---/gi, '\n').slice(0, 15_000);
+  const sourceForPrompt = { ...source, cleanedText: documentForModel.trim(), readable: documentForModel.trim().length >= 40 };
+  const fileWasAttached = Boolean(rawDocument || input.attachments?.length || input.imageFiles?.length);
+  if (fileWasAttached && !sourceForPrompt.readable && !(input.imageFiles?.length)) {
+    throw new Error('Could not read the attached file. Upload a PDF, Word, or text file with selectable text.');
   }
 
   const fallback = fallbackLessonPlan(input);
@@ -682,13 +690,13 @@ export async function generateLessonPlan(input: LessonPlanPayload): Promise<Less
   try {
     const raw = await llm.completeJson<Record<string, unknown>>({
       system: LESSON_PLAN_SYSTEM,
-      user: lessonPlanUserPrompt(input, source),
+      user: lessonPlanUserPrompt(input, sourceForPrompt),
       images: imagePartsFromDataUrls(input.imageFiles),
       temperature: 0.2,
     });
     return normalizeLessonPlan(raw, input, fallback);
   } catch (err) {
-    if (err instanceof Error && /readable chapter content/i.test(err.message)) throw err;
+    if (err instanceof Error && /readable chapter content|could not read the attached file/i.test(err.message)) throw err;
     console.error('[llm] lesson plan generation failed', err);
     return fallback;
   }

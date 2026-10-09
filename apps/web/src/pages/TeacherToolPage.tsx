@@ -31,8 +31,8 @@ export function TeacherToolLauncher({
     if (embedded) return quiz;
     return (
       <TeacherWorkspaceLayout>
-        <main className="w-full max-w-7xl px-6 py-6 lg:px-10 lg:py-8">
-          <div className="card-cyber p-5 sm:p-8">{quiz}</div>
+        <main className="flex w-full justify-center py-6 lg:py-8">
+          <div className="w-4/5 min-w-0">{quiz}</div>
         </main>
       </TeacherWorkspaceLayout>
     );

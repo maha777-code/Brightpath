@@ -100,7 +100,7 @@ export async function extractDocumentText(file: File): Promise<{ text: string; i
     throw new Error(`${file.name} is an older Word file. Save it as .docx and upload it again.`);
   }
   if (type === 'application/pdf' || name.endsWith('.pdf')) {
-    return { text: (await extractPdf(file)).slice(0, 120_000) };
+    return { text: (await extractPdf(file)).slice(0, 180_000) };
   }
   if (
     type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
