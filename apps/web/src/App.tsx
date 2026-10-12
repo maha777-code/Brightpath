@@ -11,6 +11,7 @@ import BillingSuccess from '@/pages/BillingSuccess';
 import { safeNextPath } from '@/lib/nextPath';
 import Login from '@/pages/Auth/Login';
 import { CyberLayout } from '@/components/layout/CyberLayout';
+import { SubscriptionGate } from '@/components/billing/SubscriptionGate';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 import Register from '@/pages/Register';
 import ParentHome from '@/pages/ParentHome';
@@ -139,6 +140,7 @@ export default function App() {
   return (
     <CyberLayout>
     <div className="app mx-auto min-h-screen w-full max-w-[1440px]" style={CYBER_FONT_STYLE}>
+      <SubscriptionGate>
       <Routes>
         <Route path="/" element={<RootHome />} />
         <Route path="/pricing" element={<PricingPage />} />
@@ -304,6 +306,7 @@ export default function App() {
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </SubscriptionGate>
     </div>
     </CyberLayout>
   );

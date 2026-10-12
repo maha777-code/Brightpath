@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { HomeButton } from '@/components/Navigation/HomeButton';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
+import { ProfileSettingsMenu } from '@/components/profile/ProfileSettingsMenu';
 import { RoleToolsPanel } from '@/components/tools/RoleToolsPanel';
 
 const ACCENT = '#5B46BA';
@@ -58,6 +59,8 @@ export default function ParentPortalDashboard() {
         <p className="px-2 text-xs font-bold uppercase tracking-wider text-indigo-600">Parent</p>
         <div className="mt-auto">
           <FeedbackMenuButton variant="light" />
+          <ProfileSettingsMenu />
+          <p className="truncate px-3 text-sm font-bold text-slate-800">{user?.name || user?.email || 'Parent'}</p>
         </div>
       </aside>
       <div className="min-w-0 flex-1">

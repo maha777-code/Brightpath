@@ -240,7 +240,7 @@ export function HomePage() {
                 </button>
                 <button
                   type="button"
-                  className="hidden cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-cyan-500/20 bg-cyan-950/40 px-3.5 py-2 text-xs font-medium text-cyan-300 shadow-sm md:inline-flex"
+                  className="mv-image-chip hidden cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-cyan-500/20 bg-cyan-950/40 px-3.5 py-2 text-xs font-medium text-cyan-300 shadow-sm md:inline-flex"
                   onClick={() => {
                     setPrompt('Generate a classroom image of ');
                     setReply(null);

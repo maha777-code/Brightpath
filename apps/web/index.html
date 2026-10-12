@@ -32,7 +32,8 @@
     <script>
       try {
         var savedTheme = localStorage.getItem('brightpath.color-theme');
-        document.documentElement.setAttribute('data-theme', savedTheme === 'light' ? 'light' : 'dark');
+        var theme = savedTheme === 'light' || savedTheme === 'bright' ? savedTheme : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
       } catch (e) {}
     </script>
   </head>

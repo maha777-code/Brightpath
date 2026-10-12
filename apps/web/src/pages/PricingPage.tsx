@@ -37,11 +37,12 @@ export default function PricingPage() {
   const [planError, setPlanError] = useState<{ planId: string; message: string } | null>(null);
   const [portalBusy, setPortalBusy] = useState(false);
   const [portalError, setPortalError] = useState('');
-  const { role } = useAuth();
+  const { role, loading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubscribe = async (plan: PricingPlan) => {
     if (!isCheckoutPlanId(plan.id)) return;
+    if (loading) return;
     if (!role) {
       navigate(`/login?next=${encodeURIComponent('/pricing')}`);
       return;

@@ -1,6 +1,7 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Bookmark, Home, LayoutGrid, LogOut, Menu, X } from 'lucide-react';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
+import { ProfileSettingsMenu } from '@/components/profile/ProfileSettingsMenu';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useDisplayUser } from '@/lib/displayUser';
@@ -110,10 +111,10 @@ export function TeacherSidebar() {
                     to={item.to}
                     onClick={close}
                     className={[
-                      'flex items-start gap-3 rounded-none px-3 py-3 no-underline transition',
+                      'mv-side-link flex items-start gap-3 rounded-none px-3 py-3 no-underline transition',
                       active
-                        ? 'border-l-2 border-cyan-400 bg-cyan-950/30 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
-                        : 'border-l-2 border-transparent text-slate-400 hover:bg-cyan-950/20 hover:text-cyan-200',
+                        ? 'mv-side-link--active border-l-2 border-cyan-400 bg-cyan-950/30 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
+                        : 'border-l-2 border-transparent text-slate-400 hover:text-cyan-200',
                     ].join(' ')}
                   >
                     <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${active ? 'text-cyan-300' : 'text-slate-500'}`} />
@@ -121,7 +122,7 @@ export function TeacherSidebar() {
                       <span className="block text-base font-bold leading-tight tracking-tight">
                         {item.label}
                       </span>
-                      <span className="mt-0.5 block text-sm font-normal leading-snug tracking-tight text-slate-400">
+                      <span className="mv-side-link-detail mt-0.5 block text-sm font-normal leading-snug tracking-tight text-slate-400">
                         {item.detail}
                       </span>
                     </span>
@@ -139,6 +140,7 @@ export function TeacherSidebar() {
               [ONLINE]
             </span>
           </div>
+          <ProfileSettingsMenu />
           <p className="truncate px-3 text-base font-bold tracking-tight text-slate-100">{userName}</p>
           <p className="truncate px-3 text-sm font-normal tracking-tight text-slate-400">{profileDetail}</p>
           <button

@@ -23,6 +23,7 @@ import { AcademyAnalytics } from '@/components/academy/AcademyAnalytics';
 import { AcademySettingsBilling } from '@/components/academy/AcademySettingsBilling';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
+import { ProfileSettingsMenu } from '@/components/profile/ProfileSettingsMenu';
 
 type Panel = 'home' | 'tools' | 'people' | 'courses' | 'analytics' | 'settings';
 
@@ -107,6 +108,8 @@ export default function CenterDashboard() {
           </div>
           <div className="mt-auto border-t border-slate-800/60 pt-4">
             <FeedbackMenuButton />
+            <ProfileSettingsMenu />
+            <p className="truncate px-3 pb-2 text-sm font-bold text-slate-100">{user?.name || user?.email || 'Center admin'}</p>
             <button
               type="button"
               onClick={() => {

@@ -312,6 +312,16 @@ router.post('/razorpay/verify-signature', requireAuth, async (req: AuthRequest, 
 });
 
 router.get('/status', requireAuth, async (req: AuthRequest, res) => {
+  const owner = req.organizationId
+    ? { organizationId: req.organizationId }
+    : req.platformUserId
+      ? { platformUserId: req.platformUserId }
+      : null;
+  const latestSub = owner
+    ? await prisma.dodoSubscription.findFirst({ where: owner, orderBy: { updatedAt: 'desc' } })
+    : null;
+  const nextBillingDate = latestSub?.nextBillingDate?.toISOString() ?? null;
+
   if (req.organizationId) {
     const org = await prisma.organization.findUnique({ where: { id: req.organizationId } });
     res.json({
@@ -320,6 +330,7 @@ router.get('/status', requireAuth, async (req: AuthRequest, res) => {
       subscriptionStatus: org?.subscriptionStatus ?? 'active',
       active: isSubscriptionActive(org?.subscriptionStatus),
       billingInterval: org?.billingInterval,
+      nextBillingDate,
     });
     return;
   }
@@ -331,10 +342,11 @@ router.get('/status', requireAuth, async (req: AuthRequest, res) => {
       subscriptionStatus: user?.subscriptionStatus ?? 'active',
       active: isSubscriptionActive(user?.subscriptionStatus),
       billingInterval: user?.billingInterval,
+      nextBillingDate,
     });
     return;
   }
-  res.json({ scope: 'none', subscriptionStatus: 'active', active: true });
+  res.json({ scope: 'none', subscriptionStatus: 'active', active: true, nextBillingDate: null });
 });
 
 export default router;

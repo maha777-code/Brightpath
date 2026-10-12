@@ -34,6 +34,7 @@ import { ToolRenderer } from '@/components/tools/ToolRenderer';
 import { AIToolWizardModal } from '@/components/tools/AIToolWizardModal';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
+import { ProfileSettingsMenu } from '@/components/profile/ProfileSettingsMenu';
 import { SharadaPromptFrame } from '@/components/SharadaChatBadge';
 import { ToolsFilterBar, type ToolsLibraryFilter, type ToolsSortKey } from '@/components/tools/ToolsFilterBar';
 import { voicePromptButtonClass } from '@/components/VoiceListeningIndicator';
@@ -264,17 +265,17 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                 onClick={() => setOpenMenu(false)}
                 className={({ isActive }) =>
                   [
-                    'flex items-start gap-3 rounded-none px-3 py-3 no-underline transition',
+                    'mv-side-link flex items-start gap-3 rounded-none px-3 py-3 no-underline transition',
                     isActive
-                      ? 'border-l-2 border-cyan-400 bg-cyan-950/30 text-cyan-300'
-                      : 'border-l-2 border-transparent text-slate-400 hover:bg-cyan-950/20 hover:text-cyan-200',
+                      ? 'mv-side-link--active border-l-2 border-cyan-400 bg-cyan-950/30 text-cyan-300'
+                      : 'border-l-2 border-transparent text-slate-400 hover:text-cyan-200',
                   ].join(' ')
                 }
               >
                 <Home className="mt-0.5 h-5 w-5 shrink-0" />
                 <span>
                   <span className="block text-base font-bold">Home</span>
-                  <span className="mt-0.5 block text-sm text-slate-400">Sharada & recommended tools</span>
+                  <span className="mv-side-link-detail mt-0.5 block text-sm text-slate-400">Sharada & recommended tools</span>
                 </span>
               </NavLink>
               <NavLink
@@ -285,7 +286,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                     'flex items-start gap-3 rounded-none px-3 py-3 no-underline transition',
                     isActive
                       ? 'border-l-2 border-cyan-400 bg-cyan-950/30 text-cyan-300'
-                      : 'border-l-2 border-transparent text-slate-400 hover:bg-cyan-950/20 hover:text-cyan-200',
+                      : 'border-l-2 border-transparent text-slate-400 hover:text-cyan-200',
                   ].join(' ')
                 }
               >
@@ -305,6 +306,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
               [ONLINE]
             </span>
           </div>
+          <ProfileSettingsMenu />
           <p className="truncate px-3 text-base font-bold text-slate-100">{fullName || 'Student'}</p>
           <p className="truncate px-3 text-sm text-slate-400">{profileLine}</p>
           <button
@@ -381,7 +383,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                   </button>
                   <button
                     type="button"
-                    className="hidden cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-cyan-500/20 bg-cyan-950/40 px-3.5 py-2 text-xs font-medium text-cyan-300 shadow-sm md:inline-flex"
+                    className="mv-image-chip hidden cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-cyan-500/20 bg-cyan-950/40 px-3.5 py-2 text-xs font-medium text-cyan-300 shadow-sm md:inline-flex"
                     onClick={() => {
                       setPrompt('Generate a classroom image of ');
                       setReply(null);

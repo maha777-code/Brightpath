@@ -110,11 +110,6 @@ export default function Login() {
             />
           </div>
 
-          <p className="text-xs tracking-tight text-slate-400">
-            Demo teacher: <span className="text-cyan-300">teacher@brightpath.ai</span> /{' '}
-            <span className="text-cyan-300">teacher123</span>
-          </p>
-
           {error ? (
             <p className="rounded-lg border border-rose-500/40 bg-rose-950/40 px-3 py-2 text-sm text-rose-200">
               {error}

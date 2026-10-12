@@ -7,6 +7,7 @@ import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import { useOrgTheme } from '@/context/OrgThemeProvider';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
+import { ProfileSettingsMenu } from '@/components/profile/ProfileSettingsMenu';
 import { RoleToolsPanel } from '@/components/tools/RoleToolsPanel';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 
@@ -42,7 +43,11 @@ export default function SchoolDashboard() {
     <div className="flex h-screen w-full overflow-hidden bg-[#040711] text-slate-100" style={CYBER_FONT_STYLE}>
       <aside className="flex w-64 shrink-0 flex-col justify-between border-r border-slate-800/80 bg-[#060a14] p-4">
         <span className="px-2 text-base font-extrabold uppercase tracking-wider text-cyan-400">School</span>
-        <FeedbackMenuButton size="lg" />
+        <div>
+          <FeedbackMenuButton size="lg" />
+          <ProfileSettingsMenu />
+          <p className="truncate px-3 text-sm font-bold text-slate-100">{user?.name || user?.email || 'School admin'}</p>
+        </div>
       </aside>
 
       <main className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
@@ -65,9 +70,6 @@ export default function SchoolDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <p className="hidden text-base font-medium text-slate-300 sm:block">
-              Welcome, <strong className="font-bold text-white">{user?.name || user?.email || 'School admin'}</strong>
-            </p>
             <span className="rounded-full border border-cyan-500/30 bg-cyan-500/20 px-3 py-1 text-sm font-extrabold uppercase text-cyan-300">
               {plan}
             </span>

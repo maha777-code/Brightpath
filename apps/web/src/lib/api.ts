@@ -434,6 +434,7 @@ export const api = {
       subscriptionStatus: string;
       active: boolean;
       billingInterval?: string | null;
+      nextBillingDate?: string | null;
     }>('/payments/status'),
 
   doubtAssistant: (q: string) =>

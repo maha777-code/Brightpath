@@ -225,7 +225,7 @@ function accessFor(status: string): Access | null {
     case 'active':
       return { grant: true, status: 'active' };
     case 'past_due':
-      return { grant: true, status: 'past_due' };
+      return { grant: false, status: 'past_due' };
     case 'on_hold':
     case 'paused':
       return { grant: false, status: 'inactive' };
