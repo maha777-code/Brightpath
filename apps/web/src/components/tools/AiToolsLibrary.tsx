@@ -18,13 +18,12 @@ import {
   hasAiToolAccess,
   isPlatformOwner,
   TEACHER_TOOLS_CATALOG,
-  type AiToolPlan,
   type TeacherToolDefinition,
 } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { isTeacherToolEnabled } from '@/lib/teacherToolAvailability';
 import { toolVisibleToRole } from '@/config/toolsRegistry';
-import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
+import { ProUpgradeDialog } from '@/components/billing/ProUpgradeDialog';
 
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   'book-open': BookOpen,
@@ -40,12 +39,6 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   mail: Mail,
 };
 
-const PLAN_LABEL: Record<AiToolPlan, string> = {
-  free: 'Free',
-  pro: 'Pro',
-  center_pro: 'Tutor Center Pro',
-};
-
 export function AiToolsLibrary({
   userRole,
   userPlan,
@@ -53,15 +46,13 @@ export function AiToolsLibrary({
   userRole: string | null;
   userPlan: string | null;
 }) {
-  const [upgradePlan, setUpgradePlan] = useState<AiToolPlan | null>(null);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const { user, teacher, parent } = useAuth();
   const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
   const owner = isPlatformOwner(userRole, email);
 
-  const openUpgrade = (requiredPlan: AiToolPlan) => {
-    setCheckoutOpen(false);
-    setUpgradePlan(requiredPlan);
+  const openUpgrade = () => {
+    setUpgradeOpen(true);
   };
 
   return (
@@ -99,50 +90,13 @@ export function AiToolsLibrary({
               tool={tool}
               accessible={accessible}
               enabled={enabled}
-              onUpgrade={() => openUpgrade(tool.requiredPlan)}
+              onUpgrade={openUpgrade}
             />
           );
         })}
       </div>
 
-      {upgradePlan && !checkoutOpen ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 text-slate-100 shadow-2xl">
-            <h3 className="text-xl font-extrabold text-white">Upgrade Plan</h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">
-              This tool needs the {PLAN_LABEL[upgradePlan]} plan. Compare plans on the landing page, or
-              start checkout now.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <a
-                href="/pricing#pricing"
-                className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-purple-700"
-              >
-                View pricing
-              </a>
-              <button
-                type="button"
-                className="rounded-xl border border-cyan-500/40 px-4 py-2.5 text-sm font-bold text-cyan-300"
-                onClick={() => setCheckoutOpen(true)}
-              >
-                Upgrade now
-              </button>
-              <button
-                type="button"
-                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-400"
-                onClick={() => setUpgradePlan(null)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-      <PaymentUpgradeModal
-        open={checkoutOpen && upgradePlan !== null}
-        onClose={() => setCheckoutOpen(false)}
-        defaultPlan={upgradePlan === 'center_pro' ? 'tutor_center_pro' : 'teacher_pro'}
-      />
+      <ProUpgradeDialog open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </>
   );
 }

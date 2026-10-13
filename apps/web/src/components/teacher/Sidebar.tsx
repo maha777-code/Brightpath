@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useDisplayUser } from '@/lib/displayUser';
 import { workspaceForRole } from '@/lib/workspaceRole';
-import { BRAND_ASSETS, BrandLogo } from '@/components/Navigation/BrandLogo';
+import { brandSrc, BrandLogo } from '@/components/Navigation/BrandLogo';
+import { useColorTheme } from '@/context/ColorTheme';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 
 const WORKSPACE_ITEMS = [
@@ -38,6 +39,7 @@ export function TeacherSidebar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { logout, role } = useAuth();
+  const { theme } = useColorTheme();
   const { userName, userMeta, schoolName } = useDisplayUser();
   const workspace = workspaceForRole(role);
   const profileDetail = workspace.detail ? `${schoolName} · ${workspace.detail}` : userMeta;
@@ -56,7 +58,7 @@ export function TeacherSidebar() {
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
-        <img src={BRAND_ASSETS.full} alt="MindVault" className="ml-3 h-7 w-auto object-contain" />
+        <img src={brandSrc('full', theme)} alt="MindVault" className="mv-brand-logo ml-3 h-8 w-auto object-contain" />
       </div>
 
       {open && (
@@ -80,7 +82,7 @@ export function TeacherSidebar() {
           <div className="hidden items-center gap-2 border-b border-cyan-900/50 px-2 pb-4 md:flex">
             <div className="h-3 w-3 shrink-0 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse" />
             <div className="min-w-0">
-              <BrandLogo variant="full" imgClassName="h-8 w-auto object-contain" />
+              <BrandLogo variant="full" imgClassName="h-10 w-auto object-contain" />
               <p className="mt-1 text-base font-extrabold tracking-tight text-slate-200">{workspace.title}</p>
             </div>
           </div>
@@ -135,11 +137,6 @@ export function TeacherSidebar() {
 
         <div className="border-t border-slate-800 pt-4">
           <FeedbackMenuButton size="lg" />
-          <div className="mb-2 flex items-center gap-2 px-3">
-            <span className="rounded border border-emerald-500/40 bg-emerald-950/80 px-2.5 py-1 text-sm font-semibold tracking-tight text-emerald-400">
-              [ONLINE]
-            </span>
-          </div>
           <ProfileSettingsMenu />
           <p className="truncate px-3 text-base font-bold tracking-tight text-slate-100">{userName}</p>
           <p className="truncate px-3 text-sm font-normal tracking-tight text-slate-400">{profileDetail}</p>

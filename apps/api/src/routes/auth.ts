@@ -5,6 +5,7 @@ import {
   AGE_GROUPS,
   LOCALES,
   DEFAULT_PLAN_FOR_ROLE,
+  passwordMeetsPolicy,
   type AppRole,
   type PlanType,
 } from '@brightpath/shared';
@@ -51,7 +52,10 @@ const planTypeSchema = z.enum([
 const registerSchema = z
   .object({
     email: z.string().email(),
-    password: z.string().min(8),
+    password: z.string().refine(passwordMeetsPolicy, {
+      message:
+        'Password must include a letter, a capital letter, a number, a special character, and be at least 8 characters.',
+    }),
     name: z.string().min(1).optional(),
     locale: localeSchema.optional(),
     role: appRoleSchema,

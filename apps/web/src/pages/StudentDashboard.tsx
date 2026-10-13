@@ -301,11 +301,6 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
         </div>
         <div className="border-t border-slate-800 pt-4">
           <FeedbackMenuButton size="lg" />
-          <div className="mb-2 flex items-center gap-2 px-3">
-            <span className="rounded border border-emerald-500/40 bg-emerald-950/80 px-2.5 py-1 text-sm font-semibold text-emerald-400">
-              [ONLINE]
-            </span>
-          </div>
           <ProfileSettingsMenu />
           <p className="truncate px-3 text-base font-bold text-slate-100">{fullName || 'Student'}</p>
           <p className="truncate px-3 text-sm text-slate-400">{profileLine}</p>

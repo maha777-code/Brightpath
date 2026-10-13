@@ -147,10 +147,16 @@ const quizBody = z
     assessmentDescription: z.string().max(400_000).optional(),
     standardsAlignment: z.string().max(400_000).optional(),
     attachments: z.array(z.string().max(240)).max(20).optional(),
+    attachedDocumentContext: z.string().max(400_000).optional(),
+    imageFiles: z.array(z.string().max(8_000_000)).max(4).optional(),
   })
-  .refine((d) => Boolean((d.topicDescription ?? d.assessmentDescription ?? '').trim()), {
-    message: 'topicDescription is required',
-  });
+  .refine(
+    (d) =>
+      Boolean((d.topicDescription ?? d.assessmentDescription ?? '').trim()) ||
+      Boolean(d.attachedDocumentContext?.trim()) ||
+      Boolean(d.imageFiles?.length),
+    { message: 'Enter a topic or upload a file.' },
+  );
 
 /** POST /teacher/tools/quiz-generator */
 router.post('/tools/quiz-generator', async (req: AuthRequest, res: Response) => {
@@ -177,6 +183,8 @@ router.post('/tools/quiz-generator', async (req: AuthRequest, res: Response) => 
       topicDescription,
       standardsAlignment: input.standardsAlignment,
       attachments: input.attachments,
+      attachedDocumentContext: input.attachedDocumentContext,
+      imageFiles: input.imageFiles,
     });
     res.json(quiz);
   } catch (err) {

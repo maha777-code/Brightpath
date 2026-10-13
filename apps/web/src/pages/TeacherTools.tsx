@@ -24,7 +24,7 @@ import { hasAiToolAccess, TEACHER_TOOLS_CATALOG, type AiToolPlan } from '@bright
 import { isTeacherToolEnabled } from '@/lib/teacherToolAvailability';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
+import { ProUpgradeDialog } from '@/components/billing/ProUpgradeDialog';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { AIToolWizardModal } from '@/components/tools/AIToolWizardModal';
 import { ToolsFilterBar, type ToolsLibraryFilter, type ToolsSortKey } from '@/components/tools/ToolsFilterBar';
@@ -66,7 +66,6 @@ export default function TeacherTools() {
   const { role, planType, user, teacher, parent } = useAuth();
   const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
   const [lockedPlan, setLockedPlan] = useState<AiToolPlan | null>(null);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -77,7 +76,7 @@ export default function TeacherTools() {
           ? res.tools.map((tool) => ({
               ...(byId.get(tool.id) ?? {}),
               ...tool,
-              requiredPlan: tool.requiredPlan ?? byId.get(tool.id)?.requiredPlan ?? 'pro',
+              requiredPlan: byId.get(tool.id)?.requiredPlan ?? tool.requiredPlan ?? 'free',
             }))
           : TEACHER_TOOLS_CATALOG,
       );
@@ -132,7 +131,7 @@ export default function TeacherTools() {
   const canLaunch = (tool: TeacherToolDefinition) =>
     isTeacherToolEnabled(tool.id) &&
     canUserAccessTool(actor, getRegistryTool(tool.id)?.allowedRoles ?? []) &&
-    hasAiToolAccess({ role, email, planType, requiredPlan: tool.requiredPlan ?? 'pro' });
+    hasAiToolAccess({ role, email, planType, requiredPlan: tool.requiredPlan ?? 'free' });
 
   const openTool = (tool: TeacherToolDefinition) => {
     if (!isTeacherToolEnabled(tool.id)) return;
@@ -141,12 +140,15 @@ export default function TeacherTools() {
       return;
     }
     if (tool.id === 'curriculum-studio' || tool.href === '/tools/curriculum-textbook-studio') {
+      if (!hasAiToolAccess({ role, email, planType, requiredPlan: 'pro' })) {
+        setLockedPlan('pro');
+        return;
+      }
       navigate('/tools/curriculum-textbook-studio');
       return;
     }
-    if (!hasAiToolAccess({ role, email, planType, requiredPlan: tool.requiredPlan ?? 'pro' })) {
+    if (!hasAiToolAccess({ role, email, planType, requiredPlan: tool.requiredPlan ?? 'free' })) {
       setLockedPlan(tool.requiredPlan ?? 'pro');
-      setCheckoutOpen(false);
       return;
     }
     if (tool.id === 'worksheet-generator') {
@@ -288,28 +290,7 @@ export default function TeacherTools() {
         )}
       </main>
 
-      {lockedPlan && !checkoutOpen ? (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center p-4 sm:items-center">
-          <button type="button" className="absolute inset-0 bg-slate-950/70" aria-label="Close upgrade" onClick={() => setLockedPlan(null)} />
-          <div className="relative z-10 w-full max-w-md rounded-3xl border border-slate-700 bg-slate-900 p-6 text-white" role="dialog" aria-modal="true">
-            <h2 className="text-xl font-bold">Upgrade Plan</h2>
-            <p className="mt-2 text-sm text-slate-300">This tool is included on a higher MindVault plan.</p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <a href="/pricing#pricing" className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950">
-                View pricing
-              </a>
-              <button type="button" className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold" onClick={() => setCheckoutOpen(true)}>
-                Upgrade now
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-      <PaymentUpgradeModal
-        open={checkoutOpen && lockedPlan !== null}
-        onClose={() => setCheckoutOpen(false)}
-        defaultPlan={lockedPlan === 'center_pro' ? 'tutor_center_pro' : 'teacher_pro'}
-      />
+      <ProUpgradeDialog open={lockedPlan !== null} onClose={() => setLockedPlan(null)} />
 
       {activeTool && (
         <AIToolWizardModal

@@ -17,13 +17,14 @@ import {
   Sparkles,
   Star,
 } from 'lucide-react';
-import { getTeacherToolById } from '@brightpath/shared';
+import { getTeacherToolById, hasAiToolAccess } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useDisplayUser } from '@/lib/displayUser';
 import { workspaceForRole } from '@/lib/workspaceRole';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { SharadaPromptFrame } from '@/components/SharadaChatBadge';
+import { ProUpgradeDialog } from '@/components/billing/ProUpgradeDialog';
 import { voicePromptButtonClass } from '@/components/VoiceListeningIndicator';
 import { useDictation } from '@/hooks/useDictation';
 import { readSavedWorksheets } from '@/lib/savedWorksheets';
@@ -93,7 +94,8 @@ const RECENT_ACTIVITY = [
 ] as const;
 
 export function HomePage() {
-  const { role } = useAuth();
+  const { role, planType, user, teacher, parent } = useAuth();
+  const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
   const { firstName } = useDisplayUser();
   const workspace = workspaceForRole(role);
   const navigate = useNavigate();
@@ -103,6 +105,7 @@ export function HomePage() {
   const [reply, setReply] = useState<string | null>(null);
   const [savedWorksheets, setSavedWorksheets] = useState(() => readSavedWorksheets());
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const { listening, toggle } = useDictation((text) => {
     setPrompt((current) => (current.trim() ? `${current.trim()} ${text}` : text));
     setReply(null);
@@ -156,6 +159,14 @@ export function HomePage() {
     } catch {
       setFavoriteIds((prev) => (wasFav ? [...prev, toolId] : prev.filter((id) => id !== toolId)));
     }
+  };
+
+  const openRecommended = (id: string, route: string) => {
+    if (id === 'curriculum-studio' && !hasAiToolAccess({ role, email, planType, requiredPlan: 'pro' })) {
+      setUpgradeOpen(true);
+      return;
+    }
+    navigate(route);
   };
 
   const sendPrompt = useCallback(() => {
@@ -297,11 +308,11 @@ export function HomePage() {
                     key={tool.id}
                     role="link"
                     tabIndex={0}
-                    onClick={() => navigate(tool.route)}
+                    onClick={() => openRecommended(tool.id, tool.route)}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
-                        navigate(tool.route);
+                        openRecommended(tool.id, tool.route);
                       }
                     }}
                     className="group flex min-h-[160px] cursor-pointer flex-col justify-between rounded-2xl border border-slate-800/80 bg-[#080d1a] p-5 shadow-lg transition-all duration-200 hover:border-cyan-500/40 hover:bg-[#0b1326]"
@@ -393,6 +404,7 @@ export function HomePage() {
           </div>
         </div>
       </div>
+      <ProUpgradeDialog open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </TeacherWorkspaceLayout>
   );
 }

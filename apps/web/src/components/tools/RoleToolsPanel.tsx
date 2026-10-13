@@ -16,11 +16,12 @@ import {
   Star,
   Youtube,
 } from 'lucide-react';
-import { TEACHER_TOOLS_CATALOG } from '@brightpath/shared';
+import { hasAiToolAccess, TEACHER_TOOLS_CATALOG } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { canUserAccessTool, toolsForAppRole, type ToolDefinition } from '@/config/toolsRegistry';
 import { ToolRenderer } from '@/components/tools/ToolRenderer';
 import { AIToolWizardModal } from '@/components/tools/AIToolWizardModal';
+import { ProUpgradeDialog } from '@/components/billing/ProUpgradeDialog';
 import { CURRICULUM_STUDIO_PATH } from '@/pages/tools/CurriculumTextbookStudio';
 
 function planPill(plan: ToolDefinition['targetPlan']): string {
@@ -54,12 +55,13 @@ export function RoleToolsPanel({
   /** Kept so existing callers compile. The wizard header owns close and expand. */
   hideOuterClose?: boolean;
 }) {
-  const { role, user, teacher, parent } = useAuth();
+  const { role, planType, user, teacher, parent } = useAuth();
   const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
   const navigate = useNavigate();
   const tools = toolsForAppRole(role, email);
   const [active, setActive] = useState<ToolDefinition | null>(null);
   const [denied, setDenied] = useState('');
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const launch = (tool: ToolDefinition) => {
     if (!canUserAccessTool({ role, email }, tool.allowedRoles)) {
       setDenied('Teacher access required');
@@ -68,6 +70,10 @@ export function RoleToolsPanel({
     }
     setDenied('');
     if (tool.id === 'curriculum-studio') {
+      if (!hasAiToolAccess({ role, email, planType, requiredPlan: 'pro' })) {
+        setUpgradeOpen(true);
+        return;
+      }
       navigate(CURRICULUM_STUDIO_PATH);
       return;
     }
@@ -153,6 +159,7 @@ export function RoleToolsPanel({
           <ToolRenderer tool={active} embed hideHeader onClose={() => setActive(null)} />
         </AIToolWizardModal>
       ) : null}
+      <ProUpgradeDialog open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </section>
   );
 }

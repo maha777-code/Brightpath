@@ -96,7 +96,7 @@ export default function TeacherToolPage() {
     );
   }
 
-  const requiredPlan: AiToolPlan = tool.requiredPlan ?? 'pro';
+  const requiredPlan: AiToolPlan = tool.requiredPlan ?? 'free';
   if (!isTeacherToolEnabled(tool.id)) {
     return (
       <TeacherWorkspaceLayout>

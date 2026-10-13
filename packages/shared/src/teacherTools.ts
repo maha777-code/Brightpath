@@ -39,7 +39,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
       'Upload textbooks, standards, and syllabus documents to enrich lessons and align teaching content.',
     focusArea: 'curriculum',
     href: '/tools/curriculum-textbook-studio',
-    requiredPlan: 'free',
+    requiredPlan: 'pro',
     badge: 'Hot',
     popularity: 100,
     newestRank: 11,
@@ -53,7 +53,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Generate custom lyrics and a song on any topic — to the tune of your choice!',
     focusArea: 'content',
     href: '/teacher/tools/song-generator',
-    requiredPlan: 'pro',
+    requiredPlan: 'free',
     badge: 'Beta',
     popularity: 88,
     newestRank: 1,
@@ -65,7 +65,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Generate an original podcast episode script and audio.',
     focusArea: 'content',
     href: '/teacher/tools/podcast-generator',
-    requiredPlan: 'pro',
+    requiredPlan: 'free',
     badge: 'New',
     popularity: 82,
     newestRank: 2,
@@ -123,7 +123,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Generate exportable slides based on a topic or video.',
     focusArea: 'content',
     href: '/teacher/tools/presentation-generator',
-    requiredPlan: 'pro',
+    requiredPlan: 'free',
     badge: 'Beta',
     popularity: 70,
     newestRank: 3,
@@ -135,7 +135,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Generate feedback on student writing based on custom rubrics.',
     focusArea: 'assessment',
     href: '/teacher/tools/writing-feedback',
-    requiredPlan: 'pro',
+    requiredPlan: 'free',
     popularity: 68,
     newestRank: 7,
     icon: 'message-square',
@@ -146,7 +146,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Generate guiding questions aligned to a YouTube video.',
     focusArea: 'content',
     href: '/teacher/tools/youtube-questions',
-    requiredPlan: 'pro',
+    requiredPlan: 'free',
     popularity: 64,
     newestRank: 9,
     icon: 'youtube',
@@ -157,7 +157,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     description: 'Draft professional communications.',
     focusArea: 'communication',
     href: '/teacher/tools/family-email',
-    requiredPlan: 'pro',
+    requiredPlan: 'free',
     popularity: 77,
     newestRank: 10,
     icon: 'mail',
@@ -190,6 +190,10 @@ export interface QuizGeneratorPayload {
   assessmentDescription?: string;
   standardsAlignment?: string;
   attachments?: string[];
+  /** Extracted text from uploaded PDF, DOCX, text, or image files. */
+  attachedDocumentContext?: string;
+  /** Image data URLs sent to the model. Omitted from any saved history. */
+  imageFiles?: string[];
 }
 
 export interface QuizGeneratorQuestion {

@@ -242,7 +242,12 @@ export function QuizGenerator({
   const [copied, setCopied] = useState(false);
 
   const runGenerate = useCallback(async (payload: QuizGeneratorPayload) => {
-    if (!payload.topicDescription?.trim()) return;
+    const hasSource = Boolean(
+      payload.topicDescription?.trim() ||
+        payload.attachedDocumentContext?.trim() ||
+        payload.imageFiles?.length,
+    );
+    if (!hasSource) return;
     payloadRef.current = payload;
     setBusy(true);
     setError(null);

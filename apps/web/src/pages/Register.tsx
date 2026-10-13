@@ -20,10 +20,12 @@ import {
   type Locale,
   type SignupRole,
   type PlanType,
+  passwordMeetsPolicy,
 } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { BirthDatePicker } from '@/components/age/BirthDatePicker';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
+import { PasswordRequirements } from '@/components/auth/PasswordRequirements';
 
 const SEGMENTS: {
   role: SignupRole;
@@ -95,6 +97,7 @@ export default function Register() {
   const [role, setRole] = useState<SignupRole | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const [name, setName] = useState('');
   const [locale, setLocaleValue] = useState<Locale>('en-IN');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -144,6 +147,10 @@ export default function Register() {
     }
     if ((role === 'org_admin' || role === 'center_admin') && organizationName.trim().length < 2) {
       setError('Organization name is required.');
+      return;
+    }
+    if (!passwordMeetsPolicy(password)) {
+      setError('Password must meet every requirement before you can create an account.');
       return;
     }
     setBusy(true);
@@ -295,7 +302,7 @@ export default function Register() {
                   autoComplete="email"
                 />
               </div>
-              <div className="md:col-span-2">
+              <div className="relative md:col-span-2">
                 <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="password">
                   {t('auth.password')}
                 </label>
@@ -305,11 +312,17 @@ export default function Register() {
                   className={fieldClass}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
                   placeholder="••••••••••••"
                   required
-                  minLength={8}
                   autoComplete="new-password"
+                  aria-describedby="password-requirements"
+                  aria-invalid={password.length > 0 && !passwordMeetsPolicy(password)}
                 />
+                {passwordFocused || (password.length > 0 && !passwordMeetsPolicy(password)) ? (
+                  <PasswordRequirements password={password} />
+                ) : null}
               </div>
             </div>
 
@@ -472,7 +485,7 @@ export default function Register() {
             <button
               type="submit"
               className="bp-auth-submit inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/60 bg-cyan-950/60 py-4 text-xl font-bold tracking-wide text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.25)] transition-all duration-200 hover:bg-cyan-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={busy}
+              disabled={busy || !passwordMeetsPolicy(password)}
             >
               {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
               {t('auth.register')}

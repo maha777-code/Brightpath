@@ -40,20 +40,54 @@ function topicFrom(input: QuizGeneratorPayload): string {
   return (input.topicDescription ?? input.assessmentDescription ?? '').trim();
 }
 
+function clipFact(value: string, max = 160): string {
+  const clean = value.replace(/\s+/g, ' ').trim();
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, max - 1).trim()}…`;
+}
+
+/** Sentences pulled from an uploaded file so fallback items stay grounded in that source. */
+function sourceFacts(context: string | undefined): string[] {
+  if (!context?.trim()) return [];
+  const prose = context
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('===') && !/^(ASSESSMENT SOURCE|STANDARDS FILE)\b/i.test(line))
+    .join(' ');
+  return prose
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length > 30)
+    .slice(0, 24);
+}
+
 export function fallbackQuiz(input: QuizGeneratorPayload): QuizGeneratorResponse {
-  const topic = topicFrom(input) || 'this topic';
+  const facts = sourceFacts(input.attachedDocumentContext);
+  const topic = topicFrom(input) || input.attachments?.[0] || (facts.length ? 'the attached source' : 'this topic');
   const n = input.numberOfQuestions;
   const k = input.optionsPerQuestion;
   const questions = Array.from({ length: n }, (_, i) => {
+    const fact = facts.length ? facts[i % facts.length] : '';
+    const clipped = fact ? clipFact(fact) : '';
     const options = Array.from({ length: k }, (__, j) => {
+      if (clipped && j === 0) return withOptionPrefix(clipped, j);
+      if (clipped && j === 1) return withOptionPrefix(`A claim that is not stated in the attached source`, j);
+      if (clipped && j === 2) return withOptionPrefix(`The opposite of what the attached source says`, j);
       if (j === 0) return withOptionPrefix(`A core idea of ${topic}`, j);
       if (j === 1) return withOptionPrefix(`A common misconception about ${topic}`, j);
-      return withOptionPrefix(`An unrelated distractor for ${topic} (${optionLetter(j)})`, j);
+      return withOptionPrefix(
+        clipped
+          ? `A detail that does not appear in the attached file (${optionLetter(j)})`
+          : `An unrelated distractor for ${topic} (${optionLetter(j)})`,
+        j,
+      );
     });
     const correctIndex = 0;
     return {
       id: i + 1,
-      question: `Which statement best describes ${topic} for ${input.gradeLevel} (item ${i + 1})?`,
+      question: clipped
+        ? `Which statement is supported by the attached source${topicFrom(input) ? ` about ${topic}` : ''}?`
+        : `Which statement best describes ${topic} for ${input.gradeLevel} (item ${i + 1})?`,
       options,
       correctOption: optionLetter(correctIndex),
     };
@@ -88,6 +122,10 @@ Rules:
 - Age-appropriate for the given grade level.
 - Align to provided standards when present.
 - One clearly correct answer; plausible distractors.
+- When ATTACHED DOCUMENT CONTEXT or images are provided, every question must be answerable from that source.
+- Use names, terms, events, and claims that appear in the file. Do not replace the file with a generic quiz about the filename.
+- If the teacher also wrote a topic or focus, use it to choose which parts of the file to assess.
+- A standards file controls alignment. Treat it as the reading only when no assessment file was attached.
 - No markdown fences, no extra commentary.`;
 
 export async function generateMultipleChoiceQuiz(
@@ -99,6 +137,7 @@ export async function generateMultipleChoiceQuiz(
 
   try {
     const topic = topicFrom(input);
+    const documentContext = input.attachedDocumentContext?.trim().slice(0, 150_000) ?? '';
     const raw = await llm.completeJson<{
       questions?: unknown;
       answerKey?: unknown;
@@ -108,14 +147,21 @@ export async function generateMultipleChoiceQuiz(
         `Grade level: ${input.gradeLevel}`,
         `Number of questions: ${input.numberOfQuestions}`,
         `Options per question: ${input.optionsPerQuestion}`,
-        `Topic / description:\n${topic}`,
+        topic
+          ? `Topic / description:\n${topic}`
+          : 'Topic / description: Create the quiz from the attached file. Base every item on that source.',
         input.standardsAlignment?.trim()
           ? `Standards to align to:\n${input.standardsAlignment.trim()}`
           : '',
-        input.attachments?.length ? `Attached files: ${input.attachments.join(', ')}` : '',
+        input.attachments?.length ? `Attached file names: ${input.attachments.join(', ')}` : '',
+        documentContext ? `ATTACHED DOCUMENT CONTEXT:\n${documentContext}` : '',
+        input.imageFiles?.length
+          ? `Attached images: ${input.imageFiles.length}. Read each image and use its visible text, labels, and diagrams as source material for the questions.`
+          : '',
       ]
         .filter(Boolean)
         .join('\n\n'),
+      images: imagePartsFromDataUrls(input.imageFiles),
     });
 
     return normalizeQuizResponse(raw, input, fallback);

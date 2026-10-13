@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import {
+  hasAiToolAccess,
   hasFeatureAccess,
   maxPdfBytes,
 } from '@brightpath/shared';
@@ -47,6 +48,27 @@ router.use(songGeneratorRoutes);
 router.use(teacherToolsRoutes);
 router.use(activityRoutes);
 router.use(mediaRoutes);
+
+function requireCurriculumStudioPro(req: AuthRequest, res: Response, next: NextFunction) {
+  const studio = /^\/(chapters|textbooks|topics|doubts)(\/|$)/.test(req.path);
+  if (!studio) {
+    next();
+    return;
+  }
+  const allowed = hasAiToolAccess({
+    role: req.user?.role,
+    email: req.user?.email,
+    planType: req.planType,
+    requiredPlan: 'pro',
+  });
+  if (!allowed) {
+    res.status(403).json({ error: 'A Pro subscription is required for Curriculum & Textbook Studio.' });
+    return;
+  }
+  next();
+}
+
+router.use(requireCurriculumStudioPro);
 
 function ensureUploadDir() {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });

@@ -35,8 +35,6 @@ export default function PricingPage() {
   const [activeRole, setActiveRole] = useState<string>('All Plans');
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const [planError, setPlanError] = useState<{ planId: string; message: string } | null>(null);
-  const [portalBusy, setPortalBusy] = useState(false);
-  const [portalError, setPortalError] = useState('');
   const { role, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -62,18 +60,6 @@ export default function PricingPage() {
     }
   };
 
-  const openBillingPortal = async () => {
-    setPortalError('');
-    setPortalBusy(true);
-    try {
-      const { url } = await api.openDodoPortal();
-      window.location.assign(url);
-    } catch (err) {
-      setPortalError(err instanceof Error ? err.message : 'Billing portal could not be opened.');
-      setPortalBusy(false);
-    }
-  };
-
   const filteredPlans = useMemo(
     () =>
       activeRole === 'All Plans'
@@ -86,20 +72,7 @@ export default function PricingPage() {
     <div id="pricing" className="flex min-h-screen w-full flex-col items-center bg-slate-950 px-4 py-10 text-slate-100 md:px-8">
       <header className="mb-8 flex w-full max-w-[1400px] items-center justify-between">
         <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
-        {role ? (
-          <div className="flex flex-col items-end gap-1">
-            <button
-              type="button"
-              onClick={() => void openBillingPortal()}
-              disabled={portalBusy}
-              className="flex cursor-pointer appearance-none items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-cyan-500/60 hover:text-white disabled:cursor-wait disabled:opacity-60"
-            >
-              {portalBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Manage billing
-            </button>
-            {portalError ? <p className="text-xs text-rose-300">{portalError}</p> : null}
-          </div>
-        ) : (
+        {role ? null : (
           <Link to="/login?next=%2Fpricing" className="text-sm font-semibold text-slate-300 underline underline-offset-4 hover:text-white">
             Log in
           </Link>

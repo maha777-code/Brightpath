@@ -1,16 +1,15 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Settings, Sparkles } from 'lucide-react';
+import { ChevronRight, CreditCard, Settings, SunMedium, UserRound } from 'lucide-react';
 import { useColorTheme, type ColorTheme } from '@/context/ColorTheme';
 import { useAuth } from '@/context/AuthContext';
 import { useDisplayUser } from '@/lib/displayUser';
 import { api } from '@/lib/api';
 import { PRICING_PLANS } from '@/pages/pricingData';
 
-const APPEARANCES: { id: ColorTheme; label: string }[] = [
+const THEMES: { id: ColorTheme; label: string }[] = [
   { id: 'light', label: 'Light' },
   { id: 'dark', label: 'Dark' },
-  { id: 'bright', label: 'Bright' },
 ];
 
 const BASIC_PLANS = new Set(['free', 'teacher_free', 'student_free', 'parent_free']);
@@ -149,71 +148,87 @@ export function ProfileSettingsMenu({ expand = 'up' }: { expand?: 'up' | 'down' 
       >
         <Settings className="h-4 w-4 shrink-0" />
         <span className="min-w-0 flex-1">Settings</span>
-        <ChevronDown className={`h-4 w-4 shrink-0 transition ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open ? (
         <div id={menuId} className="mv-settings-panel" role="menu">
-          <button type="button" className="mv-settings-item" aria-expanded={section === 'plan'} onClick={() => setSection((value) => (value === 'plan' ? null : 'plan'))}>
-            <span className="min-w-0 flex-1">Plan & Usage</span>
-            <ChevronDown className={`h-4 w-4 shrink-0 transition ${section === 'plan' ? 'rotate-180' : ''}`} />
-          </button>
-          {section === 'plan' ? (
-            <div className="mv-plan-card">
-              <p className="mv-plan-kicker">Current plan</p>
-              <p className="mv-plan-title">
-                {copy.title} <span>{copy.price}</span>
-              </p>
-              <p className="mv-plan-meta">
-                {isBasicPlan(activePlan) ? 'No renewal charge on this plan.' : resetCopy(billing?.nextBillingDate)}
-              </p>
-              <button type="button" className="mv-settings-item" onClick={() => void manage()}>
-                Manage
-              </button>
-            </div>
-          ) : null}
-
-          <button type="button" className="mv-settings-item" aria-expanded={section === 'profile'} onClick={() => setSection((value) => (value === 'profile' ? null : 'profile'))}>
-            <span className="min-w-0 flex-1">User profile</span>
-            <ChevronDown className={`h-4 w-4 shrink-0 transition ${section === 'profile' ? 'rotate-180' : ''}`} />
-          </button>
-          {section === 'profile' ? (
-            <dl className="mv-profile-card">
-              <div><dt>Name</dt><dd>{userName}</dd></div>
-              <div><dt>Email</dt><dd>{email}</dd></div>
-              <div><dt>Role</dt><dd>{ROLE_LABEL[role ?? ''] ?? role ?? '—'}</dd></div>
-              <div><dt>School</dt><dd>{organization?.name || schoolName || '—'}</dd></div>
-              {subject ? <div><dt>Subject</dt><dd>{subject}</dd></div> : null}
-              <div><dt>Plan</dt><dd>{copy.title}</dd></div>
-              <div><dt>Member since</dt><dd>{memberSince}</dd></div>
-            </dl>
-          ) : null}
-
-          <button type="button" className="mv-settings-item" aria-expanded={section === 'appearance'} onClick={() => setSection((value) => (value === 'appearance' ? null : 'appearance'))}>
-            <span className="min-w-0 flex-1">Appearance</span>
-            <ChevronDown className={`h-4 w-4 shrink-0 transition ${section === 'appearance' ? 'rotate-180' : ''}`} />
-          </button>
-          {section === 'appearance' ? (
-            <div className="mv-settings-choices" role="group" aria-label="Appearance">
-              {APPEARANCES.map((option) => {
-                const selected = theme === option.id;
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    className="mv-settings-item mv-settings-choice"
-                    aria-checked={selected}
-                    role="menuitemradio"
-                    onClick={() => setTheme(option.id)}
-                  >
-                    {option.id === 'bright' ? <Sparkles className="h-4 w-4 shrink-0" /> : null}
-                    <span className="min-w-0 flex-1">{option.label}</span>
-                    {selected ? <span aria-hidden="true">●</span> : null}
+          <div className="mv-settings-row">
+            <button type="button" className="mv-settings-item" aria-expanded={section === 'plan'} onClick={() => setSection((value) => (value === 'plan' ? null : 'plan'))}>
+              <CreditCard className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 flex-1">Plan & Usage</span>
+              <ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
+            </button>
+            {section === 'plan' ? (
+              <div className="mv-settings-flyout">
+                <div className="mv-plan-card">
+                  <p className="mv-plan-kicker">Current plan</p>
+                  <p className="mv-plan-title">
+                    {copy.title} <span>{copy.price}</span>
+                  </p>
+                  <p className="mv-plan-meta">
+                    {isBasicPlan(activePlan) ? 'No renewal charge on this plan.' : resetCopy(billing?.nextBillingDate)}
+                  </p>
+                  <button type="button" className="mv-settings-item" onClick={() => void manage()}>
+                    Manage
                   </button>
-                );
-              })}
-            </div>
-          ) : null}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mv-settings-row">
+            <button type="button" className="mv-settings-item" aria-expanded={section === 'profile'} onClick={() => setSection((value) => (value === 'profile' ? null : 'profile'))}>
+              <UserRound className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 flex-1">User profile</span>
+              <ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
+            </button>
+            {section === 'profile' ? (
+              <div className="mv-settings-flyout">
+                <dl className="mv-profile-card">
+                  <div><dt>Name</dt><dd>{userName}</dd></div>
+                  <div><dt>Email</dt><dd>{email}</dd></div>
+                  <div><dt>Role</dt><dd>{ROLE_LABEL[role ?? ''] ?? role ?? '—'}</dd></div>
+                  <div><dt>School</dt><dd>{organization?.name || schoolName || '—'}</dd></div>
+                  {subject ? <div><dt>Subject</dt><dd>{subject}</dd></div> : null}
+                  <div><dt>Plan</dt><dd>{copy.title}</dd></div>
+                  <div><dt>Member since</dt><dd>{memberSince}</dd></div>
+                </dl>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mv-settings-row">
+            <button type="button" className="mv-settings-item" aria-expanded={section === 'appearance'} onClick={() => setSection((value) => (value === 'appearance' ? null : 'appearance'))}>
+              <SunMedium className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 flex-1">Theme</span>
+              <ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
+            </button>
+            {section === 'appearance' ? (
+              <div className="mv-settings-flyout" role="group" aria-label="Theme">
+                {THEMES.map((option) => {
+                  const selected = theme === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className="mv-settings-item mv-settings-choice"
+                      aria-checked={selected}
+                      role="menuitemradio"
+                      onClick={() => setTheme(option.id)}
+                    >
+                      <span className="min-w-0 flex-1">{option.label}</span>
+                      {selected ? <span aria-hidden="true">●</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+
+          <button type="button" className="mv-settings-item" onClick={goPricing}>
+            <CreditCard className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 flex-1">View subscription</span>
+          </button>
         </div>
       ) : null}
     </div>

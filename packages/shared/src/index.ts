@@ -542,6 +542,7 @@ export {
   maxPdfCount,
   isSubscriptionActive,
 } from './rbac.js';
+export { PASSWORD_RULES, passwordMeetsPolicy, type PasswordRule } from './passwordPolicy.js';
 export {
   CATEGORY_PLANS_DATA,
   categoryForPlanType,

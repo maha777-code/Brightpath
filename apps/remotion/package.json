@@ -6,6 +6,8 @@
   "scripts": {
     "studio": "remotion studio src/index.ts",
     "render": "remotion render src/index.ts GamifiedLesson",
+    "render:lesson-plan": "remotion render src/index.ts MindVaultLessonPlan out/mindvault-lesson-plan.mp4",
+    "render:five-questions": "remotion render src/index.ts MindVaultFiveQuestions out/mindvault-five-questions.mp4",
     "upgrade": "remotion upgrade"
   },
   "dependencies": {

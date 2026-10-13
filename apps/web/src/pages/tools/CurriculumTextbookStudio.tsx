@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Compass, RefreshCw } from 'lucide-react';
 import type {
   StudentDoubt,
@@ -6,6 +7,7 @@ import type {
   TeacherSubtopic,
   Textbook,
 } from '@brightpath/shared';
+import { hasAiToolAccess } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { DocumentUploader } from '@/components/teacher/DocumentUploader';
@@ -14,14 +16,17 @@ import { SubtopicManager } from '@/components/teacher/SubtopicManager';
 import { TeacherDoubtAssistant } from '@/components/teacher/TeacherDoubtAssistant';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { AIToolHeader } from '@/components/tools/AIToolHeader';
+import { ProUpgradeDialog } from '@/components/billing/ProUpgradeDialog';
 import { canUserAccessTool, getRegistryTool } from '@/config/toolsRegistry';
 
 export const CURRICULUM_STUDIO_PATH = '/tools/curriculum-textbook-studio';
 
 export default function CurriculumTextbookStudio() {
-  const { role, user, teacher, parent } = useAuth();
+  const navigate = useNavigate();
+  const { role, planType, user, teacher, parent } = useAuth();
   const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
   const allowed = canUserAccessTool({ role, email }, getRegistryTool('curriculum-studio')?.allowedRoles ?? []);
+  const proAccess = hasAiToolAccess({ role, email, planType, requiredPlan: 'pro' });
   const [textbook, setTextbook] = useState<Textbook | null>(null);
   const [chapters, setChapters] = useState<TeacherChapter[]>([]);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
@@ -64,9 +69,9 @@ export default function CurriculumTextbookStudio() {
   }, []);
 
   useEffect(() => {
-    if (!role || !allowed) return;
+    if (!role || !allowed || !proAccess) return;
     void load();
-  }, [role, load, allowed]);
+  }, [role, load, allowed, proAccess]);
 
   const refreshChapter = async (chapterId: string) => {
     const res = await api.teacherChapter(chapterId);
@@ -91,6 +96,14 @@ export default function CurriculumTextbookStudio() {
             <p className="mt-2 text-sm font-semibold text-rose-300">Teacher access required</p>
           </div>
         </main>
+      </TeacherWorkspaceLayout>
+    );
+  }
+
+  if (!proAccess) {
+    return (
+      <TeacherWorkspaceLayout>
+        <ProUpgradeDialog open onClose={() => navigate('/teacher/tools')} />
       </TeacherWorkspaceLayout>
     );
   }
