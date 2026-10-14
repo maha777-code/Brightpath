@@ -12,9 +12,9 @@ export default function PrivacyPolicy() {
         </h2>
         <p>
           At MindVault, we prioritize data privacy and transparency for educators, students, and
-          educational institutions. Our platform is engineered specifically for education, ensuring
-          strictly regulated data practices in full compliance with global standards including FERPA
-          and COPPA.
+          educational institutions. Our platform is engineered specifically for education, with data
+          practices designed around student-privacy expectations such as those set out in FERPA and
+          COPPA.
         </p>
       </section>
 
@@ -104,9 +104,9 @@ export default function PrivacyPolicy() {
       <section className="space-y-3">
         <h2 className="border-b border-slate-800 pb-2 text-2xl font-bold text-white">6. Security Safeguards</h2>
         <p>
-          We maintain end-to-end security measures including AES-256 encryption at rest, TLS 1.3
-          encryption in transit, strict role-based access restrictions, and periodic security
-          evaluations to keep institutional records safe.
+          We protect institutional records with HTTPS (TLS) encryption in transit, encryption at rest
+          by our managed hosting providers, hashed passwords, and strict role-based access
+          restrictions.
         </p>
       </section>
 

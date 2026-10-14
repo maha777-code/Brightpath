@@ -11,7 +11,7 @@ function Sparkle({ className }: { className: string }) {
 export function CtaBanner({ startHref }: { startHref: string }) {
   return (
     <section
-      id="pricing"
+      id="get-started"
       className="bp-cta-banner relative my-12 w-full overflow-hidden bg-gradient-to-r from-[#7c3aed] via-[#6d28d9] to-[#4338ca] px-6 py-12 text-white md:py-16 lg:px-16"
     >
       <div className="bp-cta-glow bp-cta-glow--tl pointer-events-none" aria-hidden="true" />
@@ -36,23 +36,23 @@ export function CtaBanner({ startHref }: { startHref: string }) {
 
         <div className="max-w-lg space-y-6">
           <p className="bp-cta-banner-copy text-base font-medium leading-relaxed text-purple-100 md:text-lg">
-            Let's make teaching more joyful and learning more fun for every classroom in every
-            district.
+            Teachers can start free today, no card needed. Schools and academies can book a walkthrough
+            for their staff.
           </p>
 
           <div className="flex flex-wrap items-center gap-4">
             <Link
-              to="/login"
+              to={startHref}
               className="bp-cta-banner-primary inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-base font-bold text-purple-700 shadow-md transition-all hover:bg-slate-100"
             >
-              Get in touch
+              Start free as a teacher
               <span aria-hidden="true">↗</span>
             </Link>
             <Link
-              to={startHref}
+              to="/contact"
               className="bp-cta-banner-secondary inline-flex items-center gap-2 rounded-xl border-2 border-white bg-transparent px-6 py-3 text-base font-bold text-white transition-all hover:bg-white/10"
             >
-              Free for teachers
+              Book a school walkthrough
               <span aria-hidden="true">↗</span>
             </Link>
           </div>

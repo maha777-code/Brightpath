@@ -24,12 +24,12 @@ export default function SecurityOverview() {
         <ul className="list-disc space-y-2 pl-6">
           <li>
             <strong className="text-white">Encryption in Transit:</strong> All communication between
-            client applications and MindVault services is encrypted using TLS 1.3.
+            client applications and MindVault services is encrypted over HTTPS (TLS).
           </li>
           <li>
-            <strong className="text-white">Encryption at Rest:</strong> Stored data, database records,
-            and backups are encrypted using AES-256 key management standards. Session tokens and
-            passwords use industry-standard hashing.
+            <strong className="text-white">Encryption at Rest:</strong> Database records and backups
+            are stored with our managed hosting providers, which encrypt data at rest. Passwords are
+            hashed with bcrypt and never stored in plain text.
           </li>
         </ul>
       </section>
@@ -63,21 +63,19 @@ export default function SecurityOverview() {
             enterprise accounts is logically segmented to prevent unauthorized cross-tenant exposure.
             Lesson file uploads stay inside your tenant boundary.
           </li>
-          <li>
-            <strong className="text-white">Continuous Diagnostic Monitoring:</strong> Automated threat
-            monitoring and regular vulnerability assessments safeguard cloud endpoints.
-          </li>
         </ul>
       </section>
 
       <section className="space-y-3">
         <h2 className="border-b border-slate-800 pb-2 text-2xl font-bold text-white">
-          5. Compliance Readiness
+          5. Student Privacy
         </h2>
         <p>
-          MindVault is designed around education privacy expectations, including FERPA-aligned
-          handling of student records and a SOC 2 control program for access, logging, and vendor
-          review. We regularly assess subprocessors that support AI inference and hosting. See our{' '}
+          MindVault is designed around education privacy expectations: student records are visible
+          only to the roles that need them, children&apos;s accounts are linked through parent or
+          class invite codes, and we review the providers that support AI inference and hosting. We
+          do not currently hold a third-party certification such as SOC 2. Schools that need a
+          security questionnaire completed can email us. See our{' '}
           <Link to="/privacy" className="font-semibold text-cyan-400 hover:text-cyan-300">
             Privacy Policy
           </Link>{' '}

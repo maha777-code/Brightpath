@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 type StackCard = {
   id: string;
   anchorId?: string;
@@ -11,19 +13,20 @@ type StackCard = {
   imageLeft: boolean;
   eager?: boolean;
   stat?: { value: string; label: string };
+  cta: { label: string; href: string; note: string };
 };
 
 const CARDS: StackCard[] = [
   {
     id: 'schools',
+    anchorId: 'for-schools',
     category: 'AI FOR SCHOOLS',
-    title:
-      'Bring safe, personalized AI to your school with zero hassle, total privacy, and complete teacher support.',
+    title: 'One platform for your teachers, students and parents, aligned to your own textbooks.',
     features: [
-      'Safe & secure from day one',
-      'Built to fit your school',
-      'Clear progress at a glance',
-      'Easy setup & hands-on teacher support',
+      'Admin dashboard & analytics',
+      'Role-based access with invite codes',
+      'Your school’s name and branding',
+      'Staff walkthrough on rollout',
     ],
     image: '/safe-ai-tutor-hd.png?v=1',
     imageAlt: 'Safe and secure AI tutor in classroom',
@@ -31,43 +34,47 @@ const CARDS: StackCard[] = [
       'bp-hd-img aspect-[16/10] h-full w-full object-cover brightness-[1.02] contrast-[1.05] transition-transform duration-700 group-hover:scale-105 [image-rendering:-webkit-optimize-contrast]',
     imageLeft: false,
     eager: true,
+    stat: { value: 'From ₹11,999', label: 'per month for a school campus, billed yearly' },
+    cta: { label: 'Book a school walkthrough', href: '/contact', note: 'See every school plan on the pricing page.' },
   },
   {
     id: 'teachers',
     anchorId: 'for-teachers',
     category: 'AI FOR TEACHERS',
-    title: 'Save time. Spark creativity. Personalize learning.',
-    titleLines: ['Save time.', 'Spark creativity.', 'Personalize learning.'],
+    title: 'Plan less. Teach more. Follow your syllabus.',
+    titleLines: ['Plan less.', 'Teach more.', 'Follow your syllabus.'],
     features: [
-      '80+ teacher tools',
-      'Tool exemplars',
-      'Student learning insights',
-      'AI instructional coach',
+      'Lesson plans, quizzes & worksheets',
+      'Questions from your own PDFs',
+      'Songs & podcasts with real audio',
+      'Sharada, your AI assistant',
     ],
     image: '/teacher-hologram.png',
     imageAlt: 'Holographic AI Assistant supporting a teacher in classroom',
     imageClassName: 'aspect-[4/3] h-full w-full object-cover transition-transform duration-700 group-hover:scale-105',
     imageLeft: true,
-    stat: { value: '7–10 hrs', label: 'time saved per week on average' },
+    stat: { value: '11 AI tools', label: 'free to start, no card needed' },
+    cta: { label: 'Start free as a teacher', href: '/register', note: 'Teacher Pro is ₹499/month, billed yearly.' },
   },
   {
     id: 'students',
     anchorId: 'for-students',
-    category: 'AI FOR STUDENTS',
-    title: 'Learn confidently. Think critically. Build the future.',
-    titleLines: ['Learn confidently.', 'Think critically.', 'Build the future.'],
+    category: 'AI FOR STUDENTS & PARENTS',
+    title: 'Learn at your pace. Ask anything. Practise smarter.',
+    titleLines: ['Learn at your pace.', 'Ask anything.', 'Practise smarter.'],
     features: [
-      'Teacher-led activities',
-      'Safe settings for students',
-      '50+ student tools',
-      'Designed to build AI skills',
+      'AI tutor for any subject',
+      'Videos, quizzes & activities',
+      'Parents track progress',
+      'English, Hindi & Arabic',
     ],
     image: '/student-hologram.png',
     imageAlt: 'Holographic AI assisting students with interactive learning',
     imageClassName:
       'aspect-[16/10] h-full w-full object-cover transition-transform duration-700 group-hover:scale-105',
     imageLeft: false,
-    stat: { value: '88%', label: 'of teachers say it helps them reach every learner' },
+    stat: { value: 'Free', label: 'Student Basic and Parent Basic plans' },
+    cta: { label: 'Start learning free', href: '/register', note: 'Student Pro is ₹149/month, billed yearly.' },
   },
 ];
 
@@ -99,6 +106,15 @@ function CardCopy({ card }: { card: StackCard }) {
           </div>
         ))}
       </div>
+
+      <div className="flex flex-wrap items-center gap-4">
+        <Link to={card.cta.href} className="bp-btn bp-btn--primary bp-btn--lg">
+          {card.cta.label}
+        </Link>
+        <Link to="/pricing" className="text-base font-semibold text-slate-300 underline-offset-4 hover:text-cyan-300 hover:underline">
+          {card.cta.note}
+        </Link>
+      </div>
     </div>
   );
 }
@@ -129,7 +145,7 @@ export function CardStackSection() {
   return (
     <section id="how-it-works" className="bp-stack-section w-full px-6 py-20 lg:px-12">
       <h2 className="bp-stack-heading mb-12 w-full text-center text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">
-        Transforming education for every student and classroom through AI
+        Made for schools, teachers, students and parents
       </h2>
 
       <div className="bp-stack-list relative space-y-12 pb-24">

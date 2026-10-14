@@ -1,13 +1,16 @@
 import { Fragment, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Clock, GitFork, TrendingUp, ChevronDown, type LucideIcon } from 'lucide-react';
+import { BookOpen, ChevronDown, Languages, Sparkles, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { ThemeToggle } from '@/context/ColorTheme';
 import { CardStackSection } from '@/components/CardStackSection';
 import { CtaBanner } from '@/components/CtaBanner';
 import { Footer } from '@/components/Footer';
+import { FaqSection } from '@/components/landing/FaqSection';
+import { PricingPreview } from '@/components/landing/PricingPreview';
+import { TrustSection } from '@/components/landing/TrustSection';
 
 const SUBJECTS = [
   {
@@ -44,19 +47,19 @@ const SUBJECTS = [
 
 const FEATURES: { icon: LucideIcon; title: string; description: string }[] = [
   {
-    icon: TrendingUp,
-    title: 'Adaptive Learning',
-    description: 'Graphs learning and points',
+    icon: BookOpen,
+    title: 'Follows your syllabus',
+    description: 'Upload a textbook once; every tool uses your chapters',
   },
   {
-    icon: Clock,
-    title: '24/7 Support',
-    description: 'Checkout 24/7 support',
+    icon: Sparkles,
+    title: '11 AI tools, free to start',
+    description: 'Lesson plans, quizzes, worksheets, slides, songs and more',
   },
   {
-    icon: GitFork,
-    title: 'Personalized Path',
-    description: 'Uniquely branching roadmap',
+    icon: Languages,
+    title: 'English, Hindi & Arabic',
+    description: 'Full interface, including right-to-left layout',
   },
 ];
 
@@ -102,131 +105,6 @@ function HeroAITutorCard() {
   );
 }
 
-type TeacherReview = {
-  isPhotoCard: boolean;
-  author: string;
-  role: string;
-  quote?: string;
-  handle?: string;
-  avatar?: string;
-  image?: string;
-};
-
-const reviewsData: TeacherReview[] = [
-  {
-    isPhotoCard: false,
-    quote:
-      "MindVault was responsive to what teachers needed, not just in features but in how easy it was to use. We're focused on its utility and impact.",
-    author: 'Susan U.',
-    role: 'Director of Educational Technology',
-    avatar: '/reviews/susan-u.jpg',
-  },
-  {
-    isPhotoCard: true,
-    author: 'Sarah Jenkins',
-    role: 'High School Science Educator',
-    image: '/reviews/sarah-jenkins.jpg',
-  },
-  {
-    isPhotoCard: false,
-    quote:
-      "Tonight was Magical 🪄 @MindVault thank you for a fantastic tool!! It's amazing to see how much time it saves teachers! #TeachersAreMagic",
-    author: 'Miss Jami Shields',
-    role: 'Middle School Teacher',
-    handle: '@MissJShields1',
-    avatar: '/reviews/jami-shields.jpg',
-  },
-  {
-    isPhotoCard: false,
-    quote:
-      "Teachers brought the platform to us and demonstrated a willingness to share their learning with colleagues. We used MindVault because it's built for education.",
-    author: 'Teneika B.',
-    role: 'Founding Principal',
-    avatar: '/reviews/teneika-b.jpg',
-  },
-  {
-    isPhotoCard: true,
-    author: 'Marcus Vance',
-    role: 'District Tech Coordinator',
-    image: '/reviews/marcus-vance.jpg',
-  },
-];
-
-function TeacherReviewsCarousel() {
-  const loopedReviews = [...reviewsData, ...reviewsData];
-
-  return (
-    <section
-      aria-label="Teacher reviews"
-      className="w-full overflow-hidden border-t border-slate-800/60 bg-[#030712] py-16"
-    >
-      <div className="mb-12 space-y-3 px-4 text-center">
-        <h2 className="text-4xl font-extrabold tracking-tight text-white md:text-5xl">
-          Why teachers love MindVault
-        </h2>
-        <p className="text-lg text-slate-300">
-          Hear from the educators who inspire everything we build.
-        </p>
-      </div>
-
-      <div className="bp-reviews-mask relative w-full overflow-hidden">
-        <div className="bp-reviews-track animate-marquee-reverse flex w-max gap-6 hover:[animation-play-state:paused]">
-          {loopedReviews.map((review, idx) => (
-            <div
-              key={`${review.author}-${idx}`}
-              className="flex w-[340px] shrink-0 flex-col justify-between space-y-4 rounded-2xl border border-cyan-500/30 bg-slate-950/70 p-6 shadow-[0_0_25px_rgba(6,182,212,0.1)] backdrop-blur-md transition-colors hover:border-cyan-400 md:w-[380px]"
-            >
-              {review.isPhotoCard ? (
-                <div className="relative h-[280px] w-full overflow-hidden rounded-xl border border-slate-800">
-                  <img
-                    src={review.image}
-                    alt={review.author}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent p-4">
-                    <p className="text-lg font-bold text-white">{review.author}</p>
-                    <p className="text-sm font-medium text-cyan-400">{review.role}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex h-full flex-col justify-between space-y-6">
-                  <div className="space-y-3">
-                    <span className="font-serif text-3xl text-cyan-400">“</span>
-                    <p className="text-base font-normal leading-relaxed text-slate-200">
-                      {review.quote}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-3 border-t border-slate-800/80 pt-4">
-                    {review.avatar ? (
-                      <img
-                        src={review.avatar}
-                        alt={review.author}
-                        className="h-10 w-10 rounded-full border border-cyan-500/40 object-cover"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : null}
-                    <div>
-                      <h4 className="text-sm font-bold text-white">{review.author}</h4>
-                      <p className="text-xs text-slate-400">{review.role}</p>
-                      {review.handle ? (
-                        <p className="font-mono text-xs text-cyan-400">{review.handle}</p>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 type ToolCard = {
   title: string;
   description: string;
@@ -238,7 +116,7 @@ type ToolCard = {
 const toolsRow1: ToolCard[] = [
   {
     title: 'Multiple Choice Quiz',
-    description: 'Generate a custom multiple choice quiz for any assignment.',
+    description: 'Quizzes written from your topic, standard or attached PDF.',
     icon: '📋',
     bgColor: 'bg-amber-500/10',
     borderColor: 'border-amber-500/30',
@@ -264,13 +142,27 @@ const toolsRow1: ToolCard[] = [
     bgColor: 'bg-purple-500/10',
     borderColor: 'border-purple-500/30',
   },
+  {
+    title: 'Worksheet Generator',
+    description: 'Printable worksheets from any topic or text.',
+    icon: '📝',
+    bgColor: 'bg-emerald-500/10',
+    borderColor: 'border-emerald-500/30',
+  },
+  {
+    title: 'Curriculum & Textbook Studio',
+    description: 'Upload textbooks and syllabi so every tool follows them.',
+    icon: '📚',
+    bgColor: 'bg-cyan-500/10',
+    borderColor: 'border-cyan-500/30',
+  },
 ];
 
 const toolsRow2: ToolCard[] = [
   {
-    title: 'AI Tutor',
-    description: 'Ask questions and get tutored on any topic you are learning.',
-    icon: '🍏',
+    title: 'Educational Song',
+    description: 'Lyrics and a real song on any topic, to the tune you choose.',
+    icon: '🎵',
     bgColor: 'bg-emerald-500/10',
     borderColor: 'border-emerald-500/30',
   },
@@ -282,18 +174,25 @@ const toolsRow2: ToolCard[] = [
     borderColor: 'border-amber-500/30',
   },
   {
-    title: 'Rubric Generator',
-    description: 'Generate a custom rubric for any assignment.',
-    icon: '📙',
+    title: 'Educational Podcast',
+    description: 'An original podcast episode script with audio.',
+    icon: '🎙️',
     bgColor: 'bg-orange-500/10',
     borderColor: 'border-orange-500/30',
   },
   {
-    title: 'Professional Email',
-    description: 'Write clear, professional emails to parents and staff.',
+    title: 'Email Responder',
+    description: 'Clear, professional replies to parents and staff.',
     icon: '✉️',
     bgColor: 'bg-blue-500/10',
     borderColor: 'border-blue-500/30',
+  },
+  {
+    title: 'YouTube Questions',
+    description: 'Guiding questions aligned to any YouTube video.',
+    icon: '▶️',
+    bgColor: 'bg-rose-500/10',
+    borderColor: 'border-rose-500/30',
   },
 ];
 
@@ -390,17 +289,20 @@ function AiSolutionsMenu() {
             <div className="col-span-4 flex flex-col justify-between rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/60 to-slate-900 p-4">
               <div>
                 <span className="rounded-full border border-cyan-500/30 bg-cyan-950/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-cyan-400">
-                  NEW THIS MONTH
+                  NEW · BETA
                 </span>
                 <div className="mt-3 flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-cyan-500/20 bg-cyan-900/30">
-                  <span className="text-4xl">🚀</span>
+                  <span className="text-4xl">🎮</span>
                 </div>
+                <p className="mt-3 text-sm text-slate-300">
+                  Turn a PDF into a gamified video or class activity.
+                </p>
               </div>
               <a
-                href="#how-it-works"
+                href="#ai-solutions"
                 className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-cyan-300 hover:text-white"
               >
-                Explore updates →
+                Explore the tools →
               </a>
             </div>
           </div>
@@ -493,11 +395,17 @@ export default function Landing() {
               Pricing
             </Link>
             <a
-              href="#how-it-works"
+              href="#for-schools"
               className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
             >
               For Schools
             </a>
+            <Link
+              to="/compare"
+              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+            >
+              Compare
+            </Link>
             <Link
               to="/contact"
               className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
@@ -529,15 +437,23 @@ export default function Landing() {
             </div>
             <div className="bp-hero-copy order-1 flex w-full flex-col items-start space-y-6 text-left lg:col-span-7 lg:order-2">
               <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl lg:text-6xl">
-                Unlock Your Full Potential with Your Personal AI Tutor
+                The AI teaching assistant that follows your syllabus
               </h1>
               <p className="max-w-3xl text-xl font-normal leading-relaxed text-slate-200 md:text-2xl">
-                Adaptive, 24/7 learning that evolves with you. Master any subject, from Math to
-                Mandarin.
+                Upload your textbook once. Lesson plans, quizzes, worksheets, slides and an AI tutor
+                for students all follow your own chapters, for teachers, schools and families.
               </p>
-              <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--lg">
-                Start Your Personalized Journey
-              </Link>
+              <div className="flex flex-wrap items-center gap-4">
+                <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--lg">
+                  Start Free
+                </Link>
+                <Link to="/pricing" className="bp-btn bp-btn--outline">
+                  See Pricing
+                </Link>
+              </div>
+              <p className="text-base text-slate-300">
+                Free plan for teachers · Teacher Pro from ₹499/month · Schools from ₹11,999/month
+              </p>
             </div>
           </div>
 
@@ -572,7 +488,11 @@ export default function Landing() {
 
         <CardStackSection />
 
-        <TeacherReviewsCarousel />
+        <PricingPreview />
+
+        <TrustSection />
+
+        <FaqSection />
 
         <CtaBanner startHref={startHref} />
       </main>

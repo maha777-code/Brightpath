@@ -3,36 +3,31 @@ import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { NewsletterSection } from '@/components/NewsletterSection';
 
 const SOLUTION_LINKS = [
-  { label: 'For Schools & Districts', href: '#how-it-works' },
-  { label: 'For Teachers', href: '#for-teachers' },
-  { label: 'For Students', href: '#for-students' },
-  { label: 'AI Instructional Coach', href: '#for-teachers' },
-  { label: 'AI Tutor', href: '#ai-solutions' },
+  { label: 'For Schools & Academies', href: '/#for-schools' },
+  { label: 'For Teachers', href: '/#for-teachers' },
+  { label: 'For Students & Parents', href: '/#for-students' },
+  { label: 'MindVault vs AI chatbots', href: '/compare' },
 ];
 
 const TOOL_LINKS = [
-  { label: 'Lesson Plan Generator', href: '#ai-solutions' },
-  { label: 'Multiple Choice Quiz Maker', href: '#ai-solutions' },
-  { label: 'Presentation Generator', href: '#ai-solutions' },
-  { label: 'Rubric Generator', href: '#ai-solutions' },
-  { label: 'Text Rewriter', href: '#ai-solutions' },
+  { label: 'Lesson Plan Generator', href: '/#ai-solutions' },
+  { label: 'Multiple Choice Quiz Generator', href: '/#ai-solutions' },
+  { label: 'Worksheet Generator', href: '/#ai-solutions' },
+  { label: 'Presentation Generator', href: '/#ai-solutions' },
+  { label: 'Curriculum & Textbook Studio', href: '/#ai-solutions' },
 ];
 
 const RESOURCE_LINKS = [
-  { label: 'Blog & Guides', href: '#how-it-works' },
-  { label: 'AI Readiness Framework', href: '#how-it-works' },
-  { label: 'Teacher Exemplars', href: '#for-teachers' },
-  { label: 'Help & Support Center', href: '/contact' },
-  { label: 'App Status', href: '#how-it-works' },
+  { label: 'FAQ', href: '/#faq' },
+  { label: 'Security Overview', href: '/security' },
+  { label: 'Privacy Policy', href: '/privacy' },
+  { label: 'Help & Support', href: '/contact' },
 ];
 
 const COMPANY_LINKS = [
-  { label: 'About Us', href: '#how-it-works' },
   { label: 'Pricing & Plans', href: '/pricing' },
-  { label: 'Security & Privacy', href: '/security' },
-  { label: 'Careers', href: 'mailto:hello@brightpath.ai' },
   { label: 'Contact Us', href: '/contact' },
-  { label: 'Contact Sales', href: '/contact' },
+  { label: 'Book a School Walkthrough', href: '/contact' },
 ];
 
 function FooterColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
@@ -41,7 +36,7 @@ function FooterColumn({ title, links }: { title: string; links: { label: string;
       <h5 className="bp-footer-col-title text-lg font-bold uppercase tracking-wider text-white">{title}</h5>
       <ul className="bp-footer-col-links space-y-2.5 text-lg">
         {links.map((link) => {
-          const isAppRoute = link.href.startsWith('/') && !link.href.startsWith('//');
+          const isAppRoute = link.href.startsWith('/') && !link.href.startsWith('//') && !link.href.includes('#');
           return (
             <li key={link.label}>
               {isAppRoute ? (
@@ -71,8 +66,8 @@ export function Footer() {
           <div className="space-y-4 lg:col-span-6">
             <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
             <p className="bp-footer-tagline max-w-md text-xl leading-relaxed text-slate-300">
-              Bringing safe, personalized AI to schools, teachers, and students with zero hassle,
-              total privacy, and complete instructional support.
+              The AI teaching assistant that follows your syllabus, for teachers, students, parents
+              and schools. Made in Bangalore.
             </p>
           </div>
 
@@ -104,24 +99,6 @@ export function Footer() {
             <Link to="/cookie-preferences" className="transition-colors hover:text-cyan-400">
               Cookie Preferences
             </Link>
-          </div>
-
-          <div className="flex items-center gap-4 text-slate-400">
-            <a href="#how-it-works" className="transition-colors hover:text-cyan-400" aria-label="Twitter / X">
-              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-            </a>
-            <a href="#how-it-works" className="transition-colors hover:text-cyan-400" aria-label="LinkedIn">
-              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
-              </svg>
-            </a>
-            <a href="#how-it-works" className="transition-colors hover:text-cyan-400" aria-label="YouTube">
-              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-              </svg>
-            </a>
           </div>
         </div>
       </div>

@@ -45,7 +45,9 @@ import TermsOfService from '@/pages/TermsOfService';
 import SecurityOverview from '@/pages/SecurityOverview';
 import CookiePreferences from '@/pages/CookiePreferences';
 import ContactUs from '@/pages/ContactUs';
+import ComparePage from '@/pages/ComparePage';
 import { ToolAccessGate } from '@/components/tools/ToolAccessGate';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 function RequireRole({
   roles,
@@ -128,6 +130,7 @@ function RootHome() {
 
 export default function App() {
   const { loading } = useAuth();
+  usePageMeta();
 
   if (loading) {
     return (
@@ -169,6 +172,7 @@ export default function App() {
         <Route path="/security" element={<SecurityOverview />} />
         <Route path="/cookie-preferences" element={<CookiePreferences />} />
         <Route path="/contact" element={<ContactUs />} />
+        <Route path="/compare" element={<ComparePage />} />
 
         <Route
           path="/admin/dashboard"

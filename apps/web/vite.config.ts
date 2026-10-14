@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { prerenderPublicPages } from './src/seo/prerender';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,6 +27,7 @@ export default defineConfig({
         ],
       },
     }),
+    prerenderPublicPages(),
   ],
   resolve: {
     alias: {
