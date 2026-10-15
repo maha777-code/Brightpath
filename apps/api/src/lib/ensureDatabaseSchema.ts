@@ -159,9 +159,132 @@ async function ensureDodoTables(): Promise<void> {
   `);
 }
 
+async function addForeignKey(table: string, constraint: string, column: string, refTable: string, onDelete: string): Promise<void> {
+  await prisma.$executeRawUnsafe(`
+    DO $$ BEGIN
+      ALTER TABLE "${table}" ADD CONSTRAINT "${constraint}"
+        FOREIGN KEY ("${column}") REFERENCES "${refTable}"("id") ON DELETE ${onDelete} ON UPDATE CASCADE;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$;
+  `);
+}
+
+/** Roster, student profile, Sharada transcript, safety alert and audit tables (production has no auto db push). */
+async function ensureRosterAndTutorTables(): Promise<void> {
+  const statements = [
+    `CREATE TABLE IF NOT EXISTS "OrgUnit" (
+      "id" TEXT NOT NULL,
+      "organizationId" TEXT NOT NULL,
+      "name" TEXT NOT NULL,
+      "kind" TEXT NOT NULL DEFAULT 'grade',
+      "sortOrder" INTEGER NOT NULL DEFAULT 0,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "OrgUnit_pkey" PRIMARY KEY ("id")
+    )`,
+    `CREATE INDEX IF NOT EXISTS "OrgUnit_organizationId_idx" ON "OrgUnit"("organizationId")`,
+    `ALTER TABLE "ClassBatch" ADD COLUMN IF NOT EXISTS "orgUnitId" TEXT`,
+    `ALTER TABLE "ClassBatch" ADD COLUMN IF NOT EXISTS "subject" TEXT`,
+    `ALTER TABLE "ClassBatch" ADD COLUMN IF NOT EXISTS "gradeLevel" TEXT`,
+    `CREATE INDEX IF NOT EXISTS "ClassBatch_orgUnitId_idx" ON "ClassBatch"("orgUnitId")`,
+    `CREATE TABLE IF NOT EXISTS "StudentProfile" (
+      "id" TEXT NOT NULL,
+      "studentUserId" TEXT NOT NULL,
+      "gradeLevel" TEXT,
+      "board" TEXT,
+      "preferredLanguage" TEXT,
+      "readingLevel" TEXT,
+      "accommodations" TEXT[] DEFAULT ARRAY[]::TEXT[],
+      "learningPreferences" TEXT[] DEFAULT ARRAY[]::TEXT[],
+      "notes" TEXT NOT NULL DEFAULT '',
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "StudentProfile_pkey" PRIMARY KEY ("id")
+    )`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "StudentProfile_studentUserId_key" ON "StudentProfile"("studentUserId")`,
+    `CREATE TABLE IF NOT EXISTS "TutorSession" (
+      "id" TEXT NOT NULL,
+      "studentUserId" TEXT NOT NULL,
+      "organizationId" TEXT,
+      "classBatchId" TEXT,
+      "title" TEXT NOT NULL DEFAULT 'New conversation',
+      "subject" TEXT,
+      "chapter" TEXT,
+      "topic" TEXT,
+      "summary" TEXT NOT NULL DEFAULT '',
+      "messageCount" INTEGER NOT NULL DEFAULT 0,
+      "flagCount" INTEGER NOT NULL DEFAULT 0,
+      "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "lastMessageAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "TutorSession_pkey" PRIMARY KEY ("id")
+    )`,
+    `CREATE INDEX IF NOT EXISTS "TutorSession_studentUserId_lastMessageAt_idx" ON "TutorSession"("studentUserId", "lastMessageAt")`,
+    `CREATE INDEX IF NOT EXISTS "TutorSession_organizationId_lastMessageAt_idx" ON "TutorSession"("organizationId", "lastMessageAt")`,
+    `CREATE INDEX IF NOT EXISTS "TutorSession_classBatchId_lastMessageAt_idx" ON "TutorSession"("classBatchId", "lastMessageAt")`,
+    `CREATE TABLE IF NOT EXISTS "TutorMessage" (
+      "id" TEXT NOT NULL,
+      "sessionId" TEXT NOT NULL,
+      "sender" TEXT NOT NULL,
+      "content" TEXT NOT NULL,
+      "flags" TEXT[] DEFAULT ARRAY[]::TEXT[],
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "TutorMessage_pkey" PRIMARY KEY ("id")
+    )`,
+    `CREATE INDEX IF NOT EXISTS "TutorMessage_sessionId_createdAt_idx" ON "TutorMessage"("sessionId", "createdAt")`,
+    `CREATE TABLE IF NOT EXISTS "SafetyAlert" (
+      "id" TEXT NOT NULL,
+      "sessionId" TEXT NOT NULL,
+      "messageId" TEXT,
+      "studentUserId" TEXT NOT NULL,
+      "organizationId" TEXT,
+      "classBatchId" TEXT,
+      "category" TEXT NOT NULL,
+      "severity" TEXT NOT NULL,
+      "excerpt" TEXT NOT NULL,
+      "reason" TEXT NOT NULL DEFAULT '',
+      "status" TEXT NOT NULL DEFAULT 'open',
+      "notifiedAt" TIMESTAMP(3),
+      "reviewedByUserId" TEXT,
+      "reviewedAt" TIMESTAMP(3),
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "SafetyAlert_pkey" PRIMARY KEY ("id")
+    )`,
+    `CREATE INDEX IF NOT EXISTS "SafetyAlert_organizationId_status_createdAt_idx" ON "SafetyAlert"("organizationId", "status", "createdAt")`,
+    `CREATE INDEX IF NOT EXISTS "SafetyAlert_classBatchId_status_idx" ON "SafetyAlert"("classBatchId", "status")`,
+    `CREATE INDEX IF NOT EXISTS "SafetyAlert_studentUserId_idx" ON "SafetyAlert"("studentUserId")`,
+    `CREATE TABLE IF NOT EXISTS "AuditLog" (
+      "id" TEXT NOT NULL,
+      "organizationId" TEXT,
+      "actorUserId" TEXT NOT NULL,
+      "actorRole" TEXT NOT NULL,
+      "action" TEXT NOT NULL,
+      "targetType" TEXT NOT NULL,
+      "targetId" TEXT,
+      "metadata" JSONB,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "AuditLog_pkey" PRIMARY KEY ("id")
+    )`,
+    `CREATE INDEX IF NOT EXISTS "AuditLog_organizationId_createdAt_idx" ON "AuditLog"("organizationId", "createdAt")`,
+    `CREATE INDEX IF NOT EXISTS "AuditLog_actorUserId_createdAt_idx" ON "AuditLog"("actorUserId", "createdAt")`,
+  ];
+  for (const sql of statements) {
+    await prisma.$executeRawUnsafe(sql);
+  }
+  await addForeignKey('OrgUnit', 'OrgUnit_organizationId_fkey', 'organizationId', 'Organization', 'CASCADE');
+  await addForeignKey('ClassBatch', 'ClassBatch_orgUnitId_fkey', 'orgUnitId', 'OrgUnit', 'SET NULL');
+  await addForeignKey('StudentProfile', 'StudentProfile_studentUserId_fkey', 'studentUserId', 'PlatformUser', 'CASCADE');
+  await addForeignKey('TutorSession', 'TutorSession_studentUserId_fkey', 'studentUserId', 'PlatformUser', 'CASCADE');
+  await addForeignKey('TutorSession', 'TutorSession_classBatchId_fkey', 'classBatchId', 'ClassBatch', 'SET NULL');
+  await addForeignKey('TutorMessage', 'TutorMessage_sessionId_fkey', 'sessionId', 'TutorSession', 'CASCADE');
+  await addForeignKey('SafetyAlert', 'SafetyAlert_sessionId_fkey', 'sessionId', 'TutorSession', 'CASCADE');
+}
+
 export async function ensureDatabaseSchema(): Promise<void> {
   await ensureProductFeedbackTable().catch((err) => {
     console.warn('ProductFeedback table was not created:', err instanceof Error ? err.message : err);
+  });
+  await ensureRosterAndTutorTables().catch((err) => {
+    console.warn('Roster and tutor tables were not created:', err instanceof Error ? err.message : err);
   });
   await ensureDodoTables().catch((err) => {
     console.warn('Dodo billing tables were not created:', err instanceof Error ? err.message : err);

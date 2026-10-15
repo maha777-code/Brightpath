@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Bookmark, Home, LayoutGrid, LogOut, Menu, X } from 'lucide-react';
+import { Bookmark, Eye, Home, LayoutGrid, LogOut, Menu, Users, X } from 'lucide-react';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 import { ProfileSettingsMenu } from '@/components/profile/ProfileSettingsMenu';
 import { useState } from 'react';
@@ -34,6 +34,25 @@ const WORKSPACE_ITEMS = [
     match: (pathname: string) => pathname.startsWith('/teacher/resources'),
   },
 ] as const;
+
+const CLASSROOM_ITEMS = [
+  {
+    to: '/classes',
+    label: 'Classes & Students',
+    detail: 'Rosters, join codes, profiles',
+    icon: Users,
+    match: (pathname: string) => pathname.startsWith('/classes'),
+  },
+  {
+    to: '/sharada-oversight',
+    label: 'Sharada Oversight',
+    detail: 'Student chats & safety alerts',
+    icon: Eye,
+    match: (pathname: string) => pathname.startsWith('/sharada-oversight'),
+  },
+] as const;
+
+const CLASSROOM_ROLES = new Set(['teacher', 'org_admin', 'center_admin']);
 
 export function TeacherSidebar() {
   const { pathname } = useLocation();
@@ -104,7 +123,7 @@ export function TeacherSidebar() {
               {workspace.title}
             </p>
             <nav className="space-y-1" aria-label={workspace.title}>
-              {WORKSPACE_ITEMS.map((item) => {
+              {[...WORKSPACE_ITEMS, ...(role && CLASSROOM_ROLES.has(role) ? CLASSROOM_ITEMS : [])].map((item) => {
                 const Icon = item.icon;
                 const active = item.match(pathname);
                 return (

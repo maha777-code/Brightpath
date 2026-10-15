@@ -72,13 +72,13 @@ type StudentTool = {
   newestRank: number;
 };
 
-function studentTools(): StudentTool[] {
+function studentTools(tutorHref: string): StudentTool[] {
   const tutor: StudentTool = {
     id: 'ai-tutor',
     title: '24/7 AI Tutor',
     description: 'Ask questions, review concepts, and get instant homework help.',
     icon: Brain,
-    href: '/dashboard/ai-tutor',
+    href: tutorHref,
     popularity: 1000,
     newestRank: 0,
   };
@@ -143,9 +143,10 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
   const ageLabel = parent?.calculatedAgeGroup ? AGE_GROUP_LABELS[parent.calculatedAgeGroup] : 'Student';
   const profileLine = parent?.currentAge != null ? `${ageLabel} · Age ${parent.currentAge}` : ageLabel;
   const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
+  const tutorPath = role === 'student' ? '/student/sharada' : '/dashboard/ai-tutor';
   const tools = useMemo(
-    () => studentTools().filter((tool) => !tool.registry || canUserAccessTool({ role, email }, tool.registry.allowedRoles)),
-    [role, email],
+    () => studentTools(tutorPath).filter((tool) => !tool.registry || canUserAccessTool({ role, email }, tool.registry.allowedRoles)),
+    [role, email, tutorPath],
   );
   const visibleTools = useMemo(() => {
     if (view !== 'tools') return tools;
@@ -187,7 +188,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
   const sendPrompt = () => {
     const text = prompt.trim();
     if (!text) return;
-    navigate('/dashboard/ai-tutor', { state: { prompt: text } });
+    navigate(tutorPath, { state: { prompt: text } });
   };
 
   const openTool = (tool: StudentTool) => {
@@ -320,7 +321,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
       <main className="custom-scrollbar min-h-screen w-full flex-1 overflow-y-auto bg-[#040711] p-8 pt-20 md:pt-8">
         {view === 'home' ? (
           <section className="w-full text-center">
-            <SharadaPromptFrame name={firstName} onChat={() => navigate('/dashboard/ai-tutor')}>
+            <SharadaPromptFrame name={firstName} onChat={() => navigate(tutorPath)}>
             <form
               className="flex min-h-[150px] w-full flex-col justify-between rounded-3xl border border-slate-800/90 bg-gradient-to-b from-slate-900/90 via-slate-900/80 to-slate-950/90 p-5 text-left shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-all duration-300 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/20"
               onSubmit={(event) => {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
@@ -93,8 +93,11 @@ export default function Register() {
   const { t } = useTranslation();
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [step, setStep] = useState<1 | 2>(1);
-  const [role, setRole] = useState<SignupRole | null>(null);
+  const [searchParams] = useSearchParams();
+  const invitedClassCode = (searchParams.get('classCode') ?? '').trim().toUpperCase();
+  const invitedAsStudent = searchParams.get('role') === 'student';
+  const [step, setStep] = useState<1 | 2>(invitedAsStudent ? 2 : 1);
+  const [role, setRole] = useState<SignupRole | null>(invitedAsStudent ? 'student' : null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordFocused, setPasswordFocused] = useState(false);
@@ -103,8 +106,8 @@ export default function Register() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [schoolName, setSchoolName] = useState('');
   const [organizationName, setOrganizationName] = useState('');
-  const [planType, setPlanType] = useState<PlanType | ''>('');
-  const [classCode, setClassCode] = useState('');
+  const [planType, setPlanType] = useState<PlanType | ''>(invitedAsStudent ? 'student_free' : '');
+  const [classCode, setClassCode] = useState(invitedClassCode);
   const [parentCode, setParentCode] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);

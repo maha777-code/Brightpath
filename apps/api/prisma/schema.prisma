@@ -602,6 +602,23 @@ model Organization {
   teachers               Teacher[]
   classBatches           ClassBatch[]
   textbooks              Textbook[]
+  orgUnits               OrgUnit[]
+}
+
+/** School grade/department or academy course level that groups classes and batches. */
+model OrgUnit {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  /** grade | department | course */
+  kind           String       @default("grade")
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  classBatches   ClassBatch[]
+
+  @@index([organizationId])
 }
 
 model PlatformUser {
@@ -632,6 +649,8 @@ model PlatformUser {
   parentLinksAsParent    StudentParentLink[] @relation("ParentLinks")
   parentLinksAsStudent   StudentParentLink[] @relation("StudentLinks")
   enrollments            ClassEnrollment[]
+  studentProfile         StudentProfile?
+  tutorSessions          TutorSession[]
 
   @@index([organizationId])
   @@index([role])
@@ -647,12 +666,115 @@ model ClassBatch {
   teacher        Teacher           @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   name           String
   inviteCode     String            @unique
+  orgUnitId      String?
+  orgUnit        OrgUnit?          @relation(fields: [orgUnitId], references: [id], onDelete: SetNull)
+  subject        String?
+  gradeLevel     String?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
   enrollments    ClassEnrollment[]
+  tutorSessions  TutorSession[]
 
   @@index([organizationId])
   @@index([teacherId])
+  @@index([orgUnitId])
+}
+
+model StudentProfile {
+  id                  String       @id @default(cuid())
+  studentUserId       String       @unique
+  studentUser         PlatformUser @relation(fields: [studentUserId], references: [id], onDelete: Cascade)
+  gradeLevel          String?
+  /** CBSE | ICSE | State Board | IB | Cambridge | NGSS | Other */
+  board               String?
+  preferredLanguage   String?
+  /** below_grade | at_grade | above_grade */
+  readingLevel        String?
+  /** iep | plan_504 | extra_time | text_to_speech | simplified_language */
+  accommodations      String[]     @default([])
+  /** visual | audio | hands_on | reading */
+  learningPreferences String[]     @default([])
+  notes               String       @default("")
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+}
+
+model TutorSession {
+  id             String         @id @default(cuid())
+  studentUserId  String
+  studentUser    PlatformUser   @relation(fields: [studentUserId], references: [id], onDelete: Cascade)
+  organizationId String?
+  classBatchId   String?
+  classBatch     ClassBatch?    @relation(fields: [classBatchId], references: [id], onDelete: SetNull)
+  title          String         @default("New conversation")
+  subject        String?
+  chapter        String?
+  topic          String?
+  summary        String         @default("")
+  messageCount   Int            @default(0)
+  flagCount      Int            @default(0)
+  startedAt      DateTime       @default(now())
+  lastMessageAt  DateTime       @default(now())
+  messages       TutorMessage[]
+  alerts         SafetyAlert[]
+
+  @@index([studentUserId, lastMessageAt])
+  @@index([organizationId, lastMessageAt])
+  @@index([classBatchId, lastMessageAt])
+}
+
+model TutorMessage {
+  id        String       @id @default(cuid())
+  sessionId String
+  session   TutorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  /** student | sharada */
+  sender    String
+  content   String
+  flags     String[]     @default([])
+  createdAt DateTime     @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+model SafetyAlert {
+  id               String       @id @default(cuid())
+  sessionId        String
+  session          TutorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  messageId        String?
+  studentUserId    String
+  organizationId   String?
+  classBatchId     String?
+  /** distress | harm | inappropriate | academic_dishonesty */
+  category         String
+  /** low | medium | high */
+  severity         String
+  excerpt          String
+  reason           String       @default("")
+  /** open | reviewed | dismissed */
+  status           String       @default("open")
+  notifiedAt       DateTime?
+  reviewedByUserId String?
+  reviewedAt       DateTime?
+  createdAt        DateTime     @default(now())
+
+  @@index([organizationId, status, createdAt])
+  @@index([classBatchId, status])
+  @@index([studentUserId])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String?
+  actorUserId    String
+  actorRole      String
+  action         String
+  targetType     String
+  targetId       String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 model StudentParentLink {

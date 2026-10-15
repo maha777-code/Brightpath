@@ -439,6 +439,44 @@ html[data-theme='light'] :where(
   color: #0e7490 !important;
 }
 
+/* Status tints on the classes, oversight, join and student tutor pages */
+html[data-theme='light'] .mv-roster :where([class*='bg-amber-950'], [class*='bg-amber-500/']) {
+  background-color: #fffbeb !important;
+}
+html[data-theme='light'] .mv-roster :where([class*='bg-rose-950'], [class*='bg-rose-500/']) {
+  background-color: #fff1f2 !important;
+}
+html[data-theme='light'] .mv-roster :where([class*='bg-emerald-950'], [class*='bg-emerald-500/']) {
+  background-color: #ecfdf5 !important;
+}
+html[data-theme='light'] .mv-roster :where([class*='bg-purple-500/']) {
+  background-color: #f5f3ff !important;
+}
+html[data-theme='light'] .mv-roster :where([class*='bg-slate-500/']) {
+  background-color: #f1f5f9 !important;
+}
+html[data-theme='light'] .mv-roster :where([class*='text-amber-'], [class*='text-amber-'] *) {
+  color: #92400e !important;
+}
+html[data-theme='light'] .mv-roster :where([class*='text-rose-']) {
+  color: #be123c !important;
+}
+html[data-theme='light'] .mv-roster :where([class*='text-emerald-']) {
+  color: #047857 !important;
+}
+html[data-theme='light'] .mv-roster :where([class*='text-purple-']) {
+  color: #6d28d9 !important;
+}
+html[data-theme='light'] .mv-roster :where([class*='border-amber-']) {
+  border-color: #fcd34d !important;
+}
+html[data-theme='light'] .mv-roster :where([class*='border-rose-']) {
+  border-color: #fda4af !important;
+}
+html[data-theme='light'] .mv-roster .bg-amber-400 {
+  color: #1f1300 !important;
+}
+
 html[data-theme='light'] :where(textarea, select, input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='button']):not([type='submit'])) {
   background-color: #ffffff;
   color: #0f172a;

@@ -1,9 +1,15 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { PolicyLayout } from '@/components/PolicyLayout';
 
 const CONTACT_EMAIL = 'qxicybertech.helpcenter@gmail.com';
 
 export default function PrivacyPolicy() {
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+  }, [hash]);
+
   return (
     <PolicyLayout lastUpdated="October 2026" title="Privacy Policy">
       <section className="space-y-3">
@@ -81,9 +87,58 @@ export default function PrivacyPolicy() {
         </ul>
       </section>
 
+      <section id="sharada-conversations" className="scroll-mt-24 space-y-3">
+        <h2 className="border-b border-slate-800 pb-2 text-2xl font-bold text-white">
+          5. Student Conversations with Sharada
+        </h2>
+        <p>
+          When a student uses the Sharada study tutor from a student account, MindVault stores the
+          conversation so that the adults responsible for the student's learning can support them.
+          Students see a notice inside the chat explaining this.
+        </p>
+        <ul className="list-disc space-y-2 pl-6 text-slate-300">
+          <li>
+            <strong className="text-white">What we store:</strong> each message the student sends,
+            each reply from Sharada, the time it was sent, the class it relates to, and a short
+            summary with the subject, chapter and topic.
+          </li>
+          <li>
+            <strong className="text-white">Who can read it:</strong> the teachers or tutors of the
+            classes the student has joined, and administrators of the school or academy that runs
+            those classes. Other students and other organizations cannot see it. Parents do not see
+            transcripts through MindVault.
+          </li>
+          <li>
+            <strong className="text-white">Safety alerts:</strong> messages are checked automatically
+            for signs of distress, self-harm, threats of harm, bullying, inappropriate content, or
+            academic dishonesty. A flagged message creates an alert for the student's teachers and
+            school administrators, and the most serious alerts are also sent to them by email so a
+            trusted adult can check in. Automatic checks can miss things or flag harmless messages;
+            they do not replace a teacher's judgement or emergency services.
+          </li>
+          <li>
+            <strong className="text-white">Student profile:</strong> teachers and administrators may
+            record a student's grade, curriculum board, preferred language, reading level, learning
+            preferences, and support needs (for example an IEP or 504 plan). Sharada uses this to pitch
+            explanations at the right level. It is visible only to the student's teachers and
+            administrators.
+          </li>
+          <li>
+            <strong className="text-white">Access log:</strong> every time a teacher or administrator
+            opens a student's transcript, and every change to rosters, profiles or alerts, is recorded
+            in an audit log with who did it and when.
+          </li>
+          <li>
+            <strong className="text-white">Retention:</strong> conversations are kept with the
+            student's account until the account is deleted, or until the school, academy or account
+            holder asks us to delete them.
+          </li>
+        </ul>
+      </section>
+
       <section className="space-y-3">
         <h2 className="border-b border-slate-800 pb-2 text-2xl font-bold text-white">
-          5. Data Sharing & Disclosure
+          6. Data Sharing & Disclosure
         </h2>
         <p>
           MindVault will <strong className="text-white">never sell, rent, or monetize</strong> personal
@@ -102,7 +157,7 @@ export default function PrivacyPolicy() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="border-b border-slate-800 pb-2 text-2xl font-bold text-white">6. Security Safeguards</h2>
+        <h2 className="border-b border-slate-800 pb-2 text-2xl font-bold text-white">7. Security Safeguards</h2>
         <p>
           We protect institutional records with HTTPS (TLS) encryption in transit, encryption at rest
           by our managed hosting providers, hashed passwords, and strict role-based access
@@ -112,7 +167,7 @@ export default function PrivacyPolicy() {
 
       <section className="space-y-3">
         <h2 className="border-b border-slate-800 pb-2 text-2xl font-bold text-white">
-          7. User Rights & Data Retention
+          8. User Rights & Data Retention
         </h2>
         <p>
           Educators, school administrators, and individuals have the right to inspect, correct,
@@ -122,7 +177,7 @@ export default function PrivacyPolicy() {
       </section>
 
       <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/80 p-6">
-        <h2 className="text-2xl font-bold text-white">8. Contact Us & Data Requests</h2>
+        <h2 className="text-2xl font-bold text-white">9. Contact Us & Data Requests</h2>
         <p>
           If you have any questions regarding this Privacy Policy, wish to execute a Data Privacy
           Agreement (DPA), or request data deletion, please contact us:

@@ -121,7 +121,7 @@ async function parseError(res: Response): Promise<string> {
   return res.statusText || 'Request failed';
 }
 
-async function request<T>(path: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
   let res: Response;
   try {
     res = await apiFetch(path, {

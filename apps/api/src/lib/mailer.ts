@@ -186,6 +186,61 @@ export async function sendProductFeedback(input: {
   });
 }
 
+const ALERT_LABEL: Record<string, string> = {
+  distress: 'Possible distress or self-harm',
+  harm: 'Possible threat of harm',
+  inappropriate: 'Inappropriate content',
+  academic_dishonesty: 'Possible academic dishonesty',
+};
+
+/** Returns false when no mail transport is configured; alerts still show on the dashboard. */
+export async function sendSafetyAlertEmail(input: {
+  to: string[];
+  studentName: string;
+  category: string;
+  reason: string;
+  excerpt: string;
+}): Promise<boolean> {
+  const mailer = getContactTransporter();
+  if (!mailer || input.to.length === 0) {
+    console.warn('[email:safety-alert] not sent (mail not configured)', { category: input.category });
+    return false;
+  }
+  const fromUser = process.env.GMAIL_USER ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? CONTACT_INBOX;
+  const appUrl = (process.env.APP_URL ?? 'https://mindvault.academy').replace(/\/+$/, '');
+  const label = ALERT_LABEL[input.category] ?? 'Safety alert';
+  const link = `${appUrl}/sharada-oversight`;
+  await mailer.sendMail({
+    from: `"MindVault Safety Alerts" <${fromUser}>`,
+    to: fromUser,
+    bcc: input.to,
+    subject: `[MindVault] ${label}: ${input.studentName.replace(/[\r\n]+/g, ' ').slice(0, 80)}`,
+    text: [
+      `${label} in a Sharada conversation.`,
+      '',
+      `Student: ${input.studentName}`,
+      `Why it was flagged: ${input.reason}`,
+      `Message excerpt: "${input.excerpt}"`,
+      '',
+      `Review the full conversation: ${link}`,
+      '',
+      'Please follow your school’s safeguarding procedure.',
+    ].join('\n'),
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #0f172a; padding: 24px; max-width: 600px;">
+        <h2 style="color: #b91c1c; margin: 0 0 12px;">${escapeHtml(label)}</h2>
+        <p><strong>Student:</strong> ${escapeHtml(input.studentName)}</p>
+        <p><strong>Why it was flagged:</strong> ${escapeHtml(input.reason)}</p>
+        <p><strong>Message excerpt:</strong></p>
+        <blockquote style="border-left: 4px solid #f87171; margin: 0; padding: 8px 12px; background: #fef2f2;">${escapeHtml(input.excerpt)}</blockquote>
+        <p style="margin-top: 20px;"><a href="${link}" style="color: #0e7490; font-weight: bold;">Review the full conversation</a></p>
+        <p style="color: #475569; font-size: 13px;">Please follow your school’s safeguarding procedure.</p>
+      </div>
+    `,
+  });
+  return true;
+}
+
 export async function sendNewsletterSubscription(email: string): Promise<void> {
   const mailer = getContactTransporter();
   if (!mailer) {

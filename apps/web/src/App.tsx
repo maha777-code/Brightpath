@@ -46,6 +46,10 @@ import SecurityOverview from '@/pages/SecurityOverview';
 import CookiePreferences from '@/pages/CookiePreferences';
 import ContactUs from '@/pages/ContactUs';
 import ComparePage from '@/pages/ComparePage';
+import ClassesRoster from '@/pages/ClassesRoster';
+import SharadaOversight from '@/pages/SharadaOversight';
+import StudentSharada from '@/pages/StudentSharada';
+import JoinClass from '@/pages/JoinClass';
 import { ToolAccessGate } from '@/components/tools/ToolAccessGate';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
@@ -57,8 +61,12 @@ function RequireRole({
   children: React.ReactNode;
 }) {
   const { role, loading, homePath } = useAuth();
+  const location = useLocation();
   if (loading) return <div className="app-loading"><div className="loader" /></div>;
-  if (!role || !isAppRole(role) || !roles.includes(role)) {
+  if (!role) {
+    return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
+  }
+  if (!isAppRole(role) || !roles.includes(role)) {
     return <Navigate to={homePath === '/login' ? '/login' : homePath} replace />;
   }
   return <>{children}</>;
@@ -173,6 +181,31 @@ export default function App() {
         <Route path="/cookie-preferences" element={<CookiePreferences />} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/compare" element={<ComparePage />} />
+        <Route path="/join/:code" element={<JoinClass />} />
+        <Route
+          path="/classes"
+          element={
+            <RequireRole roles={['teacher', 'org_admin', 'center_admin']}>
+              <ClassesRoster />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/sharada-oversight"
+          element={
+            <RequireRole roles={['teacher', 'org_admin', 'center_admin']}>
+              <SharadaOversight />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/student/sharada"
+          element={
+            <RequireRole roles={['student']}>
+              <StudentSharada />
+            </RequireRole>
+          }
+        />
 
         <Route
           path="/admin/dashboard"

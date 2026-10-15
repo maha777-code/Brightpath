@@ -24,6 +24,7 @@ import { AcademySettingsBilling } from '@/components/academy/AcademySettingsBill
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 import { ProfileSettingsMenu } from '@/components/profile/ProfileSettingsMenu';
+import { ClassroomLinks } from '@/components/roster/ClassroomLinks';
 
 type Panel = 'home' | 'tools' | 'people' | 'courses' | 'analytics' | 'settings';
 
@@ -164,6 +165,7 @@ export default function CenterDashboard() {
             {panel === 'people' ? (
               <section className="space-y-4">
                 <StatGrid stats={stats} />
+                <ClassroomLinks academy />
                 <button
                   type="button"
                   disabled={!subActive}

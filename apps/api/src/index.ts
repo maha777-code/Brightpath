@@ -25,6 +25,8 @@ import topicsRoutes from './routes/topics.js';
 import contactRoutes from './routes/contact.js';
 import feedbackRoutes from './routes/feedback.js';
 import subscribeRoutes from './routes/subscribe.js';
+import rosterRoutes from './routes/roster.js';
+import sharadaTutorRoutes from './routes/sharadaTutor.js';
 import { ensureDatabaseSchema } from './lib/ensureDatabaseSchema.js';
 import { ensureDemoTeacher } from './lib/ensureDemoTeacher.js';
 import { prisma } from './lib/prisma.js';
@@ -145,6 +147,8 @@ app.use('/topics', topicsRoutes);
 app.use('/contact', contactRoutes);
 app.use('/feedback', feedbackRoutes);
 app.use('/subscribe', subscribeRoutes);
+app.use('/roster', rosterRoutes);
+app.use('/sharada', sharadaTutorRoutes);
 
 app.use(
   (

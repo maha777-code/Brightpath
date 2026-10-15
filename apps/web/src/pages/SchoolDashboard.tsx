@@ -9,6 +9,7 @@ import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
 import { ProfileSettingsMenu } from '@/components/profile/ProfileSettingsMenu';
 import { RoleToolsPanel } from '@/components/tools/RoleToolsPanel';
+import { ClassroomLinks } from '@/components/roster/ClassroomLinks';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 
 export default function SchoolDashboard() {
@@ -113,6 +114,8 @@ export default function SchoolDashboard() {
               );
             })}
           </div>
+
+          <ClassroomLinks />
 
           <div className="w-full space-y-5">
             <div>
