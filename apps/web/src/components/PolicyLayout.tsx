@@ -8,15 +8,17 @@ const BACK_CLASS =
 export function PolicyLayout({
   title,
   lastUpdated,
+  wide = false,
   children,
 }: {
   title: string;
   lastUpdated: string;
+  wide?: boolean;
   children: ReactNode;
 }) {
   return (
     <div className="bp-policy min-h-screen bg-slate-950 px-4 py-16 text-slate-200 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-4xl space-y-8 rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] backdrop-blur-xl md:p-12">
+      <div className={`mx-auto w-full ${wide ? 'md:relative md:left-1/2 md:mx-0 md:w-[80vw] md:-translate-x-1/2' : 'max-w-4xl'} space-y-8 rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] backdrop-blur-xl md:p-12`}>
         <div className="border-b border-slate-800 pb-6">
           <Link to="/" className={BACK_CLASS}>
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />

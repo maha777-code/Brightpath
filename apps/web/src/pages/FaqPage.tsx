@@ -4,7 +4,7 @@ import { FaqList } from '@/components/landing/FaqList';
 
 export default function FaqPage() {
   return (
-    <PolicyLayout title="Frequently asked questions" lastUpdated="October 2026">
+    <PolicyLayout title="Frequently asked questions" lastUpdated="October 2026" wide>
       <p>Straight answers on privacy, accuracy, cheating and cost.</p>
 
       <FaqList />
