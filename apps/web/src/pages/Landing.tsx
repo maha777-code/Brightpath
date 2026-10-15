@@ -8,9 +8,11 @@ import { ThemeToggle } from '@/context/ColorTheme';
 import { CardStackSection } from '@/components/CardStackSection';
 import { CtaBanner } from '@/components/CtaBanner';
 import { Footer } from '@/components/Footer';
-import { FaqSection } from '@/components/landing/FaqSection';
 import { PricingPreview } from '@/components/landing/PricingPreview';
 import { TrustSection } from '@/components/landing/TrustSection';
+import { HeroRotatingWord } from '@/components/landing/HeroRotatingWord';
+
+const HERO_AUDIENCES = ['teachers', 'schools', 'students', 'parents'] as const;
 
 const SUBJECTS = [
   {
@@ -407,6 +409,12 @@ export default function Landing() {
               Compare
             </Link>
             <Link
+              to="/faq"
+              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
+            >
+              FAQs
+            </Link>
+            <Link
               to="/contact"
               className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
             >
@@ -437,11 +445,13 @@ export default function Landing() {
             </div>
             <div className="bp-hero-copy order-1 flex w-full flex-col items-start space-y-6 text-left lg:col-span-7 lg:order-2">
               <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl lg:text-6xl">
-                The AI teaching assistant that follows your syllabus
+                <span className="sr-only">The AI teaching assistant for teachers, schools, students and parents</span>
+                <span aria-hidden="true">The AI teaching assistant for</span>{' '}
+                <HeroRotatingWord words={HERO_AUDIENCES} />
               </h1>
               <p className="max-w-3xl text-xl font-normal leading-relaxed text-slate-200 md:text-2xl">
-                Upload your textbook once. Lesson plans, quizzes, worksheets, slides and an AI tutor
-                for students all follow your own chapters, for teachers, schools and families.
+                Save time, teach from your own textbook, and support every student with safe,
+                syllabus-aligned AI.
               </p>
               <div className="flex flex-wrap items-center gap-4">
                 <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--lg">
@@ -451,9 +461,6 @@ export default function Landing() {
                   See Pricing
                 </Link>
               </div>
-              <p className="text-base text-slate-300">
-                Free plan for teachers · Teacher Pro from ₹499/month · Schools from ₹11,999/month
-              </p>
             </div>
           </div>
 
@@ -491,8 +498,6 @@ export default function Landing() {
         <PricingPreview />
 
         <TrustSection />
-
-        <FaqSection />
 
         <CtaBanner startHref={startHref} />
       </main>

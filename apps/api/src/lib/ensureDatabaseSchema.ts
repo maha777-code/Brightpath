@@ -266,6 +266,41 @@ async function ensureRosterAndTutorTables(): Promise<void> {
     )`,
     `CREATE INDEX IF NOT EXISTS "AuditLog_organizationId_createdAt_idx" ON "AuditLog"("organizationId", "createdAt")`,
     `CREATE INDEX IF NOT EXISTS "AuditLog_actorUserId_createdAt_idx" ON "AuditLog"("actorUserId", "createdAt")`,
+    `CREATE TABLE IF NOT EXISTS "PendingRegistration" (
+      "id" TEXT NOT NULL,
+      "email" TEXT NOT NULL,
+      "payload" JSONB NOT NULL,
+      "codeHash" TEXT NOT NULL,
+      "attempts" INTEGER NOT NULL DEFAULT 0,
+      "sendCount" INTEGER NOT NULL DEFAULT 1,
+      "expiresAt" TIMESTAMP(3) NOT NULL,
+      "lastSentAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "PendingRegistration_pkey" PRIMARY KEY ("id")
+    )`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "PendingRegistration_email_key" ON "PendingRegistration"("email")`,
+    `CREATE TABLE IF NOT EXISTS "AccountInvite" (
+      "id" TEXT NOT NULL,
+      "tokenHash" TEXT NOT NULL,
+      "email" TEXT NOT NULL,
+      "name" TEXT NOT NULL,
+      "role" TEXT NOT NULL,
+      "organizationId" TEXT,
+      "classBatchId" TEXT,
+      "invitedByUserId" TEXT NOT NULL,
+      "profile" JSONB,
+      "status" TEXT NOT NULL DEFAULT 'pending',
+      "expiresAt" TIMESTAMP(3) NOT NULL,
+      "lastSentAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "acceptedUserId" TEXT,
+      "acceptedAt" TIMESTAMP(3),
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "AccountInvite_pkey" PRIMARY KEY ("id")
+    )`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "AccountInvite_tokenHash_key" ON "AccountInvite"("tokenHash")`,
+    `CREATE INDEX IF NOT EXISTS "AccountInvite_email_status_idx" ON "AccountInvite"("email", "status")`,
+    `CREATE INDEX IF NOT EXISTS "AccountInvite_classBatchId_status_idx" ON "AccountInvite"("classBatchId", "status")`,
+    `CREATE INDEX IF NOT EXISTS "AccountInvite_organizationId_status_idx" ON "AccountInvite"("organizationId", "status")`,
   ];
   for (const sql of statements) {
     await prisma.$executeRawUnsafe(sql);

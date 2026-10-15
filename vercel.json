@@ -5,6 +5,7 @@
   "rewrites": [
     { "source": "/pricing", "destination": "/pricing.html" },
     { "source": "/compare", "destination": "/compare.html" },
+    { "source": "/faq", "destination": "/faq.html" },
     { "source": "/contact", "destination": "/contact.html" },
     { "source": "/security", "destination": "/security.html" },
     { "source": "/privacy", "destination": "/privacy.html" },

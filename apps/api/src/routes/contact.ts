@@ -47,7 +47,7 @@ router.post('/', async (req, res) => {
     if (error instanceof MailerUnconfiguredError) {
       res.status(503).json({
         error:
-          'Email delivery is not configured yet. Please email qxicybertech.helpcenter@gmail.com directly.',
+          'Email delivery is not configured yet. Please email customersupport@mindvault.academy directly.',
       });
       return;
     }

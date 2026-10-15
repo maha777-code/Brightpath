@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail, MapPin } from 'lucide-react';
 import { api } from '@/lib/api';
 
-const CONTACT_EMAIL = 'qxicybertech.helpcenter@gmail.com';
+const CONTACT_EMAIL = 'customersupport@mindvault.academy';
 const BACK_CLASS =
   'bp-auth-back mb-6 inline-flex items-center gap-2.5 rounded-xl border border-cyan-500/30 bg-slate-800/60 px-4 py-2 text-lg font-bold text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all duration-200 hover:-translate-x-1 hover:border-cyan-400 hover:bg-slate-800 hover:text-cyan-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]';
 const fieldClass =

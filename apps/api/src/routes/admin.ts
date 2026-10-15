@@ -1,15 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import bcrypt from 'bcryptjs';
-import { hasFeatureAccess, isOwnerAccess, type AppRole, type PlanType } from '@brightpath/shared';
+import { hasFeatureAccess, isOwnerAccess } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireRoles, type AuthRequest } from '../middleware/auth.js';
-import { randomPassword, toPlatformUser } from '../lib/platformSerializers.js';
-import { sendWelcomeInvite } from '../lib/mailer.js';
-import {
-  initialCurriculumFromDob,
-  parseDobInput,
-} from '../lib/ageCurriculum.js';
+import { toPlatformUser, uniqueInviteCode } from '../lib/platformSerializers.js';
+import { isMailConfigured } from '../lib/mailer.js';
+import { emailInvite, pendingInviteEmails, upsertInvite } from '../lib/accountInvites.js';
 
 const router = Router();
 
@@ -22,6 +18,7 @@ const rowSchema = z.object({
   role: z.enum(['student', 'teacher']),
 });
 
+/** Invites people by email; each account is created only when its owner accepts the emailed link. */
 router.post('/users/bulk-import', async (req: AuthRequest, res) => {
   try {
     if (!hasFeatureAccess(req.planType, 'bulk_csv')) {
@@ -33,13 +30,13 @@ router.post('/users/bulk-import', async (req: AuthRequest, res) => {
       return;
     }
 
-    const schema = z.object({
-      rows: z.array(rowSchema).min(1).max(500),
-      sendInvites: z.boolean().optional().default(true),
-    });
-    const parsed = schema.safeParse(req.body);
+    const parsed = z.object({ rows: z.array(rowSchema).min(1).max(500) }).safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+    if (!isMailConfigured()) {
+      res.status(503).json({ error: 'Email is not set up on the server, so invites cannot be sent.' });
       return;
     }
 
@@ -50,142 +47,71 @@ router.post('/users/bulk-import', async (req: AuthRequest, res) => {
     }
 
     const memberCount = await prisma.platformUser.count({ where: { organizationId: org.id } });
-    if (memberCount + parsed.data.rows.length > org.maxLicenses) {
+    const pending = await pendingInviteEmails(org.id);
+    const extra = new Set(
+      parsed.data.rows.map((r) => r.email.trim().toLowerCase()).filter((email) => !pending.has(email)),
+    ).size;
+    if (memberCount + pending.size + extra > org.maxLicenses) {
       res.status(400).json({
-        error: `Import would exceed license seats (${org.maxLicenses}). Current members: ${memberCount}.`,
+        error: `Import would exceed license seats (${org.maxLicenses}). Current members: ${memberCount}, pending invites: ${pending.size}.`,
       });
       return;
     }
 
-    const created: {
-      email: string;
-      role: string;
-      tempPassword: string;
-      inviteSent: boolean;
-    }[] = [];
+    const invited: { email: string; role: string; inviteSent: boolean }[] = [];
     const skipped: { email: string; reason: string }[] = [];
+    const seen = new Set<string>();
+    const inviterId = req.platformUserId ?? req.user?.id ?? '';
 
     for (const row of parsed.data.rows) {
       const email = row.email.trim().toLowerCase();
-      const existing = await prisma.platformUser.findUnique({ where: { email } });
+      if (seen.has(email)) continue;
+      seen.add(email);
+      const existing = await prisma.platformUser.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+      });
       if (existing) {
         skipped.push({ email, reason: 'Email already registered' });
         continue;
       }
 
-      const tempPassword = randomPassword(12);
-      const passwordHash = await bcrypt.hash(tempPassword, 10);
-      const role = row.role as AppRole;
-
-      if (role === 'teacher') {
-        const planType: PlanType =
-          org.planType === 'school_enterprise' || org.planType === 'tutor_center_pro'
-            ? 'teacher_pro'
-            : 'teacher_free';
-        const teacher = await prisma.teacher.create({
-          data: {
-            email,
-            passwordHash,
-            name: row.name,
-            schoolName: org.name,
-            subjectFocus: 'Science',
-            organizationId: org.id,
-            planType,
-          },
+      let classBatchId: string | null = null;
+      if (row.role === 'student' && row.classGrade) {
+        const existingBatch = await prisma.classBatch.findFirst({
+          where: { organizationId: org.id, name: row.classGrade },
         });
-        await prisma.platformUser.create({
-          data: {
-            email,
-            passwordHash,
-            name: row.name,
-            role: 'teacher',
-            planType,
-            organizationId: org.id,
-            teacherId: teacher.id,
-            subscriptionStatus: org.subscriptionStatus,
-          },
-        });
-      } else {
-        const dob = parseDobInput('2012-06-15');
-        const curriculum = initialCurriculumFromDob(dob);
-        const parentProfile = await prisma.parent.create({
-          data: {
-            email,
-            passwordHash,
-            name: row.name,
-            locale: 'en-IN',
-            dateOfBirth: dob,
-            calculatedAgeGroup: curriculum.calculatedAgeGroup,
-            unlockedSubjects: curriculum.unlockedSubjects,
-          },
-        });
-        await prisma.platformUser.create({
-          data: {
-            email,
-            passwordHash,
-            name: row.name,
-            role: 'student',
-            planType: 'student_pro',
-            organizationId: org.id,
-            parentProfileId: parentProfile.id,
-            subscriptionStatus: org.subscriptionStatus,
-          },
-        });
-
-        if (row.classGrade) {
-          const existingBatch = await prisma.classBatch.findFirst({
-            where: { organizationId: org.id, name: row.classGrade },
-          });
-          let batchId = existingBatch?.id;
-          if (!batchId) {
-            const teacher =
-              (await prisma.teacher.findFirst({ where: { organizationId: org.id } })) ??
-              (req.teacherId
-                ? await prisma.teacher.findUnique({ where: { id: req.teacherId } })
-                : null);
-            if (teacher) {
-              const inviteCode = `C${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-              const batch = await prisma.classBatch.create({
-                data: {
-                  name: row.classGrade,
-                  organizationId: org.id,
-                  teacherId: teacher.id,
-                  inviteCode,
-                },
-              });
-              batchId = batch.id;
-            }
-          }
-          if (batchId) {
-            const student = await prisma.platformUser.findUnique({ where: { email } });
-            if (student) {
-              await prisma.classEnrollment.create({
-                data: { studentUserId: student.id, classBatchId: batchId },
-              });
-            }
+        classBatchId = existingBatch?.id ?? null;
+        if (!classBatchId) {
+          const teacher =
+            (await prisma.teacher.findFirst({ where: { organizationId: org.id } })) ??
+            (req.teacherId ? await prisma.teacher.findUnique({ where: { id: req.teacherId } }) : null);
+          if (teacher) {
+            const inviteCode = await uniqueInviteCode(async (c) =>
+              Boolean(await prisma.classBatch.findUnique({ where: { inviteCode: c } })),
+            );
+            const batch = await prisma.classBatch.create({
+              data: { name: row.classGrade, organizationId: org.id, teacherId: teacher.id, inviteCode },
+            });
+            classBatchId = batch.id;
           }
         }
       }
 
-      let inviteSent = false;
-      if (parsed.data.sendInvites) {
-        const mail = await sendWelcomeInvite({
-          to: email,
-          name: row.name,
-          role: row.role,
-          tempPassword,
-          orgName: org.name,
-        });
-        inviteSent = mail.sent;
-      }
-
-      created.push({ email, role: row.role, tempPassword, inviteSent });
+      const { invite, token } = await upsertInvite({
+        email,
+        name: row.name,
+        role: row.role,
+        organizationId: org.id,
+        classBatchId,
+        invitedByUserId: inviterId,
+      });
+      invited.push({ email, role: row.role, inviteSent: await emailInvite(invite, token) });
     }
 
     res.status(201).json({
-      createdCount: created.length,
+      invitedCount: invited.length,
       skippedCount: skipped.length,
-      created,
+      invited,
       skipped,
       organization: { id: org.id, name: org.name },
     });

@@ -46,10 +46,12 @@ import SecurityOverview from '@/pages/SecurityOverview';
 import CookiePreferences from '@/pages/CookiePreferences';
 import ContactUs from '@/pages/ContactUs';
 import ComparePage from '@/pages/ComparePage';
+import FaqPage from '@/pages/FaqPage';
 import ClassesRoster from '@/pages/ClassesRoster';
 import SharadaOversight from '@/pages/SharadaOversight';
 import StudentSharada from '@/pages/StudentSharada';
 import JoinClass from '@/pages/JoinClass';
+import AcceptInvite from '@/pages/AcceptInvite';
 import { ToolAccessGate } from '@/components/tools/ToolAccessGate';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
@@ -181,7 +183,9 @@ export default function App() {
         <Route path="/cookie-preferences" element={<CookiePreferences />} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/compare" element={<ComparePage />} />
+        <Route path="/faq" element={<FaqPage />} />
         <Route path="/join/:code" element={<JoinClass />} />
+        <Route path="/invite/:token" element={<AcceptInvite />} />
         <Route
           path="/classes"
           element={

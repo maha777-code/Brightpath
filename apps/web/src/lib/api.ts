@@ -242,7 +242,38 @@ import type {
 
 export const api = {
   register: (body: RegisterRequest) =>
-    request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
+    request<{ verificationRequired: true; email: string; expiresInMinutes: number }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  verifyRegistration: (body: { email: string; code: string }) =>
+    request<AuthResponse>('/auth/register/verify', { method: 'POST', body: JSON.stringify(body) }),
+
+  resendRegistrationCode: (email: string) =>
+    request<{ ok: boolean; expiresInMinutes: number }>('/auth/register/resend', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  getInvite: (token: string) =>
+    request<{
+      invite: {
+        email: string;
+        name: string;
+        role: 'student' | 'teacher';
+        organizationName: string | null;
+        className: string | null;
+        inviterName: string | null;
+        accountExists: boolean;
+      };
+    }>(`/invites/${encodeURIComponent(token)}`),
+
+  acceptInvite: (token: string, body: { name?: string; password: string }) =>
+    request<AuthResponse>(`/invites/${encodeURIComponent(token)}/accept`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 
   login: (body: LoginRequest) =>
     request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
@@ -311,12 +342,11 @@ export const api = {
 
   bulkImportUsers: (body: {
     rows: { name: string; email: string; classGrade?: string; role: 'student' | 'teacher' }[];
-    sendInvites?: boolean;
   }) =>
     request<{
-      createdCount: number;
+      invitedCount: number;
       skippedCount: number;
-      created: { email: string; role: string; tempPassword: string; inviteSent: boolean }[];
+      invited: { email: string; role: string; inviteSent: boolean }[];
       skipped: { email: string; reason: string }[];
     }>('/admin/users/bulk-import', { method: 'POST', body: JSON.stringify(body) }),
 

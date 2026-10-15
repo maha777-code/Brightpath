@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { PolicyLayout } from '@/components/PolicyLayout';
 
-const CONTACT_EMAIL = 'qxicybertech.helpcenter@gmail.com';
+const CONTACT_EMAIL = 'customersupport@mindvault.academy';
 
 export default function PrivacyPolicy() {
   const { hash } = useLocation();

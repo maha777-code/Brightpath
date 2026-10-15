@@ -51,9 +51,7 @@ function planHtml(plan: PricingPlan): string {
 }
 
 function faqHtml(): string {
-  return `<section><h2>Questions educators ask us</h2>${FAQ_ITEMS.map(
-    (item) => `<h3>${esc(item.question)}</h3><p>${esc(item.answer)}</p>`,
-  ).join('')}</section>`;
+  return FAQ_ITEMS.map((item) => `<h2>${esc(item.question)}</h2><p>${esc(item.answer)}</p>`).join('');
 }
 
 function trustHtml(): string {
@@ -69,16 +67,15 @@ function comparisonHtml(): string {
 }
 
 const NAV_HTML =
-  '<nav><a href="/">MindVault</a> · <a href="/pricing">Pricing</a> · <a href="/#for-schools">For Schools</a> · <a href="/compare">Compare</a> · <a href="/contact">Contact</a> · <a href="/login">Log in</a> · <a href="/register">Start free</a></nav>';
+  '<nav><a href="/">MindVault</a> · <a href="/pricing">Pricing</a> · <a href="/#for-schools">For Schools</a> · <a href="/compare">Compare</a> · <a href="/faq">FAQs</a> · <a href="/contact">Contact</a> · <a href="/login">Log in</a> · <a href="/register">Start free</a></nav>';
 
 function bodyFor(page: PublicPage): string {
   const previewIds = ['teacher-free', 'teacher-pro', 'tutor-center', 'school'];
   switch (page.path) {
     case '/':
-      return `<h1>The AI teaching assistant that follows your syllabus</h1>
-<p>Upload your textbook once. Lesson plans, quizzes, worksheets, slides and an AI tutor for students all follow your own chapters, for teachers, schools and families.</p>
+      return `<h1>The AI teaching assistant for teachers, schools, students and parents</h1>
+<p>Save time, teach from your own textbook, and support every student with safe, syllabus-aligned AI.</p>
 <p><a href="/register">Start free</a> · <a href="/pricing">See pricing</a> · <a href="/contact">Book a school walkthrough</a></p>
-<p>Free plan for teachers · Teacher Pro from ₹499/month · Schools from ₹11,999/month</p>
 <section><h2>11 AI tools for teachers</h2><ul>${TEACHER_TOOL_NAMES.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
 <p>New in beta: upload a PDF and get a gamified video or class activity.</p></section>
 <section id="for-schools"><h2>For schools and academies</h2><p>One platform for teachers, students and parents, aligned to your own textbooks: admin dashboard and analytics, role-based access with invite codes, your school’s name and branding, and a staff walkthrough on rollout. School campus plans start at ₹11,999/month billed yearly.</p><p><a href="/contact">Book a school walkthrough</a></p></section>
@@ -86,7 +83,9 @@ function bodyFor(page: PublicPage): string {
 <section id="for-students"><h2>For students and parents</h2><p>An AI tutor for any subject, videos, quizzes and activities, and progress tracking for parents, in English, Hindi and Arabic. Student Basic and Parent Basic are free; Student Pro is ₹149/month billed yearly.</p><p><a href="/register">Start learning free</a></p></section>
 <section id="pricing"><h2>Simple, published pricing</h2>${PRICING_PLANS.filter((p) => previewIds.includes(p.id)).map(planHtml).join('')}<p><a href="/pricing">See every plan</a></p></section>
 ${trustHtml()}
-${faqHtml()}`;
+<p><a href="/faq">Frequently asked questions</a></p>`;
+    case '/faq':
+      return `<h1>Frequently asked questions</h1><p>Straight answers on privacy, accuracy, cheating and cost.</p>${faqHtml()}<p>Still have a question? <a href="/contact">Contact us</a>.</p>`;
     case '/pricing':
       return `<h1>A plan for every role</h1><p>Every MindVault plan and price, in INR and USD. All AI tools are free to start; only the Curriculum & Textbook Studio needs Pro.</p>${PRICING_PLANS.map(planHtml).join('')}<p>Questions about a school rollout? <a href="/contact">Contact us</a>.</p>`;
     case '/compare':
@@ -136,7 +135,8 @@ function structuredData(page: PublicPage): object[] {
       acceptedAnswer: { '@type': 'Answer', text: item.answer },
     })),
   };
-  if (page.path === '/') return [organization, app, faq];
+  if (page.path === '/') return [organization, app];
+  if (page.path === '/faq') return [organization, faq];
   if (page.path === '/pricing') return [organization, app];
   return [organization];
 }

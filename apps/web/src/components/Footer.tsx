@@ -18,7 +18,7 @@ const TOOL_LINKS = [
 ];
 
 const RESOURCE_LINKS = [
-  { label: 'FAQ', href: '/#faq' },
+  { label: 'FAQs', href: '/faq' },
   { label: 'Security Overview', href: '/security' },
   { label: 'Privacy Policy', href: '/privacy' },
   { label: 'Help & Support', href: '/contact' },

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { PolicyLayout } from '@/components/PolicyLayout';
 
-const CONTACT_EMAIL = 'qxicybertech.helpcenter@gmail.com';
+const CONTACT_EMAIL = 'customersupport@mindvault.academy';
 
 export default function TermsOfService() {
   return (

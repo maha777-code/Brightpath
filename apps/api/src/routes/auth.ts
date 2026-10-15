@@ -1,6 +1,8 @@
 import { Router, type Request, type Response } from 'express';
+import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
 import {
   AGE_GROUPS,
   LOCALES,
@@ -19,6 +21,7 @@ import {
   toParentUser,
 } from '../lib/ageCurriculum.js';
 import { toTeacherUser } from '../lib/teacherSerializers.js';
+import { isMailConfigured, sendVerificationCodeEmail } from '../lib/mailer.js';
 import {
   DB_UNREACHABLE_MESSAGE,
   SCHEMA_OUTDATED_MESSAGE,
@@ -103,27 +106,199 @@ const ageSettingsSchema = z
   });
 
 async function emailTaken(email: string): Promise<string | null> {
-  if (await prisma.platformUser.findUnique({ where: { email } })) return 'Email already registered';
-  if (await prisma.teacher.findUnique({ where: { email } })) return 'Email already registered';
-  if (await prisma.parent.findUnique({ where: { email } })) return 'Email already registered';
+  const match = { email: { equals: email, mode: 'insensitive' as const } };
+  if (await prisma.platformUser.findFirst({ where: match })) return 'Email already registered';
+  if (await prisma.teacher.findFirst({ where: match })) return 'Email already registered';
+  if (await prisma.parent.findFirst({ where: match })) return 'Email already registered';
   return null;
 }
 
-async function registerUnified(req: Request, res: Response) {
+type RegisterData = Omit<z.infer<typeof registerSchema>, 'password'>;
+type PendingPayload = { data: RegisterData; passwordHash: string };
+
+const CODE_TTL_MS = 15 * 60_000;
+const RESEND_COOLDOWN_MS = 60_000;
+const MAX_CODE_ATTEMPTS = 5;
+const MAX_CODE_SENDS = 6;
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+const newVerificationCode = () => randomInt(0, 1_000_000).toString().padStart(6, '0');
+const hashVerificationCode = (email: string, code: string) =>
+  createHash('sha256').update(`${email}:${code}`).digest('hex');
+
+function codesMatch(expectedHash: string, email: string, code: string) {
+  const a = Buffer.from(expectedHash, 'hex');
+  const b = Buffer.from(hashVerificationCode(email, code), 'hex');
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/** Step 1: validate the signup, hold it, and email a code. No account exists until the code is verified. */
+async function startRegistration(req: Request, res: Response) {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.flatten() });
     return;
   }
-
-  const data = parsed.data;
-  const taken = await emailTaken(data.email);
-  if (taken) {
-    res.status(409).json({ error: taken });
-    return;
+  const { password, ...rest } = parsed.data;
+  const data: RegisterData = { ...rest, email: normalizeEmail(rest.email) };
+  if (data.role === 'student') {
+    try {
+      parseDobInput(data.dateOfBirth!);
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Invalid dateOfBirth' });
+      return;
+    }
   }
 
-  const passwordHash = await bcrypt.hash(data.password, 12);
+  try {
+    const taken = await emailTaken(data.email);
+    if (taken) {
+      res.status(409).json({ error: taken });
+      return;
+    }
+    if (!isMailConfigured()) {
+      res.status(503).json({ error: 'Email verification is not available right now, so new accounts cannot be created. Please try again later.' });
+      return;
+    }
+
+    const existing = await prisma.pendingRegistration.findUnique({ where: { email: data.email } });
+    if (existing && Date.now() - existing.lastSentAt.getTime() < RESEND_COOLDOWN_MS) {
+      res.status(429).json({ error: 'A code was just sent to this email. Please wait a minute before asking for another.' });
+      return;
+    }
+
+    const code = newVerificationCode();
+    const payload: PendingPayload = { data, passwordHash: await bcrypt.hash(password, 12) };
+    const fields = {
+      payload: payload as unknown as Prisma.InputJsonValue,
+      codeHash: hashVerificationCode(data.email, code),
+      attempts: 0,
+      sendCount: 1,
+      expiresAt: new Date(Date.now() + CODE_TTL_MS),
+      lastSentAt: new Date(),
+    };
+    await prisma.pendingRegistration.upsert({
+      where: { email: data.email },
+      create: { email: data.email, ...fields },
+      update: fields,
+    });
+
+    try {
+      await sendVerificationCodeEmail({ to: data.email, name: data.name, code });
+    } catch (err) {
+      console.error('Verification email failed:', err instanceof Error ? err.message : err);
+      await prisma.pendingRegistration.deleteMany({ where: { email: data.email } });
+      res.status(502).json({ error: 'We could not send a code to that email. Check the address and try again.' });
+      return;
+    }
+
+    res.status(202).json({ verificationRequired: true, email: data.email, expiresInMinutes: CODE_TTL_MS / 60_000 });
+  } catch (err) {
+    console.error('Register start failed:', err);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+}
+
+router.post('/register/resend', async (req, res) => {
+  const parsed = z.object({ email: z.string().email() }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+  const email = normalizeEmail(parsed.data.email);
+  try {
+    const pending = await prisma.pendingRegistration.findUnique({ where: { email } });
+    if (!pending) {
+      res.status(404).json({ error: 'No sign-up is waiting for this email. Please start again.' });
+      return;
+    }
+    if (Date.now() - pending.lastSentAt.getTime() < RESEND_COOLDOWN_MS) {
+      res.status(429).json({ error: 'Please wait a minute before asking for another code.' });
+      return;
+    }
+    if (pending.sendCount >= MAX_CODE_SENDS) {
+      res.status(429).json({ error: 'Too many codes were requested. Please start sign-up again later.' });
+      return;
+    }
+    const code = newVerificationCode();
+    await prisma.pendingRegistration.update({
+      where: { email },
+      data: {
+        codeHash: hashVerificationCode(email, code),
+        attempts: 0,
+        sendCount: { increment: 1 },
+        expiresAt: new Date(Date.now() + CODE_TTL_MS),
+        lastSentAt: new Date(),
+      },
+    });
+    const payload = pending.payload as unknown as PendingPayload;
+    await sendVerificationCodeEmail({ to: email, name: payload.data.name, code });
+    res.json({ ok: true, expiresInMinutes: CODE_TTL_MS / 60_000 });
+  } catch (err) {
+    console.error('Register resend failed:', err);
+    res.status(502).json({ error: 'We could not send a new code. Please try again.' });
+  }
+});
+
+/** Step 2: the emailed code proves the address, so the account is created now. */
+router.post('/register/verify', async (req, res) => {
+  const parsed = z
+    .object({ email: z.string().email(), code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code from the email.') })
+    .safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+  const email = normalizeEmail(parsed.data.email);
+  try {
+    const pending = await prisma.pendingRegistration.findUnique({ where: { email } });
+    if (!pending) {
+      res.status(404).json({ error: 'No sign-up is waiting for this email. Please start again.' });
+      return;
+    }
+    if (pending.expiresAt.getTime() < Date.now()) {
+      res.status(410).json({ error: 'This code has expired. Ask for a new code.' });
+      return;
+    }
+    if (pending.attempts >= MAX_CODE_ATTEMPTS) {
+      res.status(429).json({ error: 'Too many incorrect codes. Ask for a new code.' });
+      return;
+    }
+    if (!codesMatch(pending.codeHash, email, parsed.data.code)) {
+      const updated = await prisma.pendingRegistration.update({
+        where: { email },
+        data: { attempts: { increment: 1 } },
+      });
+      const left = MAX_CODE_ATTEMPTS - updated.attempts;
+      res.status(400).json({
+        error: left > 0 ? `That code is not right. ${left} attempt${left === 1 ? '' : 's'} left.` : 'Too many incorrect codes. Ask for a new code.',
+      });
+      return;
+    }
+
+    const taken = await emailTaken(email);
+    if (taken) {
+      await prisma.pendingRegistration.deleteMany({ where: { email } });
+      res.status(409).json({ error: taken });
+      return;
+    }
+    const payload = pending.payload as unknown as PendingPayload;
+    const { id: _id, ...restore } = pending;
+    await prisma.pendingRegistration.delete({ where: { email } });
+    const created = await createRegisteredAccount({ ...payload.data, email }, payload.passwordHash, res);
+    if (!created) {
+      await prisma.pendingRegistration
+        .create({ data: { ...restore, payload: restore.payload as Prisma.InputJsonValue } })
+        .catch(() => undefined);
+    }
+  } catch (err) {
+    console.error('Register verify failed:', err);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+/** Writes the signup response and returns whether the account was created. */
+async function createRegisteredAccount(data: RegisterData, passwordHash: string, res: Response): Promise<boolean> {
   const role = data.role as AppRole;
   let planType = (data.planType ?? DEFAULT_PLAN_FOR_ROLE[role]) as PlanType;
 
@@ -173,7 +348,7 @@ async function registerUnified(req: Request, res: Response) {
         user: toPlatformUser(updated),
         organization: toOrganization(org),
       });
-      return;
+      return true;
     }
 
     if (role === 'teacher') {
@@ -212,7 +387,7 @@ async function registerUnified(req: Request, res: Response) {
         user: toPlatformUser(user),
         teacher: teacherPublic,
       });
-      return;
+      return true;
     }
 
     if (role === 'parent') {
@@ -252,7 +427,7 @@ async function registerUnified(req: Request, res: Response) {
         user: toPlatformUser(user),
         parent: toParentUser(parentProfile),
       });
-      return;
+      return true;
     }
 
     // student
@@ -262,7 +437,7 @@ async function registerUnified(req: Request, res: Response) {
       dob = parseDobInput(data.dateOfBirth!);
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : 'Invalid dateOfBirth' });
-      return;
+      return false;
     }
     const curriculum = initialCurriculumFromDob(dob);
     const parentProfile = await prisma.parent.create({
@@ -329,14 +504,16 @@ async function registerUnified(req: Request, res: Response) {
         currentAge: curriculum.age,
       },
     });
+    return true;
   } catch (err) {
     console.error('Register failed:', err);
     res.status(500).json({ error: 'Registration failed' });
+    return false;
   }
 }
 
-router.post('/register', registerUnified);
-router.post('/signup', registerUnified);
+router.post('/register', startRegistration);
+router.post('/signup', startRegistration);
 
 router.post('/login', async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
@@ -347,7 +524,9 @@ router.post('/login', async (req, res) => {
   const { email, password } = parsed.data;
 
   try {
-    let platform = await prisma.platformUser.findUnique({ where: { email } });
+    let platform =
+      (await prisma.platformUser.findUnique({ where: { email } })) ??
+      (await prisma.platformUser.findUnique({ where: { email: normalizeEmail(email) } }));
 
     // Auto-heal: if legacy Teacher/Parent exists but PlatformUser missing, migrate once
     if (!platform) {
@@ -476,7 +655,7 @@ router.post('/teacher/login', async (req, res) => {
 
 router.post('/teacher/register', async (req, res) => {
   req.body = { ...req.body, role: 'teacher' };
-  return registerUnified(req, res);
+  return startRegistration(req, res);
 });
 
 router.get('/teacher/me', requireRoles('teacher'), async (req: AuthRequest, res) => {

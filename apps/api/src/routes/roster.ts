@@ -1,11 +1,17 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import type { PlanType } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { requireRoles, type AuthRequest } from '../middleware/auth.js';
 import { uniqueInviteCode } from '../lib/platformSerializers.js';
-import { sendWelcomeInvite } from '../lib/mailer.js';
-import { createStudentAccount } from '../lib/studentAccounts.js';
+import { isMailConfigured } from '../lib/mailer.js';
+import {
+  INVITE_RESEND_COOLDOWN_MS,
+  emailInvite,
+  pendingInviteEmails,
+  refreshInviteToken,
+  serializeInvite,
+  upsertInvite,
+} from '../lib/accountInvites.js';
 import {
   canSeeStudent,
   classScope,
@@ -370,7 +376,12 @@ router.get('/classes/:id/students', async (req: AuthRequest, res) => {
       })
     : [];
   const alertMap = new Map(openAlerts.map((row) => [row.studentUserId, row._count._all]));
+  const invites = await prisma.accountInvite.findMany({
+    where: { classBatchId: batch.id, status: 'pending' },
+    orderBy: { createdAt: 'desc' },
+  });
   res.json({
+    invites: invites.map(serializeInvite),
     students: enrollments.map((e) => ({
       id: e.studentUser.id,
       name: e.studentUser.name,
@@ -410,7 +421,7 @@ router.post('/classes/:id/students/import', async (req: AuthRequest, res) => {
       return;
     }
     const parsed = z
-      .object({ rows: z.array(importRow).min(1).max(500), sendInvites: z.boolean().optional().default(true) })
+      .object({ rows: z.array(importRow).min(1).max(500) })
       .safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.flatten() });
@@ -421,21 +432,31 @@ router.post('/classes/:id/students/import', async (req: AuthRequest, res) => {
       : null;
 
     const emails = [...new Set(parsed.data.rows.map((r) => r.email.toLowerCase()))];
-    const existing = await prisma.platformUser.findMany({ where: { email: { in: emails } } });
-    const existingByEmail = new Map(existing.map((u) => [u.email, u]));
-    const newCount = emails.filter((e) => !existingByEmail.has(e)).length;
+    const existing = await prisma.platformUser.findMany({
+      where: { OR: emails.map((email) => ({ email: { equals: email, mode: 'insensitive' as const } })) },
+    });
+    const existingByEmail = new Map(existing.map((u) => [u.email.toLowerCase(), u]));
+    const newEmails = emails.filter((e) => !existingByEmail.has(e));
+    if (newEmails.length && !isMailConfigured()) {
+      res.status(503).json({
+        error: 'Email is not set up on the server, so invites cannot be sent. Students who already have an account can still be added.',
+      });
+      return;
+    }
     if (org) {
       const memberCount = await prisma.platformUser.count({ where: { organizationId: org.id } });
-      if (memberCount + newCount > org.maxLicenses) {
+      const pending = await pendingInviteEmails(org.id);
+      const extra = newEmails.filter((e) => !pending.has(e)).length;
+      const used = memberCount + pending.size;
+      if (used + extra > org.maxLicenses) {
         res.status(400).json({
-          error: `This import needs ${newCount} new seat(s), but only ${Math.max(0, org.maxLicenses - memberCount)} of ${org.maxLicenses} are free.`,
+          error: `This import needs ${extra} new seat(s), but only ${Math.max(0, org.maxLicenses - used)} of ${org.maxLicenses} are free (pending invites hold a seat).`,
         });
         return;
       }
     }
 
-    const planType: PlanType = org ? 'student_pro' : 'student_free';
-    const created: { name: string; email: string; tempPassword: string; inviteSent: boolean }[] = [];
+    const invited: { name: string; email: string; inviteSent: boolean }[] = [];
     const enrolledExisting: { name: string; email: string }[] = [];
     const skipped: { email: string; reason: string }[] = [];
     const seen = new Set<string>();
@@ -444,75 +465,104 @@ router.post('/classes/:id/students/import', async (req: AuthRequest, res) => {
       const email = row.email.toLowerCase();
       if (seen.has(email)) continue;
       seen.add(email);
-      let studentId: string;
-      const prior = existingByEmail.get(email);
-      try {
-        if (prior) {
-          if (prior.role !== 'student') {
-            skipped.push({ email, reason: `Already registered as ${prior.role}` });
-            continue;
-          }
-          studentId = prior.id;
-          if (!prior.organizationId && batch.organizationId) {
-            await prisma.platformUser.update({ where: { id: prior.id }, data: { organizationId: batch.organizationId } });
-          }
-          enrolledExisting.push({ name: prior.name ?? row.name, email });
-        } else {
-          const account = await createStudentAccount({
-            name: row.name,
-            email,
-            organizationId: batch.organizationId,
-            planType,
-            subscriptionStatus: org?.subscriptionStatus,
-          });
-          studentId = account.user.id;
-          let inviteSent = false;
-          if (parsed.data.sendInvites) {
-            const mail = await sendWelcomeInvite({
-              to: email,
-              name: row.name,
-              role: 'student',
-              tempPassword: account.tempPassword,
-              orgName: org?.name,
-            }).catch(() => ({ sent: false }));
-            inviteSent = mail.sent;
-          }
-          created.push({ name: row.name, email, tempPassword: account.tempPassword, inviteSent });
-        }
-      } catch (err) {
-        skipped.push({ email, reason: err instanceof Error && /Unique/i.test(err.message) ? 'Email already in use' : 'Could not create account' });
-        continue;
-      }
-
-      await prisma.classEnrollment.upsert({
-        where: { studentUserId_classBatchId: { studentUserId: studentId, classBatchId: batch.id } },
-        create: { studentUserId: studentId, classBatchId: batch.id },
-        update: {},
-      });
       const profileData = {
         ...(row.gradeLevel ? { gradeLevel: row.gradeLevel } : {}),
         ...(row.board ? { board: row.board } : {}),
         ...(row.preferredLanguage ? { preferredLanguage: row.preferredLanguage } : {}),
       };
-      if (Object.keys(profileData).length) {
-        await prisma.studentProfile.upsert({
-          where: { studentUserId: studentId },
-          create: { studentUserId: studentId, ...profileData },
-          update: profileData,
+      const prior = existingByEmail.get(email);
+      try {
+        if (!prior) {
+          const { invite, token } = await upsertInvite({
+            email,
+            name: row.name,
+            role: 'student',
+            organizationId: batch.organizationId,
+            classBatchId: batch.id,
+            invitedByUserId: actor.userId,
+            profile: profileData,
+          });
+          invited.push({ name: row.name, email, inviteSent: await emailInvite(invite, token) });
+          continue;
+        }
+        if (prior.role !== 'student') {
+          skipped.push({ email, reason: `Already registered as ${prior.role}` });
+          continue;
+        }
+        if (!prior.organizationId && batch.organizationId) {
+          await prisma.platformUser.update({ where: { id: prior.id }, data: { organizationId: batch.organizationId } });
+        }
+        await prisma.classEnrollment.upsert({
+          where: { studentUserId_classBatchId: { studentUserId: prior.id, classBatchId: batch.id } },
+          create: { studentUserId: prior.id, classBatchId: batch.id },
+          update: {},
         });
+        if (Object.keys(profileData).length) {
+          await prisma.studentProfile.upsert({
+            where: { studentUserId: prior.id },
+            create: { studentUserId: prior.id, ...profileData },
+            update: profileData,
+          });
+        }
+        enrolledExisting.push({ name: prior.name ?? row.name, email });
+      } catch (err) {
+        console.error('Roster import row failed', email, err);
+        skipped.push({ email, reason: 'Could not add this student' });
       }
     }
 
     await writeAudit(actor, 'class.import_students', 'ClassBatch', batch.id, {
-      created: created.length,
+      invited: invited.length,
       enrolledExisting: enrolledExisting.length,
       skipped: skipped.length,
     });
-    res.status(201).json({ created, enrolledExisting, skipped });
+    res.status(201).json({ invited, enrolledExisting, skipped });
   } catch (err) {
     console.error('Roster import failed', err);
     res.status(500).json({ error: 'Import failed' });
   }
+});
+
+/** Invites the actor may manage: for a class they manage, or (admins) anywhere in their organization. */
+async function findManagedInvite(actor: RosterActor, inviteId: string) {
+  const invite = await prisma.accountInvite.findUnique({ where: { id: inviteId } });
+  if (!invite || invite.status !== 'pending') return null;
+  if (actor.isOrgAdmin && invite.organizationId === actor.organizationId) return invite;
+  if (invite.classBatchId && (await findManagedClass(actor, invite.classBatchId))) return invite;
+  return null;
+}
+
+router.post('/invites/:id/resend', async (req: AuthRequest, res) => {
+  const actor = rosterActor(req);
+  const existing = await findManagedInvite(actor, param(req.params.id));
+  if (!existing) {
+    res.status(404).json({ error: 'Invite not found' });
+    return;
+  }
+  if (Date.now() - existing.lastSentAt.getTime() < INVITE_RESEND_COOLDOWN_MS) {
+    res.status(429).json({ error: 'This invite was just sent. Please wait a minute before resending.' });
+    return;
+  }
+  const { invite, token } = await refreshInviteToken(existing.id);
+  const sent = await emailInvite(invite, token);
+  if (!sent) {
+    res.status(502).json({ error: 'The invite email could not be sent. Check the address or try again later.' });
+    return;
+  }
+  await writeAudit(actor, 'invite.resend', 'AccountInvite', invite.id, { email: invite.email });
+  res.json({ invite: serializeInvite(invite) });
+});
+
+router.delete('/invites/:id', async (req: AuthRequest, res) => {
+  const actor = rosterActor(req);
+  const invite = await findManagedInvite(actor, param(req.params.id));
+  if (!invite) {
+    res.status(404).json({ error: 'Invite not found' });
+    return;
+  }
+  await prisma.accountInvite.update({ where: { id: invite.id }, data: { status: 'revoked' } });
+  await writeAudit(actor, 'invite.revoke', 'AccountInvite', invite.id, { email: invite.email });
+  res.json({ ok: true });
 });
 
 router.delete('/classes/:id/students/:studentId', async (req: AuthRequest, res) => {

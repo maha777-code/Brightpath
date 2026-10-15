@@ -14,7 +14,7 @@ const RULES: { category: SafetyCategory; severity: SafetySeverity; reason: strin
     severity: 'high',
     reason: 'Mentions self-harm or suicide',
     pattern:
-      /\b(kill(ing)? myself|want to die|wanna die|end (it all|my life)|suicid\w*|hurt(ing)? myself|cut(ting)? myself|no reason to live|better off dead|khudkushi|aatmahatya|marna chahta|marna chahti|mar jaana chahta|mar jaana chahti)\b/i,
+      /\b(kill(ing)? myself|want to die|wanna die|end (it all|my life)|suicid\w*|hurt(ing)? myself|cut(ting)? myself|no reason to live|better off dead|(don'?t|do not|dont) want to (live|be alive|exist)(?= ?anymore|\s*[.!?,]|\s*$)|wish i (was|were) dead|wish i (was|were)n'?t (alive|born)|khudkushi|aatmahatya|marna chahta|marna chahti|mar jaana chahta|mar jaana chahti|jeena nahi chahta|jeena nahi chahti)\b/i,
   },
   {
     category: 'harm',
@@ -27,7 +27,7 @@ const RULES: { category: SafetyCategory; severity: SafetySeverity; reason: strin
     severity: 'medium',
     reason: 'Signs of distress, bullying or abuse',
     pattern:
-      /\b(nobody (cares|loves) (about )?me|i hate my life|so depressed|i feel worthless|being bullied|they bully me|bullying me|(he|she|they) (hit|beat|touch(ed)?) me|abus(e|ed|ing) me|scared to go home)\b/i,
+      /\b(nobody (cares|loves) (about )?me|i hate my life|so depressed|i feel worthless|being bullied|(they|everyone|everybody|people|kids|students|boys|girls|he|she) (always )?(bully|bullies) me|bullying me|(he|she|they) (hit|beat|touch(ed)?) me|abus(e|ed|ing) me|scared to go home)\b/i,
   },
   {
     category: 'inappropriate',
@@ -182,7 +182,9 @@ Return JSON only:
   "topic": "specific topic, e.g. Changes of state",
   "summary": "one or two sentences summarising the whole conversation so far for the teacher",
   "safety": { "category": "none | distress | harm | inappropriate | academic_dishonesty", "severity": "none | low | medium | high", "reason": "short reason, or empty" }
-}`;
+}
+
+Safety categories: "distress" covers the student's own wellbeing (self-harm, suicidal thoughts, being bullied or abused). "harm" is only for threats or plans to hurt other people. Use "high" severity for any suicidal or self-harm statement.`;
 }
 
 type TutorJson = {
@@ -325,7 +327,9 @@ async function raiseAlerts(input: {
     ),
   );
 
-  const severe = alerts.filter((a) => a.severity === 'high');
+  const severe = alerts
+    .filter((a) => a.severity === 'high')
+    .sort((a, b) => Number(b.category === 'distress') - Number(a.category === 'distress'));
   if (!severe.length) return;
   const recipients = await alertRecipients(input.studentUserId, input.organizationId, input.classBatchId);
   if (!recipients.length) return;

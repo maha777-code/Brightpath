@@ -1,7 +1,7 @@
 // Plain data only (no '@/' imports): vite.config.ts also reads this file to prerender public pages.
 
 export const SITE_URL = 'https://mindvault.academy';
-export const SUPPORT_EMAIL = 'qxicybertech.helpcenter@gmail.com';
+export const SUPPORT_EMAIL = 'customersupport@mindvault.academy';
 export const OFFICE_ADDRESS = '130, 1st 7th cross Teachers layout, Nagarabhavi, Bangalore, 560072';
 
 export const TEACHER_TOOL_NAMES = [
@@ -157,6 +157,12 @@ export const PUBLIC_PAGES: PublicPage[] = [
     title: 'MindVault vs generic AI chatbots for teaching',
     description:
       'How MindVault differs from general-purpose AI chat tools: syllabus grounding, classroom-ready formats, audio lessons, role-based school workspaces, Hindi and Arabic support, and INR pricing.',
+  },
+  {
+    path: '/faq',
+    title: 'MindVault FAQs — privacy, accuracy, cheating and cost',
+    description:
+      'Straight answers to the questions educators ask about MindVault: student data and AI training, accuracy, syllabus alignment, cheating, school data access, languages, cost and trials.',
   },
   {
     path: '/contact',

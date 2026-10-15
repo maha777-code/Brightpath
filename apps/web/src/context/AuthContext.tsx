@@ -61,7 +61,9 @@ interface AuthContextValue {
       password: string;
       role: SignupRole;
     },
-  ) => Promise<{ role: UserRole; path: string }>;
+  ) => Promise<{ email: string; expiresInMinutes: number }>;
+  verifyRegistration: (email: string, code: string) => Promise<{ role: UserRole; path: string }>;
+  acceptInvite: (token: string, body: { name?: string; password: string }) => Promise<{ role: UserRole; path: string }>;
   updateParent: (parent: ParentUser) => void;
   logout: () => void;
   refresh: () => Promise<CurriculumUpgradeEvent | undefined>;
@@ -224,19 +226,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     ) => {
       const res = await api.register(data);
-      applyAuthResponse(res, {
-        setParent,
-        setTeacher,
-        setUser,
-        setOrganization,
-        setRole,
-        setPlanType,
-      });
-      const r = res.role;
-      const path = isAppRole(r) ? homePathForRole(r as AppRole) : homePathForRole('student');
-      return { role: r, path };
+      return { email: res.email, expiresInMinutes: res.expiresInMinutes };
     },
     [],
+  );
+
+  const startSession = useCallback((res: Parameters<typeof applyAuthResponse>[0]) => {
+    applyAuthResponse(res, { setParent, setTeacher, setUser, setOrganization, setRole, setPlanType });
+    const r = res.role;
+    const path = isAppRole(r) ? homePathForRole(r as AppRole) : homePathForRole('student');
+    return { role: r, path };
+  }, []);
+
+  const verifyRegistration = useCallback(
+    async (email: string, code: string) => startSession(await api.verifyRegistration({ email, code })),
+    [startSession],
+  );
+
+  const acceptInvite = useCallback(
+    async (token: string, body: { name?: string; password: string }) => startSession(await api.acceptInvite(token, body)),
+    [startSession],
   );
 
   const logout = useCallback(() => {
@@ -266,6 +275,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     loginTeacher,
     register,
+    verifyRegistration,
+    acceptInvite,
     updateParent,
     logout,
     refresh,

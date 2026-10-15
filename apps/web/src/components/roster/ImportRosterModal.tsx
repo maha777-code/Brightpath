@@ -78,7 +78,6 @@ export function ImportRosterModal({
   const [preview, setPreview] = useState<PreviewRow[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [sendInvites, setSendInvites] = useState(true);
   const [result, setResult] = useState<ImportResult | null>(null);
   const valid = useMemo(() => preview.filter((r) => r.errors.length === 0), [preview]);
 
@@ -114,7 +113,6 @@ export function ImportRosterModal({
       const res = await rosterApi.importStudents(
         classBatch.id,
         valid.map(({ errors: _errors, ...row }) => row),
-        sendInvites,
       );
       setResult(res);
       setPreview([]);
@@ -126,11 +124,7 @@ export function ImportRosterModal({
     }
   };
 
-  const downloadLogins = () => {
-    if (!result) return;
-    const lines = ['Name,Email,Temporary password', ...result.created.map((c) => `${c.name},${c.email},${c.tempPassword}`)];
-    download(`${classBatch.name.replace(/\W+/g, '-')}-logins.csv`, `${lines.join('\n')}\n`);
-  };
+  const unsent = result?.invited.filter((c) => !c.inviteSent) ?? [];
 
   return createPortal(
     <div className="mv-roster fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true">
@@ -140,7 +134,8 @@ export function ImportRosterModal({
             <h2 className="text-xl font-bold text-white">Import students into {classBatch.name}</h2>
             <p className="mt-1 text-sm text-slate-400">
               Upload a .csv or .xlsx file with Name and Email columns. Grade, Board and Language are optional.
-              Students who already have an account are added to the class.
+              New students get an email invite and their account is created when they accept it. Students who
+              already have an account are added to the class straight away.
             </p>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:text-white" aria-label="Close">
@@ -158,10 +153,6 @@ export function ImportRosterModal({
               >
                 <Download className="h-4 w-4" /> Download template
               </button>
-              <label className="inline-flex items-center gap-2 text-sm text-slate-300">
-                <input type="checkbox" checked={sendInvites} onChange={(e) => setSendInvites(e.target.checked)} />
-                Email each new student their login
-              </label>
             </div>
 
             <label className="mb-4 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-700 bg-slate-900/60 px-4 py-8 text-center hover:border-cyan-500/50">
@@ -211,24 +202,22 @@ export function ImportRosterModal({
         ) : (
           <div className="mb-4 space-y-3">
             <p className="text-sm font-semibold text-emerald-300">
-              {result.created.length} new account(s) created, {result.enrolledExisting.length} existing student(s) added
+              {result.invited.length - unsent.length} invite(s) emailed, {result.enrolledExisting.length} existing student(s) added
               {result.skipped.length ? `, ${result.skipped.length} skipped` : ''}.
             </p>
-            {result.created.length > 0 ? (
+            {result.invited.length > 0 ? (
+              <p className="text-sm text-slate-300">
+                Invited students appear under Pending invites until they open the email and set a password.
+              </p>
+            ) : null}
+            {unsent.length > 0 ? (
               <div className="rounded-xl border border-amber-500/30 bg-amber-950/30 p-4 text-sm text-amber-100">
-                <p className="font-semibold">
-                  Temporary passwords are shown only once. Download them now if emails could not be sent.
-                </p>
-                <button
-                  type="button"
-                  onClick={downloadLogins}
-                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-amber-400 px-3 py-2 text-sm font-bold text-slate-950"
-                >
-                  <Download className="h-4 w-4" /> Download logins (.csv)
-                </button>
-                <p className="mt-2 text-xs text-amber-200/80">
-                  Emails sent: {result.created.filter((c) => c.inviteSent).length} of {result.created.length}
-                </p>
+                <p className="font-semibold">These invites could not be emailed. Check the addresses, then resend from Pending invites:</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {unsent.map((c) => (
+                    <li key={c.email}>{c.email}</li>
+                  ))}
+                </ul>
               </div>
             ) : null}
             {result.skipped.length > 0 ? (
@@ -257,7 +246,7 @@ export function ImportRosterModal({
               className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950 disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-              Import {valid.length || ''} student{valid.length === 1 ? '' : 's'}
+              Invite {valid.length || ''} student{valid.length === 1 ? '' : 's'}
             </button>
           ) : null}
         </div>

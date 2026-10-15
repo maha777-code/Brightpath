@@ -23,6 +23,7 @@ import {
   type ClassInput,
   type ImportResult,
   type OrgUnit,
+  type PendingInvite,
   type RosterClass,
   type RosterOverview,
   type RosterStudent,
@@ -210,7 +211,7 @@ function AddStudentForm({ classBatch, onAdded }: { classBatch: RosterClass; onAd
     setBusy(true);
     setError('');
     try {
-      const res = await rosterApi.importStudents(classBatch.id, [{ name: name.trim(), email: email.trim().toLowerCase() }], true);
+      const res = await rosterApi.importStudents(classBatch.id, [{ name: name.trim(), email: email.trim().toLowerCase() }]);
       setResult(res);
       setName('');
       setEmail('');
@@ -222,22 +223,27 @@ function AddStudentForm({ classBatch, onAdded }: { classBatch: RosterClass; onAd
     }
   };
 
-  const created = result?.created[0];
+  const invited = result?.invited[0];
   return (
     <div className="space-y-2">
       <form onSubmit={submit} className="flex flex-wrap gap-2">
         <input className={`${field} max-w-[200px]`} placeholder="Student name" value={name} onChange={(e) => setName(e.target.value)} />
         <input className={`${field} max-w-[240px]`} placeholder="Student email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <button type="submit" disabled={busy} className={ghostBtn}>
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Add student
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Invite student
         </button>
       </form>
       {error ? <p className="text-sm font-semibold text-rose-300">{error}</p> : null}
-      {created ? (
-        <p className="rounded-xl border border-amber-500/30 bg-amber-950/30 px-3 py-2 text-sm text-amber-100">
-          Account created for {created.email}. Temporary password (shown once): <span className="font-mono font-bold">{created.tempPassword}</span>
-          {created.inviteSent ? ' · Login email sent.' : ' · Email could not be sent, share it with the student directly.'}
-        </p>
+      {invited ? (
+        invited.inviteSent ? (
+          <p className="text-sm text-emerald-300">
+            Invite emailed to {invited.email}. Their account is created when they open the link and set a password.
+          </p>
+        ) : (
+          <p className="rounded-xl border border-amber-500/30 bg-amber-950/30 px-3 py-2 text-sm text-amber-100">
+            The invite to {invited.email} could not be emailed. Check the address, then resend it from Pending invites.
+          </p>
+        )
       ) : null}
       {result?.enrolledExisting[0] ? (
         <p className="text-sm text-emerald-300">{result.enrolledExisting[0].email} already had an account and was added to this class.</p>
@@ -263,6 +269,9 @@ function ClassDetail({
   onDeleted: () => void;
 }) {
   const [students, setStudents] = useState<RosterStudent[] | null>(null);
+  const [invites, setInvites] = useState<PendingInvite[]>([]);
+  const [inviteBusy, setInviteBusy] = useState<string | null>(null);
+  const [inviteNotice, setInviteNotice] = useState('');
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
   const [showCode, setShowCode] = useState(false);
@@ -273,12 +282,17 @@ function ClassDetail({
   const load = useCallback(() => {
     rosterApi
       .classStudents(classBatch.id)
-      .then((r) => setStudents(r.students))
+      .then((r) => {
+        setStudents(r.students);
+        setInvites(r.invites);
+      })
       .catch((err) => setError(errorText(err, 'Could not load students')));
   }, [classBatch.id]);
 
   useEffect(() => {
     setStudents(null);
+    setInvites([]);
+    setInviteNotice('');
     setError('');
     setEditing(false);
     load();
@@ -296,6 +310,33 @@ function ClassDetail({
       refresh();
     } catch (err) {
       setError(errorText(err, 'Could not remove'));
+    }
+  };
+
+  const resendInvite = async (invite: PendingInvite) => {
+    setInviteBusy(invite.id);
+    setInviteNotice('');
+    try {
+      await rosterApi.resendInvite(invite.id);
+      setInviteNotice(`Invite resent to ${invite.email}.`);
+      load();
+    } catch (err) {
+      setError(errorText(err, 'Could not resend the invite'));
+    } finally {
+      setInviteBusy(null);
+    }
+  };
+
+  const revokeInvite = async (invite: PendingInvite) => {
+    if (!window.confirm(`Cancel the invite to ${invite.email}? The link in their email will stop working.`)) return;
+    setInviteBusy(invite.id);
+    try {
+      await rosterApi.revokeInvite(invite.id);
+      load();
+    } catch (err) {
+      setError(errorText(err, 'Could not cancel the invite'));
+    } finally {
+      setInviteBusy(null);
     }
   };
 
@@ -371,11 +412,11 @@ function ClassDetail({
         <p className="flex items-center gap-2 text-sm text-slate-400">
           <Loader2 className="h-4 w-4 animate-spin" /> Loading students…
         </p>
-      ) : students.length === 0 ? (
+      ) : students.length === 0 && invites.length === 0 ? (
         <p className="rounded-xl border border-dashed border-slate-700 px-4 py-8 text-center text-sm text-slate-400">
-          No students yet. Share the join code, import a spreadsheet, or add students one by one.
+          No students yet. Share the join code, import a spreadsheet, or invite students one by one.
         </p>
-      ) : (
+      ) : students.length === 0 ? null : (
         <div className="overflow-x-auto rounded-xl border border-slate-800">
           <table className="w-full min-w-[520px] text-left text-sm">
             <thead className="bg-slate-950 text-xs uppercase text-slate-400">
@@ -436,6 +477,53 @@ function ClassDetail({
           </table>
         </div>
       )}
+
+      {invites.length > 0 ? (
+        <div className="rounded-xl border border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 bg-slate-950 px-3 py-2">
+            <h3 className="text-xs font-bold uppercase text-slate-400">Pending invites ({invites.length})</h3>
+            <p className="text-xs text-slate-500">An account is created only when the student accepts the emailed link.</p>
+          </div>
+          {inviteNotice ? <p className="px-3 pt-2 text-sm text-emerald-300">{inviteNotice}</p> : null}
+          <ul className="divide-y divide-slate-800">
+            {invites.map((inv) => (
+              <li key={inv.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-100">{inv.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {inv.email} · sent {new Date(inv.lastSentAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                      inv.status === 'expired' ? 'bg-rose-500/15 text-rose-200' : 'bg-amber-500/15 text-amber-200'
+                    }`}
+                  >
+                    {inv.status === 'expired' ? 'Expired' : 'Waiting'}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={inviteBusy === inv.id}
+                    className="rounded-lg px-2 py-1 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-50"
+                    onClick={() => void resendInvite(inv)}
+                  >
+                    Resend
+                  </button>
+                  <button
+                    type="button"
+                    disabled={inviteBusy === inv.id}
+                    className="rounded-lg px-2 py-1 text-xs font-semibold text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+                    onClick={() => void revokeInvite(inv)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {showCode ? (
         <JoinCodeModal

@@ -777,6 +777,46 @@ model AuditLog {
   @@index([actorUserId, createdAt])
 }
 
+/** Self-signup waiting for its emailed code; the account is created only after the code matches. */
+model PendingRegistration {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  /** Validated signup fields with passwordHash in place of the password. */
+  payload    Json
+  codeHash   String
+  attempts   Int      @default(0)
+  sendCount  Int      @default(1)
+  expiresAt  DateTime
+  lastSentAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+}
+
+/** Teacher or admin invite; the account is created when the invitee opens the emailed link. */
+model AccountInvite {
+  id              String    @id @default(cuid())
+  tokenHash       String    @unique
+  email           String
+  name            String
+  /** student | teacher */
+  role            String
+  organizationId  String?
+  classBatchId    String?
+  invitedByUserId String
+  /** gradeLevel, board, preferredLanguage for students */
+  profile         Json?
+  /** pending | accepted | revoked */
+  status          String    @default("pending")
+  expiresAt       DateTime
+  lastSentAt      DateTime  @default(now())
+  acceptedUserId  String?
+  acceptedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([email, status])
+  @@index([classBatchId, status])
+  @@index([organizationId, status])
+}
+
 model StudentParentLink {
   id            String       @id @default(cuid())
   parentUserId  String

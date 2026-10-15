@@ -50,8 +50,19 @@ export type RosterStudent = {
 
 export type ImportRow = { name: string; email: string; gradeLevel?: string; board?: string; preferredLanguage?: string };
 
+export type PendingInvite = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: 'pending' | 'expired' | 'accepted' | 'revoked';
+  invitedAt: string;
+  lastSentAt: string;
+  expiresAt: string;
+};
+
 export type ImportResult = {
-  created: { name: string; email: string; tempPassword: string; inviteSent: boolean }[];
+  invited: { name: string; email: string; inviteSent: boolean }[];
   enrolledExisting: { name: string; email: string }[];
   skipped: { email: string; reason: string }[];
 };
@@ -122,9 +133,12 @@ export const rosterApi = {
     request<{ classBatch: RosterClass }>(`/roster/classes/${id}`, json('PATCH', body)),
   rotateCode: (id: string) => request<{ classBatch: RosterClass }>(`/roster/classes/${id}/rotate-code`, json('POST')),
   deleteClass: (id: string) => request<{ ok: true }>(`/roster/classes/${id}`, json('DELETE')),
-  classStudents: (id: string) => request<{ students: RosterStudent[] }>(`/roster/classes/${id}/students`),
-  importStudents: (id: string, rows: ImportRow[], sendInvites: boolean) =>
-    request<ImportResult>(`/roster/classes/${id}/students/import`, { ...json('POST', { rows, sendInvites }), timeoutMs: 120_000 }),
+  classStudents: (id: string) =>
+    request<{ students: RosterStudent[]; invites: PendingInvite[] }>(`/roster/classes/${id}/students`),
+  importStudents: (id: string, rows: ImportRow[]) =>
+    request<ImportResult>(`/roster/classes/${id}/students/import`, { ...json('POST', { rows }), timeoutMs: 180_000 }),
+  resendInvite: (inviteId: string) => request<{ invite: PendingInvite }>(`/roster/invites/${inviteId}/resend`, json('POST')),
+  revokeInvite: (inviteId: string) => request<{ ok: true }>(`/roster/invites/${inviteId}`, json('DELETE')),
   removeStudent: (classId: string, studentId: string) =>
     request<{ ok: true }>(`/roster/classes/${classId}/students/${studentId}`, json('DELETE')),
   updateProfile: (studentId: string, profile: Partial<StudentProfile>) =>

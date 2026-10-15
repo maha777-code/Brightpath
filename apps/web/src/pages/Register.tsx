@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -7,6 +7,7 @@ import {
   Building2,
   GraduationCap,
   Loader2,
+  MailCheck,
   Presentation,
   School,
   Users,
@@ -23,6 +24,7 @@ import {
   passwordMeetsPolicy,
 } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
+import { api } from '@/lib/api';
 import { BirthDatePicker } from '@/components/age/BirthDatePicker';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { PasswordRequirements } from '@/components/auth/PasswordRequirements';
@@ -91,12 +93,24 @@ const AUTH_BACK_CLASS =
 
 export default function Register() {
   const { t } = useTranslation();
-  const { register } = useAuth();
+  const { register, verifyRegistration } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const invitedClassCode = (searchParams.get('classCode') ?? '').trim().toUpperCase();
   const invitedAsStudent = searchParams.get('role') === 'student';
-  const [step, setStep] = useState<1 | 2>(invitedAsStudent ? 2 : 1);
+  const [step, setStep] = useState<1 | 2 | 3>(invitedAsStudent ? 2 : 1);
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [codeNotice, setCodeNotice] = useState('');
+  const [resendAt, setResendAt] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (step !== 3) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [step]);
+  const resendIn = Math.max(0, Math.ceil((resendAt - now) / 1000));
   const [role, setRole] = useState<SignupRole | null>(invitedAsStudent ? 'student' : null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -158,7 +172,7 @@ export default function Register() {
     }
     setBusy(true);
     try {
-      const result = await register({
+      const pending = await register({
         email,
         password,
         name: name || undefined,
@@ -173,7 +187,12 @@ export default function Register() {
         classCode: role === 'student' && classCode ? classCode.trim() : undefined,
         parentCode: role === 'student' && parentCode ? parentCode.trim() : undefined,
       });
-      navigate(result.path);
+      setPendingEmail(pending.email);
+      setCode('');
+      setCodeNotice(`We sent a 6-digit code to ${pending.email}. It expires in ${pending.expiresInMinutes} minutes.`);
+      setResendAt(Date.now() + 60_000);
+      setNow(Date.now());
+      setStep(3);
     } catch (err) {
       console.error('Auth request failed:', err);
       const message = err instanceof Error ? err.message : '';
@@ -181,6 +200,36 @@ export default function Register() {
         message ||
           'Unable to reach server. If the server is spinning up, please wait 30 seconds and try again.',
       );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setBusy(true);
+    try {
+      const result = await verifyRegistration(pendingEmail, code.trim());
+      navigate(result.path);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not verify the code.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resend = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      await api.resendRegistrationCode(pendingEmail);
+      setCode('');
+      setCodeNotice(`We sent a new code to ${pendingEmail}.`);
+      setResendAt(Date.now() + 60_000);
+      setNow(Date.now());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send a new code.');
     } finally {
       setBusy(false);
     }
@@ -210,7 +259,9 @@ export default function Register() {
             <p className="bp-register-subtitle mx-auto max-w-3xl text-xl font-medium text-slate-400">
               {step === 1
                 ? 'Who is signing up for MindVault? Choose your role to personalize your workspace.'
-                : 'Create your account details.'}
+                : step === 2
+                  ? 'Create your account details.'
+                  : 'Confirm your email address to finish creating your account.'}
             </p>
           </div>
         </div>
@@ -493,6 +544,69 @@ export default function Register() {
               {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
               {t('auth.register')}
             </button>
+          </form>
+        )}
+
+        {step === 3 && (
+          <form
+            onSubmit={(event) => void verify(event)}
+            className="bp-register-form mx-auto w-full max-w-xl space-y-6 rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-[0_0_50px_rgba(0,0,0,0.6)] backdrop-blur-xl md:p-10"
+          >
+            <div className="flex items-center gap-3">
+              <MailCheck className="h-8 w-8 shrink-0 text-cyan-400" aria-hidden="true" />
+              <h2 className="text-2xl font-bold text-white">Check your email</h2>
+            </div>
+            <p className="bp-auth-status text-lg text-slate-300">{codeNotice}</p>
+            <div>
+              <label className="bp-auth-label block text-lg font-semibold text-white" htmlFor="verificationCode">
+                Verification code
+              </label>
+              <input
+                id="verificationCode"
+                className={`${fieldClass} text-center font-mono text-3xl tracking-[0.5em]`}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="000000"
+                autoFocus
+                required
+              />
+            </div>
+
+            {error ? (
+              <p className="rounded-xl border border-rose-500/40 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">{error}</p>
+            ) : null}
+
+            <button
+              type="submit"
+              className="bp-auth-submit inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/60 bg-cyan-950/60 py-4 text-xl font-bold tracking-wide text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.25)] transition-all duration-200 hover:bg-cyan-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={busy || code.length !== 6}
+            >
+              {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+              Verify and create account
+            </button>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 text-base">
+              <button
+                type="button"
+                className="border-0 bg-transparent p-0 font-semibold text-cyan-400 underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:text-slate-500 disabled:no-underline"
+                onClick={() => void resend()}
+                disabled={busy || resendIn > 0}
+              >
+                {resendIn > 0 ? `Resend code in ${resendIn}s` : 'Resend code'}
+              </button>
+              <button
+                type="button"
+                className="border-0 bg-transparent p-0 font-semibold text-slate-300 underline-offset-4 hover:underline"
+                onClick={() => {
+                  setError('');
+                  setStep(2);
+                }}
+              >
+                Use a different email
+              </button>
+            </div>
           </form>
         )}
 

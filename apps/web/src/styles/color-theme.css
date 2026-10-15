@@ -439,6 +439,15 @@ html[data-theme='light'] :where(
   color: #0e7490 !important;
 }
 
+/* Preflight is off: zero-specificity reset so utility classes on roster buttons still win */
+:where(.mv-roster) button {
+  background-color: transparent;
+  border-style: solid;
+  border-width: 0;
+  color: inherit;
+  font: inherit;
+}
+
 /* Status tints on the classes, oversight, join and student tutor pages */
 html[data-theme='light'] .mv-roster :where([class*='bg-amber-950'], [class*='bg-amber-500/']) {
   background-color: #fffbeb !important;

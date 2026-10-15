@@ -1,7 +1,9 @@
 import nodemailer from 'nodemailer';
 
-export const CONTACT_INBOX = 'qxicybertech.helpcenter@gmail.com';
+export const CONTACT_INBOX = 'customersupport@mindvault.academy';
 export const FEEDBACK_INBOX = 'customersupport@mindvault.academy';
+/** Gmail login that GMAIL_APP_PASSWORD belongs to; never shown to users, replies go to CONTACT_INBOX. */
+const GMAIL_ACCOUNT = 'qxicybertech.helpcenter@gmail.com';
 
 export class MailerUnconfiguredError extends Error {
   readonly code = 'MAILER_UNCONFIGURED';
@@ -44,7 +46,7 @@ function getGmailTransporter() {
   if (gmailTransporter) return gmailTransporter;
   const pass = process.env.GMAIL_APP_PASSWORD?.trim().replace(/\s+/g, '');
   if (!pass) return null;
-  const user = (process.env.GMAIL_USER ?? CONTACT_INBOX).trim();
+  const user = (process.env.GMAIL_USER ?? GMAIL_ACCOUNT).trim();
   gmailTransporter = nodemailer.createTransport({
     service: 'gmail',
     auth: { user, pass },
@@ -56,37 +58,85 @@ function getContactTransporter() {
   return getGmailTransporter() ?? getTransporter();
 }
 
-export async function sendWelcomeInvite(input: {
+export function isMailConfigured(): boolean {
+  return getContactTransporter() !== null;
+}
+
+function senderAddress() {
+  return process.env.GMAIL_USER ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? GMAIL_ACCOUNT;
+}
+
+export async function sendVerificationCodeEmail(input: { to: string; name?: string | null; code: string }): Promise<void> {
+  const mailer = getContactTransporter();
+  if (!mailer) throw new MailerUnconfiguredError();
+  const greeting = input.name?.trim() ? `Hi ${input.name.trim()},` : 'Hi,';
+  await mailer.sendMail({
+    from: `"MindVault" <${senderAddress()}>`,
+    replyTo: CONTACT_INBOX,
+    to: input.to,
+    subject: `${input.code} is your MindVault verification code`,
+    text: [
+      greeting,
+      '',
+      `Your MindVault verification code is ${input.code}`,
+      '',
+      'Enter it on the sign-up page to finish creating your account. The code expires in 15 minutes.',
+      '',
+      'If you did not try to sign up, you can ignore this email; no account will be created.',
+    ].join('\n'),
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #0f172a; padding: 24px; max-width: 520px;">
+        <p>${escapeHtml(greeting)}</p>
+        <p>Your MindVault verification code is</p>
+        <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #0e7490; margin: 8px 0 16px;">${escapeHtml(input.code)}</p>
+        <p>Enter it on the sign-up page to finish creating your account. The code expires in 15 minutes.</p>
+        <p style="color: #475569; font-size: 13px;">If you did not try to sign up, you can ignore this email; no account will be created.</p>
+      </div>
+    `,
+  });
+}
+
+export async function sendAccountInviteEmail(input: {
   to: string;
   name: string;
-  role: string;
-  tempPassword: string;
-  orgName?: string;
-}): Promise<{ sent: boolean; preview?: string }> {
-  const from = process.env.SMTP_FROM ?? process.env.SMTP_USER ?? 'noreply@brightpath.ai';
-  const appUrl = process.env.APP_URL ?? 'http://localhost:5173';
-  const subject = `Welcome to BrightPath${input.orgName ? ` — ${input.orgName}` : ''}`;
-  const text = `Hi ${input.name},
-
-Your BrightPath ${input.role} account is ready.
-
-Email: ${input.to}
-Temporary password: ${input.tempPassword}
-
-Sign in at: ${appUrl}/login
-
-Please change your password after first login.
-
-— BrightPath`;
-
-  const mailer = getTransporter();
-  if (!mailer) {
-    console.log('[email:welcome]', { to: input.to, subject, text });
-    return { sent: false, preview: text };
-  }
-
-  await mailer.sendMail({ from, to: input.to, subject, text });
-  return { sent: true };
+  role: 'student' | 'teacher';
+  link: string;
+  inviterName?: string | null;
+  orgName?: string | null;
+  className?: string | null;
+}): Promise<void> {
+  const mailer = getContactTransporter();
+  if (!mailer) throw new MailerUnconfiguredError();
+  const where = input.className
+    ? `${input.className}${input.orgName ? ` at ${input.orgName}` : ''}`
+    : input.orgName ?? 'MindVault';
+  const who = input.inviterName?.trim() || (input.orgName ? input.orgName : 'Your teacher');
+  const line = `${who} invited you to join ${where} on MindVault as a ${input.role}.`;
+  await mailer.sendMail({
+    from: `"MindVault" <${senderAddress()}>`,
+    replyTo: CONTACT_INBOX,
+    to: input.to,
+    subject: `You're invited to ${where} on MindVault`,
+    text: [
+      `Hi ${input.name},`,
+      '',
+      line,
+      '',
+      `Open this link to confirm your email and set your password: ${input.link}`,
+      '',
+      'The link expires in 14 days. If you were not expecting this, you can ignore it; no account is created until you accept.',
+    ].join('\n'),
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #0f172a; padding: 24px; max-width: 560px;">
+        <p>Hi ${escapeHtml(input.name)},</p>
+        <p>${escapeHtml(line)}</p>
+        <p style="margin: 24px 0;">
+          <a href="${escapeHtml(input.link)}" style="background: #0e7490; color: #ffffff; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">Accept invite and set password</a>
+        </p>
+        <p style="color: #475569; font-size: 13px;">The link expires in 14 days. If you were not expecting this, you can ignore it; no account is created until you accept.</p>
+      </div>
+    `,
+  });
 }
 
 export async function sendContactInquiry(input: {
@@ -99,7 +149,7 @@ export async function sendContactInquiry(input: {
     throw new MailerUnconfiguredError();
   }
 
-  const fromUser = process.env.GMAIL_USER ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? CONTACT_INBOX;
+  const fromUser = senderAddress();
   const inbox = process.env.CONTACT_INBOX ?? CONTACT_INBOX;
   const safeName = escapeHtml(input.name);
   const safeEmail = escapeHtml(input.email);
@@ -140,7 +190,7 @@ export async function sendProductFeedback(input: {
     throw new MailerUnconfiguredError();
   }
 
-  const fromUser = process.env.GMAIL_USER ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? CONTACT_INBOX;
+  const fromUser = senderAddress();
   const inbox = process.env.FEEDBACK_INBOX?.trim() || FEEDBACK_INBOX;
   const safeName = escapeHtml(input.userName);
   const safeEmail = escapeHtml(input.userEmail);
@@ -206,7 +256,7 @@ export async function sendSafetyAlertEmail(input: {
     console.warn('[email:safety-alert] not sent (mail not configured)', { category: input.category });
     return false;
   }
-  const fromUser = process.env.GMAIL_USER ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? CONTACT_INBOX;
+  const fromUser = senderAddress();
   const appUrl = (process.env.APP_URL ?? 'https://mindvault.academy').replace(/\/+$/, '');
   const label = ALERT_LABEL[input.category] ?? 'Safety alert';
   const link = `${appUrl}/sharada-oversight`;
@@ -247,12 +297,13 @@ export async function sendNewsletterSubscription(email: string): Promise<void> {
     throw new MailerUnconfiguredError();
   }
 
-  const fromUser = process.env.GMAIL_USER ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? CONTACT_INBOX;
+  const fromUser = senderAddress();
   const inbox = process.env.CONTACT_INBOX ?? CONTACT_INBOX;
   const safeEmail = escapeHtml(email);
 
   await mailer.sendMail({
     from: `"MindVault" <${fromUser}>`,
+    replyTo: CONTACT_INBOX,
     to: email,
     subject: 'Welcome to MindVault Updates!',
     text: 'Thank you for subscribing. You will now receive the latest AI education insights, feature updates, and classroom tools.',

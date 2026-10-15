@@ -90,10 +90,12 @@ export function BulkCsvImportModal({ open, onClose }: { open: boolean; onClose: 
           classGrade: r.classGrade,
           role: r.role,
         })),
-        sendInvites: true,
       });
+      const unsent = res.invited.filter((i) => !i.inviteSent).length;
       setResult(
-        `Imported ${res.createdCount} user(s). Skipped ${res.skippedCount}. Welcome emails sent when SMTP is configured.`,
+        `Emailed ${res.invitedCount - unsent} invite(s). Skipped ${res.skippedCount}.` +
+          (unsent ? ` ${unsent} invite(s) could not be emailed; check those addresses.` : '') +
+          ' Each account is created when the person accepts their invite.',
       );
       setPreview([]);
     } catch (e) {
@@ -109,7 +111,9 @@ export function BulkCsvImportModal({ open, onClose }: { open: boolean; onClose: 
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-extrabold text-slate-800">Bulk CSV import</h2>
-            <p className="text-sm text-slate-500">Import students and teachers into your organization.</p>
+            <p className="text-sm text-slate-500">
+              Invite students and teachers by email. Each account is created when the person accepts the invite.
+            </p>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-2 hover:bg-slate-100">
             <X className="h-5 w-5" />
@@ -201,7 +205,7 @@ export function BulkCsvImportModal({ open, onClose }: { open: boolean; onClose: 
             className="inline-flex items-center gap-2 rounded-xl bg-[#5B46BA] px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-            Import {preview.filter((r) => !r.errors.length).length || ''} valid rows
+            Invite {preview.filter((r) => !r.errors.length).length || ''} valid rows
           </button>
         </div>
       </div>
