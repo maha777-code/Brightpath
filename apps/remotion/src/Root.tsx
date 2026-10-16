@@ -10,6 +10,15 @@ import {
 import { Box3DVideoComposition } from './Compositions/Box3DVideoComposition';
 import { LESSON_PLAN_FILM, MindVaultLessonPlanFilm } from './Compositions/MindVaultLessonPlanFilm';
 import { FIVE_QUESTIONS_FILM, MindVaultFiveQuestionsFilm } from './Compositions/MindVaultFiveQuestionsFilm';
+import { MindVaultPromo } from './promo/MindVaultPromo';
+import {
+  PROMO_FPS,
+  PROMO_HEIGHT,
+  PROMO_WIDTH,
+  defaultPromoProps,
+  promoDurationInFrames,
+  promoSchema,
+} from './promo/theme';
 
 function sceneDurationSum(props: GamifiedLessonProps): number {
   const scenes = props.scriptData?.scenes?.length ? props.scriptData.scenes : props.scenes;
@@ -83,6 +92,17 @@ export const RemotionRoot: React.FC = () => {
         };
       }}
     />
+      <Composition
+        id="MindVaultPromo"
+        component={MindVaultPromo}
+        schema={promoSchema}
+        defaultProps={defaultPromoProps}
+        durationInFrames={promoDurationInFrames(defaultPromoProps)}
+        fps={PROMO_FPS}
+        width={PROMO_WIDTH}
+        height={PROMO_HEIGHT}
+        calculateMetadata={({ props }) => ({ durationInFrames: promoDurationInFrames(props) })}
+      />
       <Composition
         id={LESSON_PLAN_FILM.id}
         component={MindVaultLessonPlanFilm}
