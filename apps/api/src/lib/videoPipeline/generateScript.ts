@@ -7,7 +7,7 @@ import type {
   VideoSceneSpec,
   VideoScriptManifest,
 } from '@brightpath/shared';
-import { getActiveProvider } from '../llm/provider.js';
+import { getPixelQuestScriptProvider, pixelQuestGeminiModel } from '../llm/provider.js';
 import { detectContentDomain, extractFormulasFromContext } from './contentDomain.js';
 import type { TopicContextPacket } from './types.js';
 
@@ -20,105 +20,100 @@ const DEFAULT_LEVEL_SEC = [45, 48, 50, 52, 45] as const;
 export const PIXEL_LEVELS = [
   {
     index: 0,
-    level: 'Level 1: The Manual Era',
+    level: 'Level 1: Notice the puzzle',
     action: 'running_into_wall',
     sfx: 'glitch_error_sound' as PixelSfxTrigger,
-    terminal: 'move_right(); jump(); // hardcoded — fails on the next tile',
+    terminal: 'First guess hits a wall — the chapter has a clearer rule',
     hud: { cpu_usage: '12%', exp: 80, mana: '80/100' } satisfies GameplayHudStats,
   },
   {
     index: 1,
-    level: 'Level 2: The Loop & Logic Era',
+    level: 'Level 2: The definition',
     action: 'looping',
     sfx: 'eight_bit_click' as PixelSfxTrigger,
-    terminal: 'while (hazard) { if (gap) jump(); else move_right(); }',
+    terminal: 'Say the textbook definition, then say it again',
     hud: { cpu_usage: '28%', exp: 220, mana: '70/100' } satisfies GameplayHudStats,
   },
   {
     index: 2,
-    level: 'Level 3: The Unpredictable World',
+    level: 'Level 3: The tricky part',
     action: 'dodge_fail',
     sfx: 'glitch_error_sound' as PixelSfxTrigger,
-    terminal: '// static rules miss the noise\nif (pattern === last) jump(); // boom',
-    hud: { cpu_usage: '61%', exp: 340, mana: '40/100', variance: 'σ² rising' } satisfies GameplayHudStats,
+    terminal: 'A common mix-up from this topic',
+    hud: { cpu_usage: '61%', exp: 340, mana: '40/100' } satisfies GameplayHudStats,
   },
   {
     index: 3,
-    level: 'Level 4: The AI Companion',
+    level: 'Level 4: The textbook rule',
     action: 'feeding_data',
     sfx: 'neural_net_powerup' as PixelSfxTrigger,
-    terminal: 'loss = (y - ŷ)²; companion.fit(X, y); // train on the path',
+    terminal: 'The exact rule, example, or formula from the chapter',
     hud: { cpu_usage: '74%', exp: 620, mana: '90/100' } satisfies GameplayHudStats,
   },
   {
     index: 4,
-    level: 'Boss Battle / Level Complete',
+    level: 'Level 5: Say it back',
     action: 'co_op_clear',
     sfx: 'boss_fanfare' as PixelSfxTrigger,
-    terminal: 'human.plan(); companion.predict(); // co-op maze clear',
+    terminal: 'One sentence a student can repeat after class',
     hud: { cpu_usage: '44%', exp: 999, mana: '100/100' } satisfies GameplayHudStats,
   },
 ] as const;
 
 const PIXEL_QUEST_PROMPT = `
-You are the lead designer of a 2D PIXEL-ART educational game video (streamer commentary + retro HUD).
-Do NOT pick Tom & Jerry, space-shooter skins, SweetRush quest maps, or any other static template.
-Every video uses ONE architecture: pixel_game_hud.
+You write a 2D pixel-art lesson video that teaches ONE textbook topic to a school student.
+The pixel game is only the visual skin. The narration and the on-screen terminal are the lesson.
+Architecture is always pixel_game_hud. Do not switch to another template.
 
-RUNTIME: 3 to 5 minutes (180–300 seconds). Output exactly 5 level blocks (4 eras + boss).
+RUNTIME: 3 to 5 minutes (180–300 seconds). Output exactly 5 levels, in this order, with these character_action and sfx_trigger values:
 
-CORE METAPHORS (pick from the textbook domain and stay there):
-- Coding / formulas → spellcasting or writing physical LEVEL RULES in a live terminal.
-- AI / ML / statistics → an evolving PET / COMPANION NPC that watches gameplay, learns patterns, and clears obstacles.
+1. level "Level 1: Notice the puzzle" — character_action "running_into_wall" — sfx_trigger "glitch_error_sound"
+   Open with the concrete situation from the chapter. Name what is confusing before the definition.
+2. level "Level 2: The definition" — character_action "looping" — sfx_trigger "eight_bit_click"
+   State the textbook definition in plain words, then repeat the key phrase so it sticks.
+3. level "Level 3: The tricky part" — character_action "dodge_fail" — sfx_trigger "glitch_error_sound"
+   Show the mix-up, exception, or example from the chapter that a first guess gets wrong.
+4. level "Level 4: The textbook rule" — character_action "feeding_data" — sfx_trigger "neural_net_powerup"
+   Give the exact rule, process, example, or formula from the excerpts. Quote it.
+5. level "Level 5: Say it back" — character_action "co_op_clear" — sfx_trigger "boss_fanfare"
+   Close with one sentence a student can repeat, plus the topic title.
 
-ENFORCED PROGRESSION:
-1. Level 1: The Manual Era / Hardcoded Rules
-   Character uses hardcoded inputs (move_right(), jump(), a single fixed equation). They walk into a wall.
-2. Level 2: The Loop & Logic Era
-   if/else and loops automate repetitive obstacles.
-3. Level 3: The Unpredictable World / Why We Need AI/Math
-   Dynamic hazards / non-linear noise. Hardcoded logic fails.
-4. Level 4: The AI Companion / Training & Model Fitting
-   Hero feeds training data + a loss function to the companion. The pet learns and solves noisy paths.
-5. Boss Battle / Level Complete
-   Human logic + trained companion co-op the final maze.
+FACTS:
+Use only the supplied chapter excerpts, summary, and title. If a detail is not there, leave it out.
+Teach THIS topic. A science, language, or history chapter stays that subject.
+Mention code, loops, or machine learning only when the excerpts themselves are about code or machine learning.
+code_terminal_overlay is one short line a student can read on screen: a definition, example, or formula from the chapter. Maximum 90 characters. No programming syntax unless the chapter is about programming.
 
-CONTEXT ENFORCEMENT:
-Quote exact formulas, definitions, and studies from RAG (e.g. Galton 1889, g*(x)=E[Y|X=x], squared-error loss, Y=Xβ+ε).
-Voiceover is energetic gaming-streamer narration grounded in that math — not generic hype.
+VOICE:
+voiceover_narration is 80–120 words of spoken classroom language for that level.
+Address the student. Explain the idea. Do not describe the pixel character, the HUD, or the game.
 
 Return ONLY JSON:
 {
-  "topicTitle": "from the textbook",
+  "topicTitle": "the topic title",
   "teacherName": "Pixel Sage",
   "architecture": "pixel_game_hud",
   "totalDurationSeconds": 240,
   "scenes": [
     {
       "sceneId": 1,
-      "level": "Level 1: The Manual Era",
+      "level": "Level 1: Notice the puzzle",
       "timestamp_range": [0, 45],
       "durationSec": 45,
       "gameplay_visual": {
         "character_action": "running_into_wall",
-        "code_terminal_overlay": "move_right(); // Hardcoded fail — quote a formula from RAG",
-        "hud_stats": { "cpu_usage": "12%", "exp": 100, "mana": "80/100" }
+        "code_terminal_overlay": "short fact from the chapter",
+        "hud_stats": { "cpu_usage": "12%", "exp": 80, "mana": "80/100" }
       },
-      "voiceover_narration": "80–120 words, streamer style, quoting the PDF",
+      "voiceover_narration": "80–120 words explaining this beat of the topic",
       "sfx_trigger": "glitch_error_sound"
     }
   ]
 }
 
-character_action MUST be one of:
-running_into_wall | looping | dodge_fail | feeding_data | co_op_clear | jumping | compiling | celebrating | training
-
-sfx_trigger MUST be one of:
-glitch_error_sound | eight_bit_click | neural_net_powerup | success_chime | compile_success | boss_fanfare | button_click
-
 STRICT:
-- Exactly 5 scenes / levels. Sum of durationSec between 180 and 300.
-- No chemistry beakers, no 3-scene 28s bumper, no template skins.
+- Exactly 5 scenes. Sum of durationSec between 180 and 300.
+- character_action for the five scenes, in order: running_into_wall, looping, dodge_fail, feeding_data, co_op_clear.
 - Return JSON only.
 `;
 
@@ -254,13 +249,14 @@ function toSceneSpec(
 ): VideoSceneSpec {
   const preset = PIXEL_LEVELS[Math.min(index, PIXEL_LEVELS.length - 1)];
   const formula = formulas[index] || formulas[0] || '';
+  const factLine = clipText(formula || excerptAt(ctx, index, ctx.title), 90);
   const visual: GameplayVisual = asGameplayVisual(block?.gameplay_visual ?? block?.gameplayVisual, {
     character_action: preset.action,
-    code_terminal_overlay: formula
-      ? `${preset.terminal}\n// ${formula}`
-      : preset.terminal,
+    code_terminal_overlay: factLine || preset.terminal,
     hud_stats: { ...preset.hud },
   });
+  visual.character_action = preset.action;
+  visual.code_terminal_overlay = clipText(visual.code_terminal_overlay || factLine || preset.terminal, 90);
   const duration = durationFromBlock(block ?? {}, DEFAULT_LEVEL_SEC[index] ?? 45);
   const voiceover = String(
     block?.voiceover_narration ||
@@ -269,8 +265,8 @@ function toSceneSpec(
       block?.voiceoverText ||
       '',
   ).trim();
-  const level = String(block?.level || preset.level);
-  const sfx = String(block?.sfx_trigger || block?.sfxTrigger || preset.sfx) as PixelSfxTrigger;
+  const level = preset.level;
+  const sfx = preset.sfx;
   const visualConfig: SceneVisualConfig = {
     ...(block?.visualConfig ?? {}),
     visualDomain: ctx.contentDomain || detectContentDomain(ctx),
@@ -319,20 +315,17 @@ function toSceneSpec(
 }
 
 function heuristicVoiceovers(ctx: TopicContextPacket, formulas: string[]): string[] {
-  const study = excerptAt(ctx, 0, ctx.title);
-  const f0 = formulas[0] || 'the core equation in the text';
-  const f1 = formulas[1] || 'Y = Xβ + ε';
-  const domain = ctx.contentDomain || detectContentDomain(ctx);
-  const companion =
-    domain === 'dsml' || domain === 'math'
-      ? 'an evolving math-pet that watches every jump'
-      : 'a code-familiar that learns the level rules';
+  const definition = excerptAt(ctx, 1, excerptAt(ctx, 0, ctx.title));
+  const puzzle = excerptAt(ctx, 0, ctx.chapterSummary || ctx.title);
+  const tricky = excerptAt(ctx, 2, ctx.chapterSummary || definition);
+  const rule = formulas[0] || excerptAt(ctx, 3, definition);
+  const recap = clipText(ctx.chapterSummary || definition, 180);
   return [
-    `Chat, welcome to the manual era of ${ctx.title}. Our hero only knows hardcoded spells — move_right(), jump(), one frozen formula. ${study} Watch them slam into the wall. That's what a single static rule looks like when the world has more than one tile.`,
-    `Level 2 drop: we unlock loops and if/else. Same obstacle, ten times, now automated. ${excerptAt(ctx, 1, f0)} The terminal is spellcasting — each condition is a physical law of this stage. EXP is ticking because the code actually compiles.`,
-    `Now the world goes noisy. Hazards don't repeat. Hardcoded jump timing face-plants. This is why we need the math from the textbook: ${f0}. Static rules cannot track non-linear noise. CPU spikes, mana dumps, glitch city.`,
-    `Pet time. We feed the companion training pairs and a loss — squared error, ${f1}. ${companion} fits the pattern the way the PDF describes. ${excerptAt(ctx, 2, ctx.chapterSummary || ctx.title)} The path that broke Level 3 starts to light up.`,
-    `Boss maze. Human writes the plan; the trained companion predicts the noisy tiles. Co-op clear! Remember ${ctx.code}: ${ctx.title}. ${clipText(ctx.chapterSummary || excerptAt(ctx, 3, ctx.title), 180)} Level complete — EXP maxed.`,
+    `Start with what you can already notice about ${ctx.title}. ${puzzle} A first guess runs into a wall here, because the chapter is pointing at something more exact than the everyday picture. Hold that puzzle. The next level names it.`,
+    `Here is the definition to keep for ${ctx.title}, in ${ctx.chapterTitle}. ${definition} Say that key idea once, then say it again. The textbook uses those words on purpose, so the second pass is how the meaning sticks.`,
+    `This is the part students mix up. ${tricky} If the first guess still feels right, check it against the chapter example. The example is there to show where that guess stops working.`,
+    `Now the rule itself. ${rule} That line is the one to trust when a question about ${ctx.title} shows up. It comes from ${ctx.textbookTitle}, not from a guess. Read it with the example you just saw.`,
+    `Say this back: ${ctx.title}. ${recap} If you can explain that in one sentence, this level is clear.`,
   ];
 }
 
@@ -364,7 +357,9 @@ function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoS
   const fallback = heuristicManifest(ctx);
   const formulas = extractFormulasFromContext(ctx);
   const blocks = collectRawBlocks(raw);
-  if (!blocks.length) return fallback;
+  if (!blocks.length) {
+    throw new Error('Gemini returned no lesson levels');
+  }
 
   const scenes = blocks.map((b, i) => {
     const spec = toSceneSpec(ctx, b, i, formulas);
@@ -414,15 +409,16 @@ function applyAttachmentOverlays(
 }
 
 function parseLlmManifestSafely(llmOutput: unknown, ctx: TopicContextPacket): VideoScriptManifest {
-  try {
-    let parsed: unknown = llmOutput;
-    if (typeof llmOutput === 'string') parsed = JSON.parse(llmOutput);
-    if (!parsed || typeof parsed !== 'object') throw new Error('LLM output is not a JSON object');
-    return applyAttachmentOverlays(normalizeManifest(parsed as LlmManifestRaw, ctx), ctx);
-  } catch (err) {
-    console.error('[pixelQuest] Failed to parse LLM JSON — using 5-level fallback', err);
-    return applyAttachmentOverlays(heuristicManifest(ctx), ctx);
+  let parsed: unknown = llmOutput;
+  if (typeof llmOutput === 'string') parsed = JSON.parse(llmOutput);
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Gemini did not return a lesson script');
   }
+  const manifest = applyAttachmentOverlays(normalizeManifest(parsed as LlmManifestRaw, ctx), ctx);
+  if (!manifest.scenes.length) {
+    throw new Error('Gemini returned no lesson levels');
+  }
+  return manifest;
 }
 
 /** @deprecated template skins removed — pixel quest is the only video architecture. */
@@ -433,55 +429,52 @@ export function normalizeVisualArchetype(_raw?: string, _index = 0): string {
 export async function generateStructuredVideoScript(
   ctx: TopicContextPacket,
 ): Promise<VideoScriptManifest> {
-  const provider = getActiveProvider();
+  const provider = getPixelQuestScriptProvider();
   const domain = ctx.contentDomain || detectContentDomain(ctx);
   const formulas = extractFormulasFromContext(ctx);
   const excerpts = ctx.ragExcerpts.slice(0, 16).join('\n---\n');
   const packet: TopicContextPacket = { ...ctx, contentDomain: domain };
 
   console.log(
-    `[videoPipeline/script] pixel quest domain=${domain} RAG=${ctx.ragExcerpts.length} formulas=${formulas.length} topic="${ctx.code} ${ctx.title}"`,
+    `[videoPipeline/script] Gemini ${pixelQuestGeminiModel()} domain=${domain} RAG=${ctx.ragExcerpts.length} formulas=${formulas.length} topic="${ctx.code} ${ctx.title}"`,
   );
+
+  if (!provider) {
+    throw new Error('GEMINI_API_KEY is required. Pixel Quest lesson scripts are generated by Gemini.');
+  }
 
   const user = [
     `Topic code: ${ctx.code}`,
     `Topic title: ${ctx.title}`,
     `Chapter: ${ctx.chapterTitle}`,
     `Textbook: ${ctx.textbookTitle} (${ctx.subject}) file=${ctx.fileName ?? 'uploaded.pdf'}`,
+    `Grade: ${ctx.gradeLabel}`,
     `Detected domain: ${domain}`,
     `Chapter summary: ${ctx.chapterSummary}`,
-    domain === 'dsml' || domain === 'math'
-      ? 'METAPHOR: AI companion / evolving pet that learns from gameplay + textbook math (β, X, σ², loss).'
-      : 'METAPHOR: coding-as-spellcasting. Formulas are physical level rules typed into the terminal.',
-    ctx.teacherPrompt ? `Teacher refinement: ${ctx.teacherPrompt}` : '',
-    formulas.length ? `EXTRACTED FORMULAS / STUDIES:\n${formulas.join('\n')}` : '',
-    `RAW RAG EXCERPTS (GROUND TRUTH):\n${excerpts || '(use title + summary)'}`,
-    'Output exactly 5 level blocks, 180–300 seconds total, architecture pixel_game_hud. No template skins.',
+    'Teach this topic from the excerpts. The pixel game is only the picture. Narration explains the idea to a student.',
+    ctx.teacherPrompt ? `Teacher note: ${ctx.teacherPrompt}` : '',
+    formulas.length ? `FORMULAS FOUND IN THE CHAPTER:\n${formulas.join('\n')}` : '',
+    `CHAPTER EXCERPTS (use these facts only):\n${excerpts || ctx.chapterSummary || ctx.title}`,
+    'Output exactly 5 levels, 180–300 seconds total, architecture pixel_game_hud.',
   ]
     .filter(Boolean)
     .join('\n\n');
 
-  if (!provider) return applyAttachmentOverlays(heuristicManifest(packet), packet);
-
-  try {
-    const raw = await Promise.race([
-      provider.completeJson<LlmManifestRaw | string>({
-        system: PIXEL_QUEST_PROMPT,
-        user,
-      }),
-      new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('LLM script timed out')), 90_000);
-      }),
-    ]);
-    const manifest = parseLlmManifestSafely(raw, packet);
-    console.log(
-      `[videoPipeline/script] pixelQuest scenes=${manifest.scenes.length} duration=${manifest.totalDurationSeconds}s levels=${manifest.scenes.map((s) => s.level).join(' | ')}`,
-    );
-    return manifest;
-  } catch (err) {
-    console.error('[pixelQuest] LLM failed/timed out — fallback 5-level script', err);
-    return applyAttachmentOverlays(heuristicManifest(packet), packet);
-  }
+  const raw = await Promise.race([
+    provider.completeJson<LlmManifestRaw | string>({
+      system: PIXEL_QUEST_PROMPT,
+      user,
+      temperature: 0.4,
+    }),
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Gemini script timed out')), 170_000);
+    }),
+  ]);
+  const manifest = parseLlmManifestSafely(raw, packet);
+  console.log(
+    `[videoPipeline/script] pixelQuest gemini scenes=${manifest.scenes.length} duration=${manifest.totalDurationSeconds}s levels=${manifest.scenes.map((s) => s.level).join(' | ')}`,
+  );
+  return manifest;
 }
 
 export function flattenVoiceover(manifest: VideoScriptManifest): string {

@@ -69,6 +69,17 @@ export function getActiveProviderName(): LlmProviderName | null {
   return null;
 }
 
+/** Pixel Quest lesson scripts use Gemini, trying the Pro model before the shared Flash cycle. */
+export function pixelQuestGeminiModel(): string {
+  return process.env.PIXEL_QUEST_GEMINI_MODEL?.trim() || 'gemini-2.5-pro';
+}
+
+export function getPixelQuestScriptProvider(): LlmProvider | null {
+  const key = process.env.GEMINI_API_KEY?.trim();
+  if (!key) return null;
+  return createGeminiProvider(key, pixelQuestGeminiModel());
+}
+
 /** Parse JSON from LLM output (handles markdown fences). */
 export function parseLlmJson<T>(text: string): T {
   const trimmed = text.trim();
@@ -152,7 +163,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function createGeminiProvider(apiKey: string): LlmProvider {
+function createGeminiProvider(apiKey: string, preferredModel?: string): LlmProvider {
   return {
     name: 'gemini',
     async completeJson<T>(req: LlmJsonRequest): Promise<T> {
@@ -160,6 +171,11 @@ function createGeminiProvider(apiKey: string): LlmProvider {
       const errors: string[] = [];
 
       const candidates = [...geminiModels()];
+      if (preferredModel) {
+        const at = candidates.indexOf(preferredModel);
+        if (at >= 0) candidates.splice(at, 1);
+        candidates.unshift(preferredModel);
+      }
       const discovered = await discoverGeminiModels(apiKey);
       for (const m of discovered) {
         if (!candidates.includes(m)) candidates.push(m);
