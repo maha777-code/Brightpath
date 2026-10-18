@@ -127,29 +127,38 @@ export type SceneVisualType =
   | 'callout_summary'
   | string;
 
-export interface GameplayHudStats {
-  cpu_usage?: string;
-  exp?: number;
-  mana?: string;
-  memory?: string;
-  variance?: string;
+export type LessonSlideLayout = 'title' | 'definition' | 'steps' | 'compare' | 'example' | 'recap';
+
+export interface LessonSlideStep {
+  label: string;
+  detail?: string;
 }
 
-export interface GameplayVisual {
-  character_action?: string;
-  code_terminal_overlay?: string;
-  hud_stats?: GameplayHudStats;
+export interface LessonSlideColumn {
+  label: string;
+  points: string[];
 }
 
-export type PixelSfxTrigger =
-  | 'glitch_error_sound'
-  | 'success_chime'
-  | 'eight_bit_click'
-  | 'neural_net_powerup'
-  | 'compile_success'
-  | 'boss_fanfare'
-  | 'button_click'
-  | string;
+export interface LessonSlideExample {
+  prompt: string;
+  working: string[];
+  answer: string;
+}
+
+/** On-screen content for one scene of the animated lesson video. */
+export interface LessonSlide {
+  layout: LessonSlideLayout;
+  heading: string;
+  subheading?: string;
+  body?: string;
+  keyTerms?: string[];
+  formula?: string;
+  steps?: LessonSlideStep[];
+  left?: LessonSlideColumn;
+  right?: LessonSlideColumn;
+  example?: LessonSlideExample;
+  points?: string[];
+}
 
 export interface VideoSceneSpec {
   sceneId: number;
@@ -181,15 +190,11 @@ export interface VideoSceneSpec {
   teacherGesture?: string;
   /** Movie camera move for this scene */
   cameraMotion?: string;
-  /** Progressive quest label, e.g. "Level 1: The Manual Era" */
-  level?: string;
   /** Inclusive start/end seconds for this block */
   timestampRange?: [number, number];
   timestamp_range?: [number, number];
-  gameplayVisual?: GameplayVisual;
-  gameplay_visual?: GameplayVisual;
-  sfxTrigger?: PixelSfxTrigger;
-  sfx_trigger?: PixelSfxTrigger;
+  /** Slide content drawn by the LessonExplainer composition */
+  lesson?: LessonSlide;
 }
 
 export interface VideoScriptManifest {
@@ -203,8 +208,8 @@ export interface VideoScriptManifest {
   wordTimings?: { word: string; start: number; end: number }[];
   /** On-screen cartoon host name */
   teacherName?: string;
-  /** Unified renderer: pixel_game_hud */
-  architecture?: 'pixel_game_hud' | string;
+  /** Renderer: lesson_board */
+  architecture?: 'lesson_board' | string;
 }
 
 export interface TeacherUser {

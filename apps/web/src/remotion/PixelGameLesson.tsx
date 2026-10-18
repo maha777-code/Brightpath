@@ -1,4 +1,14 @@
-import type { GameplayHudStats, GameplayVisual } from '@brightpath/shared';
+type GameplayHudStats = {
+  cpu_usage?: string;
+  exp?: number;
+  mana?: string;
+};
+
+type GameplayVisual = {
+  character_action?: string;
+  code_terminal_overlay?: string;
+  hud_stats?: GameplayHudStats;
+};
 
 export interface PixelGameLessonProps {
   frame: number;

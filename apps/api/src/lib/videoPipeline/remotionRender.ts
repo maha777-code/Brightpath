@@ -24,7 +24,7 @@ const execFileAsync = promisify(execFile);
 const REMOTION_ROOT = path.resolve(API_ROOT, '../remotion');
 const remotionRequire = createRequire(path.join(REMOTION_ROOT, 'package.json'));
 
-/** Per renderMedia call — 20 minutes (long pixel-quest videos + slow VMs). */
+/** Per renderMedia call — 20 minutes (long lesson videos + slow VMs). */
 const REMOTION_TIMEOUT_MS = Number(process.env.REMOTION_TIMEOUT_MS ?? 1_200_000);
 
 /** Cap Chromium workers so Linux /dev/shm and RAM are not starved. */
@@ -210,6 +210,7 @@ type SceneWithAliases = VideoScriptManifest['scenes'][number] & {
   props?: Record<string, unknown>;
   visualArchetype?: string;
   visualConfig?: Record<string, unknown>;
+  lesson?: VideoScriptManifest['scenes'][number]['lesson'];
 };
 
 function sceneRawDuration(s: SceneWithAliases): number {
@@ -255,14 +256,15 @@ function scaleManifestToAudioDuration(
       phaseTitle: phase,
       voiceoverText: voiceover,
       voiceover,
-      visualType: s.visualType,
-      visualArchetype: s.visualArchetype || s.visualType,
+      visualType: s.visualType || 'lesson_board',
+      visualArchetype: s.visualArchetype || s.visualType || 'lesson_board',
       visualConfig,
       visualProps,
       parameters: visualProps,
       props: visualProps,
       teacherGesture: s.teacherGesture,
       cameraMotion: s.cameraMotion,
+      lesson: s.lesson ?? (visualConfig.lesson as VideoScriptManifest['scenes'][number]['lesson']),
     };
   });
   return {

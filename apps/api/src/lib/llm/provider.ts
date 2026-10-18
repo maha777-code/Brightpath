@@ -29,6 +29,16 @@ export interface LlmProvider {
   completeJson<T>(req: LlmJsonRequest): Promise<T>;
 }
 
+/** Animated lesson videos are written only by Claude Opus 5.5. */
+export const LESSON_VIDEO_MODEL = 'claude-opus-5-5';
+
+/** Video-explainer scripts only. Tutor / other tools stay on Gemini or OpenAI. */
+export interface LessonVideoScriptProvider {
+  name: 'anthropic';
+  model: typeof LESSON_VIDEO_MODEL;
+  completeJson<T>(req: LlmJsonRequest): Promise<T>;
+}
+
 /**
  * Preferred Gemini cycle for capacity / 503 ("high demand") and 404 (retired ID) recovery.
  * Env GEMINI_MODEL is tried first when set.
@@ -69,15 +79,10 @@ export function getActiveProviderName(): LlmProviderName | null {
   return null;
 }
 
-/** Pixel Quest lesson scripts use Gemini, trying the Pro model before the shared Flash cycle. */
-export function pixelQuestGeminiModel(): string {
-  return process.env.PIXEL_QUEST_GEMINI_MODEL?.trim() || 'gemini-2.5-pro';
-}
-
-export function getPixelQuestScriptProvider(): LlmProvider | null {
-  const key = process.env.GEMINI_API_KEY?.trim();
+export function getLessonVideoScriptProvider(): LessonVideoScriptProvider | null {
+  const key = process.env.ANTHROPIC_API_KEY?.trim();
   if (!key) return null;
-  return createGeminiProvider(key, pixelQuestGeminiModel());
+  return createAnthropicProvider(key);
 }
 
 /** Parse JSON from LLM output (handles markdown fences). */
@@ -351,6 +356,58 @@ function createOpenAiProvider(apiKey: string): LlmProvider {
       };
       const text = data.choices?.[0]?.message?.content;
       if (!text) throw new Error('Empty OpenAI response');
+      return parseLlmJson<T>(text);
+    },
+  };
+}
+
+function createAnthropicProvider(apiKey: string): LessonVideoScriptProvider {
+  return {
+    name: 'anthropic',
+    model: LESSON_VIDEO_MODEL,
+    async completeJson<T>(req: LlmJsonRequest): Promise<T> {
+      const content: Array<Record<string, unknown>> = [{ type: 'text', text: req.user }];
+      for (const image of req.images ?? []) {
+        content.push({
+          type: 'image',
+          source: { type: 'base64', media_type: image.mimeType, data: image.data },
+        });
+      }
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: LESSON_VIDEO_MODEL,
+          max_tokens: 16000,
+          system: req.system,
+          messages: [{ role: 'user', content: content.length === 1 ? req.user : content }],
+          output_config: { effort: 'high' },
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Claude HTTP ${res.status}: ${err.slice(0, 400)}`);
+      }
+
+      const data = (await res.json()) as {
+        stop_reason?: string;
+        content?: Array<{ type?: string; text?: string }>;
+      };
+      const text = (data.content ?? [])
+        .filter((block) => block.type === 'text' && block.text)
+        .map((block) => block.text)
+        .join('\n')
+        .trim();
+      if (!text) throw new Error('Empty Claude Opus 5.5 response');
+      if (data.stop_reason === 'max_tokens') {
+        throw new Error('Claude Opus 5.5 response was cut off before the lesson script finished');
+      }
       return parseLlmJson<T>(text);
     },
   };

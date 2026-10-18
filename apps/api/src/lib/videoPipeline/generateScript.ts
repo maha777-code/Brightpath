@@ -1,125 +1,102 @@
 import type {
-  GameplayHudStats,
-  GameplayVisual,
-  PixelSfxTrigger,
+  LessonSlide,
+  LessonSlideColumn,
+  LessonSlideExample,
+  LessonSlideLayout,
+  LessonSlideStep,
   SceneVisualConfig,
   VideoSceneParameters,
   VideoSceneSpec,
   VideoScriptManifest,
 } from '@brightpath/shared';
-import { getPixelQuestScriptProvider, pixelQuestGeminiModel } from '../llm/provider.js';
+import { getLessonVideoScriptProvider } from '../llm/provider.js';
 import { detectContentDomain, extractFormulasFromContext } from './contentDomain.js';
 import type { TopicContextPacket } from './types.js';
 
-const MIN_SCENES = 5;
+const MIN_SCENES = 6;
 const MAX_SCENES = 6;
 const MIN_TOTAL_SEC = 180;
 const MAX_TOTAL_SEC = 300;
-const DEFAULT_LEVEL_SEC = [45, 48, 50, 52, 45] as const;
+const DEFAULT_SCENE_SEC = [36, 48, 50, 48, 52, 40] as const;
 
-export const PIXEL_LEVELS = [
-  {
-    index: 0,
-    level: 'Level 1: Notice the puzzle',
-    action: 'running_into_wall',
-    sfx: 'glitch_error_sound' as PixelSfxTrigger,
-    terminal: 'First guess hits a wall — the chapter has a clearer rule',
-    hud: { cpu_usage: '12%', exp: 80, mana: '80/100' } satisfies GameplayHudStats,
-  },
-  {
-    index: 1,
-    level: 'Level 2: The definition',
-    action: 'looping',
-    sfx: 'eight_bit_click' as PixelSfxTrigger,
-    terminal: 'Say the textbook definition, then say it again',
-    hud: { cpu_usage: '28%', exp: 220, mana: '70/100' } satisfies GameplayHudStats,
-  },
-  {
-    index: 2,
-    level: 'Level 3: The tricky part',
-    action: 'dodge_fail',
-    sfx: 'glitch_error_sound' as PixelSfxTrigger,
-    terminal: 'A common mix-up from this topic',
-    hud: { cpu_usage: '61%', exp: 340, mana: '40/100' } satisfies GameplayHudStats,
-  },
-  {
-    index: 3,
-    level: 'Level 4: The textbook rule',
-    action: 'feeding_data',
-    sfx: 'neural_net_powerup' as PixelSfxTrigger,
-    terminal: 'The exact rule, example, or formula from the chapter',
-    hud: { cpu_usage: '74%', exp: 620, mana: '90/100' } satisfies GameplayHudStats,
-  },
-  {
-    index: 4,
-    level: 'Level 5: Say it back',
-    action: 'co_op_clear',
-    sfx: 'boss_fanfare' as PixelSfxTrigger,
-    terminal: 'One sentence a student can repeat after class',
-    hud: { cpu_usage: '44%', exp: 999, mana: '100/100' } satisfies GameplayHudStats,
-  },
+const LESSON_BEATS = [
+  { layout: 'title' as const, phase: 'Meet the topic' },
+  { layout: 'definition' as const, phase: 'The definition' },
+  { layout: 'steps' as const, phase: 'How it works' },
+  { layout: 'compare' as const, phase: 'Common mix-up' },
+  { layout: 'example' as const, phase: 'Worked example' },
+  { layout: 'recap' as const, phase: 'Remember this' },
 ] as const;
 
-const PIXEL_QUEST_PROMPT = `
-You write a 2D pixel-art lesson video that teaches ONE textbook topic to a school student.
-The pixel game is only the visual skin. The narration and the on-screen terminal are the lesson.
-Architecture is always pixel_game_hud. Do not switch to another template.
+const LESSON_SCRIPT_PROMPT = `
+You write a classroom explainer video for ONE textbook topic.
+The student sees a clean animated lesson board: title, definition, steps, a comparison, a worked example, and a recap.
+There is no game, no pixel art, no HUD, no levels, no quest, no code terminal, and no streamer voice.
 
-RUNTIME: 3 to 5 minutes (180–300 seconds). Output exactly 5 levels, in this order, with these character_action and sfx_trigger values:
+RUNTIME: 3 to 5 minutes (180–300 seconds). Output exactly 6 scenes, in this order, with these layouts:
 
-1. level "Level 1: Notice the puzzle" — character_action "running_into_wall" — sfx_trigger "glitch_error_sound"
-   Open with the concrete situation from the chapter. Name what is confusing before the definition.
-2. level "Level 2: The definition" — character_action "looping" — sfx_trigger "eight_bit_click"
-   State the textbook definition in plain words, then repeat the key phrase so it sticks.
-3. level "Level 3: The tricky part" — character_action "dodge_fail" — sfx_trigger "glitch_error_sound"
-   Show the mix-up, exception, or example from the chapter that a first guess gets wrong.
-4. level "Level 4: The textbook rule" — character_action "feeding_data" — sfx_trigger "neural_net_powerup"
-   Give the exact rule, process, example, or formula from the excerpts. Quote it.
-5. level "Level 5: Say it back" — character_action "co_op_clear" — sfx_trigger "boss_fanfare"
-   Close with one sentence a student can repeat, plus the topic title.
+1. layout "title" — phase "Meet the topic"
+   Name the topic and why it matters in this chapter.
+2. layout "definition" — phase "The definition"
+   State the textbook definition in plain words. Include keyTerms and a formula if the chapter has one.
+3. layout "steps" — phase "How it works"
+   3 to 5 short steps that show the process or idea unfolding.
+4. layout "compare" — phase "Common mix-up"
+   Two columns: the mix-up students make vs the correct idea from the chapter.
+5. layout "example" — phase "Worked example"
+   One concrete example from the excerpts: prompt, working steps, answer.
+6. layout "recap" — phase "Remember this"
+   Three or four points plus one sentence a student can say back.
 
 FACTS:
 Use only the supplied chapter excerpts, summary, and title. If a detail is not there, leave it out.
 Teach THIS topic. A science, language, or history chapter stays that subject.
-Mention code, loops, or machine learning only when the excerpts themselves are about code or machine learning.
-code_terminal_overlay is one short line a student can read on screen: a definition, example, or formula from the chapter. Maximum 90 characters. No programming syntax unless the chapter is about programming.
+On-screen text is short: headings ≤ 8 words, body ≤ 28 words, each step label ≤ 10 words, each point ≤ 14 words.
 
 VOICE:
-voiceover_narration is 80–120 words of spoken classroom language for that level.
-Address the student. Explain the idea. Do not describe the pixel character, the HUD, or the game.
+voiceover_narration is 80–120 words of spoken classroom language for that scene.
+Address the student. Explain the idea. Do not describe the animation, the board, or the software.
 
 Return ONLY JSON:
 {
   "topicTitle": "the topic title",
-  "teacherName": "Pixel Sage",
-  "architecture": "pixel_game_hud",
+  "teacherName": "MindVault",
+  "architecture": "lesson_board",
   "totalDurationSeconds": 240,
   "scenes": [
     {
       "sceneId": 1,
-      "level": "Level 1: Notice the puzzle",
-      "timestamp_range": [0, 45],
-      "durationSec": 45,
-      "gameplay_visual": {
-        "character_action": "running_into_wall",
-        "code_terminal_overlay": "short fact from the chapter",
-        "hud_stats": { "cpu_usage": "12%", "exp": 80, "mana": "80/100" }
-      },
+      "phase": "Meet the topic",
+      "durationSec": 36,
+      "timestamp_range": [0, 36],
       "voiceover_narration": "80–120 words explaining this beat of the topic",
-      "sfx_trigger": "glitch_error_sound"
+      "lesson": {
+        "layout": "title",
+        "heading": "short topic title",
+        "subheading": "chapter name",
+        "body": "one sentence why this matters",
+        "keyTerms": ["term one", "term two"]
+      }
     }
   ]
 }
 
+lesson fields by layout:
+- title: heading, subheading, body, keyTerms
+- definition: heading, body, keyTerms, formula (optional)
+- steps: heading, steps[{label, detail}]
+- compare: heading, left{label, points[]}, right{label, points[]}
+- example: heading, example{prompt, working[], answer}
+- recap: heading, points[], body (the sentence to say back)
+
 STRICT:
-- Exactly 5 scenes. Sum of durationSec between 180 and 300.
-- character_action for the five scenes, in order: running_into_wall, looping, dodge_fail, feeding_data, co_op_clear.
+- Exactly 6 scenes. Sum of durationSec between 180 and 300.
+- layouts in order: title, definition, steps, compare, example, recap.
 - Return JSON only.
 `;
 
 type LlmBlockRaw = {
   sceneId?: number;
-  level?: string;
   timestamp_range?: [number, number] | number[];
   timestampRange?: [number, number] | number[];
   duration?: number;
@@ -128,10 +105,7 @@ type LlmBlockRaw = {
   voiceoverText?: string;
   voiceover_narration?: string;
   voiceoverNarration?: string;
-  gameplay_visual?: GameplayVisual;
-  gameplayVisual?: GameplayVisual;
-  sfx_trigger?: string;
-  sfxTrigger?: string;
+  lesson?: unknown;
   visualConfig?: Record<string, unknown>;
   visualArchetype?: string;
   teacherGesture?: string;
@@ -162,26 +136,67 @@ function excerptAt(ctx: TopicContextPacket, index: number, fallback: string): st
   return clipText(raw, 220);
 }
 
-function asHud(raw: unknown, fallback: GameplayHudStats): GameplayHudStats {
+function asStringList(raw: unknown, maxItems: number, maxLen: number): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => clipText(String(item ?? ''), maxLen))
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function asSteps(raw: unknown): LessonSlideStep[] {
+  if (!Array.isArray(raw)) return [];
+  const steps: LessonSlideStep[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const o = item as Record<string, unknown>;
+    const label = clipText(String(o.label ?? o.title ?? o.step ?? ''), 48);
+    if (!label) continue;
+    const step: LessonSlideStep = { label };
+    if (o.detail != null) step.detail = clipText(String(o.detail), 90);
+    steps.push(step);
+    if (steps.length >= 5) break;
+  }
+  return steps;
+}
+
+function asColumn(raw: unknown, fallback: LessonSlideColumn): LessonSlideColumn {
   if (!raw || typeof raw !== 'object') return fallback;
   const o = raw as Record<string, unknown>;
   return {
-    cpu_usage: o.cpu_usage != null ? String(o.cpu_usage) : fallback.cpu_usage,
-    exp: typeof o.exp === 'number' ? o.exp : Number(o.exp) || fallback.exp,
-    mana: o.mana != null ? String(o.mana) : fallback.mana,
-    memory: o.memory != null ? String(o.memory) : fallback.memory,
-    variance: o.variance != null ? String(o.variance) : fallback.variance,
+    label: clipText(String(o.label ?? fallback.label), 28) || fallback.label,
+    points: asStringList(o.points, 4, 70) || fallback.points,
   };
 }
 
-function asGameplayVisual(raw: unknown, fallback: GameplayVisual): GameplayVisual {
+function asExample(raw: unknown, fallback: LessonSlideExample): LessonSlideExample {
   if (!raw || typeof raw !== 'object') return fallback;
   const o = raw as Record<string, unknown>;
   return {
-    character_action: o.character_action != null ? String(o.character_action) : fallback.character_action,
-    code_terminal_overlay:
-      o.code_terminal_overlay != null ? String(o.code_terminal_overlay) : fallback.code_terminal_overlay,
-    hud_stats: asHud(o.hud_stats, fallback.hud_stats ?? {}),
+    prompt: clipText(String(o.prompt ?? fallback.prompt), 120) || fallback.prompt,
+    working: asStringList(o.working, 4, 80) || fallback.working,
+    answer: clipText(String(o.answer ?? fallback.answer), 80) || fallback.answer,
+  };
+}
+
+function asLesson(raw: unknown, fallback: LessonSlide): LessonSlide {
+  if (!raw || typeof raw !== 'object') return fallback;
+  const o = raw as Record<string, unknown>;
+  const layout = (LESSON_BEATS.some((beat) => beat.layout === o.layout) ? o.layout : fallback.layout) as LessonSlideLayout;
+  return {
+    layout,
+    heading: clipText(String(o.heading ?? fallback.heading), 60) || fallback.heading,
+    subheading: o.subheading != null ? clipText(String(o.subheading), 80) : fallback.subheading,
+    body: o.body != null ? clipText(String(o.body), 160) : fallback.body,
+    keyTerms: asStringList(o.keyTerms ?? o.key_terms, 5, 28).length
+      ? asStringList(o.keyTerms ?? o.key_terms, 5, 28)
+      : fallback.keyTerms,
+    formula: o.formula != null ? clipText(String(o.formula), 80) : fallback.formula,
+    steps: asSteps(o.steps).length ? asSteps(o.steps) : fallback.steps,
+    left: o.left ? asColumn(o.left, fallback.left ?? { label: 'Mix-up', points: [] }) : fallback.left,
+    right: o.right ? asColumn(o.right, fallback.right ?? { label: 'Correct', points: [] }) : fallback.right,
+    example: o.example ? asExample(o.example, fallback.example ?? { prompt: '', working: [], answer: '' }) : fallback.example,
+    points: asStringList(o.points, 4, 80).length ? asStringList(o.points, 4, 80) : fallback.points,
   };
 }
 
@@ -197,7 +212,7 @@ function expandVoiceover(text: string, ctx: TopicContextPacket, index: number, m
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length >= minWords) return text;
   const extra = excerptAt(ctx, index, ctx.chapterSummary || ctx.title);
-  return `${text} ${extra} Stay with the level — the textbook is the rulebook for this stage.`.trim();
+  return `${text} ${extra} Keep this idea from the chapter in your own words.`.trim();
 }
 
 function durationFromBlock(block: LlmBlockRaw, fallback: number): number {
@@ -218,7 +233,7 @@ function rescaleToWindow(scenes: VideoSceneSpec[]): void {
     const target = Math.min(MAX_TOTAL_SEC, Math.max(MIN_TOTAL_SEC, total || 240));
     const scale = target / (total || 1);
     for (const s of scenes) {
-      const next = Math.max(30, Math.min(75, Math.round(s.duration * scale)));
+      const next = Math.max(28, Math.min(70, Math.round(s.duration * scale)));
       s.duration = next;
       s.durationSec = next;
     }
@@ -227,7 +242,7 @@ function rescaleToWindow(scenes: VideoSceneSpec[]): void {
   if (total < MIN_TOTAL_SEC) {
     const bump = Math.ceil((MIN_TOTAL_SEC - total) / scenes.length);
     for (const s of scenes) {
-      const next = Math.min(75, s.duration + bump);
+      const next = Math.min(70, s.duration + bump);
       s.duration = next;
       s.durationSec = next;
     }
@@ -241,23 +256,89 @@ function rescaleToWindow(scenes: VideoSceneSpec[]): void {
   }
 }
 
+function fallbackLessons(ctx: TopicContextPacket, formulas: string[]): LessonSlide[] {
+  const definition = excerptAt(ctx, 1, excerptAt(ctx, 0, ctx.title));
+  const puzzle = excerptAt(ctx, 0, ctx.chapterSummary || ctx.title);
+  const mixup = excerptAt(ctx, 2, ctx.chapterSummary || definition);
+  const rule = formulas[0] || excerptAt(ctx, 3, definition);
+  const recap = clipText(ctx.chapterSummary || definition, 140);
+  return [
+    {
+      layout: 'title',
+      heading: ctx.title,
+      subheading: ctx.chapterTitle,
+      body: clipText(puzzle, 140),
+      keyTerms: [ctx.subject, ctx.gradeLabel].filter(Boolean),
+    },
+    {
+      layout: 'definition',
+      heading: `What ${ctx.title} means`,
+      body: clipText(definition, 160),
+      keyTerms: [ctx.title],
+      formula: formulas[0],
+    },
+    {
+      layout: 'steps',
+      heading: 'How it works',
+      steps: [
+        { label: 'Start from the chapter', detail: clipText(puzzle, 80) },
+        { label: 'Name the idea', detail: clipText(definition, 80) },
+        { label: 'Use the rule', detail: clipText(rule, 80) },
+      ],
+    },
+    {
+      layout: 'compare',
+      heading: 'A common mix-up',
+      left: { label: 'Easy to mix up', points: [clipText(mixup, 70), 'A first guess often stops here'] },
+      right: { label: 'From the textbook', points: [clipText(definition, 70), clipText(rule, 70)] },
+    },
+    {
+      layout: 'example',
+      heading: 'Worked example',
+      example: {
+        prompt: `Apply ${ctx.title} from ${ctx.chapterTitle}.`,
+        working: [clipText(definition, 80), clipText(rule, 80)],
+        answer: clipText(rule, 80),
+      },
+    },
+    {
+      layout: 'recap',
+      heading: 'Remember this',
+      points: [clipText(definition, 70), clipText(rule, 70), `Topic: ${ctx.title}`],
+      body: recap,
+    },
+  ];
+}
+
+function heuristicVoiceovers(ctx: TopicContextPacket, formulas: string[]): string[] {
+  const definition = excerptAt(ctx, 1, excerptAt(ctx, 0, ctx.title));
+  const puzzle = excerptAt(ctx, 0, ctx.chapterSummary || ctx.title);
+  const mixup = excerptAt(ctx, 2, ctx.chapterSummary || definition);
+  const rule = formulas[0] || excerptAt(ctx, 3, definition);
+  const recap = clipText(ctx.chapterSummary || definition, 180);
+  return [
+    `Today we are looking at ${ctx.title}, from ${ctx.chapterTitle} in ${ctx.textbookTitle}. ${puzzle} By the end of this lesson you should be able to say what this idea means and use it on a simple example.`,
+    `Here is the definition to keep for ${ctx.title}. ${definition} Say that idea once, then say it again. The textbook chose those words on purpose, so the second pass is how the meaning sticks.`,
+    `Now watch how the idea works, step by step. ${clipText(definition, 160)} Each step comes from the chapter, not from a guess. If you can follow the order, you can explain the topic to someone else.`,
+    `This is the part students mix up. ${mixup} Hold that first guess next to the textbook idea: ${clipText(definition, 120)} The example in the chapter is there to show where the guess stops working.`,
+    `Let us use one example. ${rule} Read the prompt, follow the working, and check the answer against the chapter. That is the same move you will make on a question about ${ctx.title}.`,
+    `Say this back: ${ctx.title}. ${recap} If you can explain that in one sentence, this lesson is clear.`,
+  ];
+}
+
 function toSceneSpec(
   ctx: TopicContextPacket,
   block: LlmBlockRaw | undefined,
   index: number,
-  formulas: string[],
+  fallbackLesson: LessonSlide,
 ): VideoSceneSpec {
-  const preset = PIXEL_LEVELS[Math.min(index, PIXEL_LEVELS.length - 1)];
-  const formula = formulas[index] || formulas[0] || '';
-  const factLine = clipText(formula || excerptAt(ctx, index, ctx.title), 90);
-  const visual: GameplayVisual = asGameplayVisual(block?.gameplay_visual ?? block?.gameplayVisual, {
-    character_action: preset.action,
-    code_terminal_overlay: factLine || preset.terminal,
-    hud_stats: { ...preset.hud },
+  const beat = LESSON_BEATS[Math.min(index, LESSON_BEATS.length - 1)];
+  const lesson = asLesson(block?.lesson ?? (block?.visualConfig as { lesson?: unknown } | undefined)?.lesson, {
+    ...fallbackLesson,
+    layout: beat.layout,
   });
-  visual.character_action = preset.action;
-  visual.code_terminal_overlay = clipText(visual.code_terminal_overlay || factLine || preset.terminal, 90);
-  const duration = durationFromBlock(block ?? {}, DEFAULT_LEVEL_SEC[index] ?? 45);
+  lesson.layout = beat.layout;
+  const duration = durationFromBlock(block ?? {}, DEFAULT_SCENE_SEC[index] ?? 45);
   const voiceover = String(
     block?.voiceover_narration ||
       block?.voiceoverNarration ||
@@ -265,89 +346,65 @@ function toSceneSpec(
       block?.voiceoverText ||
       '',
   ).trim();
-  const level = preset.level;
-  const sfx = preset.sfx;
+  const phase = beat.phase;
   const visualConfig: SceneVisualConfig = {
     ...(block?.visualConfig ?? {}),
     visualDomain: ctx.contentDomain || detectContentDomain(ctx),
-    formulaText: formula || visual.code_terminal_overlay,
-    equationLatex: formula || undefined,
-    headline: level,
-    stageLabel: visual.code_terminal_overlay,
-    takeawayBadge: visual.hud_stats?.variance,
-    gameplay_visual: visual,
-    gameplayVisual: visual,
-    sfx_trigger: sfx,
-    level,
+    formulaText: lesson.formula,
+    equationLatex: lesson.formula,
+    headline: lesson.heading,
+    stageLabel: phase,
+    takeawayBadge: lesson.body,
+    lesson,
   };
   const parameters: VideoSceneParameters = {
     ...visualConfig,
-    gameplay_visual: visual,
-    sfx_trigger: sfx,
-    level,
+    lesson,
   };
   return {
     sceneId: block?.sceneId ?? index + 1,
     duration,
     durationSec: duration,
     voiceoverText: voiceover,
-    voiceover: voiceover,
+    voiceover,
     voiceoverNarration: voiceover,
-    animationType: 'PixelQuest',
+    animationType: 'LessonBoard',
     parameters,
-    phase: level,
-    phaseTitle: level,
-    visualType: 'pixel_game_hud',
-    visualArchetype: 'pixel_game_hud',
+    phase,
+    phaseTitle: phase,
+    visualType: 'lesson_board',
+    visualArchetype: 'concept_card',
     visualConfig,
     visualProps: parameters,
     props: parameters,
-    teacherGesture: index === 0 ? 'questioning' : index >= 4 ? 'celebrating' : 'demonstrating',
+    teacherGesture: index === 0 ? 'questioning' : index >= 5 ? 'celebrating' : 'demonstrating',
     cameraMotion: 'push_in_close',
-    level,
     timestampRange: [0, duration],
     timestamp_range: [0, duration],
-    gameplayVisual: visual,
-    gameplay_visual: visual,
-    sfxTrigger: sfx,
-    sfx_trigger: sfx,
+    lesson,
   };
-}
-
-function heuristicVoiceovers(ctx: TopicContextPacket, formulas: string[]): string[] {
-  const definition = excerptAt(ctx, 1, excerptAt(ctx, 0, ctx.title));
-  const puzzle = excerptAt(ctx, 0, ctx.chapterSummary || ctx.title);
-  const tricky = excerptAt(ctx, 2, ctx.chapterSummary || definition);
-  const rule = formulas[0] || excerptAt(ctx, 3, definition);
-  const recap = clipText(ctx.chapterSummary || definition, 180);
-  return [
-    `Start with what you can already notice about ${ctx.title}. ${puzzle} A first guess runs into a wall here, because the chapter is pointing at something more exact than the everyday picture. Hold that puzzle. The next level names it.`,
-    `Here is the definition to keep for ${ctx.title}, in ${ctx.chapterTitle}. ${definition} Say that key idea once, then say it again. The textbook uses those words on purpose, so the second pass is how the meaning sticks.`,
-    `This is the part students mix up. ${tricky} If the first guess still feels right, check it against the chapter example. The example is there to show where that guess stops working.`,
-    `Now the rule itself. ${rule} That line is the one to trust when a question about ${ctx.title} shows up. It comes from ${ctx.textbookTitle}, not from a guess. Read it with the example you just saw.`,
-    `Say this back: ${ctx.title}. ${recap} If you can explain that in one sentence, this level is clear.`,
-  ];
 }
 
 function heuristicManifest(ctx: TopicContextPacket): VideoScriptManifest {
   const formulas = extractFormulasFromContext(ctx);
   const lines = heuristicVoiceovers(ctx, formulas);
-  const scenes = PIXEL_LEVELS.map((preset, i) => {
-    const spec = toSceneSpec(ctx, { level: preset.level, voiceover_narration: lines[i] }, i, formulas);
+  const slides = fallbackLessons(ctx, formulas);
+  const scenes = LESSON_BEATS.map((beat, i) => {
+    const spec = toSceneSpec(ctx, { phase: beat.phase, voiceover_narration: lines[i], lesson: slides[i] }, i, slides[i]);
     spec.voiceoverText = lines[i];
     spec.voiceover = lines[i];
     spec.voiceoverNarration = lines[i];
-    spec.duration = DEFAULT_LEVEL_SEC[i];
-    spec.durationSec = DEFAULT_LEVEL_SEC[i];
+    spec.duration = DEFAULT_SCENE_SEC[i];
+    spec.durationSec = DEFAULT_SCENE_SEC[i];
     return spec;
   });
   rescaleToWindow(scenes);
   return {
     topicTitle: ctx.title,
-    teacherName: 'Pixel Sage',
-    architecture: 'pixel_game_hud',
-    archetype: 'process',
-    pedagogicalPattern: 'process_flow',
+    teacherName: 'MindVault',
+    architecture: 'lesson_board',
+    archetype: 'concept',
+    pedagogicalPattern: 'lesson_board',
     totalDurationSeconds: scenes.reduce((a, s) => a + s.duration, 0),
     scenes,
   };
@@ -355,14 +412,13 @@ function heuristicManifest(ctx: TopicContextPacket): VideoScriptManifest {
 
 function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoScriptManifest {
   const fallback = heuristicManifest(ctx);
-  const formulas = extractFormulasFromContext(ctx);
   const blocks = collectRawBlocks(raw);
   if (!blocks.length) {
-    throw new Error('Gemini returned no lesson levels');
+    throw new Error('Claude Opus 5.5 returned no lesson scenes');
   }
 
   const scenes = blocks.map((b, i) => {
-    const spec = toSceneSpec(ctx, b, i, formulas);
+    const spec = toSceneSpec(ctx, b, i, fallback.scenes[Math.min(i, fallback.scenes.length - 1)].lesson!);
     spec.voiceoverText = expandVoiceover(
       spec.voiceoverText || fallback.scenes[Math.min(i, fallback.scenes.length - 1)].voiceoverText,
       ctx,
@@ -381,10 +437,10 @@ function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoS
   rescaleToWindow(scenes);
   return {
     topicTitle: raw.topicTitle || ctx.title,
-    teacherName: String(raw.teacherName || 'Pixel Sage').trim() || 'Pixel Sage',
-    architecture: 'pixel_game_hud',
-    archetype: 'process',
-    pedagogicalPattern: raw.architecture || 'process_flow',
+    teacherName: String(raw.teacherName || 'MindVault').trim() || 'MindVault',
+    architecture: 'lesson_board',
+    archetype: 'concept',
+    pedagogicalPattern: 'lesson_board',
     totalDurationSeconds: scenes.reduce((a, s) => a + s.duration, 0),
     scenes,
   };
@@ -412,35 +468,36 @@ function parseLlmManifestSafely(llmOutput: unknown, ctx: TopicContextPacket): Vi
   let parsed: unknown = llmOutput;
   if (typeof llmOutput === 'string') parsed = JSON.parse(llmOutput);
   if (!parsed || typeof parsed !== 'object') {
-    throw new Error('Gemini did not return a lesson script');
+    throw new Error('Claude Opus 5.5 did not return a lesson script');
   }
   const manifest = applyAttachmentOverlays(normalizeManifest(parsed as LlmManifestRaw, ctx), ctx);
   if (!manifest.scenes.length) {
-    throw new Error('Gemini returned no lesson levels');
+    throw new Error('Claude Opus 5.5 returned no lesson scenes');
   }
   return manifest;
 }
 
-/** @deprecated template skins removed — pixel quest is the only video architecture. */
 export function normalizeVisualArchetype(_raw?: string, _index = 0): string {
-  return 'pixel_game_hud';
+  return 'lesson_board';
 }
 
 export async function generateStructuredVideoScript(
   ctx: TopicContextPacket,
 ): Promise<VideoScriptManifest> {
-  const provider = getPixelQuestScriptProvider();
+  const provider = getLessonVideoScriptProvider();
   const domain = ctx.contentDomain || detectContentDomain(ctx);
   const formulas = extractFormulasFromContext(ctx);
   const excerpts = ctx.ragExcerpts.slice(0, 16).join('\n---\n');
   const packet: TopicContextPacket = { ...ctx, contentDomain: domain };
 
   console.log(
-    `[videoPipeline/script] Gemini ${pixelQuestGeminiModel()} domain=${domain} RAG=${ctx.ragExcerpts.length} formulas=${formulas.length} topic="${ctx.code} ${ctx.title}"`,
+    `[videoPipeline/script] Claude Opus 5.5 domain=${domain} RAG=${ctx.ragExcerpts.length} formulas=${formulas.length} topic="${ctx.code} ${ctx.title}"`,
   );
 
   if (!provider) {
-    throw new Error('GEMINI_API_KEY is required. Pixel Quest lesson scripts are generated by Gemini.');
+    throw new Error(
+      'ANTHROPIC_API_KEY is required. Animated lesson videos are generated by Claude Opus 5.5 (claude-opus-5-5).',
+    );
   }
 
   const user = [
@@ -451,28 +508,27 @@ export async function generateStructuredVideoScript(
     `Grade: ${ctx.gradeLabel}`,
     `Detected domain: ${domain}`,
     `Chapter summary: ${ctx.chapterSummary}`,
-    'Teach this topic from the excerpts. The pixel game is only the picture. Narration explains the idea to a student.',
+    'Teach this topic from the excerpts on a clean lesson board. No game theme.',
     ctx.teacherPrompt ? `Teacher note: ${ctx.teacherPrompt}` : '',
     formulas.length ? `FORMULAS FOUND IN THE CHAPTER:\n${formulas.join('\n')}` : '',
     `CHAPTER EXCERPTS (use these facts only):\n${excerpts || ctx.chapterSummary || ctx.title}`,
-    'Output exactly 5 levels, 180–300 seconds total, architecture pixel_game_hud.',
+    'Output exactly 6 scenes, 180–300 seconds total, architecture lesson_board.',
   ]
     .filter(Boolean)
     .join('\n\n');
 
   const raw = await Promise.race([
     provider.completeJson<LlmManifestRaw | string>({
-      system: PIXEL_QUEST_PROMPT,
+      system: LESSON_SCRIPT_PROMPT,
       user,
-      temperature: 0.4,
     }),
     new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Gemini script timed out')), 170_000);
+      setTimeout(() => reject(new Error('Claude Opus 5.5 script timed out')), 170_000);
     }),
   ]);
   const manifest = parseLlmManifestSafely(raw, packet);
   console.log(
-    `[videoPipeline/script] pixelQuest gemini scenes=${manifest.scenes.length} duration=${manifest.totalDurationSeconds}s levels=${manifest.scenes.map((s) => s.level).join(' | ')}`,
+    `[videoPipeline/script] lessonBoard model=claude-opus-5-5 scenes=${manifest.scenes.length} duration=${manifest.totalDurationSeconds}s phases=${manifest.scenes.map((s) => s.phase).join(' | ')}`,
   );
   return manifest;
 }
@@ -486,7 +542,7 @@ export function cuesFromManifest(manifest: VideoScriptManifest) {
   return manifest.scenes.map((s) => {
     const cue = {
       timeSec: t + Math.min(2, s.duration / 3),
-      label: String(s.level || s.phase || s.sfxTrigger || s.voiceoverText.slice(0, 40)),
+      label: String(s.phase || s.lesson?.heading || s.voiceoverText.slice(0, 40)),
     };
     t += s.duration;
     return cue;

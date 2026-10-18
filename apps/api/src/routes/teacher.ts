@@ -487,7 +487,7 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res: Res
   }
 
   console.log(
-    `[teacher/generate-video] Cleared cached script for ${existing.id}; pixel-quest regenerate from PDF embeddings`,
+    `[teacher/generate-video] Cleared cached script for ${existing.id}; lesson explainer regenerate from PDF embeddings`,
   );
 
   enqueueHybridVideoJob(existing.id, parsed.data.prompt);

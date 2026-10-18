@@ -1,6 +1,7 @@
-/** Normalize SweetRush script JSON so visualArchetype + visualConfig drive 3D primitives. */
+/** Normalize lesson-board script JSON for the animated explainer. */
 
 export type VisualArchetypeName =
+  | 'lesson_board'
   | 'pixel_game_hud'
   | 'split_comparison'
   | 'interactive_stage'
@@ -36,8 +37,7 @@ export type SceneProp = {
   timestamp_range?: [number, number];
   gameplayVisual?: Record<string, unknown>;
   gameplay_visual?: Record<string, unknown>;
-  sfxTrigger?: string;
-  sfx_trigger?: string;
+  lesson?: import('@brightpath/shared').LessonSlide;
 };
 
 export type ScriptData = {
@@ -81,15 +81,16 @@ export type NormalizedScene = {
   props: Record<string, unknown>;
   teacherGesture: string;
   cameraMotion: string;
-  level: string;
-  gameplayVisual: Record<string, unknown>;
-  sfxTrigger: string;
+  lesson?: import('@brightpath/shared').LessonSlide;
 };
 
 const LEGACY_TO_ARCHETYPE: Record<string, VisualArchetypeName> = {
-  pixel_game_hud: 'pixel_game_hud',
-  pixelquest: 'pixel_game_hud',
-  PixelQuest: 'pixel_game_hud',
+  lesson_board: 'lesson_board',
+  lessonboard: 'lesson_board',
+  LessonBoard: 'lesson_board',
+  pixel_game_hud: 'lesson_board',
+  pixelquest: 'lesson_board',
+  PixelQuest: 'lesson_board',
   split_comparison: 'split_comparison',
   comparison_split: 'split_comparison',
   question_card: 'split_comparison',
@@ -133,7 +134,7 @@ export function canonicalVisualArchetype(raw: string | undefined, _index = 0): V
     .trim()
     .replace(/-/g, '_');
   if (LEGACY_TO_ARCHETYPE[key]) return LEGACY_TO_ARCHETYPE[key];
-  return 'pixel_game_hud';
+  return 'lesson_board';
 }
 
 export function canonicalVisualType(raw: string): string {
@@ -164,27 +165,12 @@ export function sceneProps(raw: SceneProp | undefined): Record<string, unknown> 
 export function normalizeScene(raw: SceneProp | undefined, index = 0): NormalizedScene {
   const duration = sceneDuration(raw);
   const visualArchetype = canonicalVisualArchetype(
-    raw?.visualArchetype || raw?.visualType || raw?.visual_type || raw?.animationType || 'pixel_game_hud',
+    raw?.visualArchetype || raw?.visualType || raw?.visual_type || raw?.animationType || 'lesson_board',
     index,
   );
   const props = sceneProps(raw);
-  const gameplayVisual = {
-    ...((raw?.gameplay_visual && typeof raw.gameplay_visual === 'object' ? raw.gameplay_visual : {}) as Record<
-      string,
-      unknown
-    >),
-    ...((raw?.gameplayVisual && typeof raw.gameplayVisual === 'object' ? raw.gameplayVisual : {}) as Record<
-      string,
-      unknown
-    >),
-    ...((props.gameplay_visual && typeof props.gameplay_visual === 'object'
-      ? (props.gameplay_visual as Record<string, unknown>)
-      : {}) as Record<string, unknown>),
-  };
-  const level = String(raw?.level || raw?.phaseTitle || raw?.phase || props.level || `Level ${index + 1}`);
-  const sfxTrigger = String(
-    raw?.sfx_trigger || raw?.sfxTrigger || props.sfx_trigger || props.sfxTrigger || 'eight_bit_click',
-  );
+  const lesson = (raw?.lesson || props.lesson) as NormalizedScene['lesson'];
+  const phase = String(raw?.phaseTitle || raw?.phase || props.headline || lesson?.heading || `Scene ${index + 1}`);
   const voiceover = String(
     raw?.voiceoverText || raw?.voiceover || raw?.voiceoverNarration || raw?.voiceover_narration || '',
   ).trim();
@@ -195,22 +181,20 @@ export function normalizeScene(raw: SceneProp | undefined, index = 0): Normalize
     sceneId: Number(raw?.sceneId) || index + 1,
     duration,
     durationSec: duration,
-    phase: level.toUpperCase(),
-    phaseTitle: level,
+    phase,
+    phaseTitle: phase,
     voiceoverText: voiceover,
     voiceover,
-    visualType: visualArchetype,
+    visualType: 'lesson_board',
     visualArchetype,
-    animationType: String(raw?.animationType || 'PixelQuest'),
-    visualConfig: { ...props, gameplay_visual: gameplayVisual, level, sfx_trigger: sfxTrigger },
+    animationType: String(raw?.animationType || 'LessonBoard'),
+    visualConfig: { ...props, lesson },
     visualProps: props,
     parameters: props,
     props,
     teacherGesture,
     cameraMotion,
-    level,
-    gameplayVisual,
-    sfxTrigger,
+    lesson,
   };
 }
 
@@ -238,7 +222,7 @@ export function resolveLessonProps(props: GamifiedLessonProps): GamifiedLessonPr
     teacherName,
     archetype: props.scriptData?.archetype || props.archetype,
     pedagogicalPattern: props.scriptData?.pedagogicalPattern || props.pedagogicalPattern,
-    architecture: props.scriptData?.architecture || 'pixel_game_hud',
+    architecture: props.scriptData?.architecture || 'lesson_board',
     totalDurationSeconds,
     scenes,
     wordTimings,

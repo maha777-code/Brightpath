@@ -29,7 +29,7 @@ import rosterRoutes from './routes/roster.js';
 import sharadaTutorRoutes from './routes/sharadaTutor.js';
 import inviteRoutes from './routes/invites.js';
 import { ensureDatabaseSchema } from './lib/ensureDatabaseSchema.js';
-import { pixelQuestGeminiModel } from './lib/llm/provider.js';
+import { LESSON_VIDEO_MODEL } from './lib/llm/provider.js';
 import { ensureDemoTeacher } from './lib/ensureDemoTeacher.js';
 import { prisma } from './lib/prisma.js';
 import { migrateLegacyUsers } from './scripts/migrateLegacyUsers.js';
@@ -126,14 +126,14 @@ app.use(
 
 app.get('/health', (_req, res) => {
   const llm = Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);
-  const pixelQuest = Boolean(process.env.GEMINI_API_KEY?.trim());
+  const lessonVideo = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
   res.json({
     status: 'ok',
     service: 'brightpath-api',
     phase: llm ? 1 : 0,
     llm,
-    pixelQuest,
-    pixelQuestModel: pixelQuest ? pixelQuestGeminiModel() : null,
+    lessonVideo,
+    lessonVideoModel: lessonVideo ? LESSON_VIDEO_MODEL : null,
   });
 });
 

@@ -127,7 +127,7 @@ export async function runHybridVideoPipeline(
 
         await setStage(topicId, 'scripting');
         console.log(
-          `[videoPipeline] Passing ${ctx.ragExcerpts.length} RAG excerpts into Gemini pixel-quest explainer`,
+          `[videoPipeline] Passing ${ctx.ragExcerpts.length} RAG excerpts into Claude Opus 5.5 lesson explainer`,
         );
         const manifest = await withTimeout(
           generateStructuredVideoScript(ctx),
