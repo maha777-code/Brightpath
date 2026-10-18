@@ -1,6 +1,31 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Html5Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { PAD, alpha, rise, useEnter, usePromo, SPRING } from './theme';
+
+const SFX_FRAMES = {
+  pop: 8,
+  click1: 3,
+  click2: 3,
+  click3: 3,
+  tick: 3,
+  whoosh: 27,
+  ding: 42,
+  error: 12,
+  shimmer: 60,
+} as const;
+
+export type SfxName = keyof typeof SFX_FRAMES;
+
+/** Plays one generated sound effect `at` frames into the current scene. */
+export function Sfx({ at, name, volume = 1 }: { at: number; name: SfxName; volume?: number }) {
+  const { audio } = usePromo();
+  if (!audio.soundEffects || audio.soundEffectsVolume <= 0) return null;
+  return (
+    <Sequence from={Math.round(at)} durationInFrames={SFX_FRAMES[name]} layout="none" name={`sfx: ${name}`}>
+      <Html5Audio src={staticFile(`audio/sfx-${name}.wav`)} volume={Math.min(1, volume * audio.soundEffectsVolume)} />
+    </Sequence>
+  );
+}
 
 export function GradientText({ children }: { children: React.ReactNode }) {
   const { colors } = usePromo();

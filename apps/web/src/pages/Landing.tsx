@@ -256,7 +256,7 @@ function AiSolutionsMenu() {
       </button>
 
       <div className="bp-mega-panel">
-        <div className="w-[min(880px,calc(100vw-2rem))] rounded-2xl border border-cyan-500/30 bg-slate-950/95 p-8 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl">
+        <div className="w-[min(880px,calc(100vw_-_200px))] rounded-2xl border border-cyan-500/30 bg-slate-950/95 p-8 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl">
           <div className="mb-8 grid grid-cols-12 gap-8">
             <div className="col-span-8 grid grid-cols-2 gap-6">
               <div className="space-y-1.5">
@@ -293,8 +293,13 @@ function AiSolutionsMenu() {
                 <span className="rounded-full border border-cyan-500/30 bg-cyan-950/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-cyan-400">
                   NEW · BETA
                 </span>
-                <div className="mt-3 flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-cyan-500/20 bg-cyan-900/30">
-                  <span className="text-4xl">🎮</span>
+                <div className="mt-3 aspect-video overflow-hidden rounded-lg border border-cyan-500/20 bg-cyan-900/30">
+                  <img
+                    src="/gamified-video.jpg"
+                    alt="A textbook PDF turning into a game-style video lesson with stars and quiz coins"
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
                 </div>
                 <p className="mt-3 text-sm text-slate-300">
                   Turn a PDF into a gamified video or class activity.

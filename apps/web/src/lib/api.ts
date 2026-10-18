@@ -278,6 +278,24 @@ export const api = {
   login: (body: LoginRequest) =>
     request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
 
+  forgotPassword: (email: string) =>
+    request<{ ok: true; message: string }>('/auth/password/forgot', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  checkPasswordReset: (token: string) =>
+    request<{ ok: true; email: string | null }>('/auth/password/reset/check', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+
+  resetPassword: (token: string, password: string) =>
+    request<{ ok: true; email: string }>('/auth/password/reset', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    }),
+
   me: () =>
     request<{
       parent?: ParentUser;

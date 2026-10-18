@@ -33,6 +33,7 @@ import { ensureDemoTeacher } from './lib/ensureDemoTeacher.js';
 import { prisma } from './lib/prisma.js';
 import { migrateLegacyUsers } from './scripts/migrateLegacyUsers.js';
 import type { AuthRequest } from './middleware/auth.js';
+import { requirePaidOrganization } from './middleware/orgSubscription.js';
 
 const PORT = Number(process.env.API_PORT ?? 3001);
 const app = express();
@@ -131,6 +132,11 @@ app.get('/health', (_req, res) => {
     llm,
   });
 });
+
+app.use(
+  ['/teacher', '/ai', '/tutor', '/topics', '/chapters', '/curriculum', '/roster', '/admin', '/org', '/sharada'],
+  (req, res, next) => void requirePaidOrganization(req as AuthRequest, res, next),
+);
 
 app.use('/auth', authRoutes);
 app.use('/children', childrenRoutes);

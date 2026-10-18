@@ -1,0 +1,26 @@
+{
+  "model": "eleven_multilingual_v2",
+  "voiceSettings": {
+    "stability": 0.45,
+    "similarity_boost": 0.8,
+    "style": 0.3,
+    "use_speaker_boost": true,
+    "speed": 1.0
+  },
+  "lines": {
+    "hook": { "startSec": 0.2, "text": "Still planning lessons… at midnight?" },
+    "problem": {
+      "startSec": 0.5,
+      "text": "Generic AI chatbots don't know your textbook, or your class. So every answer needs rewriting. Again."
+    },
+    "reveal": { "startSec": 0.3, "text": "Meet MindVault. The AI teaching assistant that follows your syllabus." },
+    "feature1": { "startSec": 0.5, "text": "Upload your textbook once, and MindVault maps every chapter and topic." },
+    "feature2": {
+      "startSec": 0.4,
+      "text": "Lesson plans, quizzes, worksheets and slides, built straight from your own chapters."
+    },
+    "feature3": { "startSec": 0.4, "text": "Students get Sharada, a safe AI tutor. And teachers can see every chat." },
+    "audiences": { "startSec": 0.1, "text": "Built for teachers, schools, students and parents." },
+    "cta": { "startSec": 0.3, "text": "Start free today, at mindvault dot academy." }
+  }
+}

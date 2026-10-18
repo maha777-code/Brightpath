@@ -12,7 +12,7 @@ import {
   type PlanType,
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
-import { signPlatformToken } from '../lib/jwt.js';
+import { signPasswordResetToken, signPlatformToken, verifyPasswordResetToken } from '../lib/jwt.js';
 import { requireAuth, requireRoles, type AuthRequest } from '../middleware/auth.js';
 import {
   computeAgeUpgrade,
@@ -21,7 +21,7 @@ import {
   toParentUser,
 } from '../lib/ageCurriculum.js';
 import { toTeacherUser } from '../lib/teacherSerializers.js';
-import { isMailConfigured, sendVerificationCodeEmail } from '../lib/mailer.js';
+import { isMailConfigured, sendPasswordResetEmail, sendVerificationCodeEmail } from '../lib/mailer.js';
 import {
   DB_UNREACHABLE_MESSAGE,
   SCHEMA_OUTDATED_MESSAGE,
@@ -316,9 +316,11 @@ async function createRegisteredAccount(data: RegisterData, passwordHash: string,
           name: data.name ?? null,
           role,
           planType,
+          subscriptionStatus: 'inactive',
         },
       });
 
+      // Schools and academies get no tool access until their first payment activates the plan.
       const org = await prisma.organization.create({
         data: {
           name: data.organizationName!,
@@ -326,6 +328,7 @@ async function createRegisteredAccount(data: RegisterData, passwordHash: string,
           planType,
           maxLicenses: role === 'org_admin' ? 200 : 50,
           adminUserId: user.id,
+          subscriptionStatus: 'inactive',
         },
       });
 
@@ -590,6 +593,120 @@ router.post('/login', async (req, res) => {
       return;
     }
     res.status(500).json({ error: 'Login failed. Check API logs for details.' });
+  }
+});
+
+const RESET_TTL_MINUTES = 30;
+const lastResetSentAt = new Map<string, number>();
+const RESET_SENT_MESSAGE =
+  'If an account exists for that email, we have sent a link to reset your password. Check your inbox and spam folder.';
+
+const appUrl = () => (process.env.APP_URL ?? 'http://localhost:5173').replace(/\/+$/, '');
+
+async function currentPasswordHash(userId: string) {
+  const user = await prisma.platformUser.findUnique({ where: { id: userId }, select: { passwordHash: true } });
+  return user?.passwordHash ?? null;
+}
+
+/** Always answers the same way so the form cannot be used to discover which emails have accounts. */
+router.post('/password/forgot', async (req, res) => {
+  const parsed = z.object({ email: z.string().trim().email() }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Enter a valid email address.' });
+    return;
+  }
+  const email = normalizeEmail(parsed.data.email);
+  if (!isMailConfigured()) {
+    res.status(503).json({ error: 'Password reset email is not available right now. Please contact customersupport@mindvault.academy.' });
+    return;
+  }
+
+  const last = lastResetSentAt.get(email) ?? 0;
+  if (Date.now() - last < RESEND_COOLDOWN_MS) {
+    res.json({ ok: true, message: RESET_SENT_MESSAGE });
+    return;
+  }
+  if (lastResetSentAt.size > 5000) {
+    for (const [key, at] of lastResetSentAt) if (Date.now() - at >= RESEND_COOLDOWN_MS) lastResetSentAt.delete(key);
+  }
+  lastResetSentAt.set(email, Date.now());
+
+  try {
+    const user = await prisma.platformUser.findFirst({ where: { email: { equals: email, mode: 'insensitive' } } });
+    if (user) {
+      const token = signPasswordResetToken(user, RESET_TTL_MINUTES);
+      await sendPasswordResetEmail({
+        to: user.email,
+        name: user.name,
+        link: `${appUrl()}/reset-password?token=${encodeURIComponent(token)}`,
+        expiresInMinutes: RESET_TTL_MINUTES,
+      });
+    }
+  } catch (err) {
+    console.error('Password reset email failed:', err instanceof Error ? err.message : err);
+  }
+  res.json({ ok: true, message: RESET_SENT_MESSAGE });
+});
+
+const resetTokenSchema = z.string().min(20).max(2000);
+
+router.post('/password/reset/check', async (req, res) => {
+  const parsed = z.object({ token: resetTokenSchema }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'This reset link is not valid. Ask for a new one.' });
+    return;
+  }
+  const result = await verifyPasswordResetToken(parsed.data.token, currentPasswordHash);
+  if (!result.ok) {
+    res.status(410).json({
+      error: result.expired
+        ? 'This reset link has expired. Ask for a new one.'
+        : 'This reset link has already been used or is not valid. Ask for a new one.',
+    });
+    return;
+  }
+  const user = await prisma.platformUser.findUnique({ where: { id: result.userId }, select: { email: true } });
+  res.json({ ok: true, email: user?.email ?? null });
+});
+
+router.post('/password/reset', async (req, res) => {
+  const parsed = z
+    .object({
+      token: resetTokenSchema,
+      password: z.string().refine(passwordMeetsPolicy, {
+        message:
+          'Password must include a letter, a capital letter, a number, a special character, and be at least 8 characters.',
+      }),
+    })
+    .safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+  try {
+    const result = await verifyPasswordResetToken(parsed.data.token, currentPasswordHash);
+    if (!result.ok) {
+      res.status(410).json({
+        error: result.expired
+          ? 'This reset link has expired. Ask for a new one.'
+          : 'This reset link has already been used or is not valid. Ask for a new one.',
+      });
+      return;
+    }
+    const user = await prisma.platformUser.findUniqueOrThrow({ where: { id: result.userId } });
+    const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+    await prisma.$transaction([
+      prisma.platformUser.update({ where: { id: user.id }, data: { passwordHash } }),
+      ...(user.teacherId ? [prisma.teacher.update({ where: { id: user.teacherId }, data: { passwordHash } })] : []),
+      ...(user.parentProfileId
+        ? [prisma.parent.update({ where: { id: user.parentProfileId }, data: { passwordHash } })]
+        : []),
+    ]);
+    lastResetSentAt.delete(normalizeEmail(user.email));
+    res.json({ ok: true, email: user.email });
+  } catch (err) {
+    console.error('Password reset failed:', err);
+    res.status(500).json({ error: 'Could not reset your password. Please try again.' });
   }
 });
 

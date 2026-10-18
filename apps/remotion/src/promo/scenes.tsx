@@ -1,11 +1,21 @@
 import React from 'react';
 import { AbsoluteFill, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { PAD, SPRING, alpha, clamp, rise, typed, useEnter, usePromo } from './theme';
-import { AppWindow, CheckIcon, Chip, CrossIcon, GradientText, SceneHeading } from './ui';
+import { AppWindow, CheckIcon, Chip, CrossIcon, GradientText, SceneHeading, Sfx, type SfxName } from './ui';
 
 export type SceneProps = { duration: number };
 
 const PRODUCT_WIDTH = 1344; // 70% of a 1920px frame
+
+/** Keyboard clicks for a typing animation that runs `start`→`end` frames. */
+function TypingClicks({ start, end, volume = 0.35 }: { start: number; end: number; volume?: number }) {
+  const keys: SfxName[] = ['click1', 'click2', 'click3'];
+  const clicks = [];
+  for (let f = start, i = 0; f < end; f += 3, i++) {
+    clicks.push(<Sfx key={f} at={f} name={keys[i % 3]} volume={volume} />);
+  }
+  return <>{clicks}</>;
+}
 
 /* ───────────────────────── 1. Hook ───────────────────────── */
 
@@ -63,6 +73,8 @@ export function HookScene(_: SceneProps) {
   };
   return (
     <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', padding: PAD, textAlign: 'center' }}>
+      <Sfx at={6} name="pop" volume={0.6} />
+      <Sfx at={16} name="pop" volume={0.55} />
       <Clock p={clock} minuteDeg={minuteDeg} />
       <div style={{ ...lineStyle, opacity: line1, transform: `scale(${0.55 + 0.45 * line1})` }}>{copy.hookLine1}</div>
       <div style={{ ...lineStyle, opacity: line2, transform: `scale(${0.55 + 0.45 * line2})` }}>
@@ -91,6 +103,11 @@ export function ProblemScene(_: SceneProps) {
 
   return (
     <AbsoluteFill style={{ padding: PAD, flexDirection: 'row', alignItems: 'center', gap: 72 }}>
+      <TypingClicks start={20} end={20 + Math.ceil(PROBLEM_PROMPT.length / 1.1)} />
+      <Sfx at={96} name="pop" volume={0.5} />
+      {PROBLEM_FLAGS.map((label, i) => (
+        <Sfx key={label} at={150 + i * 14} name="error" volume={0.6} />
+      ))}
       <div style={{ width: 720, display: 'flex', flexDirection: 'column', gap: 32 }}>
         <div style={{ ...rise(head, 40), fontSize: 80, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.06 }}>
           {copy.problemHeadline}
@@ -225,6 +242,7 @@ export function RevealScene(_: SceneProps) {
   const rings = [10, 20].map((start) => interpolate(frame, [start, start + 45], [0, 1], clamp));
   return (
     <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', padding: PAD, textAlign: 'center' }}>
+      <Sfx at={30} name="shimmer" volume={0.55} />
       {rings.map((r, i) => (
         <div
           key={i}
@@ -314,6 +332,12 @@ export function TextbookScene(_: SceneProps) {
 
   return (
     <AbsoluteFill>
+      <Sfx at={18} name="pop" volume={0.5} />
+      <Sfx at={86} name="ding" volume={0.6} />
+      {CHAPTERS.map((title, i) => (
+        <Sfx key={title} at={92 + i * 9} name="tick" volume={0.5} />
+      ))}
+      <Sfx at={160} name="pop" volume={0.55} />
       <SceneHeading label={copy.feature1Label} headline={copy.feature1Headline} />
       <div style={{ position: 'absolute', left: (1920 - PRODUCT_WIDTH) / 2, top: 318 }}>
         <AppWindow width={PRODUCT_WIDTH} height={1080 - 318 - PAD} title="MindVault · Curriculum & Textbook Studio" delay={10}>
@@ -448,6 +472,15 @@ export function ToolsScene(_: SceneProps) {
 
   return (
     <AbsoluteFill>
+      <TypingClicks start={12} end={34} volume={0.25} />
+      <Sfx at={24} name="pop" volume={0.5} />
+      <Sfx at={32} name="click2" volume={0.9} />
+      {QUESTIONS.map((item, qi) => (
+        <React.Fragment key={item.q}>
+          <Sfx at={48 + qi * 22} name="pop" volume={0.45} />
+          <Sfx at={88 + qi * 22} name={qi === QUESTIONS.length - 1 ? 'ding' : 'tick'} volume={0.5} />
+        </React.Fragment>
+      ))}
       <SceneHeading label={copy.feature2Label} headline={copy.feature2Headline} />
       <div style={{ position: 'absolute', left: (1920 - PRODUCT_WIDTH) / 2, top: 318 }}>
         <AppWindow width={PRODUCT_WIDTH} height={1080 - 318 - PAD} title="MindVault · AI Tools" delay={10}>
@@ -643,6 +676,14 @@ export function TutorScene(_: SceneProps) {
 
   return (
     <AbsoluteFill>
+      <Sfx at={20} name="pop" volume={0.55} />
+      <Sfx at={36} name="pop" volume={0.5} />
+      {OVERSIGHT_ROWS.map((row, i) => (
+        <Sfx key={row.name} at={50 + i * 12} name="tick" volume={0.5} />
+      ))}
+      {langs.map((lang, i) => (
+        <Sfx key={lang} at={110 + i * 8} name="pop" volume={0.35} />
+      ))}
       <SceneHeading label={copy.feature3Label} headline={copy.feature3Headline} />
       <div
         style={{
@@ -778,6 +819,9 @@ export function AudienceScene({ duration }: SceneProps) {
 
   return (
     <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', padding: PAD }}>
+      {words.slice(1).map((word, i) => (
+        <Sfx key={word} at={4 + (i + 1) * perWord} name="whoosh" volume={0.3} />
+      ))}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 36, fontSize: 132, fontWeight: 800, letterSpacing: '-0.04em' }}>
         <span style={rise(lead, 30)}>{copy.audienceLead}</span>
         <span style={{ display: 'inline-grid', overflow: 'hidden', paddingBottom: '0.12em', lineHeight: 1.1 }}>
@@ -821,6 +865,8 @@ export function CtaScene(_: SceneProps) {
     <AbsoluteFill
       style={{ alignItems: 'center', justifyContent: 'center', padding: PAD, textAlign: 'center', gap: 36 }}
     >
+      <Sfx at={24} name="pop" volume={0.7} />
+      <Sfx at={34} name="shimmer" volume={0.5} />
       <Img
         src={staticFile('mindvault-logo-horizontal.png')}
         style={{ width: 760, mixBlendMode: 'screen', opacity: logo, transform: `scale(${0.6 + 0.4 * logo})` }}

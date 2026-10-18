@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import type { AppRole, ParentUser, PlanType, TeacherUser, UserRole } from '@brightpath/shared';
 
@@ -80,6 +81,37 @@ export function signTeacherToken(teacher: TeacherUser): string {
     JWT_SECRET,
     { expiresIn: '30d' },
   );
+}
+
+/** Separate key so a reset link can never be replayed as a login token, and vice versa. */
+const RESET_SECRET = `${JWT_SECRET}:password-reset`;
+
+/** Binds the link to the current hash, so it stops working once the password changes. */
+function passwordFingerprint(passwordHash: string): string {
+  return createHash('sha256').update(passwordHash).digest('hex').slice(0, 32);
+}
+
+export function signPasswordResetToken(user: { id: string; passwordHash: string }, expiresInMinutes: number): string {
+  return jwt.sign({ sub: user.id, fp: passwordFingerprint(user.passwordHash) }, RESET_SECRET, {
+    expiresIn: `${expiresInMinutes}m`,
+  });
+}
+
+/** Returns the PlatformUser id when the link is genuine, unexpired and unused. */
+export async function verifyPasswordResetToken(
+  token: string,
+  currentHash: (userId: string) => Promise<string | null>,
+): Promise<{ ok: true; userId: string } | { ok: false; expired: boolean }> {
+  let payload: { sub?: string; fp?: string };
+  try {
+    payload = jwt.verify(token, RESET_SECRET) as { sub?: string; fp?: string };
+  } catch (err) {
+    return { ok: false, expired: err instanceof jwt.TokenExpiredError };
+  }
+  if (!payload.sub || !payload.fp) return { ok: false, expired: false };
+  const hash = await currentHash(payload.sub);
+  if (!hash || passwordFingerprint(hash) !== payload.fp) return { ok: false, expired: false };
+  return { ok: true, userId: payload.sub };
 }
 
 export function verifyToken(token: string): JwtPayload {

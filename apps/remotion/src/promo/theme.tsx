@@ -39,6 +39,16 @@ export const promoSchema = z.object({
     ctaButton: z.string(),
     ctaNote: z.string(),
   }),
+  audio: z.object({
+    voiceover: z.boolean(),
+    voiceoverVolume: z.number().min(0).max(1),
+    music: z.boolean(),
+    musicVolume: z.number().min(0).max(1),
+    /** Music level while the narrator is speaking, relative to musicVolume. */
+    musicUnderVoice: z.number().min(0).max(1),
+    soundEffects: z.boolean(),
+    soundEffectsVolume: z.number().min(0).max(1),
+  }),
   timing: z.object({
     hook: seconds,
     problem: seconds,
@@ -79,19 +89,28 @@ export const defaultPromoProps: PromoProps = {
     ctaButton: 'Get started free',
     ctaNote: 'No card needed',
   },
+  audio: {
+    voiceover: true,
+    voiceoverVolume: 1,
+    music: true,
+    musicVolume: 0.8,
+    musicUnderVoice: 0.35,
+    soundEffects: true,
+    soundEffectsVolume: 0.55,
+  },
   timing: {
     hook: 4,
     problem: 8,
     reveal: 5,
-    feature1: 7,
+    feature1: 6.5,
     feature2: 7,
     feature3: 6,
-    audiences: 3,
+    audiences: 3.5,
     cta: 5,
   },
 };
 
-export function promoDurationInFrames(props: PromoProps): number {
+export function promoDurationInFrames(props: Pick<PromoProps, 'timing'>): number {
   const total = Object.values(props.timing).reduce((sum, s) => sum + s, 0);
   return Math.round(total * PROMO_FPS);
 }

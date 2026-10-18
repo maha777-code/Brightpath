@@ -96,6 +96,45 @@ export async function sendVerificationCodeEmail(input: { to: string; name?: stri
   });
 }
 
+export async function sendPasswordResetEmail(input: {
+  to: string;
+  name?: string | null;
+  link: string;
+  expiresInMinutes: number;
+}): Promise<void> {
+  const mailer = getContactTransporter();
+  if (!mailer) throw new MailerUnconfiguredError();
+  const greeting = input.name?.trim() ? `Hi ${input.name.trim()},` : 'Hi,';
+  await mailer.sendMail({
+    from: `"MindVault" <${senderAddress()}>`,
+    replyTo: CONTACT_INBOX,
+    to: input.to,
+    subject: 'Reset your MindVault password',
+    text: [
+      greeting,
+      '',
+      'We received a request to reset the password for your MindVault account.',
+      '',
+      `Open this link to choose a new password: ${input.link}`,
+      '',
+      `The link expires in ${input.expiresInMinutes} minutes and works once.`,
+      '',
+      'If you did not ask for this, you can ignore this email; your password will not change.',
+    ].join('\n'),
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #0f172a; padding: 24px; max-width: 560px;">
+        <p>${escapeHtml(greeting)}</p>
+        <p>We received a request to reset the password for your MindVault account.</p>
+        <p style="margin: 24px 0;">
+          <a href="${escapeHtml(input.link)}" style="background: #0e7490; color: #ffffff; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">Choose a new password</a>
+        </p>
+        <p>The link expires in ${input.expiresInMinutes} minutes and works once.</p>
+        <p style="color: #475569; font-size: 13px;">If you did not ask for this, you can ignore this email; your password will not change.</p>
+      </div>
+    `,
+  });
+}
+
 export async function sendAccountInviteEmail(input: {
   to: string;
   name: string;

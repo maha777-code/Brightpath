@@ -10,6 +10,7 @@ import PricingPage from '@/pages/PricingPage';
 import BillingSuccess from '@/pages/BillingSuccess';
 import { safeNextPath } from '@/lib/nextPath';
 import Login from '@/pages/Auth/Login';
+import { ForgotPassword, ResetPassword } from '@/pages/Auth/PasswordReset';
 import { CyberLayout } from '@/components/layout/CyberLayout';
 import { SubscriptionGate } from '@/components/billing/SubscriptionGate';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
@@ -175,6 +176,8 @@ export default function App() {
         />
         <Route path="/chat/raina" element={<RedirectSharadaChat />} />
         <Route path="/login" element={<LoginGate />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/register" element={<Register />} />
         <Route path="/signup" element={<Navigate to="/register" replace />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />

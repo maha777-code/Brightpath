@@ -24,6 +24,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const justReset = new URLSearchParams(location.search).get('reset') === '1';
 
   const handleGoBack = () => {
     navigate('/');
@@ -94,9 +95,17 @@ export default function Login() {
           </div>
 
           <div>
-            <label htmlFor="password" className="bp-auth-label block text-lg font-semibold tracking-tight text-white" style={FONT}>
-              {t('auth.password')}
-            </label>
+            <div className="flex items-baseline justify-between gap-3">
+              <label htmlFor="password" className="bp-auth-label block text-lg font-semibold tracking-tight text-white" style={FONT}>
+                {t('auth.password')}
+              </label>
+              <Link
+                to={email.trim() ? `/forgot-password?email=${encodeURIComponent(email.trim())}` : '/forgot-password'}
+                className="bp-login-forgot text-base font-semibold text-cyan-400 underline-offset-4 hover:text-cyan-300 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <input
               id="password"
               type="password"
@@ -109,6 +118,12 @@ export default function Login() {
               autoComplete="current-password"
             />
           </div>
+
+          {justReset && !error ? (
+            <p className="rounded-lg border border-emerald-500/40 bg-emerald-950/40 px-3 py-2 text-sm text-emerald-200">
+              Your password was changed. Sign in with your new password.
+            </p>
+          ) : null}
 
           {error ? (
             <p className="rounded-lg border border-rose-500/40 bg-rose-950/40 px-3 py-2 text-sm text-rose-200">
