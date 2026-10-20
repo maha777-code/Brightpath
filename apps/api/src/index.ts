@@ -29,7 +29,7 @@ import rosterRoutes from './routes/roster.js';
 import sharadaTutorRoutes from './routes/sharadaTutor.js';
 import inviteRoutes from './routes/invites.js';
 import { ensureDatabaseSchema } from './lib/ensureDatabaseSchema.js';
-import { LESSON_VIDEO_MODEL } from './lib/llm/provider.js';
+import { anthropicWorkspaceId, LESSON_VIDEO_MODEL } from './lib/llm/provider.js';
 import { ensureDemoTeacher } from './lib/ensureDemoTeacher.js';
 import { prisma } from './lib/prisma.js';
 import { migrateLegacyUsers } from './scripts/migrateLegacyUsers.js';
@@ -134,6 +134,7 @@ app.get('/health', (_req, res) => {
     llm,
     lessonVideo,
     lessonVideoModel: lessonVideo ? LESSON_VIDEO_MODEL : null,
+    lessonVideoWorkspace: lessonVideo ? Boolean(anthropicWorkspaceId()) : false,
   });
 });
 

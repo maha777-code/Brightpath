@@ -79,10 +79,15 @@ export function getActiveProviderName(): LlmProviderName | null {
   return null;
 }
 
+export function anthropicWorkspaceId(): string | null {
+  const id = process.env.ANTHROPIC_WORKSPACE_ID?.trim();
+  return id || null;
+}
+
 export function getLessonVideoScriptProvider(): LessonVideoScriptProvider | null {
   const key = process.env.ANTHROPIC_API_KEY?.trim();
   if (!key) return null;
-  return createAnthropicProvider(key);
+  return createAnthropicProvider(key, anthropicWorkspaceId());
 }
 
 /** Parse JSON from LLM output (handles markdown fences). */
@@ -361,7 +366,7 @@ function createOpenAiProvider(apiKey: string): LlmProvider {
   };
 }
 
-function createAnthropicProvider(apiKey: string): LessonVideoScriptProvider {
+function createAnthropicProvider(apiKey: string, workspaceId?: string | null): LessonVideoScriptProvider {
   return {
     name: 'anthropic',
     model: LESSON_VIDEO_MODEL,
@@ -374,13 +379,16 @@ function createAnthropicProvider(apiKey: string): LessonVideoScriptProvider {
         });
       }
 
+      const headers: Record<string, string> = {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      };
+      if (workspaceId) headers['anthropic-workspace-id'] = workspaceId;
+
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
+        headers,
         body: JSON.stringify({
           model: LESSON_VIDEO_MODEL,
           max_tokens: 16000,
@@ -392,6 +400,12 @@ function createAnthropicProvider(apiKey: string): LessonVideoScriptProvider {
 
       if (!res.ok) {
         const err = await res.text();
+        const needsWorkspace = /anthropic-workspace-id|not scoped to a workspace/i.test(err);
+        if (needsWorkspace && !workspaceId) {
+          throw new Error(
+            'Claude HTTP 400: this API key needs a workspace. Add ANTHROPIC_WORKSPACE_ID=wrkspc_... from https://platform.claude.com/settings/workspaces, then restart the API.',
+          );
+        }
         throw new Error(`Claude HTTP ${res.status}: ${err.slice(0, 400)}`);
       }
 
