@@ -1,9 +1,6 @@
 import { prisma } from '../prisma.js';
 import type { TopicContextPacket } from './types.js';
-import {
-  attachmentImageUrlsForSubtopic,
-  prioritizedRagExcerpts,
-} from '../../services/attachMedia.js';
+import { prioritizedRagExcerpts } from '../../services/attachMedia.js';
 import { ensureTextbookPdfBodyChunks } from '../../services/textbook.js';
 import { embedTexts, toPgVectorLiteral } from '../embeddings.js';
 import { detectContentDomain } from './contentDomain.js';
@@ -115,7 +112,6 @@ export async function retrieveTextbookContext(
     ];
   }
 
-  const attachmentImageUrls = await attachmentImageUrlsForSubtopic(sub.id);
   const packet: TopicContextPacket = {
     topicId: sub.id,
     code: sub.code,
@@ -127,7 +123,6 @@ export async function retrieveTextbookContext(
     gradeLabel: sub.chapter.textbook.gradeLabel,
     fileName: sub.chapter.textbook.fileName,
     ragExcerpts: ragExcerpts.slice(0, 20),
-    attachmentImageUrls,
     teacherPrompt,
   };
   packet.contentDomain = detectContentDomain(packet);

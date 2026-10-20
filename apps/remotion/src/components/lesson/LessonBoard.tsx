@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { LessonSlide, LessonSlideMotion } from '@brightpath/shared';
 
 function appear(frame: number, fps: number, delay: number, from = 36) {
@@ -17,17 +17,6 @@ function camera(motion: LessonSlideMotion | undefined, progress01: number, t: nu
   if (motion === 'whip') return `translateX(${interpolate(p, [0, 1], [90, -24])}px) rotate(${interpolate(p, [0, 1], [1.2, -0.4])}deg)`;
   if (motion === 'bloom') return `scale(${interpolate(p, [0, 1], [0.94, 1.06])})`;
   return `translate(${Math.sin(t * 0.55) * 10}px, ${Math.cos(t * 0.4) * 8}px) scale(${1.05 + p * 0.04})`;
-}
-
-function overlayUrls(config: Record<string, unknown>): string[] {
-  const many = config.overlayImageUrls;
-  if (Array.isArray(many)) {
-    return many.filter((u): u is string => typeof u === 'string' && /^https?:\/\//i.test(u)).slice(0, 1);
-  }
-  if (typeof config.overlayImageUrl === 'string' && /^https?:\/\//i.test(config.overlayImageUrl)) {
-    return [config.overlayImageUrl];
-  }
-  return [];
 }
 
 function Atmosphere({ progress01 }: { progress01: number }) {
@@ -302,11 +291,10 @@ export const LessonBoard: React.FC<{
   progress01: number;
   slide: LessonSlide;
   visualConfig?: Record<string, unknown>;
-}> = ({ topicTitle, phase, sceneIndex, sceneCount, progress01, slide, visualConfig = {} }) => {
+}> = ({ topicTitle, phase, sceneIndex, sceneCount, progress01, slide }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
-  const images = overlayUrls(visualConfig);
   const layout = slide.layout;
   return (
     <AbsoluteFill style={{ backgroundColor: '#050814', fontFamily: 'Inter, system-ui, sans-serif', color: '#f8fafc' }}>
@@ -325,21 +313,6 @@ export const LessonBoard: React.FC<{
         {layout === 'turn' || layout === 'compare' || layout === 'example' ? <TurnSlide slide={slide} /> : null}
         {layout === 'payoff' || layout === 'recap' ? <PayoffSlide slide={slide} /> : null}
       </div>
-      {images[0] ? (
-        <Img
-          src={images[0]}
-          style={{
-            position: 'absolute',
-            right: 56,
-            bottom: 88,
-            width: 168,
-            height: 108,
-            objectFit: 'cover',
-            opacity: 0.85,
-            border: '1px solid rgba(34,211,238,0.35)',
-          }}
-        />
-      ) : null}
       <div style={{ position: 'absolute', left: 64, top: 18, fontSize: 15, letterSpacing: 1.4, color: '#94a3b8', fontWeight: 650 }}>
         {topicTitle}
       </div>

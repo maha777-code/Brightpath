@@ -459,31 +459,13 @@ function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoS
   };
 }
 
-function applyAttachmentOverlays(
-  manifest: VideoScriptManifest,
-  ctx: TopicContextPacket,
-): VideoScriptManifest {
-  const urls = (ctx.attachmentImageUrls ?? []).filter((u) => typeof u === 'string' && u.length > 4);
-  if (!urls.length) return manifest;
-  return {
-    ...manifest,
-    scenes: manifest.scenes.map((s, i) => {
-      const overlayImageUrl = urls[Math.min(i, urls.length - 1)];
-      const overlayImageUrls = urls.slice(0, 4);
-      const visualConfig = { ...(s.visualConfig ?? {}), overlayImageUrls, overlayImageUrl };
-      const parameters = { ...(s.parameters ?? {}), overlayImageUrls, overlayImageUrl };
-      return { ...s, visualConfig, parameters, visualProps: parameters, props: parameters };
-    }),
-  };
-}
-
 function parseLlmManifestSafely(llmOutput: unknown, ctx: TopicContextPacket): VideoScriptManifest {
   let parsed: unknown = llmOutput;
   if (typeof llmOutput === 'string') parsed = JSON.parse(llmOutput);
   if (!parsed || typeof parsed !== 'object') {
     throw new Error('Claude Opus 5.5 did not return a lesson script');
   }
-  const manifest = applyAttachmentOverlays(normalizeManifest(parsed as LlmManifestRaw, ctx), ctx);
+  const manifest = normalizeManifest(parsed as LlmManifestRaw, ctx);
   if (!manifest.scenes.length) {
     throw new Error('Claude Opus 5.5 returned no cinematic scenes');
   }

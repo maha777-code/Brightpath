@@ -247,6 +247,8 @@ function scaleManifestToAudioDuration(
     const visualConfig = {
       ...(s.visualConfig ?? {}),
       ...visualProps,
+      overlayImageUrl: undefined,
+      overlayImageUrls: undefined,
     };
     return {
       ...s,
@@ -256,15 +258,15 @@ function scaleManifestToAudioDuration(
       phaseTitle: phase,
       voiceoverText: voiceover,
       voiceover,
-      visualType: s.visualType || 'lesson_board',
-      visualArchetype: s.visualArchetype || s.visualType || 'lesson_board',
+      visualType: s.visualType || 'cinematic_motion',
+      visualArchetype: s.visualArchetype || s.visualType || 'cinematic_motion',
       visualConfig,
       visualProps,
       parameters: visualProps,
       props: visualProps,
       teacherGesture: s.teacherGesture,
       cameraMotion: s.cameraMotion,
-      lesson: s.lesson ?? (visualConfig.lesson as VideoScriptManifest['scenes'][number]['lesson']),
+      lesson: s.lesson ?? (visualProps.lesson as VideoScriptManifest['scenes'][number]['lesson']),
     };
   });
   return {

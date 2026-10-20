@@ -38,7 +38,6 @@ export interface TopicContextPacket {
   gradeLabel: string;
   fileName?: string;
   ragExcerpts: string[];
-  attachmentImageUrls?: string[];
   teacherPrompt?: string;
   contentDomain?: 'dsml' | 'math' | 'chemistry' | 'generic';
 }

@@ -46,7 +46,8 @@ function toLocalGeneratedMp4Url(
     try {
       const u = new URL(value);
       if (!u.pathname.startsWith('/public/videos/')) return null;
-      return `${API_MEDIA_ORIGIN}${u.pathname}${u.search}`;
+      u.searchParams.set('v', u.searchParams.get('v') || 'cinematic2');
+      return `${API_MEDIA_ORIGIN}${u.pathname}?${u.searchParams.toString()}`;
     } catch {
       return null;
     }
