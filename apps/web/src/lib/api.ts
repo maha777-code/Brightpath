@@ -792,7 +792,7 @@ export const api = {
     );
   },
 
-  generateTopicVideo: (topicId: string, body?: { prompt?: string; templateId?: string }) =>
+  generateTopicVideo: (topicId: string, body?: { prompt?: string }) =>
     request<{ subtopic: TeacherSubtopic; message: string }>(
       `/teacher/topics/${topicId}/generate-video`,
       { method: 'POST', body: JSON.stringify(body ?? {}) },

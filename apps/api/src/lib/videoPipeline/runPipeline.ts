@@ -25,7 +25,7 @@ const jobEpoch = new Map<string, number>();
 const JOB_TIMEOUT_MS = Number(process.env.VIDEO_JOB_TIMEOUT_MS ?? 1_800_000);
 const STALE_MS = Number(process.env.VIDEO_JOB_STALE_MS ?? 180_000); // 3 min without heartbeat → fail on poll
 
-type QueueItem = { topicId: string; teacherPrompt?: string; templateId?: string; epoch: number };
+type QueueItem = { topicId: string; teacherPrompt?: string; epoch: number };
 
 const queue: QueueItem[] = [];
 let draining = false;
@@ -86,7 +86,6 @@ export async function runHybridVideoPipeline(
   topicId: string,
   teacherPrompt?: string,
   epoch?: number,
-  templateId?: string,
 ): Promise<void> {
   const myEpoch = epoch ?? jobEpoch.get(topicId) ?? 1;
   if (running.has(topicId)) return;
@@ -119,7 +118,7 @@ export async function runHybridVideoPipeline(
 
         await setStage(topicId, 'retrieving');
         const ctx = await withTimeout(
-          retrieveTextbookContext(topicId, teacherPrompt, templateId),
+          retrieveTextbookContext(topicId, teacherPrompt),
           STAGE_TIMEOUTS.retrieving,
           'Context retrieval',
         );
@@ -127,7 +126,7 @@ export async function runHybridVideoPipeline(
 
         await setStage(topicId, 'scripting');
         console.log(
-          `[videoPipeline] Passing ${ctx.ragExcerpts.length} RAG excerpts into Claude Opus 5.5 lesson explainer`,
+          `[videoPipeline] Passing ${ctx.ragExcerpts.length} RAG excerpts into Claude Opus 5.5 cinematic explainer`,
         );
         const manifest = await withTimeout(
           generateStructuredVideoScript(ctx),
@@ -245,7 +244,7 @@ async function drainQueue() {
     while (queue.length > 0) {
       const item = queue.shift();
       if (!item) break;
-      await runHybridVideoPipeline(item.topicId, item.teacherPrompt, item.epoch, item.templateId);
+      await runHybridVideoPipeline(item.topicId, item.teacherPrompt, item.epoch);
     }
   } finally {
     draining = false;
@@ -253,14 +252,14 @@ async function drainQueue() {
 }
 
 /** Enqueue async background worker job (in-process queue; one job at a time). */
-export function enqueueHybridVideoJob(topicId: string, teacherPrompt?: string, templateId?: string): void {
+export function enqueueHybridVideoJob(topicId: string, teacherPrompt?: string): void {
   const epoch = (jobEpoch.get(topicId) ?? 0) + 1;
   jobEpoch.set(topicId, epoch);
   running.delete(topicId);
   for (let i = queue.length - 1; i >= 0; i--) {
     if (queue[i].topicId === topicId) queue.splice(i, 1);
   }
-  queue.push({ topicId, teacherPrompt, templateId, epoch });
+  queue.push({ topicId, teacherPrompt, epoch });
   setImmediate(() => {
     void drainQueue();
   });

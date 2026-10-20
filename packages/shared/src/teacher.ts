@@ -127,7 +127,20 @@ export type SceneVisualType =
   | 'callout_summary'
   | string;
 
-export type LessonSlideLayout = 'title' | 'definition' | 'steps' | 'compare' | 'example' | 'recap';
+export type LessonSlideLayout =
+  | 'hook'
+  | 'insight'
+  | 'build'
+  | 'turn'
+  | 'payoff'
+  | 'title'
+  | 'definition'
+  | 'steps'
+  | 'compare'
+  | 'example'
+  | 'recap';
+
+export type LessonSlideMotion = 'smash_zoom' | 'drift_up' | 'whip' | 'parallax' | 'bloom';
 
 export interface LessonSlideStep {
   label: string;
@@ -158,6 +171,8 @@ export interface LessonSlide {
   right?: LessonSlideColumn;
   example?: LessonSlideExample;
   points?: string[];
+  motion?: LessonSlideMotion;
+  highlight?: string;
 }
 
 export interface VideoSceneSpec {
@@ -208,8 +223,8 @@ export interface VideoScriptManifest {
   wordTimings?: { word: string; start: number; end: number }[];
   /** On-screen cartoon host name */
   teacherName?: string;
-  /** Renderer: lesson_board */
-  architecture?: 'lesson_board' | string;
+  /** Renderer: cinematic_motion */
+  architecture?: 'cinematic_motion' | string;
 }
 
 export interface TeacherUser {

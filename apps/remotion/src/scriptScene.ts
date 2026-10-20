@@ -85,6 +85,8 @@ export type NormalizedScene = {
 };
 
 const LEGACY_TO_ARCHETYPE: Record<string, VisualArchetypeName> = {
+  cinematic_motion: 'lesson_board',
+  cinematic: 'lesson_board',
   lesson_board: 'lesson_board',
   lessonboard: 'lesson_board',
   LessonBoard: 'lesson_board',
@@ -222,7 +224,7 @@ export function resolveLessonProps(props: GamifiedLessonProps): GamifiedLessonPr
     teacherName,
     archetype: props.scriptData?.archetype || props.archetype,
     pedagogicalPattern: props.scriptData?.pedagogicalPattern || props.pedagogicalPattern,
-    architecture: props.scriptData?.architecture || 'lesson_board',
+    architecture: props.scriptData?.architecture || 'cinematic_motion',
     totalDurationSeconds,
     scenes,
     wordTimings,

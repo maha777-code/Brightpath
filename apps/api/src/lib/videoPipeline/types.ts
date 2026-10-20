@@ -40,7 +40,6 @@ export interface TopicContextPacket {
   ragExcerpts: string[];
   attachmentImageUrls?: string[];
   teacherPrompt?: string;
-  templateId?: string;
   contentDomain?: 'dsml' | 'math' | 'chemistry' | 'generic';
 }
 

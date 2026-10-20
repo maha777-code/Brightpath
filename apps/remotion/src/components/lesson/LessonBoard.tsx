@@ -1,77 +1,22 @@
 import React from 'react';
 import { AbsoluteFill, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import type { LessonSlide } from '@brightpath/shared';
+import type { LessonSlide, LessonSlideMotion } from '@brightpath/shared';
 
-const COLORS = {
-  bg: '#07101d',
-  panel: 'rgba(15, 23, 42, 0.78)',
-  line: 'rgba(34, 211, 238, 0.28)',
-  cyan: '#22d3ee',
-  violet: '#a78bfa',
-  text: '#f8fafc',
-  muted: '#94a3b8',
-  rose: '#fb7185',
-  emerald: '#34d399',
-};
-
-function appear(frame: number, fps: number, delay: number, from = 24) {
-  const p = spring({ fps, frame: frame - delay, config: { damping: 16, stiffness: 120 } });
+function appear(frame: number, fps: number, delay: number, from = 36) {
+  const p = spring({ fps, frame: frame - delay, config: { damping: 14, stiffness: 160, mass: 0.7 } });
   return {
     opacity: interpolate(p, [0, 1], [0, 1]),
     transform: `translateY(${interpolate(p, [0, 1], [from, 0])}px)`,
   };
 }
 
-function Chip({ label, delay }: { label: string; delay: number }) {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  return (
-    <span
-      style={{
-        ...appear(frame, fps, delay, 12),
-        display: 'inline-flex',
-        padding: '8px 16px',
-        borderRadius: 999,
-        border: `1px solid ${COLORS.line}`,
-        background: 'rgba(34, 211, 238, 0.08)',
-        color: COLORS.cyan,
-        fontSize: 20,
-        fontWeight: 700,
-        letterSpacing: 0.2,
-      }}
-    >
-      {label}
-    </span>
-  );
-}
-
-function Card({
-  children,
-  delay = 0,
-  accent = COLORS.line,
-  style,
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  accent?: string;
-  style?: React.CSSProperties;
-}) {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  return (
-    <div
-      style={{
-        ...appear(frame, fps, delay),
-        background: COLORS.panel,
-        border: `1px solid ${accent}`,
-        borderRadius: 22,
-        padding: '22px 26px',
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
+function camera(motion: LessonSlideMotion | undefined, progress01: number, t: number) {
+  const p = Math.max(0, Math.min(1, progress01));
+  if (motion === 'smash_zoom') return `scale(${interpolate(p, [0, 1], [1.18, 1])})`;
+  if (motion === 'drift_up') return `translateY(${interpolate(p, [0, 1], [28, -16])}px) scale(1.04)`;
+  if (motion === 'whip') return `translateX(${interpolate(p, [0, 1], [90, -24])}px) rotate(${interpolate(p, [0, 1], [1.2, -0.4])}deg)`;
+  if (motion === 'bloom') return `scale(${interpolate(p, [0, 1], [0.94, 1.06])})`;
+  return `translate(${Math.sin(t * 0.55) * 10}px, ${Math.cos(t * 0.4) * 8}px) scale(${1.05 + p * 0.04})`;
 }
 
 function overlayUrls(config: Record<string, unknown>): string[] {
@@ -85,169 +30,265 @@ function overlayUrls(config: Record<string, unknown>): string[] {
   return [];
 }
 
-function TitleSlide({ slide }: { slide: LessonSlide }) {
+function Atmosphere({ progress01 }: { progress01: number }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const t = frame / fps;
+  return (
+    <>
+      <div
+        style={{
+          position: 'absolute',
+          width: 720,
+          height: 720,
+          left: interpolate(progress01, [0, 1], [-80, 40]),
+          top: -180,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(34,211,238,0.28), transparent 68%)',
+          filter: 'blur(8px)',
+          transform: `translateY(${Math.sin(t * 0.8) * 18}px)`,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          width: 620,
+          height: 620,
+          right: interpolate(progress01, [0, 1], [-120, 20]),
+          bottom: -200,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(167,139,250,0.26), transparent 70%)',
+          filter: 'blur(10px)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+          backgroundSize: '72px 72px',
+          opacity: 0.35,
+          transform: `translateX(${-progress01 * 40}px)`,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.015), rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px)',
+          opacity: 0.4,
+          pointerEvents: 'none',
+        }}
+      />
+    </>
+  );
+}
+
+function Letterbox() {
+  return (
+    <>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 46, background: '#020617' }} />
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 46, background: '#020617' }} />
+    </>
+  );
+}
+
+function HookSlide({ slide }: { slide: LessonSlide }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 980 }}>
+    <div style={{ maxWidth: 1040 }}>
       {slide.subheading ? (
-        <div style={{ ...appear(frame, fps, 2), color: COLORS.cyan, fontSize: 22, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+        <div style={{ ...appear(frame, fps, 2, 16), color: '#67e8f9', fontSize: 20, fontWeight: 800, letterSpacing: 3, textTransform: 'uppercase' }}>
           {slide.subheading}
         </div>
       ) : null}
-      <h1 style={{ ...appear(frame, fps, 8), margin: 0, fontSize: 68, lineHeight: 1.08, fontWeight: 850, color: COLORS.text }}>
+      <h1
+        style={{
+          ...appear(frame, fps, 6, 50),
+          margin: '14px 0 0',
+          fontSize: 84,
+          lineHeight: 0.95,
+          fontWeight: 900,
+          letterSpacing: -1.5,
+          color: '#f8fafc',
+        }}
+      >
         {slide.heading}
       </h1>
+      {slide.highlight ? (
+        <div
+          style={{
+            ...appear(frame, fps, 14, 20),
+            marginTop: 22,
+            fontSize: 34,
+            fontWeight: 800,
+            color: '#22d3ee',
+          }}
+        >
+          {slide.highlight}
+        </div>
+      ) : null}
       {slide.body ? (
-        <p style={{ ...appear(frame, fps, 16), margin: 0, fontSize: 28, lineHeight: 1.4, color: COLORS.muted, maxWidth: 860 }}>
+        <p style={{ ...appear(frame, fps, 18), marginTop: 18, fontSize: 28, color: '#cbd5e1', maxWidth: 820 }}>
           {slide.body}
         </p>
       ) : null}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 8 }}>
-        {(slide.keyTerms ?? []).map((term, i) => (
-          <Chip key={`${term}-${i}`} label={term} delay={24 + i * 6} />
-        ))}
-      </div>
     </div>
   );
 }
 
-function DefinitionSlide({ slide }: { slide: LessonSlide }) {
+function InsightSlide({ slide }: { slide: LessonSlide }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   return (
-    <div style={{ display: 'grid', gap: 20, width: '100%' }}>
-      <Card delay={4}>
-        <div style={{ color: COLORS.cyan, fontSize: 18, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Definition</div>
-        <h2 style={{ margin: '10px 0 14px', fontSize: 42, color: COLORS.text }}>{slide.heading}</h2>
-        <p style={{ margin: 0, fontSize: 28, lineHeight: 1.45, color: '#e2e8f0' }}>{slide.body}</p>
-      </Card>
+    <div style={{ width: '100%' }}>
+      <div style={{ ...appear(frame, fps, 2), color: '#a78bfa', fontSize: 18, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase' }}>
+        Insight
+      </div>
+      <h2 style={{ ...appear(frame, fps, 6, 40), margin: '10px 0 18px', fontSize: 58, fontWeight: 850, color: '#f8fafc' }}>
+        {slide.heading}
+      </h2>
+      <p style={{ ...appear(frame, fps, 12), margin: 0, fontSize: 32, lineHeight: 1.35, color: '#e2e8f0', maxWidth: 900 }}>
+        {slide.body}
+      </p>
       {slide.formula ? (
-        <Card delay={14} accent="rgba(167, 139, 250, 0.4)">
-          <div style={{ color: COLORS.violet, fontSize: 16, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>From the chapter</div>
-          <div style={{ marginTop: 10, fontSize: 32, fontFamily: 'Georgia, serif', color: COLORS.text }}>{slide.formula}</div>
-        </Card>
+        <div
+          style={{
+            ...appear(frame, fps, 18),
+            marginTop: 28,
+            padding: '16px 22px',
+            borderLeft: '4px solid #22d3ee',
+            fontSize: 30,
+            fontFamily: 'Georgia, serif',
+            color: '#f8fafc',
+          }}
+        >
+          {slide.formula}
+        </div>
       ) : null}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
         {(slide.keyTerms ?? []).map((term, i) => (
-          <Chip key={`${term}-${i}`} label={term} delay={22 + i * 6} />
+          <span
+            key={`${term}-${i}`}
+            style={{
+              ...appear(frame, fps, 20 + i * 4, 12),
+              padding: '8px 16px',
+              borderRadius: 999,
+              background: 'rgba(34,211,238,0.12)',
+              color: '#67e8f9',
+              fontWeight: 700,
+              fontSize: 20,
+            }}
+          >
+            {term}
+          </span>
         ))}
       </div>
     </div>
   );
 }
 
-function StepsSlide({ slide, progress01 }: { slide: LessonSlide; progress01: number }) {
+function BuildSlide({ slide, progress01 }: { slide: LessonSlide; progress01: number }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const steps = slide.steps ?? [];
   const visible = Math.max(1, Math.ceil(progress01 * steps.length));
   return (
-    <div style={{ display: 'grid', gap: 16, width: '100%' }}>
-      <h2 style={{ margin: 0, fontSize: 40, color: COLORS.text }}>{slide.heading}</h2>
-      {steps.slice(0, visible).map((step, i) => (
-        <Card key={`${step.label}-${i}`} delay={6 + i * 4}>
-          <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
-            <div
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
-                background: 'rgba(34, 211, 238, 0.16)',
-                color: COLORS.cyan,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 800,
-                fontSize: 20,
-                flexShrink: 0,
-              }}
-            >
-              {i + 1}
-            </div>
+    <div style={{ width: '100%' }}>
+      <h2 style={{ ...appear(frame, fps, 2), margin: '0 0 22px', fontSize: 48, color: '#f8fafc' }}>{slide.heading}</h2>
+      <div style={{ display: 'grid', gap: 14 }}>
+        {steps.slice(0, visible).map((step, i) => (
+          <div
+            key={`${step.label}-${i}`}
+            style={{
+              ...appear(frame, fps, 4 + i * 3, 28),
+              display: 'flex',
+              gap: 18,
+              alignItems: 'center',
+              padding: '16px 20px',
+              background: 'rgba(15,23,42,0.55)',
+              border: '1px solid rgba(148,163,184,0.2)',
+            }}
+          >
+            <div style={{ fontSize: 36, fontWeight: 900, color: '#22d3ee', minWidth: 48 }}>{String(i + 1).padStart(2, '0')}</div>
             <div>
-              <div style={{ fontSize: 26, fontWeight: 750, color: COLORS.text }}>{step.label}</div>
-              {step.detail ? <div style={{ marginTop: 6, fontSize: 22, color: COLORS.muted }}>{step.detail}</div> : null}
+              <div style={{ fontSize: 28, fontWeight: 750, color: '#f8fafc' }}>{step.label}</div>
+              {step.detail ? <div style={{ marginTop: 4, fontSize: 20, color: '#94a3b8' }}>{step.detail}</div> : null}
             </div>
           </div>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function CompareSlide({ slide }: { slide: LessonSlide }) {
-  return (
-    <div style={{ display: 'grid', gap: 18, width: '100%' }}>
-      <h2 style={{ margin: 0, fontSize: 40, color: COLORS.text }}>{slide.heading}</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-        <Card delay={8} accent="rgba(251, 113, 133, 0.4)">
-          <div style={{ color: COLORS.rose, fontSize: 18, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase' }}>
-            {slide.left?.label || 'Mix-up'}
-          </div>
-          <ul style={{ margin: '14px 0 0', paddingLeft: 22, color: '#fecdd3', fontSize: 24, lineHeight: 1.45 }}>
-            {(slide.left?.points ?? []).map((point) => (
-              <li key={point} style={{ marginBottom: 10 }}>
-                {point}
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card delay={16} accent="rgba(52, 211, 153, 0.4)">
-          <div style={{ color: COLORS.emerald, fontSize: 18, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase' }}>
-            {slide.right?.label || 'Correct'}
-          </div>
-          <ul style={{ margin: '14px 0 0', paddingLeft: 22, color: '#bbf7d0', fontSize: 24, lineHeight: 1.45 }}>
-            {(slide.right?.points ?? []).map((point) => (
-              <li key={point} style={{ marginBottom: 10 }}>
-                {point}
-              </li>
-            ))}
-          </ul>
-        </Card>
+        ))}
       </div>
     </div>
   );
 }
 
-function ExampleSlide({ slide, progress01 }: { slide: LessonSlide; progress01: number }) {
-  const working = slide.example?.working ?? [];
-  const showAnswer = progress01 > 0.62;
-  const visible = Math.max(1, Math.ceil(Math.min(1, progress01 / 0.62) * working.length));
+function TurnSlide({ slide }: { slide: LessonSlide }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const hasCompare = Boolean(slide.left?.points?.length || slide.right?.points?.length);
   return (
-    <div style={{ display: 'grid', gap: 16, width: '100%' }}>
-      <h2 style={{ margin: 0, fontSize: 40, color: COLORS.text }}>{slide.heading}</h2>
-      <Card delay={4}>
-        <div style={{ color: COLORS.cyan, fontSize: 16, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Question</div>
-        <div style={{ marginTop: 8, fontSize: 28, color: COLORS.text }}>{slide.example?.prompt}</div>
-      </Card>
-      {working.slice(0, visible).map((line, i) => (
-        <Card key={`${line}-${i}`} delay={8 + i * 3}>
-          <div style={{ fontSize: 24, color: '#e2e8f0' }}>{line}</div>
-        </Card>
-      ))}
-      {showAnswer && slide.example?.answer ? (
-        <Card delay={4} accent="rgba(34, 211, 238, 0.5)">
-          <div style={{ color: COLORS.cyan, fontSize: 16, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Answer</div>
-          <div style={{ marginTop: 8, fontSize: 30, fontWeight: 750, color: COLORS.text }}>{slide.example.answer}</div>
-        </Card>
-      ) : null}
+    <div style={{ width: '100%' }}>
+      <h2 style={{ ...appear(frame, fps, 2), margin: '0 0 20px', fontSize: 48, color: '#f8fafc' }}>{slide.heading}</h2>
+      {hasCompare ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+          <div style={{ ...appear(frame, fps, 6, 40), padding: 22, background: 'rgba(251,113,133,0.1)', borderLeft: '4px solid #fb7185' }}>
+            <div style={{ color: '#fb7185', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>{slide.left?.label}</div>
+            {(slide.left?.points ?? []).map((p) => (
+              <div key={p} style={{ marginTop: 12, fontSize: 24, color: '#fecdd3' }}>
+                {p}
+              </div>
+            ))}
+          </div>
+          <div style={{ ...appear(frame, fps, 10, 40), padding: 22, background: 'rgba(52,211,153,0.1)', borderLeft: '4px solid #34d399' }}>
+            <div style={{ color: '#34d399', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>{slide.right?.label}</div>
+            {(slide.right?.points ?? []).map((p) => (
+              <div key={p} style={{ marginTop: 12, fontSize: 24, color: '#bbf7d0' }}>
+                {p}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div>
+          <div style={{ ...appear(frame, fps, 6), fontSize: 28, color: '#e2e8f0' }}>{slide.example?.prompt || slide.body}</div>
+          <div style={{ ...appear(frame, fps, 12), marginTop: 20, fontSize: 32, fontWeight: 800, color: '#22d3ee' }}>
+            {slide.example?.answer}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function RecapSlide({ slide }: { slide: LessonSlide }) {
+function PayoffSlide({ slide }: { slide: LessonSlide }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   return (
-    <div style={{ display: 'grid', gap: 16, width: '100%' }}>
-      <h2 style={{ margin: 0, fontSize: 40, color: COLORS.text }}>{slide.heading}</h2>
+    <div style={{ width: '100%' }}>
+      <div style={{ ...appear(frame, fps, 2), color: '#22d3ee', fontSize: 18, fontWeight: 800, letterSpacing: 3, textTransform: 'uppercase' }}>
+        Remember
+      </div>
+      <h2 style={{ ...appear(frame, fps, 6, 36), margin: '8px 0 18px', fontSize: 56, color: '#f8fafc' }}>{slide.heading}</h2>
       {(slide.points ?? []).map((point, i) => (
-        <Card key={`${point}-${i}`} delay={6 + i * 5}>
-          <div style={{ fontSize: 26, color: COLORS.text }}>{point}</div>
-        </Card>
+        <div key={`${point}-${i}`} style={{ ...appear(frame, fps, 10 + i * 4), fontSize: 26, color: '#cbd5e1', marginBottom: 8 }}>
+          {point}
+        </div>
       ))}
       {slide.body ? (
-        <Card delay={20} accent="rgba(167, 139, 250, 0.45)">
-          <div style={{ color: COLORS.violet, fontSize: 16, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
-            Say it back
-          </div>
-          <div style={{ marginTop: 10, fontSize: 28, color: COLORS.text }}>{slide.body}</div>
-        </Card>
+        <div
+          style={{
+            ...appear(frame, fps, 20),
+            marginTop: 22,
+            fontSize: 32,
+            fontWeight: 750,
+            color: '#f8fafc',
+            maxWidth: 900,
+          }}
+        >
+          {slide.body}
+        </div>
       ) : null}
     </div>
   );
@@ -262,47 +303,53 @@ export const LessonBoard: React.FC<{
   slide: LessonSlide;
   visualConfig?: Record<string, unknown>;
 }> = ({ topicTitle, phase, sceneIndex, sceneCount, progress01, slide, visualConfig = {} }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const t = frame / fps;
   const images = overlayUrls(visualConfig);
+  const layout = slide.layout;
   return (
-    <AbsoluteFill
-      style={{
-        background: `radial-gradient(1200px 700px at 12% 0%, rgba(34,211,238,0.12), transparent 55%), radial-gradient(900px 600px at 100% 100%, rgba(167,139,250,0.12), transparent 50%), ${COLORS.bg}`,
-        fontFamily: 'Inter, system-ui, sans-serif',
-        color: COLORS.text,
-        padding: '36px 56px 150px',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
-        <div style={{ color: COLORS.muted, fontSize: 18, fontWeight: 650 }}>{topicTitle}</div>
-        <div style={{ color: COLORS.cyan, fontSize: 18, fontWeight: 750 }}>
-          {phase} · {sceneIndex + 1}/{sceneCount}
-        </div>
+    <AbsoluteFill style={{ backgroundColor: '#050814', fontFamily: 'Inter, system-ui, sans-serif', color: '#f8fafc' }}>
+      <Atmosphere progress01={progress01} />
+      <div
+        style={{
+          position: 'absolute',
+          inset: '64px 64px 120px',
+          transform: camera(slide.motion, progress01, t),
+          transformOrigin: 'center center',
+        }}
+      >
+        {layout === 'hook' || layout === 'title' ? <HookSlide slide={slide} /> : null}
+        {layout === 'insight' || layout === 'definition' ? <InsightSlide slide={slide} /> : null}
+        {layout === 'build' || layout === 'steps' ? <BuildSlide slide={slide} progress01={progress01} /> : null}
+        {layout === 'turn' || layout === 'compare' || layout === 'example' ? <TurnSlide slide={slide} /> : null}
+        {layout === 'payoff' || layout === 'recap' ? <PayoffSlide slide={slide} /> : null}
       </div>
-      <div style={{ height: 4, background: 'rgba(148,163,184,0.18)', borderRadius: 99, overflow: 'hidden', marginBottom: 28 }}>
-        <div style={{ width: `${Math.max(8, Math.min(100, progress01 * 100))}%`, height: '100%', background: COLORS.cyan }} />
-      </div>
-      {slide.layout === 'title' ? <TitleSlide slide={slide} /> : null}
-      {slide.layout === 'definition' ? <DefinitionSlide slide={slide} /> : null}
-      {slide.layout === 'steps' ? <StepsSlide slide={slide} progress01={progress01} /> : null}
-      {slide.layout === 'compare' ? <CompareSlide slide={slide} /> : null}
-      {slide.layout === 'example' ? <ExampleSlide slide={slide} progress01={progress01} /> : null}
-      {slide.layout === 'recap' ? <RecapSlide slide={slide} /> : null}
       {images[0] ? (
         <Img
           src={images[0]}
           style={{
             position: 'absolute',
             right: 56,
-            bottom: 168,
-            width: 180,
-            height: 120,
+            bottom: 88,
+            width: 168,
+            height: 108,
             objectFit: 'cover',
-            borderRadius: 16,
-            border: `1px solid ${COLORS.line}`,
-            opacity: 0.92,
+            opacity: 0.85,
+            border: '1px solid rgba(34,211,238,0.35)',
           }}
         />
       ) : null}
+      <div style={{ position: 'absolute', left: 64, top: 18, fontSize: 15, letterSpacing: 1.4, color: '#94a3b8', fontWeight: 650 }}>
+        {topicTitle}
+      </div>
+      <div style={{ position: 'absolute', right: 64, top: 18, fontSize: 15, letterSpacing: 1.4, color: '#67e8f9', fontWeight: 750 }}>
+        {phase} · {sceneIndex + 1}/{sceneCount}
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 46, height: 3, background: 'rgba(148,163,184,0.2)' }}>
+        <div style={{ width: `${Math.max(6, Math.min(100, ((sceneIndex + progress01) / sceneCount) * 100))}%`, height: '100%', background: '#22d3ee' }} />
+      </div>
+      <Letterbox />
     </AbsoluteFill>
   );
 };

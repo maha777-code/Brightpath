@@ -364,6 +364,7 @@ export type {
   SceneVisualType,
   LessonSlide,
   LessonSlideLayout,
+  LessonSlideMotion,
   LessonSlideStep,
   LessonSlideColumn,
   LessonSlideExample,

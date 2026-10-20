@@ -45,7 +45,6 @@ async function vectorRankedExcerpts(textbookId: string, query: string, take: num
 export async function retrieveTextbookContext(
   topicId: string,
   teacherPrompt?: string,
-  templateId?: string,
 ): Promise<TopicContextPacket> {
   const sub = await prisma.teacherSubtopic.findUnique({
     where: { id: topicId },
@@ -130,7 +129,6 @@ export async function retrieveTextbookContext(
     ragExcerpts: ragExcerpts.slice(0, 20),
     attachmentImageUrls,
     teacherPrompt,
-    templateId,
   };
   packet.contentDomain = detectContentDomain(packet);
 

@@ -431,7 +431,6 @@ router.patch('/subtopics/:id', async (req: AuthRequest, res: Response) => {
 router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res: Response) => {
   const schema = z.object({
     prompt: z.string().max(500).optional(),
-    templateId: z.string().min(1).optional(),
   });
   const parsed = schema.safeParse(req.body ?? {});
   if (!parsed.success) {
@@ -487,7 +486,7 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res: Res
   }
 
   console.log(
-    `[teacher/generate-video] Cleared cached script for ${existing.id}; lesson explainer regenerate from PDF embeddings`,
+    `[teacher/generate-video] Cleared cached script for ${existing.id}; cinematic explainer from textbook subtopic`,
   );
 
   enqueueHybridVideoJob(existing.id, parsed.data.prompt);

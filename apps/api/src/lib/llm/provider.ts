@@ -84,6 +84,10 @@ export function anthropicWorkspaceId(): string | null {
   return id || null;
 }
 
+function isAnthropicWorkspaceId(id: string): boolean {
+  return /^wrkspc_[A-Za-z0-9]+$/.test(id);
+}
+
 export function getLessonVideoScriptProvider(): LessonVideoScriptProvider | null {
   const key = process.env.ANTHROPIC_API_KEY?.trim();
   if (!key) return null;
@@ -384,7 +388,14 @@ function createAnthropicProvider(apiKey: string, workspaceId?: string | null): L
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       };
-      if (workspaceId) headers['anthropic-workspace-id'] = workspaceId;
+      if (workspaceId) {
+        if (!isAnthropicWorkspaceId(workspaceId)) {
+          throw new Error(
+            `ANTHROPIC_WORKSPACE_ID must look like wrkspc_01AbC..., not an organization UUID. Open https://platform.claude.com/settings/workspaces and copy the ID column. You set "${workspaceId}".`,
+          );
+        }
+        headers['anthropic-workspace-id'] = workspaceId;
+      }
 
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -404,6 +415,11 @@ function createAnthropicProvider(apiKey: string, workspaceId?: string | null): L
         if (needsWorkspace && !workspaceId) {
           throw new Error(
             'Claude HTTP 400: this API key needs a workspace. Add ANTHROPIC_WORKSPACE_ID=wrkspc_... from https://platform.claude.com/settings/workspaces, then restart the API.',
+          );
+        }
+        if (res.status === 404 && /Workspace .* not found/i.test(err)) {
+          throw new Error(
+            'Claude HTTP 404: that workspace ID is not a workspace this key can use. Copy the wrkspc_... value from https://platform.claude.com/settings/workspaces (not the organization UUID), or create a new API key scoped to Default workspace.',
           );
         }
         throw new Error(`Claude HTTP ${res.status}: ${err.slice(0, 400)}`);

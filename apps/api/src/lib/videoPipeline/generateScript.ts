@@ -3,6 +3,7 @@ import type {
   LessonSlideColumn,
   LessonSlideExample,
   LessonSlideLayout,
+  LessonSlideMotion,
   LessonSlideStep,
   SceneVisualConfig,
   VideoSceneParameters,
@@ -13,85 +14,87 @@ import { getLessonVideoScriptProvider } from '../llm/provider.js';
 import { detectContentDomain, extractFormulasFromContext } from './contentDomain.js';
 import type { TopicContextPacket } from './types.js';
 
-const MIN_SCENES = 6;
-const MAX_SCENES = 6;
-const MIN_TOTAL_SEC = 180;
-const MAX_TOTAL_SEC = 300;
-const DEFAULT_SCENE_SEC = [36, 48, 50, 48, 52, 40] as const;
+const MIN_SCENES = 5;
+const MAX_SCENES = 5;
+const MIN_TOTAL_SEC = 40;
+const MAX_TOTAL_SEC = 52;
+const DEFAULT_SCENE_SEC = [8, 10, 10, 9, 8] as const;
+
+const MOTION_BY_INDEX: LessonSlideMotion[] = ['smash_zoom', 'drift_up', 'parallax', 'whip', 'bloom'];
 
 const LESSON_BEATS = [
-  { layout: 'title' as const, phase: 'Meet the topic' },
-  { layout: 'definition' as const, phase: 'The definition' },
-  { layout: 'steps' as const, phase: 'How it works' },
-  { layout: 'compare' as const, phase: 'Common mix-up' },
-  { layout: 'example' as const, phase: 'Worked example' },
-  { layout: 'recap' as const, phase: 'Remember this' },
+  { layout: 'hook' as const, phase: 'Hook' },
+  { layout: 'insight' as const, phase: 'Insight' },
+  { layout: 'build' as const, phase: 'Build' },
+  { layout: 'turn' as const, phase: 'Turn' },
+  { layout: 'payoff' as const, phase: 'Payoff' },
 ] as const;
 
 const LESSON_SCRIPT_PROMPT = `
-You write a classroom explainer video for ONE textbook topic.
-The student sees a clean animated lesson board: title, definition, steps, a comparison, a worked example, and a recap.
-There is no game, no pixel art, no HUD, no levels, no quest, no code terminal, and no streamer voice.
+You are a motion designer writing a 45-second cinematic explainer for school students.
 
-RUNTIME: 3 to 5 minutes (180–300 seconds). Output exactly 6 scenes, in this order, with these layouts:
+Do this in order:
+1. Read the uploaded textbook excerpts for THIS subtopic only. Learn the idea from the text.
+2. Write the video yourself from that reading. Invent the words, the on-screen lines, and the camera moves.
+3. Teach so a student understands the subtopic. Use plain language. Quote formulas or definitions from the excerpts when they exist.
 
-1. layout "title" — phase "Meet the topic"
-   Name the topic and why it matters in this chapter.
-2. layout "definition" — phase "The definition"
-   State the textbook definition in plain words. Include keyTerms and a formula if the chapter has one.
-3. layout "steps" — phase "How it works"
-   3 to 5 short steps that show the process or idea unfolding.
-4. layout "compare" — phase "Common mix-up"
-   Two columns: the mix-up students make vs the correct idea from the chapter.
-5. layout "example" — phase "Worked example"
-   One concrete example from the excerpts: prompt, working steps, answer.
-6. layout "recap" — phase "Remember this"
-   Three or four points plus one sentence a student can say back.
+There is NO template, NO theme pack, NO game skin, NO pixel quest, NO lesson-board, NO Tom & Jerry, NO space shooter.
+The look is original kinetic motion graphics: smash titles, drifting type, light, depth, and camera motion.
+Every video is different because every subtopic is different.
 
-FACTS:
-Use only the supplied chapter excerpts, summary, and title. If a detail is not there, leave it out.
-Teach THIS topic. A science, language, or history chapter stays that subject.
-On-screen text is short: headings ≤ 8 words, body ≤ 28 words, each step label ≤ 10 words, each point ≤ 14 words.
+RUNTIME: 40 to 50 seconds. Output exactly 5 beats. Total spoken words across all beats: 95 to 120.
+
+1. layout "hook" — phase "Hook" — 8s — motion "smash_zoom"
+   Open on why this idea exists in the chapter. One hard title.
+2. layout "insight" — phase "Insight" — 10s — motion "drift_up"
+   The textbook idea in student language. Include keyTerms. Include formula if the chapter has one.
+3. layout "build" — phase "Build" — 10s — motion "parallax"
+   How it works: 3 short steps from the excerpts.
+4. layout "turn" — phase "Turn" — 9s — motion "whip"
+   The mix-up students make, or one concrete example from the text.
+5. layout "payoff" — phase "Payoff" — 8s — motion "bloom"
+   One sentence a student can say back, plus 2 short points.
 
 VOICE:
-voiceover_narration is 80–120 words of spoken classroom language for that scene.
-Address the student. Explain the idea. Do not describe the animation, the board, or the software.
+voiceover_narration is 18–26 words per beat, spoken to the student.
+Do not describe the animation, the software, or a template.
+
+ON SCREEN:
+heading ≤ 6 words. body ≤ 16 words. each step label ≤ 8 words. each point ≤ 10 words.
+
+FACTS:
+Use only the supplied excerpts, summary, and title. If it is not in the text, leave it out.
+A science topic stays science. A language topic stays language.
 
 Return ONLY JSON:
 {
-  "topicTitle": "the topic title",
+  "topicTitle": "the subtopic title",
   "teacherName": "MindVault",
-  "architecture": "lesson_board",
-  "totalDurationSeconds": 240,
+  "architecture": "cinematic_motion",
+  "totalDurationSeconds": 45,
   "scenes": [
     {
       "sceneId": 1,
-      "phase": "Meet the topic",
-      "durationSec": 36,
-      "timestamp_range": [0, 36],
-      "voiceover_narration": "80–120 words explaining this beat of the topic",
+      "phase": "Hook",
+      "durationSec": 8,
+      "timestamp_range": [0, 8],
+      "voiceover_narration": "18–26 words for this beat",
       "lesson": {
-        "layout": "title",
-        "heading": "short topic title",
+        "layout": "hook",
+        "motion": "smash_zoom",
+        "heading": "short title",
         "subheading": "chapter name",
-        "body": "one sentence why this matters",
-        "keyTerms": ["term one", "term two"]
+        "body": "why this matters",
+        "highlight": "one punch word",
+        "keyTerms": ["term"]
       }
     }
   ]
 }
 
-lesson fields by layout:
-- title: heading, subheading, body, keyTerms
-- definition: heading, body, keyTerms, formula (optional)
-- steps: heading, steps[{label, detail}]
-- compare: heading, left{label, points[]}, right{label, points[]}
-- example: heading, example{prompt, working[], answer}
-- recap: heading, points[], body (the sentence to say back)
-
 STRICT:
-- Exactly 6 scenes. Sum of durationSec between 180 and 300.
-- layouts in order: title, definition, steps, compare, example, recap.
+- Exactly 5 scenes. Sum of durationSec between 40 and 50.
+- layouts in order: hook, insight, build, turn, payoff.
 - Return JSON only.
 `;
 
@@ -133,7 +136,7 @@ function clipText(raw: string, max: number): string {
 
 function excerptAt(ctx: TopicContextPacket, index: number, fallback: string): string {
   const raw = ctx.ragExcerpts[index] || ctx.ragExcerpts[0] || ctx.chapterSummary || fallback;
-  return clipText(raw, 220);
+  return clipText(raw, 180);
 }
 
 function asStringList(raw: unknown, maxItems: number, maxLen: number): string[] {
@@ -150,12 +153,12 @@ function asSteps(raw: unknown): LessonSlideStep[] {
   for (const item of raw) {
     if (!item || typeof item !== 'object') continue;
     const o = item as Record<string, unknown>;
-    const label = clipText(String(o.label ?? o.title ?? o.step ?? ''), 48);
+    const label = clipText(String(o.label ?? o.title ?? o.step ?? ''), 40);
     if (!label) continue;
     const step: LessonSlideStep = { label };
-    if (o.detail != null) step.detail = clipText(String(o.detail), 90);
+    if (o.detail != null) step.detail = clipText(String(o.detail), 70);
     steps.push(step);
-    if (steps.length >= 5) break;
+    if (steps.length >= 4) break;
   }
   return steps;
 }
@@ -163,40 +166,53 @@ function asSteps(raw: unknown): LessonSlideStep[] {
 function asColumn(raw: unknown, fallback: LessonSlideColumn): LessonSlideColumn {
   if (!raw || typeof raw !== 'object') return fallback;
   const o = raw as Record<string, unknown>;
+  const points = asStringList(o.points, 3, 56);
   return {
-    label: clipText(String(o.label ?? fallback.label), 28) || fallback.label,
-    points: asStringList(o.points, 4, 70) || fallback.points,
+    label: clipText(String(o.label ?? fallback.label), 24) || fallback.label,
+    points: points.length ? points : fallback.points,
   };
 }
 
 function asExample(raw: unknown, fallback: LessonSlideExample): LessonSlideExample {
   if (!raw || typeof raw !== 'object') return fallback;
   const o = raw as Record<string, unknown>;
+  const working = asStringList(o.working, 3, 60);
   return {
-    prompt: clipText(String(o.prompt ?? fallback.prompt), 120) || fallback.prompt,
-    working: asStringList(o.working, 4, 80) || fallback.working,
-    answer: clipText(String(o.answer ?? fallback.answer), 80) || fallback.answer,
+    prompt: clipText(String(o.prompt ?? fallback.prompt), 90) || fallback.prompt,
+    working: working.length ? working : fallback.working,
+    answer: clipText(String(o.answer ?? fallback.answer), 70) || fallback.answer,
   };
 }
 
 function asLesson(raw: unknown, fallback: LessonSlide): LessonSlide {
   if (!raw || typeof raw !== 'object') return fallback;
   const o = raw as Record<string, unknown>;
-  const layout = (LESSON_BEATS.some((beat) => beat.layout === o.layout) ? o.layout : fallback.layout) as LessonSlideLayout;
+  const layout = (
+    LESSON_BEATS.some((beat) => beat.layout === o.layout) ? o.layout : fallback.layout
+  ) as LessonSlideLayout;
+  const motion = (
+    MOTION_BY_INDEX.includes(String(o.motion) as LessonSlideMotion)
+      ? o.motion
+      : fallback.motion
+  ) as LessonSlideMotion;
   return {
     layout,
-    heading: clipText(String(o.heading ?? fallback.heading), 60) || fallback.heading,
-    subheading: o.subheading != null ? clipText(String(o.subheading), 80) : fallback.subheading,
-    body: o.body != null ? clipText(String(o.body), 160) : fallback.body,
-    keyTerms: asStringList(o.keyTerms ?? o.key_terms, 5, 28).length
-      ? asStringList(o.keyTerms ?? o.key_terms, 5, 28)
+    motion,
+    heading: clipText(String(o.heading ?? fallback.heading), 48) || fallback.heading,
+    subheading: o.subheading != null ? clipText(String(o.subheading), 60) : fallback.subheading,
+    body: o.body != null ? clipText(String(o.body), 110) : fallback.body,
+    highlight: o.highlight != null ? clipText(String(o.highlight), 28) : fallback.highlight,
+    keyTerms: asStringList(o.keyTerms ?? o.key_terms, 4, 22).length
+      ? asStringList(o.keyTerms ?? o.key_terms, 4, 22)
       : fallback.keyTerms,
-    formula: o.formula != null ? clipText(String(o.formula), 80) : fallback.formula,
+    formula: o.formula != null ? clipText(String(o.formula), 70) : fallback.formula,
     steps: asSteps(o.steps).length ? asSteps(o.steps) : fallback.steps,
     left: o.left ? asColumn(o.left, fallback.left ?? { label: 'Mix-up', points: [] }) : fallback.left,
-    right: o.right ? asColumn(o.right, fallback.right ?? { label: 'Correct', points: [] }) : fallback.right,
-    example: o.example ? asExample(o.example, fallback.example ?? { prompt: '', working: [], answer: '' }) : fallback.example,
-    points: asStringList(o.points, 4, 80).length ? asStringList(o.points, 4, 80) : fallback.points,
+    right: o.right ? asColumn(o.right, fallback.right ?? { label: 'From the text', points: [] }) : fallback.right,
+    example: o.example
+      ? asExample(o.example, fallback.example ?? { prompt: '', working: [], answer: '' })
+      : fallback.example,
+    points: asStringList(o.points, 3, 60).length ? asStringList(o.points, 3, 60) : fallback.points,
   };
 }
 
@@ -208,11 +224,11 @@ function collectRawBlocks(raw: LlmManifestRaw): LlmBlockRaw[] {
   return [];
 }
 
-function expandVoiceover(text: string, ctx: TopicContextPacket, index: number, minWords = 75): string {
+function expandVoiceover(text: string, ctx: TopicContextPacket, index: number, minWords = 16): string {
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length >= minWords) return text;
-  const extra = excerptAt(ctx, index, ctx.chapterSummary || ctx.title);
-  return `${text} ${extra} Keep this idea from the chapter in your own words.`.trim();
+  const extra = excerptAt(ctx, index, ctx.title);
+  return `${text} ${extra}`.trim();
 }
 
 function durationFromBlock(block: LlmBlockRaw, fallback: number): number {
@@ -230,10 +246,10 @@ function durationFromBlock(block: LlmBlockRaw, fallback: number): number {
 function rescaleToWindow(scenes: VideoSceneSpec[]): void {
   let total = scenes.reduce((a, s) => a + s.duration, 0);
   if (total < MIN_TOTAL_SEC || total > MAX_TOTAL_SEC) {
-    const target = Math.min(MAX_TOTAL_SEC, Math.max(MIN_TOTAL_SEC, total || 240));
+    const target = Math.min(MAX_TOTAL_SEC, Math.max(MIN_TOTAL_SEC, total || 45));
     const scale = target / (total || 1);
     for (const s of scenes) {
-      const next = Math.max(28, Math.min(70, Math.round(s.duration * scale)));
+      const next = Math.max(6, Math.min(14, Math.round(s.duration * scale)));
       s.duration = next;
       s.durationSec = next;
     }
@@ -242,7 +258,7 @@ function rescaleToWindow(scenes: VideoSceneSpec[]): void {
   if (total < MIN_TOTAL_SEC) {
     const bump = Math.ceil((MIN_TOTAL_SEC - total) / scenes.length);
     for (const s of scenes) {
-      const next = Math.min(70, s.duration + bump);
+      const next = Math.min(14, s.duration + bump);
       s.duration = next;
       s.durationSec = next;
     }
@@ -258,71 +274,69 @@ function rescaleToWindow(scenes: VideoSceneSpec[]): void {
 
 function fallbackLessons(ctx: TopicContextPacket, formulas: string[]): LessonSlide[] {
   const definition = excerptAt(ctx, 1, excerptAt(ctx, 0, ctx.title));
-  const puzzle = excerptAt(ctx, 0, ctx.chapterSummary || ctx.title);
+  const hook = excerptAt(ctx, 0, ctx.chapterSummary || ctx.title);
   const mixup = excerptAt(ctx, 2, ctx.chapterSummary || definition);
   const rule = formulas[0] || excerptAt(ctx, 3, definition);
-  const recap = clipText(ctx.chapterSummary || definition, 140);
   return [
     {
-      layout: 'title',
+      layout: 'hook',
+      motion: 'smash_zoom',
       heading: ctx.title,
       subheading: ctx.chapterTitle,
-      body: clipText(puzzle, 140),
-      keyTerms: [ctx.subject, ctx.gradeLabel].filter(Boolean),
+      body: clipText(hook, 90),
+      highlight: ctx.title.split(/\s+/).slice(0, 2).join(' '),
     },
     {
-      layout: 'definition',
-      heading: `What ${ctx.title} means`,
-      body: clipText(definition, 160),
+      layout: 'insight',
+      motion: 'drift_up',
+      heading: 'The idea',
+      body: clipText(definition, 100),
       keyTerms: [ctx.title],
       formula: formulas[0],
     },
     {
-      layout: 'steps',
+      layout: 'build',
+      motion: 'parallax',
       heading: 'How it works',
       steps: [
-        { label: 'Start from the chapter', detail: clipText(puzzle, 80) },
-        { label: 'Name the idea', detail: clipText(definition, 80) },
-        { label: 'Use the rule', detail: clipText(rule, 80) },
+        { label: 'From the chapter', detail: clipText(hook, 50) },
+        { label: 'Name it', detail: clipText(definition, 50) },
+        { label: 'Use it', detail: clipText(rule, 50) },
       ],
     },
     {
-      layout: 'compare',
-      heading: 'A common mix-up',
-      left: { label: 'Easy to mix up', points: [clipText(mixup, 70), 'A first guess often stops here'] },
-      right: { label: 'From the textbook', points: [clipText(definition, 70), clipText(rule, 70)] },
-    },
-    {
-      layout: 'example',
-      heading: 'Worked example',
+      layout: 'turn',
+      motion: 'whip',
+      heading: 'Watch this',
+      left: { label: 'Easy miss', points: [clipText(mixup, 50)] },
+      right: { label: 'The text', points: [clipText(definition, 50)] },
       example: {
-        prompt: `Apply ${ctx.title} from ${ctx.chapterTitle}.`,
-        working: [clipText(definition, 80), clipText(rule, 80)],
-        answer: clipText(rule, 80),
+        prompt: ctx.title,
+        working: [clipText(definition, 50)],
+        answer: clipText(rule, 50),
       },
     },
     {
-      layout: 'recap',
-      heading: 'Remember this',
-      points: [clipText(definition, 70), clipText(rule, 70), `Topic: ${ctx.title}`],
-      body: recap,
+      layout: 'payoff',
+      motion: 'bloom',
+      heading: 'Take this',
+      points: [clipText(definition, 50), clipText(rule, 50)],
+      body: clipText(ctx.chapterSummary || definition, 90),
     },
   ];
 }
 
 function heuristicVoiceovers(ctx: TopicContextPacket, formulas: string[]): string[] {
   const definition = excerptAt(ctx, 1, excerptAt(ctx, 0, ctx.title));
-  const puzzle = excerptAt(ctx, 0, ctx.chapterSummary || ctx.title);
+  const hook = excerptAt(ctx, 0, ctx.chapterSummary || ctx.title);
   const mixup = excerptAt(ctx, 2, ctx.chapterSummary || definition);
   const rule = formulas[0] || excerptAt(ctx, 3, definition);
-  const recap = clipText(ctx.chapterSummary || definition, 180);
   return [
-    `Today we are looking at ${ctx.title}, from ${ctx.chapterTitle} in ${ctx.textbookTitle}. ${puzzle} By the end of this lesson you should be able to say what this idea means and use it on a simple example.`,
-    `Here is the definition to keep for ${ctx.title}. ${definition} Say that idea once, then say it again. The textbook chose those words on purpose, so the second pass is how the meaning sticks.`,
-    `Now watch how the idea works, step by step. ${clipText(definition, 160)} Each step comes from the chapter, not from a guess. If you can follow the order, you can explain the topic to someone else.`,
-    `This is the part students mix up. ${mixup} Hold that first guess next to the textbook idea: ${clipText(definition, 120)} The example in the chapter is there to show where the guess stops working.`,
-    `Let us use one example. ${rule} Read the prompt, follow the working, and check the answer against the chapter. That is the same move you will make on a question about ${ctx.title}.`,
-    `Say this back: ${ctx.title}. ${recap} If you can explain that in one sentence, this lesson is clear.`,
+    `${ctx.title}. ${clipText(hook, 90)} This is the idea the chapter wants you to see.`,
+    `Here is what it means. ${clipText(definition, 100)}`,
+    `Watch how it works, in order, from the textbook — not from a guess.`,
+    `Students mix this up: ${clipText(mixup, 70)} Hold it next to ${clipText(rule, 50)}.`,
+    `Say it back: ${ctx.title}. ${clipText(ctx.chapterSummary || definition, 70)}`,
   ];
 }
 
@@ -336,9 +350,11 @@ function toSceneSpec(
   const lesson = asLesson(block?.lesson ?? (block?.visualConfig as { lesson?: unknown } | undefined)?.lesson, {
     ...fallbackLesson,
     layout: beat.layout,
+    motion: MOTION_BY_INDEX[index],
   });
   lesson.layout = beat.layout;
-  const duration = durationFromBlock(block ?? {}, DEFAULT_SCENE_SEC[index] ?? 45);
+  lesson.motion = MOTION_BY_INDEX[index];
+  const duration = durationFromBlock(block ?? {}, DEFAULT_SCENE_SEC[index] ?? 9);
   const voiceover = String(
     block?.voiceover_narration ||
       block?.voiceoverNarration ||
@@ -357,10 +373,7 @@ function toSceneSpec(
     takeawayBadge: lesson.body,
     lesson,
   };
-  const parameters: VideoSceneParameters = {
-    ...visualConfig,
-    lesson,
-  };
+  const parameters: VideoSceneParameters = { ...visualConfig, lesson };
   return {
     sceneId: block?.sceneId ?? index + 1,
     duration,
@@ -368,17 +381,17 @@ function toSceneSpec(
     voiceoverText: voiceover,
     voiceover,
     voiceoverNarration: voiceover,
-    animationType: 'LessonBoard',
+    animationType: 'CinematicMotion',
     parameters,
     phase,
     phaseTitle: phase,
-    visualType: 'lesson_board',
+    visualType: 'cinematic_motion',
     visualArchetype: 'concept_card',
     visualConfig,
     visualProps: parameters,
     props: parameters,
-    teacherGesture: index === 0 ? 'questioning' : index >= 5 ? 'celebrating' : 'demonstrating',
-    cameraMotion: 'push_in_close',
+    teacherGesture: index === 0 ? 'questioning' : 'demonstrating',
+    cameraMotion: lesson.motion,
     timestampRange: [0, duration],
     timestamp_range: [0, duration],
     lesson,
@@ -402,9 +415,9 @@ function heuristicManifest(ctx: TopicContextPacket): VideoScriptManifest {
   return {
     topicTitle: ctx.title,
     teacherName: 'MindVault',
-    architecture: 'lesson_board',
+    architecture: 'cinematic_motion',
     archetype: 'concept',
-    pedagogicalPattern: 'lesson_board',
+    pedagogicalPattern: 'cinematic_motion',
     totalDurationSeconds: scenes.reduce((a, s) => a + s.duration, 0),
     scenes,
   };
@@ -414,7 +427,7 @@ function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoS
   const fallback = heuristicManifest(ctx);
   const blocks = collectRawBlocks(raw);
   if (!blocks.length) {
-    throw new Error('Claude Opus 5.5 returned no lesson scenes');
+    throw new Error('Claude Opus 5.5 returned no cinematic scenes');
   }
 
   const scenes = blocks.map((b, i) => {
@@ -438,9 +451,9 @@ function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoS
   return {
     topicTitle: raw.topicTitle || ctx.title,
     teacherName: String(raw.teacherName || 'MindVault').trim() || 'MindVault',
-    architecture: 'lesson_board',
+    architecture: 'cinematic_motion',
     archetype: 'concept',
-    pedagogicalPattern: 'lesson_board',
+    pedagogicalPattern: 'cinematic_motion',
     totalDurationSeconds: scenes.reduce((a, s) => a + s.duration, 0),
     scenes,
   };
@@ -472,13 +485,13 @@ function parseLlmManifestSafely(llmOutput: unknown, ctx: TopicContextPacket): Vi
   }
   const manifest = applyAttachmentOverlays(normalizeManifest(parsed as LlmManifestRaw, ctx), ctx);
   if (!manifest.scenes.length) {
-    throw new Error('Claude Opus 5.5 returned no lesson scenes');
+    throw new Error('Claude Opus 5.5 returned no cinematic scenes');
   }
   return manifest;
 }
 
 export function normalizeVisualArchetype(_raw?: string, _index = 0): string {
-  return 'lesson_board';
+  return 'cinematic_motion';
 }
 
 export async function generateStructuredVideoScript(
@@ -491,7 +504,7 @@ export async function generateStructuredVideoScript(
   const packet: TopicContextPacket = { ...ctx, contentDomain: domain };
 
   console.log(
-    `[videoPipeline/script] Claude Opus 5.5 domain=${domain} RAG=${ctx.ragExcerpts.length} formulas=${formulas.length} topic="${ctx.code} ${ctx.title}"`,
+    `[videoPipeline/script] Claude Opus 5.5 cinematic domain=${domain} RAG=${ctx.ragExcerpts.length} topic="${ctx.code} ${ctx.title}"`,
   );
 
   if (!provider) {
@@ -501,18 +514,17 @@ export async function generateStructuredVideoScript(
   }
 
   const user = [
-    `Topic code: ${ctx.code}`,
-    `Topic title: ${ctx.title}`,
+    `Subtopic code: ${ctx.code}`,
+    `Subtopic title: ${ctx.title}`,
     `Chapter: ${ctx.chapterTitle}`,
     `Textbook: ${ctx.textbookTitle} (${ctx.subject}) file=${ctx.fileName ?? 'uploaded.pdf'}`,
     `Grade: ${ctx.gradeLabel}`,
-    `Detected domain: ${domain}`,
     `Chapter summary: ${ctx.chapterSummary}`,
-    'Teach this topic from the excerpts on a clean lesson board. No game theme.',
+    'Read these excerpts first. Then write a 45-second cinematic motion-graphics lesson for this subtopic. No template. No theme.',
     ctx.teacherPrompt ? `Teacher note: ${ctx.teacherPrompt}` : '',
     formulas.length ? `FORMULAS FOUND IN THE CHAPTER:\n${formulas.join('\n')}` : '',
-    `CHAPTER EXCERPTS (use these facts only):\n${excerpts || ctx.chapterSummary || ctx.title}`,
-    'Output exactly 6 scenes, 180–300 seconds total, architecture lesson_board.',
+    `TEXTBOOK EXCERPTS FOR THIS SUBTOPIC:\n${excerpts || ctx.chapterSummary || ctx.title}`,
+    'Output exactly 5 beats, 40–50 seconds, architecture cinematic_motion.',
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -528,7 +540,7 @@ export async function generateStructuredVideoScript(
   ]);
   const manifest = parseLlmManifestSafely(raw, packet);
   console.log(
-    `[videoPipeline/script] lessonBoard model=claude-opus-5-5 scenes=${manifest.scenes.length} duration=${manifest.totalDurationSeconds}s phases=${manifest.scenes.map((s) => s.phase).join(' | ')}`,
+    `[videoPipeline/script] cinematic model=claude-opus-5-5 scenes=${manifest.scenes.length} duration=${manifest.totalDurationSeconds}s phases=${manifest.scenes.map((s) => s.phase).join(' | ')}`,
   );
   return manifest;
 }
@@ -541,7 +553,7 @@ export function cuesFromManifest(manifest: VideoScriptManifest) {
   let t = 0;
   return manifest.scenes.map((s) => {
     const cue = {
-      timeSec: t + Math.min(2, s.duration / 3),
+      timeSec: t + Math.min(1, s.duration / 3),
       label: String(s.phase || s.lesson?.heading || s.voiceoverText.slice(0, 40)),
     };
     t += s.duration;
