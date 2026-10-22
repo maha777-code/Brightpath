@@ -13,21 +13,17 @@ export const KaraokeSubtitles: React.FC<{
       style={{
         justifyContent: 'flex-end',
         alignItems: 'center',
-        paddingBottom: 28,
-        paddingRight: 24,
+        paddingBottom: 22,
         pointerEvents: 'none',
       }}
     >
       <div
         style={{
-          width: '88%',
+          maxWidth: '86%',
           textAlign: 'center',
-          background: 'rgba(8, 15, 30, 0.62)',
-          border: '1px solid rgba(34, 211, 238, 0.32)',
-          borderRadius: 18,
-          padding: '16px 24px',
-          backdropFilter: 'blur(14px)',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.35)',
+          background: 'rgba(15, 23, 42, 0.78)',
+          borderRadius: 8,
+          padding: '10px 18px',
         }}
       >
         {hasWords ? (
@@ -38,11 +34,10 @@ export const KaraokeSubtitles: React.FC<{
               <span
                 key={`${w.start}-${i}`}
                 style={{
-                  marginRight: 7,
-                  fontSize: 24,
-                  fontWeight: isActive ? 850 : 600,
-                  color: isActive ? '#ffffff' : isPast ? '#94a3b8' : '#64748b',
-                  textShadow: isActive ? '0 0 18px rgba(34,211,238,0.65)' : 'none',
+                  marginRight: 6,
+                  fontSize: 22,
+                  fontWeight: isActive ? 800 : 600,
+                  color: isActive ? '#ffffff' : isPast ? '#e2e8f0' : '#94a3b8',
                   fontFamily: 'Inter, system-ui, sans-serif',
                 }}
               >
@@ -53,7 +48,7 @@ export const KaraokeSubtitles: React.FC<{
         ) : (
           <span
             style={{
-              fontSize: 22,
+              fontSize: 21,
               fontWeight: 650,
               color: 'white',
               fontFamily: 'Inter, system-ui, sans-serif',

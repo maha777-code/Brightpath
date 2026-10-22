@@ -656,7 +656,7 @@ function GenerateVideoButton({
       className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-cyan-400/40 bg-[#06B6D4]/80 px-6 py-3 text-base font-medium text-white disabled:opacity-50"
     >
       {busy ? <Loader2 className="h-5 w-5 shrink-0 animate-spin" /> : <span aria-hidden>🎬</span>}
-      Generate Animated Lesson
+      Generate Animated Video
     </button>
   );
 }

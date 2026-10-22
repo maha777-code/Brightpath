@@ -1,6 +1,8 @@
 /** Normalize lesson-board script JSON for the animated explainer. */
 
 export type VisualArchetypeName =
+  | 'cinematic_explainer'
+  | 'science_explainer'
   | 'lesson_board'
   | 'pixel_game_hud'
   | 'split_comparison'
@@ -85,14 +87,20 @@ export type NormalizedScene = {
 };
 
 const LEGACY_TO_ARCHETYPE: Record<string, VisualArchetypeName> = {
-  cinematic_motion: 'lesson_board',
-  cinematic: 'lesson_board',
-  lesson_board: 'lesson_board',
-  lessonboard: 'lesson_board',
-  LessonBoard: 'lesson_board',
-  pixel_game_hud: 'lesson_board',
-  pixelquest: 'lesson_board',
-  PixelQuest: 'lesson_board',
+  cinematic_explainer: 'cinematic_explainer',
+  cinematicexplainer: 'cinematic_explainer',
+  CinematicExplainer: 'cinematic_explainer',
+  science_explainer: 'cinematic_explainer',
+  scienceexplainer: 'cinematic_explainer',
+  ScienceExplainer: 'cinematic_explainer',
+  cinematic_motion: 'cinematic_explainer',
+  cinematic: 'cinematic_explainer',
+  lesson_board: 'cinematic_explainer',
+  lessonboard: 'cinematic_explainer',
+  LessonBoard: 'cinematic_explainer',
+  pixel_game_hud: 'cinematic_explainer',
+  pixelquest: 'cinematic_explainer',
+  PixelQuest: 'cinematic_explainer',
   split_comparison: 'split_comparison',
   comparison_split: 'split_comparison',
   question_card: 'split_comparison',
@@ -136,7 +144,7 @@ export function canonicalVisualArchetype(raw: string | undefined, _index = 0): V
     .trim()
     .replace(/-/g, '_');
   if (LEGACY_TO_ARCHETYPE[key]) return LEGACY_TO_ARCHETYPE[key];
-  return 'lesson_board';
+  return 'cinematic_explainer';
 }
 
 export function canonicalVisualType(raw: string): string {
@@ -167,7 +175,7 @@ export function sceneProps(raw: SceneProp | undefined): Record<string, unknown> 
 export function normalizeScene(raw: SceneProp | undefined, index = 0): NormalizedScene {
   const duration = sceneDuration(raw);
   const visualArchetype = canonicalVisualArchetype(
-    raw?.visualArchetype || raw?.visualType || raw?.visual_type || raw?.animationType || 'lesson_board',
+    raw?.visualArchetype || raw?.visualType || raw?.visual_type || raw?.animationType || 'cinematic_explainer',
     index,
   );
   const props = sceneProps(raw);
@@ -187,9 +195,9 @@ export function normalizeScene(raw: SceneProp | undefined, index = 0): Normalize
     phaseTitle: phase,
     voiceoverText: voiceover,
     voiceover,
-    visualType: 'lesson_board',
+    visualType: 'cinematic_explainer',
     visualArchetype,
-    animationType: String(raw?.animationType || 'LessonBoard'),
+    animationType: String(raw?.animationType || 'CinematicExplainer'),
     visualConfig: { ...props, lesson },
     visualProps: props,
     parameters: props,
@@ -224,7 +232,7 @@ export function resolveLessonProps(props: GamifiedLessonProps): GamifiedLessonPr
     teacherName,
     archetype: props.scriptData?.archetype || props.archetype,
     pedagogicalPattern: props.scriptData?.pedagogicalPattern || props.pedagogicalPattern,
-    architecture: props.scriptData?.architecture || 'cinematic_motion',
+    architecture: props.scriptData?.architecture || 'cinematic_explainer',
     totalDurationSeconds,
     scenes,
     wordTimings,

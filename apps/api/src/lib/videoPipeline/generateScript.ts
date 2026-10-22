@@ -1,26 +1,43 @@
 import type {
+  LessonMatterState,
+  LessonMood,
+  LessonShape,
   LessonSlide,
   LessonSlideColumn,
   LessonSlideExample,
   LessonSlideLayout,
   LessonSlideMotion,
   LessonSlideStep,
+  LessonVisualKind,
   SceneVisualConfig,
   VideoSceneParameters,
   VideoSceneSpec,
   VideoScriptManifest,
 } from '@brightpath/shared';
-import { getLessonVideoScriptProvider } from '../llm/provider.js';
+import { getLessonVideoScriptProvider, LESSON_VIDEO_MODEL } from '../llm/provider.js';
 import { detectContentDomain, extractFormulasFromContext } from './contentDomain.js';
 import type { TopicContextPacket } from './types.js';
 
 const MIN_SCENES = 5;
 const MAX_SCENES = 5;
-const MIN_TOTAL_SEC = 40;
-const MAX_TOTAL_SEC = 52;
-const DEFAULT_SCENE_SEC = [8, 10, 10, 9, 8] as const;
+const MIN_TOTAL_SEC = 42;
+const MAX_TOTAL_SEC = 56;
+const DEFAULT_SCENE_SEC = [9, 11, 11, 10, 9] as const;
 
 const MOTION_BY_INDEX: LessonSlideMotion[] = ['smash_zoom', 'drift_up', 'parallax', 'whip', 'bloom'];
+const VISUAL_KINDS: LessonVisualKind[] = [
+  'scene',
+  'process',
+  'compare',
+  'object',
+  'diagram',
+  'example',
+  'particles',
+  'beaker',
+];
+const MOODS: LessonMood[] = ['warm', 'cool', 'dusk', 'studio', 'parchment', 'night'];
+const SHAPES: LessonShape[] = ['sphere', 'cube', 'cylinder', 'crystal', 'torus'];
+const MATTER_STATES: LessonMatterState[] = ['solid', 'liquid', 'gas', 'melting', 'evaporating', 'heating'];
 
 const LESSON_BEATS = [
   { layout: 'hook' as const, phase: 'Hook' },
@@ -31,70 +48,90 @@ const LESSON_BEATS = [
 ] as const;
 
 const LESSON_SCRIPT_PROMPT = `
-You are a motion designer writing a 45-second cinematic explainer for school students.
+You are a cinematic educational filmmaker writing a 45–55 second explainer for school students.
+You read the uploaded textbook excerpts for THIS subtopic only, then design an original film of that idea.
 
-Do this in order:
-1. Read the uploaded textbook excerpts for THIS subtopic only. Learn the idea from the text.
-2. Write the video yourself from that reading. Invent the words, the on-screen lines, and the camera moves.
-3. Teach so a student understands the subtopic. Use plain language. Quote formulas or definitions from the excerpts when they exist.
+The YouTube classroom-science look is a QUALITY reference (camera, depth, lighting, things happening on screen).
+It is NOT a content template. Do not force ice, beakers, molecules, melting, or state changes unless THIS textbook text is about those things.
 
-There is NO template, NO theme pack, NO game skin, NO pixel quest, NO lesson-board, NO Tom & Jerry, NO space shooter.
-The look is original kinetic motion graphics: smash titles, drifting type, light, depth, and camera motion.
-Every video is different because every subtopic is different.
+The student must SEE the idea. On-screen text is a short caption. The picture teaches.
+NEVER write kinetic typography, smash titles, a lesson board, Pixel Quest, Tom & Jerry, space shooters, or “Meet the topic 1/6”.
 
-RUNTIME: 40 to 50 seconds. Output exactly 5 beats. Total spoken words across all beats: 95 to 120.
+Invent a visual world that fits THIS chapter:
+- history / civics → parchment or dusk scene, objects from the period, a process of events
+- math → studio diagram, living formula, worked example
+- language / grammar → warm scene, compare two usages, a process of steps
+- geography → dusk or cool scene, a landscape object, a process
+- literature → dusk or parchment scene, a symbol object
+- lab chemistry / particle theory ONLY → particles or beaker, and then set matterState
 
-1. layout "hook" — phase "Hook" — 8s — motion "smash_zoom"
-   Open on why this idea exists in the chapter. One hard title.
-2. layout "insight" — phase "Insight" — 10s — motion "drift_up"
-   The textbook idea in student language. Include keyTerms. Include formula if the chapter has one.
-3. layout "build" — phase "Build" — 10s — motion "parallax"
+RUNTIME: 42 to 55 seconds. Exactly 5 beats. Total spoken words: 110 to 140.
+
+For every beat you MUST choose:
+- visualKind: scene | process | compare | object | diagram | example | particles | beaker
+  Use particles or beaker ONLY if the excerpts are about molecules, states of matter, heating, melting, or a lab.
+- mood: warm | cool | dusk | studio | parchment | night
+- shape: sphere | cube | cylinder | crystal | torus
+- heading ≤ 5 words (caption)
+- body ≤ 14 words (what is happening on screen)
+- setting: 2–5 words for the world (market, night sky, number line, court, forest…)
+- objectLabel, accentColor (#rrggbb), leftVisual, rightVisual when they help
+- matterState only when visualKind is particles or beaker
+
+BEATS:
+1. layout "hook" — 9s — visualKind scene or object
+   Open on the everyday thing or image the chapter is about.
+2. layout "insight" — 11s — visualKind object, diagram, or scene
+   The textbook idea made visible. Quote a definition or formula if the text has one.
+3. layout "build" — 11s — visualKind process or example
    How it works: 3 short steps from the excerpts.
-4. layout "turn" — phase "Turn" — 9s — motion "whip"
-   The mix-up students make, or one concrete example from the text.
-5. layout "payoff" — phase "Payoff" — 8s — motion "bloom"
-   One sentence a student can say back, plus 2 short points.
+4. layout "turn" — 10s — visualKind compare or scene
+   The mix-up students make vs the textbook, or the next turn in the idea.
+5. layout "payoff" — 9s — visualKind scene or object
+   One sentence a student can say back.
 
 VOICE:
-voiceover_narration is 18–26 words per beat, spoken to the student.
-Do not describe the animation, the software, or a template.
-
-ON SCREEN:
-heading ≤ 6 words. body ≤ 16 words. each step label ≤ 8 words. each point ≤ 10 words.
-
-FACTS:
-Use only the supplied excerpts, summary, and title. If it is not in the text, leave it out.
-A science topic stays science. A language topic stays language.
+voiceover_narration is 20–28 words, spoken like a calm film teacher next to the picture.
+Do not describe cameras, software, templates, or “this animation”.
+Facts only from the supplied excerpts, summary, and title.
 
 Return ONLY JSON:
 {
   "topicTitle": "the subtopic title",
   "teacherName": "MindVault",
-  "architecture": "cinematic_motion",
-  "totalDurationSeconds": 45,
+  "architecture": "cinematic_explainer",
+  "totalDurationSeconds": 50,
   "scenes": [
     {
       "sceneId": 1,
       "phase": "Hook",
-      "durationSec": 8,
-      "timestamp_range": [0, 8],
-      "voiceover_narration": "18–26 words for this beat",
+      "durationSec": 9,
+      "timestamp_range": [0, 9],
+      "voiceover_narration": "20–28 words for this beat",
       "lesson": {
         "layout": "hook",
         "motion": "smash_zoom",
-        "heading": "short title",
+        "heading": "short caption",
         "subheading": "chapter name",
-        "body": "why this matters",
-        "highlight": "one punch word",
-        "keyTerms": ["term"]
+        "body": "what is happening on screen",
+        "highlight": "one word",
+        "keyTerms": ["term"],
+        "visualKind": "scene",
+        "mood": "dusk",
+        "shape": "sphere",
+        "setting": "the chapter world",
+        "objectLabel": "the thing",
+        "accentColor": "#f59e0b"
       }
     }
   ]
 }
 
 STRICT:
-- Exactly 5 scenes. Sum of durationSec between 40 and 50.
+- Exactly 5 scenes. Sum of durationSec between 42 and 55.
 - layouts in order: hook, insight, build, turn, payoff.
+- Every scene has visualKind, mood, and setting.
+- particles/beaker only when the excerpts need a lab or particle model.
 - Return JSON only.
 `;
 
@@ -184,6 +221,43 @@ function asExample(raw: unknown, fallback: LessonSlideExample): LessonSlideExamp
   };
 }
 
+function asVisualKind(raw: unknown, fallback: LessonVisualKind): LessonVisualKind {
+  const v = String(raw ?? '').toLowerCase().trim();
+  return (VISUAL_KINDS as string[]).includes(v) ? (v as LessonVisualKind) : fallback;
+}
+
+function asMatterState(raw: unknown, fallback?: LessonMatterState): LessonMatterState | undefined {
+  const v = String(raw ?? '').toLowerCase().trim();
+  if ((MATTER_STATES as string[]).includes(v)) return v as LessonMatterState;
+  return fallback;
+}
+
+function asMood(raw: unknown, fallback: LessonMood): LessonMood {
+  const v = String(raw ?? '').toLowerCase().trim();
+  return (MOODS as string[]).includes(v) ? (v as LessonMood) : fallback;
+}
+
+function asShape(raw: unknown, fallback: LessonShape): LessonShape {
+  const v = String(raw ?? '').toLowerCase().trim();
+  return (SHAPES as string[]).includes(v) ? (v as LessonShape) : fallback;
+}
+
+function asAccent(raw: unknown, fallback?: string): string | undefined {
+  const v = String(raw ?? '').trim();
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)) return v;
+  return fallback;
+}
+
+function defaultMood(ctx: TopicContextPacket): LessonMood {
+  const blob = `${ctx.subject} ${ctx.title} ${ctx.chapterTitle}`.toLowerCase();
+  if (/\b(history|civics|social|empire|king|war|freedom)\b/.test(blob)) return 'parchment';
+  if (/\b(math|algebra|geometry|fraction|equation)\b/.test(blob)) return 'studio';
+  if (/\b(poem|story|grammar|language|english|hindi)\b/.test(blob)) return 'warm';
+  if (/\b(space|star|night|universe|galaxy)\b/.test(blob)) return 'night';
+  if (/\b(chem|matter|particle|lab)\b/.test(blob)) return 'cool';
+  return 'dusk';
+}
+
 function asLesson(raw: unknown, fallback: LessonSlide): LessonSlide {
   if (!raw || typeof raw !== 'object') return fallback;
   const o = raw as Record<string, unknown>;
@@ -213,6 +287,15 @@ function asLesson(raw: unknown, fallback: LessonSlide): LessonSlide {
       ? asExample(o.example, fallback.example ?? { prompt: '', working: [], answer: '' })
       : fallback.example,
     points: asStringList(o.points, 3, 60).length ? asStringList(o.points, 3, 60) : fallback.points,
+    visualKind: asVisualKind(o.visualKind ?? o.visual_kind, fallback.visualKind ?? 'scene'),
+    mood: asMood(o.mood, fallback.mood ?? 'dusk'),
+    shape: asShape(o.shape, fallback.shape ?? 'sphere'),
+    accentColor: asAccent(o.accentColor ?? o.accent_color, fallback.accentColor),
+    setting: o.setting != null ? clipText(String(o.setting), 40) : fallback.setting,
+    matterState: asMatterState(o.matterState ?? o.matter_state, fallback.matterState),
+    objectLabel: o.objectLabel != null ? clipText(String(o.objectLabel), 28) : fallback.objectLabel,
+    leftVisual: o.leftVisual != null ? clipText(String(o.leftVisual), 24) : fallback.leftVisual,
+    rightVisual: o.rightVisual != null ? clipText(String(o.rightVisual), 24) : fallback.rightVisual,
   };
 }
 
@@ -246,10 +329,10 @@ function durationFromBlock(block: LlmBlockRaw, fallback: number): number {
 function rescaleToWindow(scenes: VideoSceneSpec[]): void {
   let total = scenes.reduce((a, s) => a + s.duration, 0);
   if (total < MIN_TOTAL_SEC || total > MAX_TOTAL_SEC) {
-    const target = Math.min(MAX_TOTAL_SEC, Math.max(MIN_TOTAL_SEC, total || 45));
+    const target = Math.min(MAX_TOTAL_SEC, Math.max(MIN_TOTAL_SEC, total || 50));
     const scale = target / (total || 1);
     for (const s of scenes) {
-      const next = Math.max(6, Math.min(14, Math.round(s.duration * scale)));
+      const next = Math.max(7, Math.min(14, Math.round(s.duration * scale)));
       s.duration = next;
       s.durationSec = next;
     }
@@ -272,11 +355,19 @@ function rescaleToWindow(scenes: VideoSceneSpec[]): void {
   }
 }
 
+function looksLikeMatter(ctx: TopicContextPacket): boolean {
+  const blob = `${ctx.title} ${ctx.chapterTitle} ${ctx.chapterSummary} ${ctx.ragExcerpts.slice(0, 6).join(' ')}`.toLowerCase();
+  return /\b(matter|solid|liquid|gas|melt|evapor|particle|molecule|heat|ice|steam|state)\b/.test(blob);
+}
+
 function fallbackLessons(ctx: TopicContextPacket, formulas: string[]): LessonSlide[] {
   const definition = excerptAt(ctx, 1, excerptAt(ctx, 0, ctx.title));
   const hook = excerptAt(ctx, 0, ctx.chapterSummary || ctx.title);
   const mixup = excerptAt(ctx, 2, ctx.chapterSummary || definition);
   const rule = formulas[0] || excerptAt(ctx, 3, definition);
+  const mood = defaultMood(ctx);
+  const matter = looksLikeMatter(ctx) || ctx.contentDomain === 'chemistry';
+  const insightKind: LessonVisualKind = matter ? 'particles' : formulas[0] ? 'diagram' : 'object';
   return [
     {
       layout: 'hook',
@@ -285,6 +376,13 @@ function fallbackLessons(ctx: TopicContextPacket, formulas: string[]): LessonSli
       subheading: ctx.chapterTitle,
       body: clipText(hook, 90),
       highlight: ctx.title.split(/\s+/).slice(0, 2).join(' '),
+      visualKind: matter ? 'beaker' : 'scene',
+      mood,
+      shape: matter ? 'sphere' : 'crystal',
+      setting: ctx.chapterTitle || ctx.title,
+      objectLabel: ctx.title,
+      matterState: matter ? 'solid' : undefined,
+      keyTerms: [ctx.title.split(/\s+/).slice(0, 2).join(' ')],
     },
     {
       layout: 'insight',
@@ -293,6 +391,11 @@ function fallbackLessons(ctx: TopicContextPacket, formulas: string[]): LessonSli
       body: clipText(definition, 100),
       keyTerms: [ctx.title],
       formula: formulas[0],
+      visualKind: insightKind,
+      mood,
+      shape: 'sphere',
+      setting: ctx.title,
+      matterState: matter ? 'solid' : undefined,
     },
     {
       layout: 'build',
@@ -303,18 +406,25 @@ function fallbackLessons(ctx: TopicContextPacket, formulas: string[]): LessonSli
         { label: 'Name it', detail: clipText(definition, 50) },
         { label: 'Use it', detail: clipText(rule, 50) },
       ],
+      visualKind: matter ? 'particles' : 'process',
+      mood,
+      shape: 'cylinder',
+      setting: ctx.title,
+      matterState: matter ? 'melting' : undefined,
     },
     {
       layout: 'turn',
       motion: 'whip',
-      heading: 'Watch this',
+      heading: 'Hold these apart',
       left: { label: 'Easy miss', points: [clipText(mixup, 50)] },
       right: { label: 'The text', points: [clipText(definition, 50)] },
-      example: {
-        prompt: ctx.title,
-        working: [clipText(definition, 50)],
-        answer: clipText(rule, 50),
-      },
+      leftVisual: matter ? 'liquid' : 'mix-up',
+      rightVisual: matter ? 'gas' : 'textbook',
+      visualKind: 'compare',
+      mood,
+      shape: 'cube',
+      setting: ctx.title,
+      matterState: matter ? 'evaporating' : undefined,
     },
     {
       layout: 'payoff',
@@ -322,6 +432,11 @@ function fallbackLessons(ctx: TopicContextPacket, formulas: string[]): LessonSli
       heading: 'Take this',
       points: [clipText(definition, 50), clipText(rule, 50)],
       body: clipText(ctx.chapterSummary || definition, 90),
+      visualKind: 'scene',
+      mood,
+      shape: 'torus',
+      setting: ctx.title,
+      objectLabel: ctx.title,
     },
   ];
 }
@@ -332,7 +447,7 @@ function heuristicVoiceovers(ctx: TopicContextPacket, formulas: string[]): strin
   const mixup = excerptAt(ctx, 2, ctx.chapterSummary || definition);
   const rule = formulas[0] || excerptAt(ctx, 3, definition);
   return [
-    `${ctx.title}. ${clipText(hook, 90)} This is the idea the chapter wants you to see.`,
+    `Look at ${ctx.title}. ${clipText(hook, 90)} This is the idea the chapter wants you to see.`,
     `Here is what it means. ${clipText(definition, 100)}`,
     `Watch how it works, in order, from the textbook — not from a guess.`,
     `Students mix this up: ${clipText(mixup, 70)} Hold it next to ${clipText(rule, 50)}.`,
@@ -371,6 +486,11 @@ function toSceneSpec(
     headline: lesson.heading,
     stageLabel: phase,
     takeawayBadge: lesson.body,
+    visualKind: lesson.visualKind,
+    mood: lesson.mood,
+    shape: lesson.shape,
+    setting: lesson.setting,
+    matterState: lesson.matterState,
     lesson,
   };
   const parameters: VideoSceneParameters = { ...visualConfig, lesson };
@@ -379,19 +499,19 @@ function toSceneSpec(
     duration,
     durationSec: duration,
     voiceoverText: voiceover,
-    voiceover,
+    voiceover: voiceover,
     voiceoverNarration: voiceover,
-    animationType: 'CinematicMotion',
+    animationType: 'CinematicExplainer',
     parameters,
     phase,
     phaseTitle: phase,
-    visualType: 'cinematic_motion',
-    visualArchetype: 'concept_card',
+    visualType: 'cinematic_explainer',
+    visualArchetype: 'cinematic_explainer',
     visualConfig,
     visualProps: parameters,
     props: parameters,
     teacherGesture: index === 0 ? 'questioning' : 'demonstrating',
-    cameraMotion: lesson.motion,
+    cameraMotion: 'orbit',
     timestampRange: [0, duration],
     timestamp_range: [0, duration],
     lesson,
@@ -415,9 +535,9 @@ function heuristicManifest(ctx: TopicContextPacket): VideoScriptManifest {
   return {
     topicTitle: ctx.title,
     teacherName: 'MindVault',
-    architecture: 'cinematic_motion',
-    archetype: 'concept',
-    pedagogicalPattern: 'cinematic_motion',
+    architecture: 'cinematic_explainer',
+    archetype: looksLikeMatter(ctx) ? 'experiment' : 'concept',
+    pedagogicalPattern: 'cinematic_explainer',
     totalDurationSeconds: scenes.reduce((a, s) => a + s.duration, 0),
     scenes,
   };
@@ -451,9 +571,9 @@ function normalizeManifest(raw: LlmManifestRaw, ctx: TopicContextPacket): VideoS
   return {
     topicTitle: raw.topicTitle || ctx.title,
     teacherName: String(raw.teacherName || 'MindVault').trim() || 'MindVault',
-    architecture: 'cinematic_motion',
-    archetype: 'concept',
-    pedagogicalPattern: 'cinematic_motion',
+    architecture: 'cinematic_explainer',
+    archetype: looksLikeMatter(ctx) ? 'experiment' : 'concept',
+    pedagogicalPattern: 'cinematic_explainer',
     totalDurationSeconds: scenes.reduce((a, s) => a + s.duration, 0),
     scenes,
   };
@@ -473,7 +593,7 @@ function parseLlmManifestSafely(llmOutput: unknown, ctx: TopicContextPacket): Vi
 }
 
 export function normalizeVisualArchetype(_raw?: string, _index = 0): string {
-  return 'cinematic_motion';
+  return 'cinematic_explainer';
 }
 
 export async function generateStructuredVideoScript(
@@ -486,7 +606,7 @@ export async function generateStructuredVideoScript(
   const packet: TopicContextPacket = { ...ctx, contentDomain: domain };
 
   console.log(
-    `[videoPipeline/script] Claude Opus 5.5 cinematic domain=${domain} RAG=${ctx.ragExcerpts.length} topic="${ctx.code} ${ctx.title}"`,
+    `[videoPipeline/script] Claude ${LESSON_VIDEO_MODEL} cinematic explainer domain=${domain} RAG=${ctx.ragExcerpts.length} topic="${ctx.code} ${ctx.title}"`,
   );
 
   if (!provider) {
@@ -502,11 +622,11 @@ export async function generateStructuredVideoScript(
     `Textbook: ${ctx.textbookTitle} (${ctx.subject}) file=${ctx.fileName ?? 'uploaded.pdf'}`,
     `Grade: ${ctx.gradeLabel}`,
     `Chapter summary: ${ctx.chapterSummary}`,
-    'Read these excerpts first. Then write a 45-second cinematic motion-graphics lesson for this subtopic. No template. No theme.',
+    'Read these excerpts first. Then write a cinematic explainer for THIS subtopic. Match the visual world to the chapter. Do not default to a science lab unless the text is about lab science.',
     ctx.teacherPrompt ? `Teacher note: ${ctx.teacherPrompt}` : '',
     formulas.length ? `FORMULAS FOUND IN THE CHAPTER:\n${formulas.join('\n')}` : '',
     `TEXTBOOK EXCERPTS FOR THIS SUBTOPIC:\n${excerpts || ctx.chapterSummary || ctx.title}`,
-    'Output exactly 5 beats, 40–50 seconds, architecture cinematic_motion.',
+    `Output exactly 5 beats, 42–55 seconds, architecture cinematic_explainer. Model must be ${LESSON_VIDEO_MODEL}. Every beat needs visualKind, mood, and setting.`,
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -522,7 +642,7 @@ export async function generateStructuredVideoScript(
   ]);
   const manifest = parseLlmManifestSafely(raw, packet);
   console.log(
-    `[videoPipeline/script] cinematic model=claude-opus-5-5 scenes=${manifest.scenes.length} duration=${manifest.totalDurationSeconds}s phases=${manifest.scenes.map((s) => s.phase).join(' | ')}`,
+    `[videoPipeline/script] cinematic model=${LESSON_VIDEO_MODEL} scenes=${manifest.scenes.length} duration=${manifest.totalDurationSeconds}s kinds=${manifest.scenes.map((s) => s.lesson?.visualKind).join(' | ')} moods=${manifest.scenes.map((s) => s.lesson?.mood).join(' | ')}`,
   );
   return manifest;
 }

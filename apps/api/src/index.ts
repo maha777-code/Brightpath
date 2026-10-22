@@ -215,7 +215,11 @@ async function start() {
   await ensureDemoTeacher();
 
   app.listen(PORT, () => {
+    const lessonVideo = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
     console.log(`BrightPath API listening on http://localhost:${PORT}`);
+    console.log(
+      `Lesson video: ${lessonVideo ? `Claude ${LESSON_VIDEO_MODEL}` : 'ANTHROPIC_API_KEY missing — Generate Animated Video will fail'}`,
+    );
   });
 }
 

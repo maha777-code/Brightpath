@@ -142,6 +142,30 @@ export type LessonSlideLayout =
 
 export type LessonSlideMotion = 'smash_zoom' | 'drift_up' | 'whip' | 'parallax' | 'bloom';
 
+/** Cinematic treatment Claude picks for this beat. Lab kinds only when the text needs them. */
+export type LessonVisualKind =
+  | 'scene'
+  | 'process'
+  | 'compare'
+  | 'object'
+  | 'diagram'
+  | 'example'
+  | 'particles'
+  | 'beaker';
+
+export type LessonMood = 'warm' | 'cool' | 'dusk' | 'studio' | 'parchment' | 'night';
+
+export type LessonShape = 'sphere' | 'cube' | 'cylinder' | 'crystal' | 'torus';
+
+/** Particle / lab state — only when visualKind is particles or beaker. */
+export type LessonMatterState =
+  | 'solid'
+  | 'liquid'
+  | 'gas'
+  | 'melting'
+  | 'evaporating'
+  | 'heating';
+
 export interface LessonSlideStep {
   label: string;
   detail?: string;
@@ -173,6 +197,19 @@ export interface LessonSlide {
   points?: string[];
   motion?: LessonSlideMotion;
   highlight?: string;
+  /** What the 3D stage should demonstrate this beat. */
+  visualKind?: LessonVisualKind;
+  /** Lighting / color world for this beat. */
+  mood?: LessonMood;
+  /** Hero primitive when visualKind is scene, object, or example. */
+  shape?: LessonShape;
+  accentColor?: string;
+  setting?: string;
+  /** Solid / liquid / gas — only for particles or beaker. */
+  matterState?: LessonMatterState;
+  objectLabel?: string;
+  leftVisual?: string;
+  rightVisual?: string;
 }
 
 export interface VideoSceneSpec {
@@ -223,8 +260,8 @@ export interface VideoScriptManifest {
   wordTimings?: { word: string; start: number; end: number }[];
   /** On-screen cartoon host name */
   teacherName?: string;
-  /** Renderer: cinematic_motion */
-  architecture?: 'cinematic_motion' | string;
+  /** Renderer: cinematic_explainer */
+  architecture?: 'cinematic_explainer' | 'science_explainer' | 'cinematic_motion' | string;
 }
 
 export interface TeacherUser {

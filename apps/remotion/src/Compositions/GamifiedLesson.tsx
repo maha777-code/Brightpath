@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from 'react';
 import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig } from 'remotion';
-import { LessonBoard } from '../components/lesson/LessonBoard';
+import { CinematicExplainerStage } from '../components/lesson/CinematicExplainerStage';
 import { KaraokeSubtitles } from '../components/KaraokeSubtitles';
 import {
   resolveActiveScene,
@@ -17,41 +17,57 @@ const DEMO_SLIDES: LessonSlide[] = [
   {
     layout: 'hook',
     motion: 'smash_zoom',
-    heading: 'Matter is everywhere',
-    subheading: 'Class 9 Science',
-    body: 'The chapter starts with what fills the room around you.',
-    highlight: 'Mass and space',
+    heading: 'Ashoka after war',
+    subheading: 'Ashoka, The Emperor Who Gave Up War',
+    body: 'A king stands in the quiet after Kalinga.',
+    visualKind: 'scene',
+    mood: 'parchment',
+    shape: 'crystal',
+    setting: 'Kalinga dusk',
+    objectLabel: 'Ashoka',
+    keyTerms: ['Kalinga'],
   },
   {
     layout: 'insight',
     motion: 'drift_up',
-    heading: 'What matter is',
-    body: 'Anything that has mass and occupies space.',
-    keyTerms: ['mass', 'space', 'particles'],
+    heading: 'Dhamma',
+    body: 'He chose a rule of kindness, not more conquest.',
+    visualKind: 'object',
+    mood: 'parchment',
+    shape: 'torus',
+    setting: 'edict pillar',
+    keyTerms: ['dhamma'],
   },
   {
     layout: 'build',
     motion: 'parallax',
-    heading: 'How it builds',
-    steps: [
-      { label: 'Notice it', detail: 'Does it take up space?' },
-      { label: 'Name particles', detail: 'The text treats matter as tiny bits.' },
-      { label: 'Watch the state', detail: 'Solid, liquid, or gas.' },
-    ],
+    heading: 'How it spread',
+    steps: [{ label: 'Edicts carved' }, { label: 'Messengers sent' }, { label: 'People heard' }],
+    visualKind: 'process',
+    mood: 'parchment',
+    shape: 'cylinder',
+    setting: 'royal road',
   },
   {
     layout: 'turn',
     motion: 'whip',
-    heading: 'Air counts',
-    left: { label: 'Easy miss', points: ['Air feels like nothing'] },
-    right: { label: 'The text', points: ['Air has mass and occupies space'] },
+    heading: 'War or dhamma',
+    left: { label: 'Conquest', points: ['More land, more grief'] },
+    right: { label: 'Dhamma', points: ['Care for people'] },
+    visualKind: 'compare',
+    mood: 'dusk',
+    shape: 'cube',
+    setting: 'two paths',
   },
   {
     layout: 'payoff',
     motion: 'bloom',
-    heading: 'Say it back',
-    points: ['Matter has mass.', 'It occupies space.'],
-    body: 'Matter is anything that has mass and occupies space.',
+    heading: 'Remember this',
+    body: 'Ashoka gave up war and taught dhamma.',
+    visualKind: 'scene',
+    mood: 'parchment',
+    shape: 'sphere',
+    setting: 'edict at dusk',
   },
 ];
 
@@ -66,12 +82,12 @@ const DEMO_SCENES: NormalizedScene[] = DEMO_SLIDES.map((slide, i) => ({
   phaseTitle: DEMO_PHASES[i],
   voiceoverText: slide.body || slide.heading,
   voiceover: slide.body || slide.heading,
-  visualType: 'cinematic_motion',
-  visualArchetype: 'concept_card',
-  animationType: 'CinematicMotion',
+  visualType: 'cinematic_explainer',
+  visualArchetype: 'cinematic_explainer',
+  animationType: 'CinematicExplainer',
   teacherGesture: i === 0 ? 'questioning' : 'demonstrating',
-  cameraMotion: slide.motion || 'smash_zoom',
-  visualConfig: { lesson: slide, headline: slide.heading },
+  cameraMotion: 'orbit',
+  visualConfig: { lesson: slide, headline: slide.heading, visualKind: slide.visualKind, matterState: slide.matterState },
   visualProps: { lesson: slide },
   parameters: { lesson: slide },
   props: { lesson: slide },
@@ -80,20 +96,20 @@ const DEMO_SCENES: NormalizedScene[] = DEMO_SLIDES.map((slide, i) => ({
 
 export const defaultGamifiedProps: GamifiedLessonProps = {
   topicId: 'demo',
-  topicTitle: 'Matter in Our Surroundings',
+  topicTitle: 'Ashoka, The Emperor Who Gave Up War',
   teacherName: 'MindVault',
   totalDurationSeconds: DEMO_SCENES.reduce((a, s) => a + s.duration, 0),
   archetype: 'concept',
-  pedagogicalPattern: 'cinematic_motion',
+  pedagogicalPattern: 'cinematic_explainer',
   audioUrl: '',
   wordTimings: [],
   scenes: DEMO_SCENES,
   scriptData: {
-    topicTitle: 'Matter in Our Surroundings',
+    topicTitle: 'Ashoka, The Emperor Who Gave Up War',
     teacherName: 'MindVault',
-    architecture: 'cinematic_motion',
+    architecture: 'cinematic_explainer',
     archetype: 'concept',
-    pedagogicalPattern: 'cinematic_motion',
+    pedagogicalPattern: 'cinematic_explainer',
     totalDurationSeconds: DEMO_SCENES.reduce((a, s) => a + s.duration, 0),
     scenes: DEMO_SCENES,
     wordTimings: [],
@@ -109,6 +125,8 @@ function readLesson(scene: NormalizedScene): LessonSlide {
     layout: 'title',
     heading: scene.phaseTitle || scene.voiceover.slice(0, 48) || 'Lesson',
     body: scene.voiceover,
+    visualKind: 'scene',
+    mood: 'dusk',
   };
 }
 
@@ -127,7 +145,7 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
   if (frame === 0) {
     const live = rawProps.scriptData;
     console.log(
-      `[Remotion Render] Lesson board scenes=${live?.scenes?.length || scenes.length} ` +
+      `[Remotion Render] Cinematic explainer scenes=${live?.scenes?.length || scenes.length} ` +
         `audio=${audioUrl ? 'yes' : 'NO'} title=${live?.topicTitle || topicTitle}`,
     );
   }
@@ -144,16 +162,14 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
   const sceneKey = `${activeScene.sceneId}:${phase}`;
   if (loggedScene.current !== sceneKey) {
     loggedScene.current = sceneKey;
-    console.log(`[GamifiedLesson] t=${currentTime.toFixed(2)}s ${phase} layout=${slide.layout}`);
+    console.log(`[GamifiedLesson] t=${currentTime.toFixed(2)}s ${phase} kind=${slide.visualKind || 'infer'}`);
   }
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#07101d' }}>
-      <LessonBoard
+    <AbsoluteFill style={{ backgroundColor: '#efe4c8' }}>
+      <CinematicExplainerStage
         topicTitle={topicTitle}
-        phase={phase}
-        sceneIndex={active.index}
-        sceneCount={scenes.length}
+        chapterTitle={slide.subheading}
         progress01={sceneProgress}
         slide={slide}
         visualConfig={activeScene.visualConfig}

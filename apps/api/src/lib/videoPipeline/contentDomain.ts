@@ -5,7 +5,7 @@ const DSML_RE =
   /\b(dsml|data science|machine learning|regression|galton|least[\s-]?squares|design matrix|squared[\s-]?error|sigma\^?2|σ\^?2|g\*\s*\(|beta_0|β|scatter|estimator|predictor|supervised learning|ordinary least|ols|residual|variance|covariance|correlation|feature vector|training set)\b/i;
 
 const CHEM_RE =
-  /\b(beaker|flask|molecule|evaporation|solute|solvent|nacl|h2o|chemistry|melting point|boiling point|lattice|diffusion|matter in our surroundings)\b/i;
+  /\b(beaker|flask|molecule|evaporation|solute|solvent|nacl|h2o|chemistry|melting point|boiling point|lattice|diffusion|matter in our surroundings|states? of matter|heating matter|ice cube|steam|melting|evaporat)\b/i;
 
 const MATH_RE =
   /\b(theorem|matrix|vector space|eigen|determinant|equation|proof|algebra|calculus|linear algebra|inner product|norm|gradient|partial derivative|latex)\b/i;
