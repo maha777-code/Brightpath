@@ -210,6 +210,8 @@ export interface LessonSlide {
   objectLabel?: string;
   leftVisual?: string;
   rightVisual?: string;
+  /** Exact line from THIS textbook — stamped so two PDFs cannot share a film. */
+  quote?: string;
 }
 
 export interface VideoSceneSpec {

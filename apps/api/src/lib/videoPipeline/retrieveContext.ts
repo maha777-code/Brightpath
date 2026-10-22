@@ -128,7 +128,7 @@ export async function retrieveTextbookContext(
   packet.contentDomain = detectContentDomain(packet);
 
   console.log(
-    `[videoPipeline/retrieve] topic=${sub.code} textbook="${sub.chapter.textbook.title}" domain=${packet.contentDomain} excerpts=${packet.ragExcerpts.length} pdfBody=${pdfBody.length}`,
+    `[videoPipeline/retrieve] topic=${sub.code} "${sub.title}" chapter="${sub.chapter.title}" textbook="${sub.chapter.textbook.title}" domain=${packet.contentDomain} excerpts=${packet.ragExcerpts.length} pdfBody=${pdfBody.length} sample="${(packet.ragExcerpts[0] ?? '').slice(0, 80)}"`,
   );
 
   return packet;

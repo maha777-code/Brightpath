@@ -56,6 +56,8 @@ export type ScriptData = {
 export type GamifiedLessonProps = {
   topicId: string;
   topicTitle: string;
+  textbookTitle?: string;
+  chapterTitle?: string;
   totalDurationSeconds: number;
   archetype?: string;
   pedagogicalPattern?: string;

@@ -45,10 +45,11 @@ function inferState(slide: LessonSlide, visualConfig?: Record<string, unknown>):
 export const CinematicExplainerStage: React.FC<{
   topicTitle: string;
   chapterTitle?: string;
+  textbookTitle?: string;
   progress01: number;
   slide: LessonSlide;
   visualConfig?: Record<string, unknown>;
-}> = ({ topicTitle, chapterTitle, progress01, slide, visualConfig }) => {
+}> = ({ topicTitle, chapterTitle, textbookTitle, progress01, slide, visualConfig }) => {
   const frame = useCurrentFrame();
   const kind = inferKind(slide, visualConfig);
   const mood = pick(slide.mood ?? visualConfig?.mood, MOODS, 'dusk');
@@ -97,10 +98,11 @@ export const CinematicExplainerStage: React.FC<{
       >
         <div>
           <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1.8, textTransform: 'uppercase', color: palette.text }}>
-            MindVault
+            {textbookTitle || 'MindVault'}
           </div>
-          <div style={{ marginTop: 4, fontSize: 15, fontWeight: 650, color: palette.muted }}>
-            {slide.setting || chapterTitle || topicTitle}
+          <div style={{ marginTop: 4, fontSize: 16, fontWeight: 750, color: palette.muted, maxWidth: 720 }}>
+            {chapterTitle || topicTitle}
+            {chapterTitle && topicTitle && chapterTitle !== topicTitle ? ` · ${topicTitle}` : ''}
           </div>
         </div>
         {lab && state ? (
@@ -142,6 +144,21 @@ export const CinematicExplainerStage: React.FC<{
           <div style={{ fontSize: 34, fontWeight: 850, letterSpacing: -0.4, color: palette.text }}>{slide.heading}</div>
           {slide.body ? (
             <div style={{ marginTop: 4, fontSize: 18, fontWeight: 600, color: palette.muted }}>{slide.body}</div>
+          ) : null}
+          {slide.quote ? (
+            <div
+              style={{
+                marginTop: 12,
+                maxWidth: 760,
+                fontSize: 18,
+                lineHeight: 1.4,
+                fontWeight: 550,
+                color: palette.text,
+                fontStyle: 'italic',
+              }}
+            >
+              “{slide.quote}”
+            </div>
           ) : null}
         </div>
       </div>

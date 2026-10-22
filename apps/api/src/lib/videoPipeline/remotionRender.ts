@@ -373,6 +373,15 @@ export async function renderWithRemotion(opts: {
   const inputProps = {
     topicId: opts.topicId,
     topicTitle: scriptData.topicTitle,
+    textbookTitle: String(
+      (scriptData.scenes[0]?.visualConfig as { textbookTitle?: string } | undefined)?.textbookTitle ||
+        scriptData.topicTitle,
+    ),
+    chapterTitle: String(
+      scriptData.scenes[0]?.lesson?.subheading ||
+        (scriptData.scenes[0]?.visualConfig as { chapterTitle?: string } | undefined)?.chapterTitle ||
+        '',
+    ),
     teacherName: scriptData.teacherName || 'Professor Maya',
     archetype: scriptData.archetype ?? 'concept',
     pedagogicalPattern: scriptData.pedagogicalPattern ?? 'lab_experiment',

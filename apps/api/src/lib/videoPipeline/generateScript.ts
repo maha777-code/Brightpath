@@ -296,6 +296,7 @@ function asLesson(raw: unknown, fallback: LessonSlide): LessonSlide {
     objectLabel: o.objectLabel != null ? clipText(String(o.objectLabel), 28) : fallback.objectLabel,
     leftVisual: o.leftVisual != null ? clipText(String(o.leftVisual), 24) : fallback.leftVisual,
     rightVisual: o.rightVisual != null ? clipText(String(o.rightVisual), 24) : fallback.rightVisual,
+    quote: o.quote != null ? clipText(String(o.quote), 160) : fallback.quote,
   };
 }
 
@@ -469,6 +470,11 @@ function toSceneSpec(
   });
   lesson.layout = beat.layout;
   lesson.motion = MOTION_BY_INDEX[index];
+  lesson.subheading = lesson.subheading || ctx.chapterTitle;
+  lesson.quote = lesson.quote || excerptAt(ctx, index, `${ctx.chapterTitle}. ${ctx.title}`);
+  if (!lesson.heading || /^the idea$|^how it works$|^take this$|^hold these apart$/i.test(lesson.heading)) {
+    lesson.heading = clipText(ctx.title, 48);
+  }
   const duration = durationFromBlock(block ?? {}, DEFAULT_SCENE_SEC[index] ?? 9);
   const voiceover = String(
     block?.voiceover_narration ||
@@ -486,6 +492,9 @@ function toSceneSpec(
     headline: lesson.heading,
     stageLabel: phase,
     takeawayBadge: lesson.body,
+    quote: lesson.quote,
+    textbookTitle: ctx.textbookTitle,
+    chapterTitle: ctx.chapterTitle,
     visualKind: lesson.visualKind,
     mood: lesson.mood,
     shape: lesson.shape,

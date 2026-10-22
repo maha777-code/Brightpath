@@ -28,7 +28,14 @@ export function apiPublicOrigin(): string {
 
 /** Browser-facing absolute URL for a public video asset */
 export function publicVideoUrl(topicId: string): string {
-  return `${apiPublicOrigin()}/public/videos/topic_${topicId}.mp4?v=cinema1`;
+  const file = topicVideoPath(topicId);
+  let bust = 'pending';
+  try {
+    bust = String(Math.floor(fs.statSync(file).mtimeMs));
+  } catch {
+    bust = String(Date.now());
+  }
+  return `${apiPublicOrigin()}/public/videos/topic_${topicId}.mp4?v=${bust}`;
 }
 
 export function publicAudioUrl(topicId: string): string {

@@ -46,7 +46,7 @@ function toLocalGeneratedMp4Url(
     try {
       const u = new URL(value);
       if (!u.pathname.startsWith('/public/videos/')) return null;
-      u.searchParams.set('v', u.searchParams.get('v') || 'cinema1');
+      u.searchParams.set('v', u.searchParams.get('v') || String(Date.now()));
       return `${API_MEDIA_ORIGIN}${u.pathname}?${u.searchParams.toString()}`;
     } catch {
       return null;
@@ -54,13 +54,13 @@ function toLocalGeneratedMp4Url(
   }
 
   if (value.startsWith('/public/videos/')) {
-    return `${API_MEDIA_ORIGIN}${value}${value.includes('?') ? '&' : '?'}v=cinema1`;
+    return `${API_MEDIA_ORIGIN}${value}${value.includes('?') ? '&' : '?'}v=${Date.now()}`;
   }
   if (value.startsWith('public/videos/')) {
-    return `${API_MEDIA_ORIGIN}/${value}${value.includes('?') ? '&' : '?'}v=cinema1`;
+    return `${API_MEDIA_ORIGIN}/${value}${value.includes('?') ? '&' : '?'}v=${Date.now()}`;
   }
   if (/^topic_[a-z0-9-]+\.mp4$/i.test(value)) {
-    return `${API_MEDIA_ORIGIN}/public/videos/${value}?v=cinema1`;
+    return `${API_MEDIA_ORIGIN}/public/videos/${value}?v=${Date.now()}`;
   }
   // Relative path without leading slash
   if (value.includes(`topic_${topicId}.mp4`)) {

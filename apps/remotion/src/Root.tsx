@@ -30,17 +30,27 @@ function sceneDurationSum(props: GamifiedLessonProps): number {
 
 export const RemotionRoot: React.FC = () => {
   const inputProps = getInputProps() as Partial<GamifiedLessonProps>;
-  const defaultProps = resolveLessonProps({
-    ...defaultGamifiedProps,
-    ...inputProps,
-    scriptData: inputProps.scriptData ?? defaultGamifiedProps.scriptData,
-    scenes:
-      inputProps.scriptData?.scenes?.length
-        ? inputProps.scriptData.scenes
-        : inputProps.scenes?.length
-          ? inputProps.scenes
-          : defaultGamifiedProps.scenes,
-  });
+  const liveScenes = inputProps.scriptData?.scenes?.length
+    ? inputProps.scriptData.scenes
+    : inputProps.scenes;
+  const hasLiveScript = Boolean(liveScenes?.length && inputProps.topicId && inputProps.topicId !== 'demo');
+  const defaultProps = resolveLessonProps(
+    hasLiveScript
+      ? {
+          ...defaultGamifiedProps,
+          ...inputProps,
+          topicTitle: inputProps.topicTitle || inputProps.scriptData?.topicTitle || inputProps.topicId,
+          textbookTitle: inputProps.textbookTitle,
+          chapterTitle: inputProps.chapterTitle,
+          scenes: liveScenes ?? [],
+          scriptData: {
+            ...(inputProps.scriptData ?? {}),
+            topicTitle: inputProps.topicTitle || inputProps.scriptData?.topicTitle,
+            scenes: liveScenes,
+          },
+        }
+      : defaultGamifiedProps,
+  );
 
   return (
     <>
@@ -74,9 +84,9 @@ export const RemotionRoot: React.FC = () => {
 
         seconds = Math.max(8, seconds);
         console.log(
-          `[GamifiedLesson] calculateMetadata visuals=${resolved.scenes
-            .map((s) => s.visualArchetype || s.visualType)
-            .join(',')} duration=${seconds.toFixed(1)}s`,
+          `[GamifiedLesson] calculateMetadata title="${resolved.topicTitle}" chapter="${resolved.chapterTitle || ''}" ` +
+            `headings=${resolved.scenes.map((s) => s.lesson?.heading || s.phase).join(' | ')} ` +
+            `duration=${seconds.toFixed(1)}s`,
         );
         return {
           durationInFrames: Math.ceil(seconds * 30),

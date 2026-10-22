@@ -145,8 +145,9 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
   if (frame === 0) {
     const live = rawProps.scriptData;
     console.log(
-      `[Remotion Render] Cinematic explainer scenes=${live?.scenes?.length || scenes.length} ` +
-        `audio=${audioUrl ? 'yes' : 'NO'} title=${live?.topicTitle || topicTitle}`,
+      `[Remotion Render] Cinematic explainer topicId=${rawProps.topicId} title="${live?.topicTitle || topicTitle}" ` +
+        `chapter="${rawProps.chapterTitle || ''}" scenes=${live?.scenes?.length || scenes.length} ` +
+        `headings=${scenes.map((s) => s.lesson?.heading || s.phase).join(' | ')} audio=${audioUrl ? 'yes' : 'NO'}`,
     );
   }
 
@@ -169,7 +170,8 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
     <AbsoluteFill style={{ backgroundColor: '#efe4c8' }}>
       <CinematicExplainerStage
         topicTitle={topicTitle}
-        chapterTitle={slide.subheading}
+        chapterTitle={props.chapterTitle || slide.subheading}
+        textbookTitle={props.textbookTitle}
         progress01={sceneProgress}
         slide={slide}
         visualConfig={activeScene.visualConfig}
