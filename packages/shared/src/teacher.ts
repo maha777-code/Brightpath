@@ -41,7 +41,7 @@ export type VisualArchetype =
   | 'math_overlay'
   | 'matrix_board';
 
-export type VisualContentDomain = 'dsml' | 'math' | 'chemistry' | 'generic';
+export type VisualContentDomain = 'dsml' | 'math' | 'physics' | 'chemistry' | 'biology' | 'generic';
 
 export interface VisualStageElement {
   name?: string;
@@ -152,6 +152,44 @@ export interface OverviewStat {
   label: string;
 }
 
+/** What the picture track should DRAW for this beat — not a text prompt. */
+export type ConceptSolid = 'cube' | 'cuboid' | 'cylinder' | 'cone' | 'sphere' | 'pyramid' | 'prism' | 'hemisphere';
+
+export type ConceptVisualKind =
+  | 'board'
+  | 'system'
+  | 'cycle'
+  | 'sequence'
+  | 'equation'
+  | 'field'
+  | 'example'
+  | 'compare'
+  | 'count'
+  | 'timeline'
+  | 'solid'
+  | 'views'
+  | 'net'
+  | 'process'
+  | 'parts'
+  | 'formula'
+  | 'scene';
+
+export type ConceptMotion = 'rotate' | 'unfold' | 'build' | 'orbit' | 'split' | 'pulse' | 'reveal';
+
+export type ConceptView = 'front' | 'side' | 'top';
+
+export interface ConceptVisual {
+  kind: ConceptVisualKind;
+  /** Short name of the idea on screen, taken from this PDF. */
+  subject: string;
+  domain?: VisualContentDomain;
+  solid?: ConceptSolid;
+  objects: string[];
+  labels: string[];
+  motion: ConceptMotion;
+  views?: ConceptView[];
+}
+
 export type LessonSlideMotion = 'smash_zoom' | 'drift_up' | 'whip' | 'parallax' | 'bloom';
 
 /** Cinematic treatment Claude picks for this beat. Lab kinds only when the text needs them. */
@@ -229,6 +267,8 @@ export interface LessonSlide {
   stat?: OverviewStat;
   sourceRefs?: string[];
   visualPrompt?: string;
+  /** Drawable concept for the picture track. */
+  visual?: ConceptVisual;
 }
 
 export interface VideoSceneSpec {

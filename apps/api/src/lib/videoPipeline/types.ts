@@ -39,7 +39,7 @@ export interface TopicContextPacket {
   fileName?: string;
   ragExcerpts: string[];
   teacherPrompt?: string;
-  contentDomain?: 'dsml' | 'math' | 'chemistry' | 'generic';
+  contentDomain?: 'dsml' | 'math' | 'physics' | 'chemistry' | 'biology' | 'generic';
 }
 
 export interface VoiceSynthesisResult {

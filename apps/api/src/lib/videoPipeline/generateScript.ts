@@ -1,4 +1,9 @@
 import type {
+  ConceptMotion,
+  ConceptSolid,
+  ConceptView,
+  ConceptVisual,
+  ConceptVisualKind,
   LessonSlide,
   LessonSlideColumn,
   LessonSlideLayout,
@@ -7,7 +12,9 @@ import type {
   VideoSceneParameters,
   VideoSceneSpec,
   VideoScriptManifest,
+  VisualContentDomain,
 } from '@brightpath/shared';
+import { inferConceptVisual } from '@brightpath/shared';
 import { getLessonVideoScriptProvider, LESSON_VIDEO_MODEL } from '../llm/provider.js';
 import { detectContentDomain, extractFormulasFromContext } from './contentDomain.js';
 import type { TopicContextPacket } from './types.js';
@@ -37,9 +44,9 @@ const WORDS_PER_SEC = 2.4;
 const SLIDE_PADDING_SEC = 0.4;
 
 const LESSON_SCRIPT_PROMPT = `
-You write NotebookLM-style Video Overviews for Brightpath / MindVault.
+You write Brightpath / MindVault concept explainer films for ANY school subject.
 
-You are given ONE uploaded textbook subtopic. Your job is to turn those sources into a narrated slide explainer — clean slides, spoken narration that teaches, no invented facts.
+The uploaded PDF may be maths, physics, chemistry, biology, or another subject. Build the film for THIS subtopic only. The spoken narration stays textbook-grounded. The PICTURE must demonstrate the idea named in the excerpts — not a leftover geometry kit (cubes, nets, views) unless this chapter is actually about solid shapes.
 
 OUTPUT (STRICT JSON only — no markdown fences):
 {
@@ -56,30 +63,42 @@ OUTPUT (STRICT JSON only — no markdown fences):
       "quote": string | null,
       "left": { "label": string, "points": [string] } | null,
       "right": { "label": string, "points": [string] } | null,
-      "visual_prompt": string | null,
+      "visual": {
+        "kind": "board" | "system" | "cycle" | "sequence" | "equation" | "field" | "example" | "compare" | "count" | "timeline",
+        "subject": string,
+        "domain": "math" | "physics" | "chemistry" | "biology" | "generic",
+        "objects": [string],
+        "labels": [string],
+        "motion": "build" | "reveal" | "split" | "pulse" | "orbit"
+      },
       "narration": string,
       "source_refs": [string]
     }
   ]
 }
 
+PICTURE RULES (mandatory on EVERY slide)
+- visual.subject and visual.labels MUST be terms from THIS PDF (chloroplast, F=ma, acid + base, quadratic…). Never invent objects.
+- Pick kind from the idea, not from a template:
+  - maths: equation (the real formula), board (the idea + its parts), example (worked question), compare (two cases)
+  - physics: field (object + labeled arrows: force, current, rays), equation, sequence (a motion story)
+  - chemistry: system (atom/molecule/reaction parts), sequence (reaction steps), compare (acid vs base)
+  - biology: cycle (photosynthesis, mitosis), system (cell/organ parts), sequence (a life process)
+- Do NOT use cubes, nets, front/side/top views, or rotating solids unless the excerpt is about those 3D shapes.
+- Mix kinds. A student on mute should still see THIS chapter's idea assembling on screen.
+
 SLIDE RULES
-- Slide count and length follow the user message (short / standard / long). Never fewer than 8 or more than 15 slides.
-- Slide 1 MUST be layout "title": hook the chapter, heading = the real subtopic name from the sources.
-- Last slide MUST recap (layout "bullets" or "stat") — what to remember, grounded in the text.
-- Mix layouts. Use "quote" only for a line that actually appears in the excerpts. Use "stat" only for a number/measure that appears in the excerpts. Use "two_column" for contrasts the chapter itself draws. Use "diagram" for a process or labelled parts the chapter describes. Use "image_caption" when a figure/object in the text should be named on screen.
-- On-screen text stays SHORT. bullets: max 4 items, max 8 words each. heading: max 8 words. narration carries the teaching.
-- narration: 40–90 words, conversational spoken English. Explain; do not read the bullets aloud. Natural tone ("Here's the interesting part…", "Look at this…"). Open with a hook. Close with a recap.
-- source_refs: short pointers like "§13.2" or a 6–12 word excerpt fragment so a teacher can see the grounding.
-- quote / stat / bullets / headings must come from the sources. If the excerpt is silent, omit that claim — never invent a formula, date, or definition.
+- Slide count and length follow the user message (short / standard / long). 8–15 slides.
+- Slide 1 heading = the real subtopic name. Its visual already shows the main idea from the book.
+- Last slide recaps with the same vocabulary as the chapter.
+- On-screen text stays SHORT. bullets: max 4, max 8 words. heading: max 8 words. Narration teaches.
+- narration: 40–90 words, conversational. Explain the picture. Do not read the bullets. No "watch this cube turn" unless the book is about cubes.
+- source_refs: § or a 6–12 word excerpt fragment.
+- No invented facts, formulas, dates, or objects.
 
 FOCUS
-- If the user supplies a focus prompt, write the overview for that audience / angle. Still stay inside the sources.
-- Grade and subject in the packet set the spoken register (Class 8 maths ≠ undergraduate lecture).
-
-IDENTITY
-- This overview is ONLY for the named textbook + chapter + subtopic. Do not reuse a generic science-lab or abstract-shape story.
-- The title field is the film title. Prefer the textbook's own heading.
+- Honor a focus prompt. Stay inside the sources.
+- Grade and subject set the spoken register.
 
 Do not wrap the JSON in commentary.
 `.trim();
@@ -96,6 +115,7 @@ type LlmSlideRaw = {
   right?: unknown;
   visual_prompt?: string | null;
   visualPrompt?: string | null;
+  visual?: unknown;
   narration?: string;
   voiceover?: string;
   voiceover_narration?: string;
@@ -184,7 +204,7 @@ function durationFromNarration(text: string, fallbackSec: number): number {
 function layoutForIndex(index: number, total: number): LessonSlideLayout {
   if (index === 0) return 'title';
   if (index === total - 1) return 'bullets';
-  const cycle: LessonSlideLayout[] = ['bullets', 'stat', 'two_column', 'quote', 'diagram', 'image_caption'];
+  const cycle: LessonSlideLayout[] = ['diagram', 'image_caption', 'two_column', 'stat', 'diagram', 'bullets'];
   return cycle[(index - 1) % cycle.length];
 }
 
@@ -223,6 +243,7 @@ function fallbackSlides(ctx: TopicContextPacket, length: OverviewLength): Lesson
       sourceRefs: [clipText(excerpt, 80)],
       visualPrompt: `${ctx.subject}: ${ctx.title} — ${excerpt.slice(0, 80)}`,
     };
+    slide.visual = inferConceptVisual(slide, ctx.title, ctx.contentDomain || detectContentDomain(ctx));
     return slide;
   });
 }
@@ -238,11 +259,108 @@ function fallbackNarration(ctx: TopicContextPacket, index: number, total: number
   return `Here's the interesting part from the book. ${clipText(excerpt, 220)} Notice the wording — that's the claim we can actually defend from this chapter.`;
 }
 
-function asLesson(raw: unknown, fallback: LessonSlide): LessonSlide {
+const VISUAL_KINDS: ConceptVisualKind[] = [
+  'board',
+  'system',
+  'cycle',
+  'sequence',
+  'equation',
+  'field',
+  'example',
+  'compare',
+  'count',
+  'timeline',
+  'solid',
+  'views',
+  'net',
+  'process',
+  'parts',
+  'formula',
+  'scene',
+];
+const VISUAL_DOMAINS: VisualContentDomain[] = ['dsml', 'math', 'physics', 'chemistry', 'biology', 'generic'];
+const VISUAL_SOLIDS: ConceptSolid[] = [
+  'cube',
+  'cuboid',
+  'cylinder',
+  'cone',
+  'sphere',
+  'pyramid',
+  'prism',
+  'hemisphere',
+];
+const VISUAL_MOTIONS: ConceptMotion[] = ['rotate', 'unfold', 'build', 'orbit', 'split', 'pulse', 'reveal'];
+const VISUAL_VIEWS: ConceptView[] = ['front', 'side', 'top'];
+
+function asVisual(
+  raw: unknown,
+  draft: LessonSlide,
+  topicTitle: string,
+  domain?: VisualContentDomain,
+): ConceptVisual {
+  const parsed =
+    raw && typeof raw === 'object'
+      ? (raw as {
+          kind?: unknown;
+          subject?: unknown;
+          domain?: unknown;
+          solid?: unknown;
+          objects?: unknown;
+          labels?: unknown;
+          motion?: unknown;
+          views?: unknown;
+        })
+      : undefined;
+  const kind = VISUAL_KINDS.includes(String(parsed?.kind) as ConceptVisualKind)
+    ? (parsed!.kind as ConceptVisualKind)
+    : undefined;
+  const solid = VISUAL_SOLIDS.includes(String(parsed?.solid) as ConceptSolid)
+    ? (parsed!.solid as ConceptSolid)
+    : undefined;
+  const motion = VISUAL_MOTIONS.includes(String(parsed?.motion) as ConceptMotion)
+    ? (parsed!.motion as ConceptMotion)
+    : undefined;
+  const parsedDomain = VISUAL_DOMAINS.includes(String(parsed?.domain) as VisualContentDomain)
+    ? (parsed!.domain as VisualContentDomain)
+    : domain;
+  const subject = typeof parsed?.subject === 'string' ? parsed.subject.trim() : '';
+  const objects = asStringArray(parsed?.objects, 6, 6);
+  const labels = asStringArray(parsed?.labels, 6, 6);
+  const views = Array.isArray(parsed?.views)
+    ? parsed.views.filter((v): v is ConceptView => VISUAL_VIEWS.includes(String(v) as ConceptView))
+    : undefined;
+  return inferConceptVisual(
+    {
+      ...draft,
+      visual:
+        kind || subject
+          ? {
+              kind: kind || 'board',
+              subject: subject || draft.heading,
+              domain: parsedDomain,
+              solid,
+              objects,
+              labels,
+              motion: motion || 'reveal',
+              views: views?.length ? views : undefined,
+            }
+          : undefined,
+    },
+    topicTitle,
+    parsedDomain,
+  );
+}
+
+function asLesson(
+  raw: unknown,
+  fallback: LessonSlide,
+  topicTitle = '',
+  domain?: VisualContentDomain,
+): LessonSlide {
   const o = (raw && typeof raw === 'object' ? raw : {}) as LlmSlideRaw;
   const bullets = asStringArray(o.bullets ?? o.points, 4, 8);
   const sourceRefs = asStringArray(o.source_refs ?? o.sourceRefs, 4, 16);
-  return {
+  const draft: LessonSlide = {
     layout: asLayout(o.layout, fallback.layout),
     heading: typeof o.heading === 'string' && o.heading.trim() ? clipWords(o.heading, 8) : fallback.heading,
     subheading: fallback.subheading,
@@ -257,7 +375,10 @@ function asLesson(raw: unknown, fallback: LessonSlide): LessonSlide {
       typeof (o.visual_prompt || o.visualPrompt) === 'string'
         ? String(o.visual_prompt || o.visualPrompt).trim()
         : fallback.visualPrompt,
+    formula: fallback.formula,
   };
+  draft.visual = asVisual(o.visual, draft, topicTitle, domain);
+  return draft;
 }
 
 function toSceneSpec(
@@ -378,7 +499,7 @@ function normalizeManifest(
   const rules = LENGTH_RULES[length];
   const scenes = blocks.slice(0, rules.maxSlides).map((block, i) => {
     const fb = fallback.scenes[Math.min(i, fallback.scenes.length - 1)].lesson!;
-    const slide = asLesson(block.lesson ?? block, fb);
+    const slide = asLesson(block.lesson ?? block, fb, ctx.title, ctx.contentDomain || detectContentDomain(ctx));
     if (i === 0) slide.layout = 'title';
     const narration = narrationOf(block, fallbackNarration(ctx, i, blocks.length));
     return toSceneSpec(ctx, slide, narration, i, Math.min(blocks.length, rules.maxSlides));
@@ -459,13 +580,14 @@ export async function generateStructuredVideoScript(
     `Textbook: ${ctx.textbookTitle} (${ctx.subject}) file=${ctx.fileName ?? 'uploaded.pdf'}`,
     `Grade: ${ctx.gradeLabel}`,
     `Chapter summary: ${ctx.chapterSummary}`,
+    `SUBJECT DOMAIN: ${domain}. Draw THIS subject's idea. Do not default to cubes, nets, or views unless the excerpts are about solid shapes.`,
     `LENGTH: ${length} → write ${rules.minSlides}–${rules.maxSlides} slides. Target spoken runtime ${Math.round(rules.minSec / 60)}–${Math.round(rules.maxSec / 60)} minutes.`,
     ctx.teacherPrompt
       ? `FOCUS (customize this overview the way NotebookLM's box works):\n${ctx.teacherPrompt}`
       : 'FOCUS: explain for a first-time student of this chapter. Keep it grounded.',
     formulas.length ? `NUMBERS / FORMULAS FOUND IN THE CHAPTER (use only if a slide needs them):\n${formulas.join('\n')}` : '',
     `SOURCES — these excerpts ARE the documents. Cite them. Do not invent beyond them.\n${excerpts || ctx.chapterSummary || ctx.title}`,
-    `Return STRICT JSON: title, audience, architecture "video_overview", slides[]. Model in use: ${LESSON_VIDEO_MODEL}.`,
+    `Return STRICT JSON: title, audience, architecture "video_overview", slides[] each with visual {kind, subject, domain, objects, labels, motion} using terms from the sources. Model: ${LESSON_VIDEO_MODEL}.`,
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -481,7 +603,7 @@ export async function generateStructuredVideoScript(
   ]);
   const manifest = parseLlmManifestSafely(raw, packet, length);
   console.log(
-    `[videoPipeline/script] overview model=${LESSON_VIDEO_MODEL} slides=${manifest.scenes.length} duration=${manifest.totalDurationSeconds}s layouts=${manifest.scenes.map((s) => s.lesson?.layout).join(' | ')}`,
+    `[videoPipeline/script] overview model=${LESSON_VIDEO_MODEL} slides=${manifest.scenes.length} duration=${manifest.totalDurationSeconds}s visuals=${manifest.scenes.map((s) => `${s.lesson?.visual?.kind}:${s.lesson?.visual?.subject}`).join(' | ')}`,
   );
   return manifest;
 }

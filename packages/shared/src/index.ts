@@ -364,6 +364,11 @@ export type {
   SceneVisualType,
   LessonSlide,
   OverviewStat,
+  ConceptSolid,
+  ConceptVisualKind,
+  ConceptMotion,
+  ConceptView,
+  ConceptVisual,
   LessonSlideLayout,
   LessonSlideMotion,
   LessonVisualKind,
@@ -407,6 +412,8 @@ export type {
   TeacherLoginRequest,
   TeacherRegisterRequest,
 } from './teacher.js';
+
+export { inferConceptVisual, detectSolid } from './conceptVisual.js';
 
 export type {
   TeacherToolBadge,

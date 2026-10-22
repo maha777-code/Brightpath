@@ -8,7 +8,7 @@ import {
   type GamifiedLessonProps,
   type NormalizedScene,
 } from '../scriptScene';
-import type { LessonSlide } from '@brightpath/shared';
+import type { LessonSlide, VisualContentDomain } from '@brightpath/shared';
 
 export type { GamifiedLessonProps, SceneProp, ScriptData } from '../scriptScene';
 export { resolveLessonProps } from '../scriptScene';
@@ -20,6 +20,13 @@ const DEMO_SLIDES: LessonSlide[] = [
     subheading: 'Ashoka, The Emperor Who Gave Up War',
     quote: 'He saw the grief of war and chose another path.',
     sourceRefs: ['Ashoka, The Emperor Who Gave Up War'],
+    visual: {
+      kind: 'scene',
+      subject: 'Kalinga after war',
+      objects: ['king', 'field'],
+      labels: ['Kalinga', 'Ashoka'],
+      motion: 'reveal',
+    },
   },
   {
     layout: 'bullets',
@@ -168,6 +175,9 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
         slideIndex={active.index}
         slideCount={Math.max(1, scenes.length)}
         progress01={sceneProgress}
+        domain={
+          (slide.visual?.domain || activeScene.visualConfig.visualDomain) as VisualContentDomain | undefined
+        }
         slide={slide}
       />
       <KaraokeSubtitles words={sceneWords} currentTime={currentTime} fallbackText={activeScene.voiceover} />

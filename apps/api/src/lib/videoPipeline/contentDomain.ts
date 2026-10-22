@@ -5,10 +5,25 @@ const DSML_RE =
   /\b(dsml|data science|machine learning|regression|galton|least[\s-]?squares|design matrix|squared[\s-]?error|sigma\^?2|σ\^?2|g\*\s*\(|beta_0|β|scatter|estimator|predictor|supervised learning|ordinary least|ols|residual|variance|covariance|correlation|feature vector|training set)\b/i;
 
 const CHEM_RE =
-  /\b(beaker|flask|molecule|evaporation|solute|solvent|nacl|h2o|chemistry|melting point|boiling point|lattice|diffusion|matter in our surroundings|states? of matter|heating matter|ice cube|steam|melting|evaporat)\b/i;
+  /\b(beaker|flask|molecule|evaporation|solute|solvent|nacl|h2o|chemistry|chemical|acid|base|salt|reaction|compound|atom|ion|periodic|melting point|boiling point|lattice|diffusion|states? of matter|valency|oxidation)\b/i;
+
+const BIO_RE =
+  /\b(biology|cell|photosynthesis|respiration|mitosis|meiosis|tissue|organ|organism|chloroplast|nucleus|enzyme|dna|rna|gene|plant|animal|digestion|blood|neuron|ecosystem|habitat|nutrition|stomata|xylem|phloem)\b/i;
+
+const PHYS_RE =
+  /\b(physics|force|newton|velocity|acceleration|momentum|gravity|friction|current|voltage|resistance|ohm|magnet|lens|refraction|reflection|wave|frequency|energy|work done|joule|watt|motion|inertia|pressure|density)\b/i;
 
 const MATH_RE =
-  /\b(theorem|matrix|vector space|eigen|determinant|equation|proof|algebra|calculus|linear algebra|inner product|norm|gradient|partial derivative|latex)\b/i;
+  /\b(theorem|matrix|vector space|eigen|determinant|equation|proof|algebra|calculus|linear algebra|inner product|norm|gradient|partial derivative|latex|fraction|integer|polynomial|geometry|triangle|angle|probability)\b/i;
+
+function subjectHint(subject: string): VisualContentDomain | undefined {
+  const s = subject.toLowerCase();
+  if (/\bphys/.test(s)) return 'physics';
+  if (/\bchem/.test(s)) return 'chemistry';
+  if (/\bbio/.test(s)) return 'biology';
+  if (/\bmath|geometry|algebra/.test(s)) return 'math';
+  return undefined;
+}
 
 export function detectContentDomain(ctx: TopicContextPacket): VisualContentDomain {
   const blob = [
@@ -26,8 +41,18 @@ export function detectContentDomain(ctx: TopicContextPacket): VisualContentDomai
   if (DSML_RE.test(blob) || /\bdsml\b/.test(titleBlob) || /data\s*sci/.test(titleBlob)) {
     return 'dsml';
   }
-  if (CHEM_RE.test(blob) && !DSML_RE.test(blob)) return 'chemistry';
-  if (MATH_RE.test(blob) || /\bmath/.test(ctx.subject.toLowerCase())) return 'math';
+
+  const fromSubject = subjectHint(ctx.subject);
+  if (fromSubject) return fromSubject;
+
+  const scores: Array<[VisualContentDomain, number]> = [
+    ['biology', BIO_RE.test(blob) ? 2 : 0],
+    ['physics', PHYS_RE.test(blob) ? 2 : 0],
+    ['chemistry', CHEM_RE.test(blob) && !DSML_RE.test(blob) ? 2 : 0],
+    ['math', MATH_RE.test(blob) || /\bmath/.test(ctx.subject.toLowerCase()) ? 2 : 0],
+  ];
+  scores.sort((a, b) => b[1] - a[1]);
+  if (scores[0][1] > 0) return scores[0][0];
   return 'generic';
 }
 
@@ -47,6 +72,9 @@ export function extractFormulasFromContext(ctx: TopicContextPacket): string[] {
   for (const m of blob.matchAll(/y\s*=\s*β_?0\s*\+\s*β_?1[^\n.]{0,40}/gi)) push(m[0]);
   for (const m of blob.matchAll(/Galton[^\n.]{8,120}/gi)) push(m[0]);
   for (const m of blob.matchAll(/squared[\s-]?error[^\n.]{0,80}/gi)) push(m[0]);
+  for (const m of blob.matchAll(/[A-Za-z][A-Za-z0-9_]*\s*=\s*[^\n.]{3,60}/g)) {
+    if (/[=]/.test(m[0]) && m[0].length < 80) push(m[0]);
+  }
 
   return found.slice(0, 8);
 }
@@ -61,7 +89,7 @@ export function defaultArchetypesForDomain(domain: VisualContentDomain): VisualA
   if (domain === 'chemistry') {
     return ['split_comparison', 'interactive_stage', 'micro_zoom', 'concept_card', 'interactive_stage', 'concept_card'];
   }
-  return ['math_overlay', 'split_comparison', 'concept_card', 'matrix_board', 'math_overlay', 'concept_card'];
+  return ['concept_card', 'split_comparison', 'math_overlay', 'concept_card', 'split_comparison', 'concept_card'];
 }
 
 export function isLabVisualDomain(domain: VisualContentDomain | string | undefined): boolean {
