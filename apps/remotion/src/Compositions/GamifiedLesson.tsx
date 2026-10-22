@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from 'react';
 import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig } from 'remotion';
-import { CinematicExplainerStage } from '../components/lesson/CinematicExplainerStage';
+import { VideoOverviewStage } from '../components/lesson/VideoOverviewStage';
 import { KaraokeSubtitles } from '../components/KaraokeSubtitles';
 import {
   resolveActiveScene,
@@ -15,79 +15,71 @@ export { resolveLessonProps } from '../scriptScene';
 
 const DEMO_SLIDES: LessonSlide[] = [
   {
-    layout: 'hook',
-    motion: 'smash_zoom',
-    heading: 'Ashoka after war',
+    layout: 'title',
+    heading: 'Ashoka after Kalinga',
     subheading: 'Ashoka, The Emperor Who Gave Up War',
-    body: 'A king stands in the quiet after Kalinga.',
-    visualKind: 'scene',
-    mood: 'parchment',
-    shape: 'crystal',
-    setting: 'Kalinga dusk',
-    objectLabel: 'Ashoka',
-    keyTerms: ['Kalinga'],
+    quote: 'He saw the grief of war and chose another path.',
+    sourceRefs: ['Ashoka, The Emperor Who Gave Up War'],
   },
   {
-    layout: 'insight',
-    motion: 'drift_up',
-    heading: 'Dhamma',
-    body: 'He chose a rule of kindness, not more conquest.',
-    visualKind: 'object',
-    mood: 'parchment',
-    shape: 'torus',
-    setting: 'edict pillar',
-    keyTerms: ['dhamma'],
+    layout: 'bullets',
+    heading: 'What the chapter shows',
+    bullets: ['War left Kalinga in grief', 'Ashoka turned toward dhamma', 'Edicts carried the message'],
+    sourceRefs: ['Kalinga war and its aftermath'],
   },
   {
-    layout: 'build',
-    motion: 'parallax',
-    heading: 'How it spread',
-    steps: [{ label: 'Edicts carved' }, { label: 'Messengers sent' }, { label: 'People heard' }],
-    visualKind: 'process',
-    mood: 'parchment',
-    shape: 'cylinder',
-    setting: 'royal road',
+    layout: 'quote',
+    heading: 'From the textbook',
+    quote: 'He decided to give up war and follow dhamma.',
+    sourceRefs: ['Decision after Kalinga'],
   },
   {
-    layout: 'turn',
-    motion: 'whip',
-    heading: 'War or dhamma',
-    left: { label: 'Conquest', points: ['More land, more grief'] },
-    right: { label: 'Dhamma', points: ['Care for people'] },
-    visualKind: 'compare',
-    mood: 'dusk',
-    shape: 'cube',
-    setting: 'two paths',
+    layout: 'two_column',
+    heading: 'Two paths',
+    left: { label: 'Conquest', points: ['More land', 'More grief'] },
+    right: { label: 'Dhamma', points: ['Care for people', 'Edicts, not armies'] },
+    sourceRefs: ['War compared with dhamma'],
   },
   {
-    layout: 'payoff',
-    motion: 'bloom',
+    layout: 'stat',
+    heading: 'The turn',
+    stat: { value: 'Kalinga', label: 'The war that changed a king' },
+    sourceRefs: ['Kalinga'],
+  },
+  {
+    layout: 'diagram',
+    heading: 'How dhamma spread',
+    bullets: ['Edicts carved', 'Messengers sent', 'People heard'],
+    sourceRefs: ['Spread of dhamma'],
+  },
+  {
+    layout: 'image_caption',
+    heading: 'The edict pillar',
+    quote: 'A carved message instead of another campaign.',
+    sourceRefs: ['Ashokan edicts'],
+  },
+  {
+    layout: 'bullets',
     heading: 'Remember this',
-    body: 'Ashoka gave up war and taught dhamma.',
-    visualKind: 'scene',
-    mood: 'parchment',
-    shape: 'sphere',
-    setting: 'edict at dusk',
+    bullets: ['Gave up war', 'Taught dhamma', 'Spoke through edicts'],
+    sourceRefs: ['Chapter recap'],
   },
 ];
 
-const DEMO_PHASES = ['Hook', 'Insight', 'Build', 'Turn', 'Payoff'] as const;
-const DEMO_DURATIONS = [8, 10, 10, 9, 8] as const;
-
 const DEMO_SCENES: NormalizedScene[] = DEMO_SLIDES.map((slide, i) => ({
   sceneId: i + 1,
-  duration: DEMO_DURATIONS[i],
-  durationSec: DEMO_DURATIONS[i],
-  phase: DEMO_PHASES[i],
-  phaseTitle: DEMO_PHASES[i],
-  voiceoverText: slide.body || slide.heading,
-  voiceover: slide.body || slide.heading,
-  visualType: 'cinematic_explainer',
-  visualArchetype: 'cinematic_explainer',
-  animationType: 'CinematicExplainer',
+  duration: 12,
+  durationSec: 12,
+  phase: i === 0 ? 'Cover' : i === DEMO_SLIDES.length - 1 ? 'Recap' : `Slide ${i + 1}`,
+  phaseTitle: slide.heading,
+  voiceoverText: slide.quote || slide.heading,
+  voiceover: slide.quote || slide.heading,
+  visualType: 'video_overview',
+  visualArchetype: 'video_overview',
+  animationType: 'VideoOverview',
   teacherGesture: i === 0 ? 'questioning' : 'demonstrating',
-  cameraMotion: 'orbit',
-  visualConfig: { lesson: slide, headline: slide.heading, visualKind: slide.visualKind, matterState: slide.matterState },
+  cameraMotion: 'ken_burns',
+  visualConfig: { lesson: slide, headline: slide.heading },
   visualProps: { lesson: slide },
   parameters: { lesson: slide },
   props: { lesson: slide },
@@ -98,18 +90,20 @@ export const defaultGamifiedProps: GamifiedLessonProps = {
   topicId: 'demo',
   topicTitle: 'Ashoka, The Emperor Who Gave Up War',
   teacherName: 'MindVault',
+  audience: 'Class 6 History',
   totalDurationSeconds: DEMO_SCENES.reduce((a, s) => a + s.duration, 0),
   archetype: 'concept',
-  pedagogicalPattern: 'cinematic_explainer',
+  pedagogicalPattern: 'video_overview',
   audioUrl: '',
   wordTimings: [],
   scenes: DEMO_SCENES,
   scriptData: {
     topicTitle: 'Ashoka, The Emperor Who Gave Up War',
     teacherName: 'MindVault',
-    architecture: 'cinematic_explainer',
+    audience: 'Class 6 History',
+    architecture: 'video_overview',
     archetype: 'concept',
-    pedagogicalPattern: 'cinematic_explainer',
+    pedagogicalPattern: 'video_overview',
     totalDurationSeconds: DEMO_SCENES.reduce((a, s) => a + s.duration, 0),
     scenes: DEMO_SCENES,
     wordTimings: [],
@@ -125,8 +119,6 @@ function readLesson(scene: NormalizedScene): LessonSlide {
     layout: 'title',
     heading: scene.phaseTitle || scene.voiceover.slice(0, 48) || 'Lesson',
     body: scene.voiceover,
-    visualKind: 'scene',
-    mood: 'dusk',
   };
 }
 
@@ -145,9 +137,9 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
   if (frame === 0) {
     const live = rawProps.scriptData;
     console.log(
-      `[Remotion Render] Cinematic explainer topicId=${rawProps.topicId} title="${live?.topicTitle || topicTitle}" ` +
-        `chapter="${rawProps.chapterTitle || ''}" scenes=${live?.scenes?.length || scenes.length} ` +
-        `headings=${scenes.map((s) => s.lesson?.heading || s.phase).join(' | ')} audio=${audioUrl ? 'yes' : 'NO'}`,
+      `[Remotion Render] Video Overview topicId=${rawProps.topicId} title="${live?.topicTitle || topicTitle}" ` +
+        `chapter="${rawProps.chapterTitle || ''}" slides=${live?.scenes?.length || scenes.length} ` +
+        `layouts=${scenes.map((s) => s.lesson?.layout || s.phase).join(' | ')} audio=${audioUrl ? 'yes' : 'NO'}`,
     );
   }
 
@@ -163,18 +155,20 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
   const sceneKey = `${activeScene.sceneId}:${phase}`;
   if (loggedScene.current !== sceneKey) {
     loggedScene.current = sceneKey;
-    console.log(`[GamifiedLesson] t=${currentTime.toFixed(2)}s ${phase} kind=${slide.visualKind || 'infer'}`);
+    console.log(`[GamifiedLesson] t=${currentTime.toFixed(2)}s ${phase} layout=${slide.layout}`);
   }
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#efe4c8' }}>
-      <CinematicExplainerStage
+    <AbsoluteFill style={{ backgroundColor: '#f7f4ee' }}>
+      <VideoOverviewStage
         topicTitle={topicTitle}
         chapterTitle={props.chapterTitle || slide.subheading}
         textbookTitle={props.textbookTitle}
+        audience={props.audience || props.scriptData?.audience}
+        slideIndex={active.index}
+        slideCount={Math.max(1, scenes.length)}
         progress01={sceneProgress}
         slide={slide}
-        visualConfig={activeScene.visualConfig}
       />
       <KaraokeSubtitles words={sceneWords} currentTime={currentTime} fallbackText={activeScene.voiceover} />
       {audioUrl ? <Audio src={audioUrl} /> : null}

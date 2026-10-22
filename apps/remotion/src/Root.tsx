@@ -39,13 +39,21 @@ export const RemotionRoot: React.FC = () => {
       ? {
           ...defaultGamifiedProps,
           ...inputProps,
-          topicTitle: inputProps.topicTitle || inputProps.scriptData?.topicTitle || inputProps.topicId,
+          topicTitle:
+            inputProps.topicTitle ||
+            inputProps.scriptData?.topicTitle ||
+            inputProps.topicId ||
+            defaultGamifiedProps.topicTitle,
           textbookTitle: inputProps.textbookTitle,
           chapterTitle: inputProps.chapterTitle,
+          audience: inputProps.audience || inputProps.scriptData?.audience,
           scenes: liveScenes ?? [],
           scriptData: {
             ...(inputProps.scriptData ?? {}),
-            topicTitle: inputProps.topicTitle || inputProps.scriptData?.topicTitle,
+            topicTitle:
+              inputProps.topicTitle ||
+              inputProps.scriptData?.topicTitle ||
+              defaultGamifiedProps.topicTitle,
             scenes: liveScenes,
           },
         }
@@ -59,8 +67,8 @@ export const RemotionRoot: React.FC = () => {
       component={GamifiedLesson}
       durationInFrames={900}
       fps={30}
-      width={1280}
-      height={720}
+      width={1920}
+      height={1080}
       defaultProps={defaultProps}
       calculateMetadata={async ({ props }) => {
         const resolved = resolveLessonProps(props);

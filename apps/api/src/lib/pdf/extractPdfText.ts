@@ -214,6 +214,40 @@ export async function* iteratePdfStreamText(
   }
 }
 
+/** CID-font NCERT PDFs store text as hex runs — pdf.js decodes those. */
+async function extractWithPdfJs(filePath: string, opts: PdfExtractOptions): Promise<string> {
+  const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const data = new Uint8Array(await fsPromises.readFile(filePath));
+  const doc = await getDocument({
+    data,
+    disableWorker: true,
+    isEvalSupported: false,
+    useSystemFonts: true,
+  }).promise;
+  const maxPages = Math.min(doc.numPages, Math.max(8, Math.ceil((opts.maxStreams ?? 20) * 1.2)));
+  const cap = opts.maxChars ?? 80_000;
+  const pages: string[] = [];
+  let chars = 0;
+  try {
+    for (let i = 1; i <= maxPages && chars < cap; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      const line = content.items
+        .map((item) => ('str' in item ? String(item.str) : ''))
+        .join(' ')
+        .replace(/[ \t]+/g, ' ')
+        .trim();
+      if (line) {
+        pages.push(line);
+        chars += line.length + 1;
+      }
+    }
+  } finally {
+    await doc.destroy();
+  }
+  return pages.join('\n');
+}
+
 /** Stream PDF from disk; never builds one giant latin1 copy of a 35MB+ file. */
 export async function extractPdfTextFromFile(
   filePath: string,
@@ -227,7 +261,18 @@ export async function extractPdfTextFromFile(
     chars += piece.length;
     if (chars >= cap) break;
   }
-  return pieces.join('\n');
+  const streamText = pieces.join('\n').trim();
+  if (streamText.length >= 80) return streamText;
+  try {
+    const decoded = await extractWithPdfJs(filePath, opts);
+    if (decoded.trim().length > streamText.length) return decoded;
+  } catch (err) {
+    console.warn(
+      '[pdf] pdf.js extract failed, using stream text:',
+      err instanceof Error ? err.message : err,
+    );
+  }
+  return streamText;
 }
 
 export function extractPdfTextFromPathSync(

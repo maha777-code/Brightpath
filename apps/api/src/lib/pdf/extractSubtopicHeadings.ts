@@ -69,26 +69,65 @@ an increase of surface area and temperature.
  * - question-mark titles (1.4)
  */
 const SUBTOPIC_HEADING_RE =
-  /(?:^|[\n\r\f])[ \t]*(?:\*\*)?(\d{1,2})\.(\d{1,2})(?:\*\*)?[ \t]*(?:\*\*)?[ \t]*\n?[ \t]*([A-Za-z][^\n\r\f]{2,160})/g;
+  /(?:^|[\n\r\f ])[ \t]*(?:\*\*)?(\d{1,2})\.(\d{1,2})(?:\.(\d{1,2}))?(?:\*\*)?[ \t]+(?:\*\*)?[ \t]*([A-Za-z][A-Za-z0-9 ,:'’\-]{2,70})/g;
+
+function collapseSpacedCaps(title: string): string {
+  const parts = title.split(/\s+/);
+  const out: string[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const cur = parts[i];
+    const next = parts[i + 1];
+    if (/^[A-Z]$/.test(cur) && next && /^[A-Z]{2,}$/.test(next)) {
+      if ((cur === 'A' || cur === 'I') && next.length < 5) {
+        out.push(cur);
+        continue;
+      }
+      parts[i + 1] = cur + next;
+      continue;
+    }
+    out.push(cur);
+  }
+  return out.join(' ');
+}
 
 function stripDecorators(title: string): string {
-  return title
+  const cut = collapseSpacedCaps(title)
     .replace(/\*\*/g, '')
     .replace(/^[\s•·.\-–—]+/, '')
+    .replace(/\s+(?=\d{1,2}\.\d{1,2}\b).*$/g, '')
     .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/[.\s]+$/, (tail) => (tail.includes('?') ? '?' : ''));
+    .trim();
+  const sentence = cut.split(/(?<=[a-z])\.\s/)[0] ?? cut;
+  const clipped = sentence.replace(
+    /\s+(In this|Do you|Take a|Your |Here is|Have you|Sometimes|Now let|A shadow|Slicing)\b.*$/i,
+    '',
+  );
+  const words = clipped.split(/\s+/).slice(0, 10).join(' ');
+  return words.replace(/[.\s]+$/, (tail) => (tail.includes('?') ? '?' : ''));
+}
+
+function headingScore(title: string): number {
+  const t = title.trim();
+  if (/^(note|in the|now |here |try these|exercise|fig\.?|figure|complete|take a|do this|the \d|cube\b|match |we could|see if)\b/i.test(t)) {
+    return -10;
+  }
+  let score = 0;
+  if (/introduction|faces|edges|vertices|nets|drawing|oblique|isometric|visualis|viewing|section|plane|solid/i.test(t)) {
+    score += 6;
+  }
+  if (/^[A-Z][A-Za-z0-9 ,:'’-]{3,60}$/.test(t)) score += 3;
+  if (t.split(/\s+/).length <= 10) score += 2;
+  return score;
 }
 
 function isLikelyHeading(title: string, minor: number): boolean {
-  if (minor < 1 || minor > 20) return false;
-  if (title.length < 6) return false;
-  if (/^(fig\.?|figure|table|activity|question|exercise|example|page)\b/i.test(title)) {
+  if (minor < 1 || minor > 8) return false;
+  if (title.length < 4) return false;
+  if (/^(fig\.?|figure|table|activity|question|exercise|example|page|note)\b/i.test(title)) {
     return false;
   }
-  // Skip quantities like "1.2 g of salt" / "1.5 °C"
   if (/^(\d|g\b|kg\b|ml\b|cm\b|°)/i.test(title)) return false;
-  return /[A-Za-z]{4,}/.test(title);
+  return /[A-Za-z]{4,}/.test(title) && headingScore(title) >= 0;
 }
 
 /** Normalise PDF/page-break artefacts so headings remain line-anchored. */
@@ -116,23 +155,41 @@ export function extractSubtopicHeadings(rawText: string): ExtractedSubtopicHeadi
 
     const chapterNumber = Number(match[1]);
     const index = Number(match[2]);
-    const code = `${chapterNumber}.${index}`;
+    const tertiary = match[3] ? Number(match[3]) : undefined;
+    const code = tertiary != null ? `${chapterNumber}.${index}.${tertiary}` : `${chapterNumber}.${index}`;
     if (seen.has(code)) continue;
 
     const perChapter = found.filter((h) => h.chapterNumber === chapterNumber).length;
     if (perChapter >= MAX_SUBTOPICS_PER_CHAPTER) continue;
 
-    const title = stripDecorators(match[3]);
+    const title = stripDecorators(match[4]);
     if (!isLikelyHeading(title, index)) continue;
-
-    seen.add(code);
-    found.push({
+    const next = {
       code,
       chapterNumber,
       index,
       title: CHAPTER_ONE_CANONICAL_TITLES[code] ?? title,
-    });
+    };
+    const existing = found.find((h) => h.code === code);
+    if (existing) {
+      if (headingScore(next.title) > headingScore(existing.title)) {
+        existing.title = next.title;
+      }
+      continue;
+    }
+
+    seen.add(code);
+    found.push(next);
   }
 
-  return found.sort((a, b) => a.chapterNumber - b.chapterNumber || a.index - b.index);
+  return found.sort((a, b) => {
+    if (a.chapterNumber !== b.chapterNumber) return a.chapterNumber - b.chapterNumber;
+    const ap = a.code.split('.').map(Number);
+    const bp = b.code.split('.').map(Number);
+    for (let i = 0; i < Math.max(ap.length, bp.length); i++) {
+      const d = (ap[i] ?? 0) - (bp[i] ?? 0);
+      if (d) return d;
+    }
+    return 0;
+  });
 }

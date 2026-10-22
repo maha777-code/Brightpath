@@ -430,7 +430,8 @@ router.patch('/subtopics/:id', async (req: AuthRequest, res: Response) => {
 /** POST /teacher/topics/:topicId/generate-video — start hybrid Remotion pipeline */
 router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res: Response) => {
   const schema = z.object({
-    prompt: z.string().max(500).optional(),
+    prompt: z.string().max(800).optional(),
+    length: z.enum(['short', 'standard', 'long']).optional(),
   });
   const parsed = schema.safeParse(req.body ?? {});
   if (!parsed.success) {
@@ -486,10 +487,13 @@ router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res: Res
   }
 
   console.log(
-    `[teacher/generate-video] Cleared cached script for ${existing.id}; cinematic explainer from textbook subtopic`,
+    `[teacher/generate-video] Cleared cached script for ${existing.id}; video overview from textbook subtopic`,
   );
 
-  enqueueHybridVideoJob(existing.id, parsed.data.prompt);
+  const focus = [parsed.data.length ? `length: ${parsed.data.length}` : '', parsed.data.prompt ?? '']
+    .filter(Boolean)
+    .join('\n');
+  enqueueHybridVideoJob(existing.id, focus || undefined);
 
   res.status(202).json({
     subtopic: toSubtopic(updated),

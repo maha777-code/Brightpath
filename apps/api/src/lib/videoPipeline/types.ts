@@ -22,7 +22,7 @@ export const STAGE_PROGRESS: Record<PipelineStage, number> = {
 /** Per-stage budgets (ms). Rendering needs headroom for bundle + Chromium on slow VMs. */
 export const STAGE_TIMEOUTS = {
   retrieving: 45_000,
-  scripting: 180_000,
+  scripting: 240_000,
   tts: 360_000,
   rendering: 1_200_000, // 20 minutes
 } as const;

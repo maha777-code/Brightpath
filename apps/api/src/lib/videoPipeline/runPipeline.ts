@@ -126,7 +126,7 @@ export async function runHybridVideoPipeline(
 
         await setStage(topicId, 'scripting');
         console.log(
-          `[videoPipeline] Passing ${ctx.ragExcerpts.length} RAG excerpts into Claude Opus 5.5 cinematic explainer`,
+          `[videoPipeline] Passing ${ctx.ragExcerpts.length} RAG excerpts into Claude video overview`,
         );
         const manifest = await withTimeout(
           generateStructuredVideoScript(ctx),

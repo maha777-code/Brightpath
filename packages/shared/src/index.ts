@@ -363,6 +363,7 @@ export type {
   VisualStageElement,
   SceneVisualType,
   LessonSlide,
+  OverviewStat,
   LessonSlideLayout,
   LessonSlideMotion,
   LessonVisualKind,

@@ -51,6 +51,11 @@ export function SubtopicManager({
     generationType: 'activity';
     sub: TeacherSubtopic;
   } | null>(null);
+  const [videoCustomize, setVideoCustomize] = useState<{
+    sub: TeacherSubtopic;
+    focus: string;
+    length: 'short' | 'standard' | 'long';
+  } | null>(null);
   const [activityTemplateBySub, setActivityTemplateBySub] = useState<
     Record<string, GenerationTemplateId>
   >({});
@@ -248,11 +253,17 @@ export function SubtopicManager({
     }
   };
 
-  const startGenerate = async (sub: TeacherSubtopic) => {
+  const startGenerate = async (
+    sub: TeacherSubtopic,
+    opts?: { prompt?: string; length?: 'short' | 'standard' | 'long' },
+  ) => {
     if (!chapter) return;
     setBusyId(sub.id);
     try {
-      const res = await api.generateTopicVideo(sub.id, {});
+      const res = await api.generateTopicVideo(sub.id, {
+        prompt: opts?.prompt?.trim() || undefined,
+        length: opts?.length ?? 'standard',
+      });
       patchSub(res.subtopic);
       onUpdated(chapter.id);
     } catch (e) {
@@ -386,7 +397,9 @@ export function SubtopicManager({
                     sub={sub}
                     status={status}
                     busy={busyId === sub.id}
-                    onGenerate={() => void startGenerate(sub)}
+                    onGenerate={() =>
+                      setVideoCustomize({ sub, focus: '', length: 'standard' })
+                    }
                     onReview={() => void openReview(sub)}
                   />
 
@@ -514,6 +527,74 @@ export function SubtopicManager({
           }}
         />
       )}
+      {videoCustomize ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 text-slate-100 shadow-2xl">
+            <h3 className="text-lg font-semibold">Customize Video Overview</h3>
+            <p className="mt-1 text-sm text-slate-400">
+              {videoCustomize.sub.code} · {videoCustomize.sub.title}. Claude writes a slide
+              storyboard from this textbook section — no invented facts.
+            </p>
+            <label className="mt-5 block text-sm font-medium text-slate-200">Focus</label>
+            <textarea
+              value={videoCustomize.focus}
+              onChange={(e) =>
+                setVideoCustomize((prev) => (prev ? { ...prev, focus: e.target.value } : prev))
+              }
+              rows={3}
+              maxLength={800}
+              placeholder="Explain for beginners, emphasize the worked example…"
+              className="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-cyan-500/40 focus:ring-2"
+            />
+            <p className="mt-4 text-sm font-medium text-slate-200">Length</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(
+                [
+                  ['short', 'Short · ~8 slides'],
+                  ['standard', 'Standard · ~12 slides'],
+                  ['long', 'Long · ~15 slides'],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() =>
+                    setVideoCustomize((prev) => (prev ? { ...prev, length: id } : prev))
+                  }
+                  className={[
+                    'rounded-full px-3 py-1.5 text-sm',
+                    videoCustomize.length === id
+                      ? 'bg-cyan-500/90 text-white'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
+                  ].join(' ')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setVideoCustomize(null)}
+                className="rounded-xl px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = videoCustomize;
+                  setVideoCustomize(null);
+                  void startGenerate(next.sub, { prompt: next.focus, length: next.length });
+                }}
+                className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-400"
+              >
+                Generate overview
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -578,7 +659,7 @@ function GenerateVideoButton({
       sub.videoJobStage === 'retrieving'
         ? 'Retrieving context'
         : sub.videoJobStage === 'scripting'
-          ? 'Writing script'
+          ? 'Writing slides'
           : sub.videoJobStage === 'tts'
             ? 'Synthesizing voice'
             : sub.videoJobStage === 'rendering'

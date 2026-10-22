@@ -91,6 +91,15 @@ export function mergeExtractedHeadings(
   return chapters;
 }
 
+function inferChapterTitle(chapterNumber: number, subs: ExtractedSubtopicHeading[]): string {
+  const intro = subs.find((s) => /\bintroduction\b/i.test(s.title));
+  if (intro && /:/.test(intro.title)) {
+    const after = intro.title.split(':').slice(1).join(':').trim();
+    if (after.length >= 8) return `Chapter ${chapterNumber}: ${after}`;
+  }
+  return `Chapter ${chapterNumber}`;
+}
+
 /** Build chapters purely from extracted headings (no NCERT seed). */
 export function chaptersFromHeadingsOnly(headings: ExtractedSubtopicHeading[]): SeedChapter[] {
   if (headings.length === 0) return [];
@@ -103,13 +112,13 @@ export function chaptersFromHeadingsOnly(headings: ExtractedSubtopicHeading[]): 
   return [...byChapter.entries()]
     .sort((a, b) => a[0] - b[0])
     .map(([chapterNumber, subs]) => ({
-      title: `Chapter ${chapterNumber}`,
+      title: inferChapterTitle(chapterNumber, subs),
       summary: `Topics covering ${subs.map((s) => s.title).slice(0, 4).join(', ')}.`,
       classProgressPct: 0,
       studentCount: 0,
       completedCount: 0,
       subtopics: subs
-        .sort((a, b) => a.index - b.index)
+        .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
         .map((h) => ({
           code: h.code,
           title: h.title,
@@ -370,7 +379,7 @@ export async function parseCurriculumWithLlm(
       provider.completeJson<unknown>({
         system: `You extract curriculum structure from textbook PDF text.
 Return JSON only with documentTitle and chapters[]. Each chapter has title, summary, and subtopics[{code,title}].
-Use numbered codes like 1.1, 1.2 when present; otherwise invent sequential codes.
+Use the textbook's own numbered codes (1.1, 13.2, 13.4.1). Never collapse a chapter to a single invented "Introduction" when numbered sections exist.
 Do NOT invent NCERT Class 9 Science content unless the text is clearly that book.
 Fresh curricula must start with hasVideoExplainer/hasGamifiedActivity implied false (omit media fields).`,
         user: [
@@ -415,7 +424,15 @@ export async function parseTextbookIntoChaptersAsync(
         `${llm.documentTitle ?? ''} ${llm.chapters.map((c) => c.title).join(' ')}`,
       ) &&
       !fileLooksLikeDsml(fileName);
+    const headings = extractSubtopicHeadings(extracted);
     if (llm?.chapters.length && !llmStale) {
+      const llmSubs = llm.chapters.reduce((n, ch) => n + ch.subtopics.length, 0);
+      if (headings.length >= 3 && llmSubs < headings.length) {
+        return {
+          chapters: chaptersFromHeadingsOnly(headings),
+          documentTitle: deriveTextbookTitle({ fileName, storagePath }),
+        };
+      }
       const freshTitle = deriveTextbookTitle({ fileName, storagePath });
       const documentTitle =
         llm.documentTitle && titleAgreesWithFile(llm.documentTitle, fileName)
@@ -424,7 +441,6 @@ export async function parseTextbookIntoChaptersAsync(
       return { chapters: llm.chapters, documentTitle };
     }
 
-    const headings = extractSubtopicHeadings(extracted);
     if (headings.length > 0) {
       const hint = `${opts?.titleHint ?? ''} ${fileName ?? ''}`;
       if (looksLikeNcertScience(extracted, hint)) {

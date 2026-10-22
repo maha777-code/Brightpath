@@ -31,6 +31,7 @@ export interface VideoAnimationCue {
 }
 
 export type VisualArchetype =
+  | 'video_overview'
   | 'split_comparison'
   | 'interactive_stage'
   | 'micro_zoom'
@@ -128,17 +129,28 @@ export type SceneVisualType =
   | string;
 
 export type LessonSlideLayout =
+  | 'title'
+  | 'bullets'
+  | 'quote'
+  | 'stat'
+  | 'two_column'
+  | 'diagram'
+  | 'image_caption'
   | 'hook'
   | 'insight'
   | 'build'
   | 'turn'
   | 'payoff'
-  | 'title'
   | 'definition'
   | 'steps'
   | 'compare'
   | 'example'
   | 'recap';
+
+export interface OverviewStat {
+  value: string;
+  label: string;
+}
 
 export type LessonSlideMotion = 'smash_zoom' | 'drift_up' | 'whip' | 'parallax' | 'bloom';
 
@@ -212,6 +224,11 @@ export interface LessonSlide {
   rightVisual?: string;
   /** Exact line from THIS textbook — stamped so two PDFs cannot share a film. */
   quote?: string;
+  /** NotebookLM-style short on-screen bullets (max 4). */
+  bullets?: string[];
+  stat?: OverviewStat;
+  sourceRefs?: string[];
+  visualPrompt?: string;
 }
 
 export interface VideoSceneSpec {
@@ -262,8 +279,9 @@ export interface VideoScriptManifest {
   wordTimings?: { word: string; start: number; end: number }[];
   /** On-screen cartoon host name */
   teacherName?: string;
-  /** Renderer: cinematic_explainer */
-  architecture?: 'cinematic_explainer' | 'science_explainer' | 'cinematic_motion' | string;
+  audience?: string;
+  /** Renderer: video_overview (NotebookLM-style slides) */
+  architecture?: 'video_overview' | 'cinematic_explainer' | 'science_explainer' | 'cinematic_motion' | string;
 }
 
 export interface TeacherUser {

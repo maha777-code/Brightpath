@@ -50,6 +50,14 @@ export function topicAudioPath(topicId: string): string {
   return path.join(PUBLIC_AUDIO_DIR, `topic_${topicId}.mp3`);
 }
 
+export function topicSrtPath(topicId: string): string {
+  return path.join(PUBLIC_VIDEOS_DIR, `topic_${topicId}.srt`);
+}
+
+export function topicTranscriptPath(topicId: string): string {
+  return path.join(PUBLIC_VIDEOS_DIR, `topic_${topicId}.transcript.md`);
+}
+
 /**
  * Normalize any stored media path to an absolute Express URL.
  * Rewrites Vite (:5173) or relative /public paths to API_BASE_URL.

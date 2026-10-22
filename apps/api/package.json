@@ -33,6 +33,7 @@
     "multer": "^2.2.0",
     "nodemailer": "^9.0.5",
     "papaparse": "^5.6.0",
+    "pdfjs-dist": "^4.10.38",
     "prisma": "^6.1.0",
     "razorpay": "^2.9.8",
     "redis": "^4.7.0",

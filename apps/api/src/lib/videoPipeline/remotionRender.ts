@@ -17,8 +17,11 @@ import {
   ensurePublicVideoDirs,
   publicAudioUrl,
   publicVideoUrl,
+  topicSrtPath,
+  topicTranscriptPath,
   topicVideoPath,
 } from './mediaPaths.js';
+import { buildSrtFromScenes, buildTranscriptMarkdown } from './overviewSubtitles.js';
 
 const execFileAsync = promisify(execFile);
 const REMOTION_ROOT = path.resolve(API_ROOT, '../remotion');
@@ -258,8 +261,8 @@ function scaleManifestToAudioDuration(
       phaseTitle: phase,
       voiceoverText: voiceover,
       voiceover,
-      visualType: s.visualType || 'cinematic_explainer',
-      visualArchetype: s.visualArchetype || s.visualType || 'cinematic_explainer',
+      visualType: s.visualType || 'video_overview',
+      visualArchetype: s.visualArchetype || s.visualType || 'video_overview',
       visualConfig,
       visualProps,
       parameters: visualProps,
@@ -382,9 +385,10 @@ export async function renderWithRemotion(opts: {
         (scriptData.scenes[0]?.visualConfig as { chapterTitle?: string } | undefined)?.chapterTitle ||
         '',
     ),
-    teacherName: scriptData.teacherName || 'Professor Maya',
+    teacherName: scriptData.teacherName || 'MindVault',
+    audience: scriptData.audience,
     archetype: scriptData.archetype ?? 'concept',
-    pedagogicalPattern: scriptData.pedagogicalPattern ?? 'lab_experiment',
+    pedagogicalPattern: scriptData.pedagogicalPattern ?? 'video_overview',
     scenes: scriptData.scenes,
     wordTimings: opts.voice.wordTimings,
     audioUrl: audioUrlForRemotion,
@@ -402,6 +406,8 @@ export async function renderWithRemotion(opts: {
         .join(',')}`,
   );
   await fsPromises.writeFile(propsPath, JSON.stringify(inputProps, null, 2), 'utf8');
+  await fsPromises.writeFile(topicSrtPath(opts.topicId), buildSrtFromScenes(scriptData.scenes), 'utf8');
+  await fsPromises.writeFile(topicTranscriptPath(opts.topicId), buildTranscriptMarkdown(scriptData), 'utf8');
 
   const ready = await remotionPackageReady();
   if (!ready) {

@@ -1,6 +1,7 @@
 /** Normalize lesson-board script JSON for the animated explainer. */
 
 export type VisualArchetypeName =
+  | 'video_overview'
   | 'cinematic_explainer'
   | 'science_explainer'
   | 'lesson_board'
@@ -50,6 +51,7 @@ export type ScriptData = {
   scenes?: SceneProp[];
   wordTimings?: { word: string; start: number; end: number }[];
   teacherName?: string;
+  audience?: string;
   architecture?: string;
 };
 
@@ -66,6 +68,7 @@ export type GamifiedLessonProps = {
   audioUrl?: string;
   scriptData?: ScriptData;
   teacherName?: string;
+  audience?: string;
 };
 
 export type NormalizedScene = {
@@ -89,20 +92,23 @@ export type NormalizedScene = {
 };
 
 const LEGACY_TO_ARCHETYPE: Record<string, VisualArchetypeName> = {
-  cinematic_explainer: 'cinematic_explainer',
-  cinematicexplainer: 'cinematic_explainer',
-  CinematicExplainer: 'cinematic_explainer',
-  science_explainer: 'cinematic_explainer',
-  scienceexplainer: 'cinematic_explainer',
-  ScienceExplainer: 'cinematic_explainer',
-  cinematic_motion: 'cinematic_explainer',
-  cinematic: 'cinematic_explainer',
-  lesson_board: 'cinematic_explainer',
-  lessonboard: 'cinematic_explainer',
-  LessonBoard: 'cinematic_explainer',
-  pixel_game_hud: 'cinematic_explainer',
-  pixelquest: 'cinematic_explainer',
-  PixelQuest: 'cinematic_explainer',
+  video_overview: 'video_overview',
+  videooverview: 'video_overview',
+  VideoOverview: 'video_overview',
+  cinematic_explainer: 'video_overview',
+  cinematicexplainer: 'video_overview',
+  CinematicExplainer: 'video_overview',
+  science_explainer: 'video_overview',
+  scienceexplainer: 'video_overview',
+  ScienceExplainer: 'video_overview',
+  cinematic_motion: 'video_overview',
+  cinematic: 'video_overview',
+  lesson_board: 'video_overview',
+  lessonboard: 'video_overview',
+  LessonBoard: 'video_overview',
+  pixel_game_hud: 'video_overview',
+  pixelquest: 'video_overview',
+  PixelQuest: 'video_overview',
   split_comparison: 'split_comparison',
   comparison_split: 'split_comparison',
   question_card: 'split_comparison',
@@ -146,7 +152,7 @@ export function canonicalVisualArchetype(raw: string | undefined, _index = 0): V
     .trim()
     .replace(/-/g, '_');
   if (LEGACY_TO_ARCHETYPE[key]) return LEGACY_TO_ARCHETYPE[key];
-  return 'cinematic_explainer';
+  return 'video_overview';
 }
 
 export function canonicalVisualType(raw: string): string {
@@ -177,7 +183,7 @@ export function sceneProps(raw: SceneProp | undefined): Record<string, unknown> 
 export function normalizeScene(raw: SceneProp | undefined, index = 0): NormalizedScene {
   const duration = sceneDuration(raw);
   const visualArchetype = canonicalVisualArchetype(
-    raw?.visualArchetype || raw?.visualType || raw?.visual_type || raw?.animationType || 'cinematic_explainer',
+    raw?.visualArchetype || raw?.visualType || raw?.visual_type || raw?.animationType || 'video_overview',
     index,
   );
   const props = sceneProps(raw);
@@ -197,9 +203,9 @@ export function normalizeScene(raw: SceneProp | undefined, index = 0): Normalize
     phaseTitle: phase,
     voiceoverText: voiceover,
     voiceover,
-    visualType: 'cinematic_explainer',
+    visualType: 'video_overview',
     visualArchetype,
-    animationType: String(raw?.animationType || 'CinematicExplainer'),
+    animationType: String(raw?.animationType || 'VideoOverview'),
     visualConfig: { ...props, lesson },
     visualProps: props,
     parameters: props,
@@ -234,7 +240,8 @@ export function resolveLessonProps(props: GamifiedLessonProps): GamifiedLessonPr
     teacherName,
     archetype: props.scriptData?.archetype || props.archetype,
     pedagogicalPattern: props.scriptData?.pedagogicalPattern || props.pedagogicalPattern,
-    architecture: props.scriptData?.architecture || 'cinematic_explainer',
+    architecture: props.scriptData?.architecture || 'video_overview',
+    audience: props.scriptData?.audience,
     totalDurationSeconds,
     scenes,
     wordTimings,
@@ -243,6 +250,7 @@ export function resolveLessonProps(props: GamifiedLessonProps): GamifiedLessonPr
     ...props,
     topicTitle,
     teacherName,
+    audience: scriptData.audience || props.audience,
     totalDurationSeconds,
     archetype: scriptData.archetype,
     pedagogicalPattern: scriptData.pedagogicalPattern,
