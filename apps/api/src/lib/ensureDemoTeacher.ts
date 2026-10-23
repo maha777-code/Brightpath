@@ -1,8 +1,9 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma.js';
 
-/** Ensures demo teacher exists after schema is pushed. Safe no-op if table missing. */
+/** Local-only demo account. Production never creates or resets this password. */
 export async function ensureDemoTeacher() {
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_TEACHER !== 'true') return;
   try {
     const email = 'teacher@brightpath.ai';
     const passwordHash = await bcrypt.hash('teacher123', 10);
@@ -49,7 +50,7 @@ export async function ensureDemoTeacher() {
       }
     }
 
-    console.log('Demo teacher ready: teacher@brightpath.ai / teacher123 (role=teacher, planType=teacher_pro)');
+    console.log('Demo teacher ready for local use (role=teacher, planType=teacher_pro)');
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (/Teacher|does not exist|P2021|Unknown arg|planType/i.test(message)) {

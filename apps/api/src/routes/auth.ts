@@ -543,6 +543,7 @@ router.post('/login', async (req, res) => {
     }
 
     if (!platform || !(await bcrypt.compare(password, platform.passwordHash))) {
+      console.warn('Login rejected', normalizeEmail(email));
       res.status(401).json({ error: 'Invalid email or password' });
       return;
     }
@@ -727,6 +728,7 @@ router.post('/teacher/login', async (req, res) => {
       platform = await prisma.platformUser.findFirst({ where: { email, role: 'teacher' } });
     }
     if (!platform || !(await bcrypt.compare(password, platform.passwordHash))) {
+      console.warn('Teacher login rejected', normalizeEmail(email));
       res.status(401).json({ error: 'Invalid email or password' });
       return;
     }

@@ -35,9 +35,15 @@ import { prisma } from './lib/prisma.js';
 import { migrateLegacyUsers } from './scripts/migrateLegacyUsers.js';
 import type { AuthRequest } from './middleware/auth.js';
 import { requirePaidOrganization } from './middleware/orgSubscription.js';
+import { rateLimit, securityHeaders } from './middleware/security.js';
 
 const PORT = Number(process.env.API_PORT ?? 3001);
 const app = express();
+const isProduction = process.env.NODE_ENV === 'production';
+
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+app.use(securityHeaders);
 
 const DEFAULT_ORIGINS = [
   'https://mindvault.academy',
@@ -50,7 +56,7 @@ const DEFAULT_ORIGINS = [
 function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin) return true;
   if (DEFAULT_ORIGINS.includes(origin)) return true;
-  if (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) return true;
+  if (!isProduction && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) return true;
   const extra = (process.env.CORS_ORIGIN ?? '')
     .split(',')
     .map((item) => item.trim())
@@ -83,13 +89,20 @@ app.post('/payments/dodo/webhook', express.raw({ type: '*/*' }), (req, res) => v
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(
-  '/uploads',
-  (req, res, next) => {
+  '/uploads/branding',
+  (_req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     next();
   },
-  express.static(path.resolve(__dirname, '../uploads'), { maxAge: '7d' }),
+  express.static(path.resolve(__dirname, '../uploads/branding'), {
+    maxAge: '7d',
+    dotfiles: 'deny',
+    index: false,
+  }),
 );
+app.use('/uploads', (_req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
 app.use(
   '/public',
   (req, res, next) => {
@@ -125,6 +138,10 @@ app.use(
 );
 
 app.get('/health', (_req, res) => {
+  if (isProduction) {
+    res.json({ status: 'ok' });
+    return;
+  }
   const llm = Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);
   const lessonVideo = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
   res.json({
@@ -137,6 +154,33 @@ app.get('/health', (_req, res) => {
     lessonVideoWorkspace: lessonVideo ? Boolean(anthropicWorkspaceId()) : false,
   });
 });
+
+const authBurst = rateLimit({ windowMs: 15 * 60_000, max: 10 });
+const signupBurst = rateLimit({ windowMs: 60 * 60_000, max: 8 });
+const LIMITED_AUTH = new Set([
+  '/login',
+  '/teacher/login',
+  '/password/forgot',
+  '/password/reset',
+  '/password/reset/check',
+]);
+const LIMITED_SIGNUP = new Set(['/register', '/signup', '/register/resend', '/register/verify', '/teacher/register']);
+app.use('/auth', (req, res, next) => {
+  if (req.method !== 'POST') {
+    next();
+    return;
+  }
+  if (LIMITED_AUTH.has(req.path)) {
+    authBurst(req, res, next);
+    return;
+  }
+  if (LIMITED_SIGNUP.has(req.path)) {
+    signupBurst(req, res, next);
+    return;
+  }
+  next();
+});
+app.use('/ai', rateLimit({ windowMs: 5 * 60_000, max: 120, key: 'ai' }));
 
 app.use(
   ['/teacher', '/ai', '/tutor', '/topics', '/chapters', '/curriculum', '/roster', '/admin', '/org', '/sharada'],
@@ -177,11 +221,25 @@ app.use(
       });
       return;
     }
-    next(err);
+    console.error(err);
+    if (res.headersSent) {
+      next(err);
+      return;
+    }
+    const code = status && status >= 400 && status < 500 ? status : 500;
+    res.status(code).json({ error: code === 500 ? 'Something went wrong.' : err.message || 'Request failed' });
   },
 );
 
 async function start() {
+  if (isProduction) {
+    const secret = process.env.JWT_SECRET ?? '';
+    if (secret.length < 32 || secret === 'brightpath-dev-secret-change-me') {
+      console.error('JWT_SECRET is missing or still the development default. Refusing to start.');
+      process.exit(1);
+    }
+  }
+
   try {
     await prisma.$queryRaw`SELECT 1`;
     console.log('Postgres connected');
