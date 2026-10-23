@@ -278,6 +278,9 @@ async function start() {
     console.log(
       `Lesson video: ${lessonVideo ? `Claude ${LESSON_VIDEO_MODEL}` : 'ANTHROPIC_API_KEY missing — Generate Animated Video will fail'}`,
     );
+    console.log(
+      `Lesson footage: ${process.env.GEMINI_API_KEY?.trim() ? 'Gemini Omni cinematic clips' : 'GEMINI_API_KEY missing — cinema clips will fail'}`,
+    );
   });
 }
 

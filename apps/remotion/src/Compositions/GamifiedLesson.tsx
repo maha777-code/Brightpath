@@ -1,6 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import { AbsoluteFill, Audio, useCurrentFrame, useVideoConfig } from 'remotion';
 import { VideoOverviewStage } from '../components/lesson/VideoOverviewStage';
+import { CinematicFootageStage } from '../components/lesson/CinematicFootageStage';
 import { KaraokeSubtitles } from '../components/KaraokeSubtitles';
 import {
   resolveActiveScene,
@@ -158,6 +159,9 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
     return w.start >= active.start - 0.12 && w.start < active.end + 0.05;
   });
   const slide = readLesson(activeScene);
+  const clipUrl = String(
+    activeScene.clipUrl || (activeScene.visualConfig.clipUrl as string | undefined) || '',
+  ).trim();
   const phase = activeScene.phaseTitle || activeScene.phase || slide.heading;
   const sceneKey = `${activeScene.sceneId}:${phase}`;
   if (loggedScene.current !== sceneKey) {
@@ -166,20 +170,29 @@ export const GamifiedLesson: React.FC<GamifiedLessonProps> = (rawProps) => {
   }
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#f7f4ee' }}>
-      <VideoOverviewStage
-        topicTitle={topicTitle}
-        chapterTitle={props.chapterTitle || slide.subheading}
-        textbookTitle={props.textbookTitle}
-        audience={props.audience || props.scriptData?.audience}
-        slideIndex={active.index}
-        slideCount={Math.max(1, scenes.length)}
-        progress01={sceneProgress}
-        domain={
-          (slide.visual?.domain || activeScene.visualConfig.visualDomain) as VisualContentDomain | undefined
-        }
-        slide={slide}
-      />
+    <AbsoluteFill style={{ backgroundColor: clipUrl ? '#05070a' : '#f7f4ee' }}>
+      {clipUrl ? (
+        <CinematicFootageStage
+          clipUrl={clipUrl}
+          heading={slide.heading || topicTitle}
+          chapterTitle={props.chapterTitle || slide.subheading}
+          progress01={sceneProgress}
+        />
+      ) : (
+        <VideoOverviewStage
+          topicTitle={topicTitle}
+          chapterTitle={props.chapterTitle || slide.subheading}
+          textbookTitle={props.textbookTitle}
+          audience={props.audience || props.scriptData?.audience}
+          slideIndex={active.index}
+          slideCount={Math.max(1, scenes.length)}
+          progress01={sceneProgress}
+          domain={
+            (slide.visual?.domain || activeScene.visualConfig.visualDomain) as VisualContentDomain | undefined
+          }
+          slide={slide}
+        />
+      )}
       <KaraokeSubtitles words={sceneWords} currentTime={currentTime} fallbackText={activeScene.voiceover} />
       {audioUrl ? <Audio src={audioUrl} /> : null}
     </AbsoluteFill>

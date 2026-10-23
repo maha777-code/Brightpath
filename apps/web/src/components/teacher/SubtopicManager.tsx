@@ -54,7 +54,7 @@ export function SubtopicManager({
   const [videoCustomize, setVideoCustomize] = useState<{
     sub: TeacherSubtopic;
     focus: string;
-    length: 'short' | 'standard' | 'long';
+    length: '30' | '45' | '60';
   } | null>(null);
   const [activityTemplateBySub, setActivityTemplateBySub] = useState<
     Record<string, GenerationTemplateId>
@@ -255,14 +255,14 @@ export function SubtopicManager({
 
   const startGenerate = async (
     sub: TeacherSubtopic,
-    opts?: { prompt?: string; length?: 'short' | 'standard' | 'long' },
+    opts?: { prompt?: string; length?: '30' | '45' | '60' },
   ) => {
     if (!chapter) return;
     setBusyId(sub.id);
     try {
       const res = await api.generateTopicVideo(sub.id, {
         prompt: opts?.prompt?.trim() || undefined,
-        length: opts?.length ?? 'standard',
+        length: opts?.length ?? '45',
       });
       patchSub(res.subtopic);
       onUpdated(chapter.id);
@@ -398,7 +398,7 @@ export function SubtopicManager({
                     status={status}
                     busy={busyId === sub.id}
                     onGenerate={() =>
-                      setVideoCustomize({ sub, focus: '', length: 'standard' })
+                      setVideoCustomize({ sub, focus: '', length: '45' })
                     }
                     onReview={() => void openReview(sub)}
                   />
@@ -532,8 +532,8 @@ export function SubtopicManager({
           <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 text-slate-100 shadow-2xl">
             <h3 className="text-lg font-semibold">Customize Video Overview</h3>
             <p className="mt-1 text-sm text-slate-400">
-              {videoCustomize.sub.code} · {videoCustomize.sub.title}. Claude writes a slide
-              storyboard from this textbook section — no invented facts.
+              {videoCustomize.sub.code} · {videoCustomize.sub.title}. A complete cinematic
+              explainer of this concept — 30, 45, or 60 seconds.
             </p>
             <label className="mt-5 block text-sm font-medium text-slate-200">Focus</label>
             <textarea
@@ -550,9 +550,9 @@ export function SubtopicManager({
             <div className="mt-2 flex flex-wrap gap-2">
               {(
                 [
-                  ['short', 'Short · ~8 slides'],
-                  ['standard', 'Standard · ~12 slides'],
-                  ['long', 'Long · ~15 slides'],
+                  ['30', '30 seconds'],
+                  ['45', '45 seconds'],
+                  ['60', '60 seconds'],
                 ] as const
               ).map(([id, label]) => (
                 <button
@@ -662,6 +662,8 @@ function GenerateVideoButton({
           ? 'Writing slides'
           : sub.videoJobStage === 'tts'
             ? 'Synthesizing voice'
+            : sub.videoJobStage === 'footage'
+              ? 'Generating cinema clips'
             : sub.videoJobStage === 'rendering'
               ? 'Rendering Remotion'
               : sub.videoJobStage === 'queued'

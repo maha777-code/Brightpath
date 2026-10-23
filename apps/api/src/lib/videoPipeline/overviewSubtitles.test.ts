@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { inferConceptVisual } from '@brightpath/shared';
+import { buildShotPrompt } from './generateCinematicClips.js';
 import { buildSrtFromScenes, formatSrtTimestamp } from './overviewSubtitles.js';
 import { parseOverviewLengthFromPrompt } from './generateScript.js';
 
@@ -19,9 +20,11 @@ test('SRT blocks follow narration clocks', () => {
 });
 
 test('length is only read from an explicit length field', () => {
-  assert.equal(parseOverviewLengthFromPrompt('explain this shortly for beginners'), 'standard');
-  assert.equal(parseOverviewLengthFromPrompt('length: short\nexplain for beginners'), 'short');
-  assert.equal(parseOverviewLengthFromPrompt('length: long'), 'long');
+  assert.equal(parseOverviewLengthFromPrompt('explain this shortly for beginners'), '45');
+  assert.equal(parseOverviewLengthFromPrompt('length: 30\nexplain for beginners'), '30');
+  assert.equal(parseOverviewLengthFromPrompt('length: 60'), '60');
+  assert.equal(parseOverviewLengthFromPrompt('length: short'), '30');
+  assert.equal(parseOverviewLengthFromPrompt('length: long'), '60');
 });
 
 test('cube views infer only when the chapter is about solid shapes', () => {
@@ -64,6 +67,23 @@ test('Newton force uses a physics field, not a solid', () => {
   );
   assert.equal(visual.kind, 'field');
   assert.equal(visual.solid, undefined);
+});
+
+test('shot prompt prefers Claude shot text and stays cinematic', () => {
+  const fromClaude = buildShotPrompt(
+    { layout: 'title', heading: 'Photosynthesis', shotPrompt: 'Macro of a leaf in sun, stomata open.' },
+    'Nutrition in Plants',
+    'Biology',
+  );
+  assert.equal(fromClaude, 'Macro of a leaf in sun, stomata open.');
+  const inferred = buildShotPrompt(
+    { layout: 'diagram', heading: 'Force and acceleration', bullets: ['F = ma'] },
+    'Laws of Motion',
+    'Physics',
+  );
+  assert.match(inferred, /cinematic/i);
+  assert.match(inferred, /Force and acceleration/);
+  assert.match(inferred, /No on-screen text/);
 });
 
 test('a history line about the top of a hill is not orthographic views', () => {

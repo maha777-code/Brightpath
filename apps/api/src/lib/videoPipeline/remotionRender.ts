@@ -214,6 +214,7 @@ type SceneWithAliases = VideoScriptManifest['scenes'][number] & {
   visualArchetype?: string;
   visualConfig?: Record<string, unknown>;
   lesson?: VideoScriptManifest['scenes'][number]['lesson'];
+  clipUrl?: string;
 };
 
 function sceneRawDuration(s: SceneWithAliases): number {
@@ -270,6 +271,7 @@ function scaleManifestToAudioDuration(
       teacherGesture: s.teacherGesture,
       cameraMotion: s.cameraMotion,
       lesson: s.lesson ?? (visualProps.lesson as VideoScriptManifest['scenes'][number]['lesson']),
+      clipUrl: String((visualConfig as { clipUrl?: string }).clipUrl || '').trim() || undefined,
     };
   });
   return {

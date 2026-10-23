@@ -431,7 +431,7 @@ router.patch('/subtopics/:id', async (req: AuthRequest, res: Response) => {
 router.post('/topics/:topicId/generate-video', async (req: AuthRequest, res: Response) => {
   const schema = z.object({
     prompt: z.string().max(800).optional(),
-    length: z.enum(['short', 'standard', 'long']).optional(),
+    length: z.enum(['30', '45', '60', 'short', 'standard', 'long']).optional(),
   });
   const parsed = schema.safeParse(req.body ?? {});
   if (!parsed.success) {

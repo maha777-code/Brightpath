@@ -5,6 +5,7 @@ export type PipelineStage =
   | 'retrieving'
   | 'scripting'
   | 'tts'
+  | 'footage'
   | 'rendering'
   | 'done'
   | 'error';
@@ -14,6 +15,7 @@ export const STAGE_PROGRESS: Record<PipelineStage, number> = {
   retrieving: 15,
   scripting: 35,
   tts: 55,
+  footage: 68,
   rendering: 80,
   done: 100,
   error: 0,
@@ -24,6 +26,7 @@ export const STAGE_TIMEOUTS = {
   retrieving: 45_000,
   scripting: 240_000,
   tts: 360_000,
+  footage: 900_000,
   rendering: 1_200_000, // 20 minutes
 } as const;
 

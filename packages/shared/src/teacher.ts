@@ -21,6 +21,7 @@ export type TopicVideoJobStage =
   | 'retrieving'
   | 'scripting'
   | 'tts'
+  | 'footage'
   | 'rendering'
   | 'done'
   | 'error';
@@ -269,6 +270,8 @@ export interface LessonSlide {
   visualPrompt?: string;
   /** Drawable concept for the picture track. */
   visual?: ConceptVisual;
+  /** Runway-style cinematic shot prompt for generated footage. */
+  shotPrompt?: string;
 }
 
 export interface VideoSceneSpec {

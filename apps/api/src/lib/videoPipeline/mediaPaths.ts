@@ -54,6 +54,16 @@ export function topicSrtPath(topicId: string): string {
   return path.join(PUBLIC_VIDEOS_DIR, `topic_${topicId}.srt`);
 }
 
+export const PUBLIC_CLIPS_DIR = path.join(PUBLIC_VIDEOS_DIR, 'clips');
+
+export function topicClipPath(topicId: string, sceneId: number): string {
+  return path.join(PUBLIC_CLIPS_DIR, `topic_${topicId}_s${sceneId}.mp4`);
+}
+
+export function publicClipUrl(topicId: string, sceneId: number): string {
+  return `${apiPublicOrigin()}/public/videos/clips/topic_${topicId}_s${sceneId}.mp4`;
+}
+
 export function topicTranscriptPath(topicId: string): string {
   return path.join(PUBLIC_VIDEOS_DIR, `topic_${topicId}.transcript.md`);
 }
@@ -116,6 +126,7 @@ export async function ensurePublicVideoDirs(): Promise<void> {
   await fsPromises.mkdir(PUBLIC_VIDEOS_DIR, { recursive: true });
   await fsPromises.mkdir(PUBLIC_AUDIO_DIR, { recursive: true });
   await fsPromises.mkdir(PUBLIC_PROPS_DIR, { recursive: true });
+  await fsPromises.mkdir(PUBLIC_CLIPS_DIR, { recursive: true });
 }
 
 export async function assertFileMinSize(

@@ -41,6 +41,7 @@ export type SceneProp = {
   gameplayVisual?: Record<string, unknown>;
   gameplay_visual?: Record<string, unknown>;
   lesson?: import('@brightpath/shared').LessonSlide;
+  clipUrl?: string;
 };
 
 export type ScriptData = {
@@ -89,6 +90,7 @@ export type NormalizedScene = {
   teacherGesture: string;
   cameraMotion: string;
   lesson?: import('@brightpath/shared').LessonSlide;
+  clipUrl?: string;
 };
 
 const LEGACY_TO_ARCHETYPE: Record<string, VisualArchetypeName> = {
@@ -213,6 +215,7 @@ export function normalizeScene(raw: SceneProp | undefined, index = 0): Normalize
     teacherGesture,
     cameraMotion,
     lesson,
+    clipUrl: String(raw?.clipUrl || props.clipUrl || '').trim() || undefined,
   };
 }
 

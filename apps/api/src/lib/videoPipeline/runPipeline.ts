@@ -8,6 +8,7 @@ import {
   generateStructuredVideoScript,
 } from './generateScript.js';
 import { synthesizeVoiceover } from './synthesizeVoice.js';
+import { generateCinematicClips } from './generateCinematicClips.js';
 import { renderWithRemotion } from './remotionRender.js';
 import {
   MIN_VIDEO_BYTES,
@@ -168,11 +169,31 @@ export async function runHybridVideoPipeline(
           },
         });
 
+        await setStage(topicId, 'footage');
+        const withClips = await withTimeout(
+          generateCinematicClips(topicId, manifest, {
+            topicTitle: ctx.title,
+            subject: ctx.subject,
+          }),
+          STAGE_TIMEOUTS.footage,
+          'Cinematic footage (Gemini Omni)',
+        );
+        if (!isCurrent()) return;
+        await prisma.teacherSubtopic.update({
+          where: { id: topicId },
+          data: {
+            videoManifestJson: withClips as unknown as Prisma.InputJsonValue,
+            videoProgress: STAGE_PROGRESS.footage,
+            videoJobStage: 'footage',
+            videoJobStartedAt: new Date(),
+          },
+        });
+
         await setStage(topicId, 'rendering');
         let rendered;
         try {
           rendered = await withTimeout(
-            renderWithRemotion({ topicId, manifest, voice }),
+            renderWithRemotion({ topicId, manifest: withClips, voice }),
             STAGE_TIMEOUTS.rendering,
             'Remotion / FFmpeg render',
           );
