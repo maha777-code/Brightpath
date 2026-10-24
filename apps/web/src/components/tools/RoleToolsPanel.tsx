@@ -16,7 +16,7 @@ import {
   Star,
   Youtube,
 } from 'lucide-react';
-import { hasAiToolAccess, TEACHER_TOOLS_CATALOG } from '@brightpath/shared';
+import { hasAiToolAccess, TEACHER_TOOLS_CATALOG, teacherToolBadges } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { canUserAccessTool, toolsForAppRole, type ToolDefinition } from '@/config/toolsRegistry';
 import { ToolRenderer } from '@/components/tools/ToolRenderer';
@@ -100,7 +100,8 @@ export function RoleToolsPanel({
         <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {tools.map((tool) => {
             const Icon = TOOL_ICONS[tool.icon] ?? Sparkles;
-            const badge = TEACHER_TOOLS_CATALOG.find((item) => item.id === tool.id)?.badge;
+            const catalogTool = TEACHER_TOOLS_CATALOG.find((item) => item.id === tool.id);
+            const badges = catalogTool ? teacherToolBadges(catalogTool) : [];
             return (
               <button
                 key={tool.id}
@@ -114,11 +115,14 @@ export function RoleToolsPanel({
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="flex items-center gap-2">
-                      {badge ? (
-                        <span className="rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-sm font-extrabold uppercase tracking-wider text-cyan-400">
+                      {badges.map((badge) => (
+                        <span
+                          key={badge}
+                          className="rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-sm font-extrabold uppercase tracking-wider text-cyan-400"
+                        >
                           {badge}
                         </span>
-                      ) : null}
+                      ))}
                       <Star className="h-4 w-4 text-slate-600 transition-colors group-hover:text-amber-400" />
                     </div>
                   </div>

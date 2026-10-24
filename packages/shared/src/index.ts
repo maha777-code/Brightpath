@@ -457,6 +457,7 @@ export {
   TEACHER_TOOL_FOCUS_LABELS,
   TEACHER_TOOLS_CATALOG,
   getTeacherToolById,
+  teacherToolBadges,
   sharadaTitleFromPrompt,
   fallbackSharadaChat,
   classifyUserIntent,

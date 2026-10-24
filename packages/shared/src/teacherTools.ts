@@ -22,6 +22,7 @@ export interface TeacherToolDefinition {
   href: string;
   requiredPlan: AiToolPlan;
   badge?: TeacherToolBadge | null;
+  badges?: TeacherToolBadge[];
   popularity: number;
   newestRank: number;
   highlighted?: boolean;
@@ -41,6 +42,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     href: '/tools/curriculum-textbook-studio',
     requiredPlan: 'pro',
     badge: 'Hot',
+    badges: ['Hot', 'Beta'],
     popularity: 100,
     newestRank: 11,
     highlighted: true,
@@ -625,6 +627,11 @@ export function lyricsPreview(lyrics: string, max = 90): string {
 
 export function getTeacherToolById(id: string): TeacherToolDefinition | undefined {
   return TEACHER_TOOLS_CATALOG.find((t) => t.id === id);
+}
+
+export function teacherToolBadges(tool: Pick<TeacherToolDefinition, 'badge' | 'badges'>): TeacherToolBadge[] {
+  if (tool.badges?.length) return tool.badges;
+  return tool.badge ? [tool.badge] : [];
 }
 
 export interface SharadaChatMessage {

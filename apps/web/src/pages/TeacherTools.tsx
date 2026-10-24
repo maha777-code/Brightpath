@@ -20,7 +20,7 @@ import type {
   TeacherToolDefinition,
   TeacherToolFocusArea,
 } from '@brightpath/shared';
-import { hasAiToolAccess, TEACHER_TOOLS_CATALOG, type AiToolPlan } from '@brightpath/shared';
+import { hasAiToolAccess, TEACHER_TOOLS_CATALOG, teacherToolBadges, type AiToolPlan } from '@brightpath/shared';
 import { isTeacherToolEnabled } from '@/lib/teacherToolAvailability';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -47,10 +47,10 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
 
 function badgeClass(badge: TeacherToolBadge): string {
   const base =
-    'rounded border px-2 py-0.5 text-[10px] font-semibold tracking-tight';
-  if (badge === 'New') return `${base} bg-emerald-950/80 text-emerald-400 border-emerald-500/40`;
-  if (badge === 'Hot') return `${base} bg-emerald-950/80 text-emerald-400 border-emerald-500/40`;
-  return `${base} bg-cyan-950/80 text-cyan-300 border-cyan-500/40`;
+    'td-tool-badge rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide';
+  if (badge === 'New') return `${base} td-tool-badge-new bg-emerald-950/80 text-emerald-400 border-emerald-500/40`;
+  if (badge === 'Hot') return `${base} td-tool-badge-hot bg-emerald-950/80 text-emerald-400 border-emerald-500/40`;
+  return `${base} td-tool-badge-beta bg-cyan-950/80 text-cyan-300 border-cyan-500/40`;
 }
 
 export default function TeacherTools() {
@@ -242,7 +242,9 @@ export default function TeacherTools() {
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="flex items-center gap-2">
-                      {tool.badge ? <span className={badgeClass(tool.badge)}>{tool.badge}</span> : null}
+                      {teacherToolBadges(tool).map((badge) => (
+                        <span key={badge} className={badgeClass(badge)}>{badge}</span>
+                      ))}
                       <button
                         type="button"
                         className={[

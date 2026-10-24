@@ -684,6 +684,24 @@ html[data-theme='light'] .td-tool-tile:hover {
   box-shadow: 0 14px 32px rgba(8, 145, 178, 0.14);
 }
 
+html[data-theme='light'] .td-tool-badge-hot {
+  background: #d1fae5 !important;
+  color: #047857 !important;
+  border-color: #6ee7b7 !important;
+}
+
+html[data-theme='light'] .td-tool-badge-new {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border-color: #fcd34d !important;
+}
+
+html[data-theme='light'] .td-tool-badge-beta {
+  background: #cffafe !important;
+  color: #0e7490 !important;
+  border-color: #67e8f9 !important;
+}
+
 html[data-theme='light'] .bp-register-form input,
 html[data-theme='light'] .bp-register-form select,
 html[data-theme='light'] .bp-register .form-input,
@@ -749,9 +767,23 @@ html[data-theme='light'] .add-file-menu-item:hover {
   background-color: #ecfeff !important;
 }
 
+html[data-theme='light'] .quiz-gen-shell,
 html[data-theme='light'] .quiz-editor {
-  background: #070b14 !important;
-  color: #e2e8f0 !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .quiz-editor header,
+html[data-theme='light'] .quiz-editor aside {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .quiz-editor article,
+html[data-theme='light'] .quiz-editor aside section {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
 }
 
 html[data-theme='light'] .quiz-editor :where(
@@ -761,12 +793,15 @@ html[data-theme='light'] .quiz-editor :where(
   [class*='bg-slate-900'],
   [class*='bg-slate-800']
 ) {
-  background-color: #10151f !important;
-  color: #e2e8f0 !important;
+  background-color: #ffffff !important;
 }
 
-html[data-theme='light'] .quiz-editor :where([class*='bg-[#0b1018'], [class*='bg-slate-700']) {
-  background-color: #0b1018 !important;
+html[data-theme='light'] .quiz-editor :where([class*='bg-[#0b1018]']) {
+  background-color: #f8fafc !important;
+}
+
+html[data-theme='light'] .quiz-editor :where([class*='bg-slate-700']) {
+  background-color: #cbd5e1 !important;
 }
 
 html[data-theme='light'] .quiz-editor :where(
@@ -775,30 +810,40 @@ html[data-theme='light'] .quiz-editor :where(
   [class*='text-slate-200'],
   [class*='text-slate-300']
 ) {
-  color: #e2e8f0 !important;
+  color: #0f172a !important;
 }
 
-html[data-theme='light'] .quiz-editor :where([class*='text-slate-400'], [class*='text-slate-500']) {
-  color: #94a3b8 !important;
+html[data-theme='light'] .quiz-editor :where(
+  [class*='text-slate-400'],
+  [class*='text-slate-500'],
+  [class*='text-slate-600']
+) {
+  color: #64748b !important;
 }
 
 html[data-theme='light'] .quiz-editor :where(textarea, input, select) {
   background-color: transparent !important;
-  color: #f8fafc !important;
-  -webkit-text-fill-color: #f8fafc !important;
-  caret-color: #f8fafc;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a;
 }
 
 html[data-theme='light'] .quiz-editor select {
-  background-color: #0b1018 !important;
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
 }
 
-html[data-theme='light'] .quiz-editor :where([class*='bg-violet-500']) {
+html[data-theme='light'] .quiz-editor :where([class*='bg-violet-500'], [class*='bg-violet-400']) {
   background-color: #8b5cf6 !important;
   color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 html[data-theme='light'] .quiz-editor :where([class*='border-emerald']) {
-  background-color: rgba(16, 185, 129, 0.14) !important;
-  color: #d1fae5 !important;
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+}
+
+html[data-theme='light'] .quiz-editor :where([class*='hover:bg-slate-800']:hover) {
+  background-color: #f1f5f9 !important;
 }

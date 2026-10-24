@@ -18,6 +18,7 @@ import {
   hasAiToolAccess,
   isPlatformOwner,
   TEACHER_TOOLS_CATALOG,
+  teacherToolBadges,
   type TeacherToolDefinition,
 } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
@@ -123,11 +124,14 @@ function ToolCard({
           </div>
           <div className="flex items-center gap-2">
             {!accessible ? <Lock className="h-4 w-4 text-slate-500" aria-label="Locked" /> : null}
-            {tool.badge ? (
-              <span className="rounded border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-xs font-bold text-cyan-400">
-                {tool.badge}
+            {teacherToolBadges(tool).map((badge) => (
+              <span
+                key={badge}
+                className="rounded border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-xs font-bold text-cyan-400"
+              >
+                {badge}
               </span>
-            ) : null}
+            ))}
           </div>
         </div>
         <h3 className="text-lg font-bold text-white">{tool.title}</h3>

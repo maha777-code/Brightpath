@@ -26,6 +26,7 @@ import {
   TEACHER_TOOL_FOCUS_LABELS,
   TEACHER_TOOLS_CATALOG,
   categoryForPlanType,
+  teacherToolBadges,
   type TeacherToolFocusArea,
 } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
@@ -46,6 +47,7 @@ type DraftTool = {
   requiredPlan: string;
   focusArea: TeacherToolFocusArea;
   badge?: 'New' | 'Hot' | 'Beta' | null;
+  badges?: Array<'New' | 'Hot' | 'Beta'>;
   icon: string;
   href: string;
   popularity: number;
@@ -122,6 +124,7 @@ export default function OwnerDashboard() {
       requiredPlan: tool.requiredPlan,
       focusArea: tool.focusArea,
       badge: tool.badge,
+      badges: teacherToolBadges(tool),
       icon: tool.icon,
       href: tool.href,
       popularity: tool.popularity,
@@ -424,19 +427,20 @@ export default function OwnerDashboard() {
                                 Staged
                               </span>
                             ) : null}
-                            {tool.badge ? (
+                            {teacherToolBadges(tool).map((badge) => (
                               <span
+                                key={badge}
                                 className={`rounded-md border px-2.5 py-1 text-xs font-extrabold uppercase tracking-wider ${
-                                  tool.badge === 'Hot'
+                                  badge === 'Hot'
                                     ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                                    : tool.badge === 'Beta'
+                                    : badge === 'Beta'
                                       ? 'border-cyan-500/30 bg-cyan-500/10 text-cyan-400'
                                       : 'border-purple-500/30 bg-purple-500/10 text-purple-400'
                                 }`}
                               >
-                                {tool.badge}
+                                {badge}
                               </span>
-                            ) : null}
+                            ))}
                             <button
                               type="button"
                               aria-label={tool.favorite ? 'Remove favorite' : 'Favorite tool'}

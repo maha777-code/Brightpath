@@ -25,7 +25,7 @@ export type EditableQuizQuestion = QuizGeneratorQuestion & {
   rubric?: string;
 };
 
-const LANGUAGES = ['English', 'Hindi', 'Arabic', 'Spanish'];
+const LANGUAGES = ['English', 'Hindi', 'Arabic', 'Spanish', 'French', 'Tamil', 'Telugu'];
 
 function stripStem(value: string) {
   return value.replace(/^\d+\.\s*/, '').replace(/^[A-G][.)]\s+/i, '').trim();
@@ -333,18 +333,26 @@ export function QuizEditor({
             <h2 className="text-sm font-bold">Student supports</h2>
             <p className="mt-1 text-xs text-slate-500">Shown while students answer.</p>
             <div className="mt-4 flex items-center justify-between text-sm">
-              <span className="inline-flex items-center gap-1">Translation <Info className="h-3.5 w-3.5 text-slate-500" /></span>
+              <span>Translation</span>
               <button type="button" aria-label="Translation" aria-pressed={translation} onClick={() => setTranslation((v) => !v)} className={`h-6 w-11 rounded-full p-0.5 ${translation ? 'bg-violet-500' : 'bg-slate-700'}`}>
                 <span className={`block h-5 w-5 rounded-full bg-white transition ${translation ? 'translate-x-5' : ''}`} />
               </button>
             </div>
+            <p className="mt-2 text-xs leading-relaxed text-slate-400">
+              Students can translate each question and its answer choices into another language while they take the quiz. Their answers are still graded against the original wording.
+            </p>
             {translation ? (
-              <select value={language} onChange={(e) => setLanguage(e.target.value)} className="mt-2 w-full rounded-lg border border-slate-700 bg-[#0b1018] px-2 py-1.5 text-xs">
-                {LANGUAGES.map((item) => <option key={item}>{item}</option>)}
-              </select>
+              <>
+                <select value={language} onChange={(e) => setLanguage(e.target.value)} className="mt-2 w-full rounded-lg border border-slate-700 bg-[#0b1018] px-2 py-1.5 text-xs">
+                  {LANGUAGES.map((item) => <option key={item}>{item}</option>)}
+                </select>
+                <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                  Students see this quiz in {language}. Turn this off to keep the original language only.
+                </p>
+              </>
             ) : null}
             <div className="mt-3 flex items-center justify-between text-sm">
-              <span className="inline-flex items-center gap-1">Simplify <Info className="h-3.5 w-3.5 text-slate-500" /></span>
+              <span>Simplify</span>
               <button type="button" aria-label="Simplify" aria-pressed={simplifyOn} onClick={() => setSimplifyOn((v) => !v)} className={`h-6 w-11 rounded-full p-0.5 ${simplifyOn ? 'bg-violet-500' : 'bg-slate-700'}`}>
                 <span className={`block h-5 w-5 rounded-full bg-white transition ${simplifyOn ? 'translate-x-5' : ''}`} />
               </button>
