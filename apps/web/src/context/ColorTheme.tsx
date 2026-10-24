@@ -50,8 +50,10 @@ export function ColorThemeProvider({ children }: { children: ReactNode }) {
     <ColorThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
       {children}
       {pathname !== '/' ? (
-        <div className="fixed right-4 top-4 z-[90]">
-          <ThemeToggle />
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-[90] flex justify-end p-5 md:p-6">
+          <div className="pointer-events-auto">
+            <ThemeToggle />
+          </div>
         </div>
       ) : null}
     </ColorThemeContext.Provider>
@@ -77,7 +79,6 @@ export function ThemeToggle() {
       title={light ? 'Dark mode' : 'Light mode'}
     >
       {light ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-      <span>{light ? 'Dark' : 'Light'}</span>
     </button>
   );
 }

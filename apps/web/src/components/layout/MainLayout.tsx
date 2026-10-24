@@ -24,7 +24,7 @@ export function MainLayout({
       <TeacherSidebar />
       <div
         className={[
-          'relative z-10 min-w-0 flex-1 overflow-y-auto pt-14 md:pt-0',
+          'relative z-10 min-w-0 flex-1 overflow-y-auto pt-16 md:pt-16',
           fillViewport ? 'flex min-h-0 flex-col overflow-hidden' : '',
         ].join(' ')}
       >
