@@ -31,6 +31,7 @@ import inviteRoutes from './routes/invites.js';
 import { ensureDatabaseSchema } from './lib/ensureDatabaseSchema.js';
 import { anthropicWorkspaceId, LESSON_VIDEO_MODEL } from './lib/llm/provider.js';
 import { ensureDemoTeacher } from './lib/ensureDemoTeacher.js';
+import { ensureDemoStudent } from './lib/ensureDemoStudent.js';
 import { prisma } from './lib/prisma.js';
 import { migrateLegacyUsers } from './scripts/migrateLegacyUsers.js';
 import type { AuthRequest } from './middleware/auth.js';
@@ -271,6 +272,7 @@ async function start() {
   }
 
   await ensureDemoTeacher();
+  await ensureDemoStudent();
 
   app.listen(PORT, () => {
     const lessonVideo = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
