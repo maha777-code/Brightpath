@@ -67,18 +67,22 @@ async function favoriteIdsForTeacher(teacherId: string): Promise<string[]> {
   return rows.map((r) => r.toolId).filter((id) => known.has(id));
 }
 
+function favoriteOwnerId(req: AuthRequest): string | null {
+  return req.teacherId ?? req.platformUserId ?? req.parentId ?? null;
+}
+
 const router = Router();
 
 /** GET /teacher/tools — catalog + this teacher's favorite IDs */
 router.get('/tools', async (req: AuthRequest, res: Response) => {
-  const teacherId = req.teacherId;
-  if (!teacherId) {
+  const ownerId = favoriteOwnerId(req);
+  if (!ownerId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
 
   try {
-    const favoriteIds = await favoriteIdsForTeacher(teacherId);
+    const favoriteIds = req.teacherId ? await favoriteIdsForTeacher(ownerId) : [];
     const payload: TeacherToolsCatalogResponse = {
       tools: TEACHER_TOOLS_CATALOG,
       focusAreas: FOCUS_AREAS,
@@ -95,7 +99,7 @@ router.get('/tools', async (req: AuthRequest, res: Response) => {
 router.post('/tools/favorite', async (req: AuthRequest, res: Response) => {
   const teacherId = req.teacherId;
   if (!teacherId) {
-    res.status(401).json({ error: 'Unauthorized' });
+    res.json({ toolId: '', favorited: false, favoriteIds: [] });
     return;
   }
 
@@ -160,7 +164,7 @@ const quizBody = z
 
 /** POST /teacher/tools/quiz-generator */
 router.post('/tools/quiz-generator', async (req: AuthRequest, res: Response) => {
-  const teacherId = req.teacherId;
+  const teacherId = favoriteOwnerId(req);
   if (!teacherId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -313,7 +317,7 @@ function worksheetPayloadForHistory(payload: {
 }
 
 async function saveWorksheetHistory(
-  teacherId: string,
+  teacherId: string | null,
   payload: {
     gradeLevel: string;
     topicOrText: string;
@@ -323,6 +327,7 @@ async function saveWorksheetHistory(
   worksheet: WorksheetGeneratorResponse,
 ): Promise<string> {
   const id = worksheet.id || randomUUID();
+  if (!teacherId) return id;
   await ensureWorksheetTables();
   await prisma.$executeRawUnsafe(
     `INSERT INTO "TeacherWorksheetHistory"
@@ -341,7 +346,7 @@ async function saveWorksheetHistory(
 
 /** POST /teacher/tools/worksheet-generator */
 router.post('/tools/worksheet-generator', async (req: AuthRequest, res: Response) => {
-  const teacherId = req.teacherId;
+  const teacherId = favoriteOwnerId(req);
   if (!teacherId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -355,7 +360,7 @@ router.post('/tools/worksheet-generator', async (req: AuthRequest, res: Response
 
   try {
     const worksheet = await generateWorksheet(parsed.data);
-    const id = await saveWorksheetHistory(teacherId, worksheetPayloadForHistory(parsed.data), worksheet).catch((err) => {
+    const id = await saveWorksheetHistory(req.teacherId ?? null, worksheetPayloadForHistory(parsed.data), worksheet).catch((err) => {
       console.error('[teacher/tools/worksheet-generator] history save failed', err);
       return randomUUID();
     });
@@ -387,7 +392,7 @@ const lessonTranslateBody = z.object({
 
 /** POST /teacher/tools/lesson-plan-generator/translate */
 router.post('/tools/lesson-plan-generator/translate', async (req: AuthRequest, res: Response) => {
-  if (!req.teacherId) {
+  if (!favoriteOwnerId(req)) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
@@ -407,7 +412,7 @@ router.post('/tools/lesson-plan-generator/translate', async (req: AuthRequest, r
 
 /** POST /teacher/tools/lesson-plan-generator */
 router.post('/tools/lesson-plan-generator', async (req: AuthRequest, res: Response) => {
-  const teacherId = req.teacherId;
+  const teacherId = favoriteOwnerId(req);
   if (!teacherId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -441,7 +446,7 @@ const lessonBookmarkBody = z.object({
 
 /** POST /teacher/tools/lesson-plan-generator/bookmark */
 router.post('/tools/lesson-plan-generator/bookmark', async (req: AuthRequest, res: Response) => {
-  const teacherId = req.teacherId;
+  const teacherId = favoriteOwnerId(req);
   if (!teacherId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -456,7 +461,7 @@ router.post('/tools/lesson-plan-generator/bookmark', async (req: AuthRequest, re
 
 /** GET /teacher/tools/worksheet-generator/history */
 router.get('/tools/worksheet-generator/history', async (req: AuthRequest, res: Response) => {
-  const teacherId = req.teacherId;
+  const teacherId = favoriteOwnerId(req);
   if (!teacherId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -534,7 +539,7 @@ router.get('/tools/worksheet-generator/history', async (req: AuthRequest, res: R
 
 /** POST /teacher/tools/worksheet-generator/refine */
 router.post('/tools/worksheet-generator/refine', async (req: AuthRequest, res: Response) => {
-  const teacherId = req.teacherId;
+  const teacherId = favoriteOwnerId(req);
   if (!teacherId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -557,7 +562,7 @@ router.post('/tools/worksheet-generator/refine', async (req: AuthRequest, res: R
       current: parsed.data.currentWorksheet,
     });
     const id = await saveWorksheetHistory(
-      teacherId,
+      req.teacherId ?? null,
       worksheetPayloadForHistory({
         gradeLevel: parsed.data.gradeLevel,
         topicOrText: `${parsed.data.topicOrText}\n\nTeacher follow-up: ${parsed.data.instruction}`,
@@ -578,7 +583,7 @@ router.post('/tools/worksheet-generator/refine', async (req: AuthRequest, res: R
 
 /** POST /teacher/tools/worksheet-generator/translate */
 router.post('/tools/worksheet-generator/translate', async (req: AuthRequest, res: Response) => {
-  const teacherId = req.teacherId;
+  const teacherId = favoriteOwnerId(req);
   if (!teacherId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -599,7 +604,7 @@ router.post('/tools/worksheet-generator/translate', async (req: AuthRequest, res
          WHERE "id" = $1 AND "teacherId" = $2
          LIMIT 1`,
         parsed.data.worksheetId,
-        teacherId,
+        req.teacherId ?? teacherId,
       );
       if (rows[0]?.worksheetJson && typeof rows[0].worksheetJson === 'object') {
         current = rows[0].worksheetJson as WorksheetGeneratorResponse;
@@ -616,7 +621,7 @@ router.post('/tools/worksheet-generator/translate', async (req: AuthRequest, res
       gradeLevel: current.gradeLevel,
     });
     const id = await saveWorksheetHistory(
-      teacherId,
+      req.teacherId ?? null,
       {
         gradeLevel: current.gradeLevel,
         topicOrText: `${current.title}\n\nTranslated to ${parsed.data.targetLanguage}`,
@@ -635,7 +640,7 @@ router.post('/tools/worksheet-generator/translate', async (req: AuthRequest, res
 
 /** POST /teacher/tools/feedback */
 router.post('/tools/feedback', async (req: AuthRequest, res: Response) => {
-  const teacherId = req.teacherId;
+  const teacherId = favoriteOwnerId(req);
   if (!teacherId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -687,7 +692,7 @@ const sharadaChatBody = z.object({
 });
 
 async function handleSharadaChat(req: AuthRequest, res: Response) {
-  const teacherId = req.teacherId;
+  const teacherId = favoriteOwnerId(req);
   if (!teacherId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -722,7 +727,7 @@ const emailResponderBody = z.object({
 
 /** POST /teacher/tools/email-responder */
 router.post('/tools/email-responder', async (req: AuthRequest, res: Response) => {
-  if (!req.teacherId) {
+  if (!favoriteOwnerId(req)) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }

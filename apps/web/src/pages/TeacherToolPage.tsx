@@ -119,7 +119,7 @@ export default function TeacherToolPage() {
         <main className="w-full max-w-lg px-6 py-10">
           <div className="rounded-3xl border border-rose-500/30 bg-slate-900 p-8 text-white">
             <h1 className="text-2xl font-bold">{tool.title}</h1>
-            <p className="mt-2 text-sm font-semibold text-rose-300">Teacher access required</p>
+            <p className="mt-2 text-sm font-semibold text-rose-300">This tool is not available for your role</p>
             <Link to="/teacher/tools" className="mt-5 inline-block text-sm font-bold text-cyan-300 underline">
               Back to teacher tools
             </Link>

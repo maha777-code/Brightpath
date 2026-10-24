@@ -4,6 +4,7 @@ import type { QuizGeneratorPayload, QuizGeneratorResponse } from '@brightpath/sh
 import { api } from '@/lib/api';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
 import { QuizGeneratorForm } from '@/components/tools/QuizGeneratorForm';
+import { QuizEditor, toEditableQuestions, toQuizResponse } from '@/components/tools/QuizEditor';
 
 function optionLetterFromIndex(index: number): string {
   return String.fromCharCode(65 + Math.max(0, index));
@@ -144,6 +145,7 @@ function QuizOutputCard({
   copied,
   onExportPdf,
   onRegenerate,
+  onEdit,
 }: {
   quiz: QuizGeneratorResponse | null;
   busy: boolean;
@@ -151,6 +153,7 @@ function QuizOutputCard({
   onCopy: () => void;
   onExportPdf: () => void;
   onRegenerate: () => void;
+  onEdit: () => void;
 }) {
   const actionClass = quiz && !busy
     ? 'inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-slate-800 px-3 py-1.5 text-xs font-bold text-cyan-400 transition-all hover:bg-slate-700'
@@ -167,6 +170,9 @@ function QuizOutputCard({
           <button type="button" className={actionClass} disabled={!quiz || busy} onClick={onCopy}>
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? 'Copied' : 'Copy'}
+          </button>
+          <button type="button" className={actionClass} disabled={!quiz || busy} onClick={onEdit}>
+            Edit quiz
           </button>
           <button type="button" className={actionClass} disabled={!quiz || busy} onClick={onRegenerate}>
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
@@ -240,6 +246,9 @@ export function QuizGenerator({
   const [error, setError] = useState<string | null>(null);
   const [quiz, setQuiz] = useState<QuizGeneratorResponse | null>(null);
   const [copied, setCopied] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorSession, setEditorSession] = useState(0);
+  const [quizMeta, setQuizMeta] = useState({ topic: '', grade: '' });
 
   const runGenerate = useCallback(async (payload: QuizGeneratorPayload) => {
     const hasSource = Boolean(
@@ -255,6 +264,12 @@ export function QuizGenerator({
     try {
       const next = coerceQuizResponse(await api.generateQuiz(payload));
       setQuiz(next);
+      setQuizMeta({
+        topic: payload.topicDescription?.trim() || payload.assessmentDescription?.trim() || 'Quiz',
+        grade: payload.gradeLevel,
+      });
+      setEditorSession((n) => n + 1);
+      setEditorOpen(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to generate quiz');
     } finally {
@@ -273,9 +288,51 @@ export function QuizGenerator({
     }
   };
 
+  const regenerateQuestion = async (_index: number) => {
+    const payload = payloadRef.current;
+    if (!payload) return null;
+    setBusy(true);
+    setError(null);
+    try {
+      const next = coerceQuizResponse(await api.generateQuiz({ ...payload, numberOfQuestions: 1 }));
+      return next.questions[0] ?? null;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to regenerate question');
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="quiz-gen-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#040711] font-sans text-slate-100">
-      <div className="quiz-gen-split min-h-0 flex-1 divide-y divide-slate-800/80 lg:divide-x lg:divide-y-0">
+      {quiz ? (
+        <div className={editorOpen ? 'min-h-0 flex-1' : 'hidden'}>
+        <QuizEditor
+          key={editorSession}
+          topic={quizMeta.topic}
+          gradeLevel={quizMeta.grade}
+          initial={toEditableQuestions(quiz, quizMeta.topic)}
+          onBack={() => setEditorOpen(false)}
+          onSave={(draft) => {
+            const next = toQuizResponse(draft.questions);
+            setQuiz(next);
+            try {
+              const stored = JSON.parse(localStorage.getItem('mindvault_saved_quizzes') || '[]') as unknown[];
+              stored.unshift({ ...draft, answerKey: next.answerKey, savedAt: new Date().toISOString() });
+              localStorage.setItem('mindvault_saved_quizzes', JSON.stringify(stored.slice(0, 20)));
+            } catch {
+              setError('Could not save this quiz in the browser');
+            }
+          }}
+          onRegenerateQuestion={regenerateQuestion}
+        />
+        </div>
+      ) : null}
+      <div
+        className="quiz-gen-split min-h-0 flex-1 divide-y divide-slate-800/80 lg:divide-x lg:divide-y-0"
+        style={editorOpen ? { display: 'none' } : undefined}
+      >
         <div className="custom-scrollbar min-h-0 space-y-5 overflow-y-auto bg-[#060911] p-6">
           <QuizGeneratorForm
             favorited={favorited}
@@ -300,6 +357,7 @@ export function QuizGenerator({
             const payload = payloadRef.current;
             if (payload) void runGenerate(payload);
           }}
+          onEdit={() => setEditorOpen(true)}
         />
       </div>
     </div>

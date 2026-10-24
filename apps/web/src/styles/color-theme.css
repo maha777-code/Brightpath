@@ -748,3 +748,57 @@ html[data-theme='light'] .add-file-menu-item:hover span {
 html[data-theme='light'] .add-file-menu-item:hover {
   background-color: #ecfeff !important;
 }
+
+html[data-theme='light'] .quiz-editor {
+  background: #070b14 !important;
+  color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .quiz-editor :where(
+  [class*='bg-[#0'],
+  [class*='bg-[#1'],
+  [class*='bg-slate-950'],
+  [class*='bg-slate-900'],
+  [class*='bg-slate-800']
+) {
+  background-color: #10151f !important;
+  color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .quiz-editor :where([class*='bg-[#0b1018'], [class*='bg-slate-700']) {
+  background-color: #0b1018 !important;
+}
+
+html[data-theme='light'] .quiz-editor :where(
+  [class*='text-white'],
+  [class*='text-slate-100'],
+  [class*='text-slate-200'],
+  [class*='text-slate-300']
+) {
+  color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .quiz-editor :where([class*='text-slate-400'], [class*='text-slate-500']) {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='light'] .quiz-editor :where(textarea, input, select) {
+  background-color: transparent !important;
+  color: #f8fafc !important;
+  -webkit-text-fill-color: #f8fafc !important;
+  caret-color: #f8fafc;
+}
+
+html[data-theme='light'] .quiz-editor select {
+  background-color: #0b1018 !important;
+}
+
+html[data-theme='light'] .quiz-editor :where([class*='bg-violet-500']) {
+  background-color: #8b5cf6 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] .quiz-editor :where([class*='border-emerald']) {
+  background-color: rgba(16, 185, 129, 0.14) !important;
+  color: #d1fae5 !important;
+}

@@ -21,7 +21,7 @@ import {
   Star,
   X,
 } from 'lucide-react';
-import { AGE_GROUP_LABELS, getTeacherToolById, streakFlames, type TeacherToolFocusArea } from '@brightpath/shared';
+import { AGE_GROUP_LABELS, getTeacherToolById, streakFlames, TEACHER_TOOLS_CATALOG, type TeacherToolFocusArea } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
@@ -43,14 +43,6 @@ import { readSavedWorksheets } from '@/lib/savedWorksheets';
 
 const FONT = CYBER_FONT_STYLE;
 
-const RECOMMENDED_IDS = [
-  'quiz-generator',
-  'worksheet-generator',
-  'text-rewriter',
-  'lesson-plan',
-  'song-generator',
-] as const;
-
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   'book-open': BookOpen,
   'file-text': FileText,
@@ -58,6 +50,12 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   'list-checks': ListChecks,
   music: Music,
   sparkles: Sparkles,
+  presentation: LayoutGrid,
+  mail: FileText,
+  youtube: ListChecks,
+  mic: Mic,
+  'clipboard-list': FileText,
+  'message-square': FileText,
 };
 
 type StudentTool = {
@@ -82,7 +80,8 @@ function studentTools(tutorHref: string): StudentTool[] {
     popularity: 1000,
     newestRank: 0,
   };
-  const catalog = RECOMMENDED_IDS.flatMap((id) => {
+  const catalog = TEACHER_TOOLS_CATALOG.filter((item) => item.id !== 'curriculum-studio').flatMap((item) => {
+    const id = item.id;
     const tool = getTeacherToolById(id);
     const registry = getRegistryTool(id);
     if (!tool || !registry) return [];
@@ -193,7 +192,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
 
   const openTool = (tool: StudentTool) => {
     if (tool.registry && !canUserAccessTool({ role, email }, tool.registry.allowedRoles)) {
-      setToolDenied('Teacher access required');
+      setToolDenied('This tool is not available for your role');
       setActive(null);
       return;
     }

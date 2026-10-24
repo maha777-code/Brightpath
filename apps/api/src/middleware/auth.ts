@@ -122,6 +122,26 @@ export async function requireTeacher(req: AuthRequest, res: Response, next: Next
   }
 }
 
+/** Lets any signed-in role use the shared AI tools. Curriculum Studio still uses requireTeacher. */
+export async function requireSignedIn(req: AuthRequest, res: Response, next: NextFunction) {
+  const token = readBearer(req);
+  if (!token) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  try {
+    const payload = verifyToken(token);
+    const ok = await attachAuth(req, payload);
+    if (!ok) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
 export function requireRoles(...roles: AppRole[]) {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
     const token = readBearer(req);

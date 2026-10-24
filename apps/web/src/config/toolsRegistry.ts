@@ -52,17 +52,8 @@ function targetPlan(plan: AiToolPlan): ToolDefinition['targetPlan'] {
 
 function allowedRoles(tool: TeacherToolDefinition): UserRole[] {
   if (tool.id === 'curriculum-studio') {
-    return ['admin', 'school', 'academy', 'teacher', 'parent'];
+    return ['admin', 'school', 'academy', 'teacher'];
   }
-  const teacherTools = new Set([
-    'song-generator',
-    'podcast-generator',
-    'presentation-generator',
-    'writing-feedback',
-    'youtube-questions',
-    'family-email',
-  ]);
-  if (teacherTools.has(tool.id)) return ['admin', 'school', 'academy', 'teacher'];
   return ['admin', 'school', 'academy', 'teacher', 'parent', 'student'];
 }
 

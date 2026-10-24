@@ -469,7 +469,7 @@ export default function OwnerDashboard() {
                                 const allowed = getRegistryTool(tool.id)?.allowedRoles ?? [];
                                 const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
                                 if (!canUserAccessTool({ role, email }, allowed)) {
-                                  setNotice('Teacher access required');
+                                  setNotice('This tool is not available for your role');
                                   setPreview(null);
                                   return;
                                 }

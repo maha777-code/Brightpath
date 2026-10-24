@@ -12,6 +12,10 @@ import {
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
+
+function signedInId(req: AuthRequest): string | null {
+  return req.teacherId ?? req.platformUserId ?? req.parentId ?? null;
+}
 import { generateSongLyrics } from '../services/llm.js';
 import { albumArtDataUrl, renderSongAudio } from '../lib/songAudio.js';
 
@@ -114,7 +118,7 @@ function toSong(row: {
 
 /** GET /teacher/songs */
 router.get('/songs', async (req: AuthRequest, res: Response) => {
-  const teacherId = req.teacherId;
+  const teacherId = signedInId(req);
   if (!teacherId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -163,7 +167,7 @@ router.get('/songs', async (req: AuthRequest, res: Response) => {
 
 /** POST /teacher/songs/generate-lyrics */
 router.post('/songs/generate-lyrics', async (req: AuthRequest, res: Response) => {
-  const teacherId = req.teacherId;
+  const teacherId = signedInId(req);
   if (!teacherId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -186,7 +190,7 @@ router.post('/songs/generate-lyrics', async (req: AuthRequest, res: Response) =>
 
 /** POST /teacher/songs/render-audio */
 router.post('/songs/render-audio', async (req: AuthRequest, res: Response) => {
-  const teacherId = req.teacherId;
+  const teacherId = signedInId(req);
   if (!teacherId) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -200,13 +204,15 @@ router.post('/songs/render-audio', async (req: AuthRequest, res: Response) => {
 
   try {
     await ensureSongsTable();
-    const weeklyLimit = await weeklyLimitForTeacher(teacherId);
+    const weeklyLimit = await weeklyLimitForTeacher(req.teacherId ?? teacherId);
     const weekStart = startOfWeekMonday();
-    const usedRows = await prisma.$queryRawUnsafe<Array<{ count: bigint | number }>>(
-      `SELECT COUNT(*)::int AS count FROM "TeacherSong" WHERE "teacherId" = $1 AND "createdAt" >= $2`,
-      teacherId,
-      weekStart,
-    );
+    const usedRows = req.teacherId
+      ? await prisma.$queryRawUnsafe<Array<{ count: bigint | number }>>(
+          `SELECT COUNT(*)::int AS count FROM "TeacherSong" WHERE "teacherId" = $1 AND "createdAt" >= $2`,
+          req.teacherId,
+          weekStart,
+        )
+      : [{ count: 0 }];
     const used = Number(usedRows[0]?.count ?? 0);
     if (used >= weeklyLimit) {
       res.status(429).json({
@@ -229,12 +235,12 @@ router.post('/songs/render-audio', async (req: AuthRequest, res: Response) => {
     });
     const artUrl = albumArtDataUrl(parsed.data.topic || parsed.data.title);
 
-    await prisma.$executeRawUnsafe(
+    if (req.teacherId) await prisma.$executeRawUnsafe(
       `INSERT INTO "TeacherSong"
         ("id", "teacherId", "title", "topic", "lyrics", "songStyle", "gradeLevel", "voiceId", "voiceLabel", "artUrl", "audioUrl", "audioPath")
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       id,
-      teacherId,
+      req.teacherId,
       parsed.data.title,
       parsed.data.topic,
       parsed.data.lyrics,

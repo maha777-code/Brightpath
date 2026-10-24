@@ -136,7 +136,7 @@ export default function TeacherTools() {
   const openTool = (tool: TeacherToolDefinition) => {
     if (!isTeacherToolEnabled(tool.id)) return;
     if (!canUserAccessTool(actor, getRegistryTool(tool.id)?.allowedRoles ?? [])) {
-      setError('Teacher access required');
+      setError('This tool is not available for your role');
       return;
     }
     if (tool.id === 'curriculum-studio' || tool.href === '/tools/curriculum-textbook-studio') {

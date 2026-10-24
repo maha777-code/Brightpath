@@ -12,7 +12,7 @@ import {
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import { routeParam } from '../lib/routeParam.js';
-import { requireTeacher, type AuthRequest } from '../middleware/auth.js';
+import { requireSignedIn, requireTeacher, type AuthRequest } from '../middleware/auth.js';
 import {
   toChapter,
   toDoubt,
@@ -43,9 +43,10 @@ const HARD_MAX_PDF_BYTES = 80 * 1024 * 1024;
 const MAX_PDF_ERROR = 'File size exceeds the 80 MB limit. Please select a smaller PDF.';
 
 const router = Router();
-router.use(requireTeacher);
+router.use(requireSignedIn);
 router.use(songGeneratorRoutes);
 router.use(teacherToolsRoutes);
+router.use(requireTeacher);
 router.use(activityRoutes);
 router.use(mediaRoutes);
 

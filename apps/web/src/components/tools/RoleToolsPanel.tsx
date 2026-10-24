@@ -64,7 +64,7 @@ export function RoleToolsPanel({
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const launch = (tool: ToolDefinition) => {
     if (!canUserAccessTool({ role, email }, tool.allowedRoles)) {
-      setDenied('Teacher access required');
+      setDenied('This tool is not available for your role');
       setActive(null);
       return;
     }

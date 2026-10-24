@@ -93,6 +93,17 @@ function ProtectedTeacher({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** Any signed-in role may open the shared AI tools. Curriculum Studio stays on ProtectedTeacher. */
+function ProtectedSignedIn({ children }: { children: React.ReactNode }) {
+  const { role, loading, user, teacher, parent } = useAuth();
+  const location = useLocation();
+  if (loading) return <div className="app-loading"><div className="loader" /></div>;
+  if (!role || !isAppRole(role) || !(user || teacher || parent)) {
+    return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
+  }
+  return <>{children}</>;
+}
+
 /** Interactive chapter stage — teachers (preview) and learners */
 function ProtectedChapterExplore({ children }: { children: React.ReactNode }) {
   const { parent, teacher, role, loading } = useAuth();
@@ -326,12 +337,12 @@ export default function App() {
         <Route path="/progress" element={<ProtectedStudent><Progress /></ProtectedStudent>} />
         <Route path="/tools/curriculum-textbook-studio" element={<ProtectedTeacher><ToolAccessGate toolId="curriculum-studio"><CurriculumTextbookStudio /></ToolAccessGate></ProtectedTeacher>} />
         <Route path="/teacher/dashboard" element={<ProtectedTeacher><Navigate to="/tools/curriculum-textbook-studio" replace /></ProtectedTeacher>} />
-        <Route path="/teacher/tools" element={<ProtectedTeacher><TeacherTools /></ProtectedTeacher>} />
-        <Route path="/teacher/tools/song-generator/new" element={<ProtectedTeacher><ToolAccessGate toolId="song-generator"><SongGeneratorCreate /></ToolAccessGate></ProtectedTeacher>} />
-        <Route path="/teacher/tools/song-generator" element={<ProtectedTeacher><ToolAccessGate toolId="song-generator"><SongGeneratorDashboard /></ToolAccessGate></ProtectedTeacher>} />
-        <Route path="/teacher/tools/lesson-plan-generator" element={<ProtectedTeacher><ToolAccessGate toolId="lesson-plan"><LessonPlanGenerator /></ToolAccessGate></ProtectedTeacher>} />
-        <Route path="/teacher/resources/lesson-plans" element={<ProtectedTeacher><SavedLessonPlans /></ProtectedTeacher>} />
-        <Route path="/teacher/tools/:toolId" element={<ProtectedTeacher><TeacherToolPage /></ProtectedTeacher>} />
+        <Route path="/teacher/tools" element={<ProtectedSignedIn><TeacherTools /></ProtectedSignedIn>} />
+        <Route path="/teacher/tools/song-generator/new" element={<ProtectedSignedIn><ToolAccessGate toolId="song-generator"><SongGeneratorCreate /></ToolAccessGate></ProtectedSignedIn>} />
+        <Route path="/teacher/tools/song-generator" element={<ProtectedSignedIn><ToolAccessGate toolId="song-generator"><SongGeneratorDashboard /></ToolAccessGate></ProtectedSignedIn>} />
+        <Route path="/teacher/tools/lesson-plan-generator" element={<ProtectedSignedIn><ToolAccessGate toolId="lesson-plan"><LessonPlanGenerator /></ToolAccessGate></ProtectedSignedIn>} />
+        <Route path="/teacher/resources/lesson-plans" element={<ProtectedSignedIn><SavedLessonPlans /></ProtectedSignedIn>} />
+        <Route path="/teacher/tools/:toolId" element={<ProtectedSignedIn><TeacherToolPage /></ProtectedSignedIn>} />
         <Route
           path="/teacher/chapter/:id"
           element={
