@@ -14,6 +14,7 @@ export type ToolComponentKey =
   | 'LessonPlanGenerator'
   | 'SongGenerator'
   | 'CurriculumStudio'
+  | 'GamifiedActivity'
   | 'CustomDynamicTool';
 
 export interface ToolDefinition {
@@ -35,6 +36,7 @@ const COMPONENT_KEYS: Record<string, ToolComponentKey> = {
   'lesson-plan': 'LessonPlanGenerator',
   'song-generator': 'SongGenerator',
   'curriculum-studio': 'CurriculumStudio',
+  'gamified-activity': 'GamifiedActivity',
 };
 
 function categoryFor(tool: TeacherToolDefinition): ToolDefinition['category'] {

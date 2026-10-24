@@ -26,6 +26,17 @@ export function TeacherToolLauncher({
   const entry = getRegistryTool(tool.id) ?? toToolDefinition(tool);
   const rendered = <ToolRenderer tool={entry} mode="production" hideHeader={embedded} />;
 
+  if (tool.id === 'gamified-activity') {
+    if (embedded) return rendered;
+    return (
+      <TeacherWorkspaceLayout>
+        <main className="flex w-full justify-center py-6 lg:py-8">
+          <div className="w-4/5 min-w-0">{rendered}</div>
+        </main>
+      </TeacherWorkspaceLayout>
+    );
+  }
+
   if (tool.id === 'quiz-generator') {
     const quiz = rendered;
     if (embedded) return quiz;

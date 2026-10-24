@@ -478,6 +478,29 @@ export {
 export type { AiToolPlan } from './teacherTools.js';
 
 export type {
+  GamifiedActivityKind,
+  GamifiedActivityOption,
+  GamifiedActivityInsights,
+  GamifiedActivityDocument,
+  GamifiedActivityPayload,
+  GamifiedActivityResponse,
+  GamifiedLessonContext,
+  EscapeRoomDocument,
+  BranchingQuestDocument,
+  SkillTreeDocument,
+} from './gamifiedActivityTool.js';
+export {
+  GAMIFIED_ACTIVITY_KINDS,
+  GAMIFIED_ACTIVITY_OPTIONS,
+  isGamifiedActivityKind,
+  getGamifiedActivityOption,
+  parseGamifiedActivityResponse,
+  gamifiedActivityToMarkdown,
+  fallbackGamifiedDocument,
+  fallbackInsights,
+} from './gamifiedActivityTool.js';
+
+export type {
   AppRole,
   OrgType,
   PlanType,

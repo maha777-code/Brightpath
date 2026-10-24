@@ -120,6 +120,20 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     icon: 'list-checks',
   },
   {
+    id: 'gamified-activity',
+    title: 'Gamified Activity',
+    description:
+      'Turn unit PDFs, Docs, or slides into an escape room, choose-your-own-adventure quest, or XP skill-tree challenge.',
+    focusArea: 'content',
+    href: '/teacher/tools/gamified-activity',
+    requiredPlan: 'free',
+    badge: 'New',
+    popularity: 90,
+    newestRank: 0,
+    highlighted: true,
+    icon: 'gamepad-2',
+  },
+  {
     id: 'presentation-generator',
     title: 'Presentation Generator',
     description: 'Generate exportable slides based on a topic or video.',

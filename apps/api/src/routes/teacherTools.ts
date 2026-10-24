@@ -16,6 +16,7 @@ import {
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, translateLessonPlan, generateSharadaChat, generateEmailResponse } from '../services/llm.js';
+import { generateGamifiedActivityTool } from '../services/gamifiedActivityTool.js';
 import { randomUUID } from 'node:crypto';
 
 const favoriteBody = z.object({
@@ -194,6 +195,48 @@ router.post('/tools/quiz-generator', async (req: AuthRequest, res: Response) => 
   } catch (err) {
     console.error('[teacher/tools/quiz-generator] failed', err);
     res.status(500).json({ error: 'Failed to generate quiz' });
+  }
+});
+
+const gamifiedActivityBody = z
+  .object({
+    kind: z.enum(['escape_room', 'branching_quest', 'skill_tree']),
+    topic: z.string().max(400_000),
+    gradeLevel: z.string().min(1).max(80),
+    subject: z.string().max(120).optional(),
+    duration: z.string().max(80).optional(),
+    attachments: z.array(z.string().max(240)).max(20).optional(),
+    attachedDocumentContext: z.string().max(400_000).optional(),
+    imageFiles: z.array(z.string().max(8_000_000)).max(4).optional(),
+  })
+  .refine(
+    (value) =>
+      value.topic.trim().length > 0 ||
+      Boolean(value.attachedDocumentContext?.trim()) ||
+      Boolean(value.imageFiles?.length),
+    { message: 'Enter a topic or upload a file.' },
+  );
+
+/** POST /teacher/tools/gamified-activity — escape room, quest, or skill tree */
+router.post('/tools/gamified-activity', async (req: AuthRequest, res: Response) => {
+  const teacherId = favoriteOwnerId(req);
+  if (!teacherId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const parsed = gamifiedActivityBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Enter a topic or upload a unit file.' });
+    return;
+  }
+
+  try {
+    const activity = await generateGamifiedActivityTool(parsed.data);
+    res.json(activity);
+  } catch (err) {
+    console.error('[teacher/tools/gamified-activity] failed', err);
+    res.status(500).json({ error: 'Failed to generate gamified activity' });
   }
 });
 

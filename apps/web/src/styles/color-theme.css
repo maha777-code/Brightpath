@@ -845,3 +845,32 @@ html[data-theme='light'] .quiz-editor :where([class*='border-emerald']) {
 html[data-theme='light'] .quiz-editor :where([class*='hover:bg-slate-800']:hover) {
   background-color: #f1f5f9 !important;
 }
+
+html[data-theme='light'] .gamified-activity-tool {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .gamified-activity-tool :where(
+  [class*='text-white'],
+  [class*='text-slate-100'],
+  [class*='text-cyan-50'],
+  [class*='text-cyan-100']
+) {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .gamified-activity-tool :where(
+  [class*='bg-slate-950'],
+  [class*='bg-[#1e1b4b]']
+) {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .gamified-activity-tool input,
+html[data-theme='light'] .gamified-activity-tool textarea,
+html[data-theme='light'] .gamified-activity-tool select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}

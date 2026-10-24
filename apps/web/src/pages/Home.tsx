@@ -7,6 +7,7 @@ import {
   ClipboardList,
   Clock,
   FileText,
+  Gamepad2,
   ListChecks,
   Mail,
   Mic,
@@ -62,6 +63,7 @@ const TOOL_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   pencil: Pencil,
   'clipboard-list': ClipboardList,
   'list-checks': ListChecks,
+  'gamepad-2': Gamepad2,
   presentation: Presentation,
   mail: Mail,
 };

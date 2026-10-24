@@ -1,7 +1,7 @@
 function localDevApi(): string {
   if (!import.meta.env.DEV || typeof window === 'undefined') return '';
   const host = window.location.hostname;
-  return host === 'localhost' || host === '127.0.0.1' ? 'http://localhost:3001' : '';
+  return host === 'localhost' || host === '127.0.0.1' ? 'http://127.0.0.1:3001' : '';
 }
 
 /** Absolute API origin. Localhost dev talks to the local API so lesson-plan changes are the ones being tested. */
@@ -212,6 +212,8 @@ import type {
   ToggleTeacherToolFavoriteResponse,
   QuizGeneratorPayload,
   QuizGeneratorResponse,
+  GamifiedActivityPayload,
+  GamifiedActivityResponse,
   WorksheetGeneratorPayload,
   WorksheetGeneratorResponse,
   WorksheetHistoryResponse,
@@ -677,6 +679,13 @@ export const api = {
     request<QuizGeneratorResponse>('/teacher/tools/quiz-generator', {
       method: 'POST',
       body: JSON.stringify(body),
+    }),
+
+  generateGamifiedActivity: (body: GamifiedActivityPayload) =>
+    request<GamifiedActivityResponse>('/teacher/tools/gamified-activity', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      timeoutMs: 120_000,
     }),
 
   generateWorksheet: (body: WorksheetGeneratorPayload) =>

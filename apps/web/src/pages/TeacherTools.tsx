@@ -4,6 +4,7 @@ import {
   BookOpen,
   ClipboardList,
   FileText,
+  Gamepad2,
   ListChecks,
   Mail,
   MessageSquare,
@@ -39,6 +40,7 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   pencil: Pencil,
   'clipboard-list': ClipboardList,
   'list-checks': ListChecks,
+  'gamepad-2': Gamepad2,
   presentation: Presentation,
   'message-square': MessageSquare,
   youtube: Youtube,
@@ -71,15 +73,14 @@ export default function TeacherTools() {
     try {
       const res = await api.teacherTools();
       const byId = new Map(TEACHER_TOOLS_CATALOG.map((tool) => [tool.id, tool]));
-      setTools(
-        res.tools.length
-          ? res.tools.map((tool) => ({
-              ...(byId.get(tool.id) ?? {}),
-              ...tool,
-              requiredPlan: byId.get(tool.id)?.requiredPlan ?? tool.requiredPlan ?? 'free',
-            }))
-          : TEACHER_TOOLS_CATALOG,
-      );
+      const fromApi = res.tools.map((tool) => ({
+        ...(byId.get(tool.id) ?? {}),
+        ...tool,
+        requiredPlan: byId.get(tool.id)?.requiredPlan ?? tool.requiredPlan ?? 'free',
+      }));
+      const seen = new Set(fromApi.map((tool) => tool.id));
+      const extras = TEACHER_TOOLS_CATALOG.filter((tool) => !seen.has(tool.id));
+      setTools(res.tools.length ? [...fromApi, ...extras] : TEACHER_TOOLS_CATALOG);
       setFavoriteIds(res.favoriteIds);
       setError(null);
     } catch (e) {
@@ -161,6 +162,10 @@ export default function TeacherTools() {
     }
     if (tool.id === 'lesson-plan') {
       navigate('/teacher/tools/lesson-plan-generator');
+      return;
+    }
+    if (tool.id === 'gamified-activity') {
+      navigate('/teacher/tools/gamified-activity');
       return;
     }
     setActiveTool(tool);
@@ -280,7 +285,7 @@ export default function TeacherTools() {
                     {!isTeacherToolEnabled(tool.id)
                       ? 'Tool Under Maintenance'
                       : canLaunch(tool)
-                        ? tool.highlighted
+                        ? tool.id === 'curriculum-studio'
                           ? 'Open Curriculum Studio'
                           : 'Launch tool'
                         : '🔒 Upgrade to unlock'}
