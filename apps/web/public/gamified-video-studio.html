@@ -163,10 +163,23 @@
     };
 
     const params = new URLSearchParams(location.search);
+    function specFromTextbook() {
+      try {
+        const raw = sessionStorage.getItem('mv-gamified-video-spec');
+        if (!raw) return null;
+        const spec = JSON.parse(raw);
+        if (!spec || !Array.isArray(spec.nodes) || !spec.nodes.length) return null;
+        return spec;
+      } catch {
+        return null;
+      }
+    }
+    const textbookSpec = specFromTextbook();
+    const fromTextbook = Boolean(textbookSpec) || params.get('from') === 'textbook';
     const state = {
       view: 'studio',
-      spec: structuredClone(TEMPLATES.bio),
-      selectedNodeId: TEMPLATES.bio.nodes[0].id,
+      spec: textbookSpec || structuredClone(TEMPLATES.bio),
+      selectedNodeId: (textbookSpec && textbookSpec.nodes[0] && textbookSpec.nodes[0].id) || TEMPLATES.bio.nodes[0].id,
       duration: 60,
       play: {
         xp: 0,
@@ -535,13 +548,13 @@
           <div class="flex items-center gap-3">
             ${icon('smart_display', true)}
             <div>
-              <p class="text-[11px] font-medium uppercase tracking-wide text-gink">Curriculum Studio</p>
+              <p class="text-[11px] font-medium uppercase tracking-wide text-gink">${fromTextbook ? 'From attached textbook' : 'Curriculum Studio'}</p>
               <h1 class="text-lg font-medium leading-tight">Gamified Video Generator</h1>
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <button type="button" data-act="template-bio" class="rounded-full border border-gline px-3 py-1.5 text-sm hover:bg-gbg">Bio-Lab sample</button>
-            <button type="button" data-act="template-physics" class="rounded-full border border-gline px-3 py-1.5 text-sm hover:bg-gbg">Physics sample</button>
+            ${fromTextbook ? '' : `<button type="button" data-act="template-bio" class="rounded-full border border-gline px-3 py-1.5 text-sm hover:bg-gbg">Bio-Lab sample</button>
+            <button type="button" data-act="template-physics" class="rounded-full border border-gline px-3 py-1.5 text-sm hover:bg-gbg">Physics sample</button>`}
             <label class="cursor-pointer rounded-full border border-gline px-3 py-1.5 text-sm hover:bg-gbg">
               Import JSON<input id="import-json" type="file" accept="application/json" class="hidden" />
             </label>
@@ -568,6 +581,7 @@
                 <input id="spec-file" type="file" accept="video/*" class="mt-1 w-full text-sm" />
               </label>
             </div>
+            ${state.spec.sourceNote ? `<p class="rounded-lg bg-[#e8f0fe] px-3 py-2 text-sm text-[#174ea6]">${escapeHtml(state.spec.sourceNote)}</p>` : ''}
           </section>
           <aside class="min-h-0 overflow-auto border-l border-gline bg-white p-4">
             <div class="mb-3 flex items-center justify-between">
@@ -737,13 +751,17 @@
       if (fill) fill.style.width = `${Math.min(100, (getTime() / (getDuration() || 1)) * 100)}%`;
     }
 
+    function persistSpec() {
+      try { sessionStorage.setItem('mv-gamified-video-spec', JSON.stringify(state.spec)); } catch {}
+    }
+
     function bindStudioFields() {
       const title = document.getElementById('spec-title');
       const subject = document.getElementById('spec-subject');
       const video = document.getElementById('spec-video');
       const file = document.getElementById('spec-file');
-      if (title) title.addEventListener('change', (e) => { state.spec.title = e.target.value; });
-      if (subject) subject.addEventListener('change', (e) => { state.spec.subject = e.target.value; });
+      if (title) title.addEventListener('change', (e) => { state.spec.title = e.target.value; persistSpec(); });
+      if (subject) subject.addEventListener('change', (e) => { state.spec.subject = e.target.value; persistSpec(); });
       if (video) video.addEventListener('change', (e) => {
         const src = e.target.value.trim();
         state.spec.video = { type: youtubeId(src) ? 'youtube' : 'html5', src };
@@ -844,8 +862,8 @@
         node.options.push({ id: String.fromCharCode(65 + node.options.length), text: 'New choice', correct: false });
         render();
       }
-      if (act === 'template-bio') loadTemplate('bio');
-      if (act === 'template-physics') loadTemplate('physics');
+      if (act === 'template-bio' && !fromTextbook) loadTemplate('bio');
+      if (act === 'template-physics' && !fromTextbook) loadTemplate('physics');
       if (act === 'close') closeHost();
     }
 

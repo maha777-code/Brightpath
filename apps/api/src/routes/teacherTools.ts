@@ -17,6 +17,7 @@ import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, translateLessonPlan, generateSharadaChat, generateEmailResponse } from '../services/llm.js';
 import { generateGamifiedActivityTool } from '../services/gamifiedActivityTool.js';
+import { generateGamifiedVideo } from '../services/gamifiedVideo.js';
 import { randomUUID } from 'node:crypto';
 
 const favoriteBody = z.object({
@@ -237,6 +238,40 @@ router.post('/tools/gamified-activity', async (req: AuthRequest, res: Response) 
   } catch (err) {
     console.error('[teacher/tools/gamified-activity] failed', err);
     res.status(500).json({ error: 'Failed to generate gamified activity' });
+  }
+});
+
+const gamifiedVideoBody = z
+  .object({
+    chapterId: z.string().min(1).max(80).optional(),
+    subtopicId: z.string().min(1).max(80).optional(),
+  })
+  .refine((value) => Boolean(value.chapterId || value.subtopicId), {
+    message: 'Select a chapter or subtopic.',
+  });
+
+/** POST /teacher/tools/gamified-video — textbook-grounded interactive video spec */
+router.post('/tools/gamified-video', async (req: AuthRequest, res: Response) => {
+  const teacherId = favoriteOwnerId(req);
+  if (!teacherId) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const parsed = gamifiedVideoBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Select a chapter or subtopic from the textbook.' });
+    return;
+  }
+
+  try {
+    const result = await generateGamifiedVideo(parsed.data);
+    res.json(result);
+  } catch (err) {
+    console.error('[teacher/tools/gamified-video] failed', err);
+    res.status(500).json({
+      error: err instanceof Error ? err.message : 'Failed to generate gamified video from the textbook',
+    });
   }
 });
 

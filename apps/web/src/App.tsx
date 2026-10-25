@@ -28,6 +28,7 @@ import VideoLessonPage from '@/pages/VideoLessonPage';
 import ChapterTestPage from '@/pages/ChapterTestPage';
 import ChapterExplorePage from '@/pages/ChapterExplorePage';
 import CurriculumTextbookStudio from '@/pages/tools/CurriculumTextbookStudio';
+import GamifiedVideoPage from '@/pages/tools/GamifiedVideoPage';
 import TeacherTools from '@/pages/TeacherTools';
 import TeacherToolPage from '@/pages/TeacherToolPage';
 import SongGeneratorDashboard from '@/pages/TeacherTools/SongGeneratorDashboard';
@@ -335,6 +336,7 @@ export default function App() {
         <Route path="/lesson/:nodeId" element={<ProtectedStudent><LessonModulePage /></ProtectedStudent>} />
         <Route path="/learn/:subject" element={<ProtectedLearner><TutorSession /></ProtectedLearner>} />
         <Route path="/progress" element={<ProtectedStudent><Progress /></ProtectedStudent>} />
+        <Route path="/tools/curriculum-textbook-studio/gamified-video" element={<ProtectedTeacher><ToolAccessGate toolId="curriculum-studio"><GamifiedVideoPage /></ToolAccessGate></ProtectedTeacher>} />
         <Route path="/tools/curriculum-textbook-studio" element={<ProtectedTeacher><ToolAccessGate toolId="curriculum-studio"><CurriculumTextbookStudio /></ToolAccessGate></ProtectedTeacher>} />
         <Route path="/teacher/dashboard" element={<ProtectedTeacher><Navigate to="/tools/curriculum-textbook-studio" replace /></ProtectedTeacher>} />
         <Route path="/teacher/tools" element={<ProtectedSignedIn><TeacherTools /></ProtectedSignedIn>} />

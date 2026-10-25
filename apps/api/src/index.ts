@@ -274,6 +274,7 @@ async function start() {
   await ensureDemoTeacher();
   await ensureDemoStudent();
 
+
   app.listen(PORT, () => {
     const lessonVideo = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
     console.log(`BrightPath API listening on http://localhost:${PORT}`);

@@ -504,6 +504,20 @@ export {
 export { escapeRoomToPlayableHtml } from './escapeRoomHtml.js';
 
 export type {
+  GamifiedVideoMode,
+  GamifiedVideoChoice,
+  GamifiedVideoNode,
+  GamifiedVideoSpec,
+  GamifiedVideoGeneratePayload,
+  GamifiedVideoGenerateResponse,
+} from './gamifiedVideo.js';
+export {
+  GAMIFIED_VIDEO_STORAGE_KEY,
+  fallbackGamifiedVideoSpec,
+  parseGamifiedVideoSpec,
+} from './gamifiedVideo.js';
+
+export type {
   AppRole,
   OrgType,
   PlanType,

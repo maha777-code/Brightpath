@@ -214,6 +214,8 @@ import type {
   QuizGeneratorResponse,
   GamifiedActivityPayload,
   GamifiedActivityResponse,
+  GamifiedVideoGeneratePayload,
+  GamifiedVideoGenerateResponse,
   WorksheetGeneratorPayload,
   WorksheetGeneratorResponse,
   WorksheetHistoryResponse,
@@ -683,6 +685,13 @@ export const api = {
 
   generateGamifiedActivity: (body: GamifiedActivityPayload) =>
     request<GamifiedActivityResponse>('/teacher/tools/gamified-activity', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      timeoutMs: 120_000,
+    }),
+
+  generateGamifiedVideo: (body: GamifiedVideoGeneratePayload) =>
+    request<GamifiedVideoGenerateResponse>('/teacher/tools/gamified-video', {
       method: 'POST',
       body: JSON.stringify(body),
       timeoutMs: 120_000,

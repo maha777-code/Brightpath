@@ -5,6 +5,25 @@ import { ensureTextbookPdfBodyChunks } from '../../services/textbook.js';
 import { embedTexts, toPgVectorLiteral } from '../embeddings.js';
 import { detectContentDomain } from './contentDomain.js';
 
+const IMPRINT_RE =
+  /textbook society|published by|all rights reserved|isbn|malleshwaram|price\s*:|government press|first edition|reprint 20|©|copyright/i;
+
+function isGarbageChunk(chunk: string): boolean {
+  const letters = chunk.match(/[A-Za-z]/g)?.length ?? 0;
+  const weird = chunk.match(/[^\t\n\r\x20-\x7E\u00A0-\u024F]/g)?.length ?? 0;
+  return letters < 40 || weird > letters;
+}
+
+function isImprintChunk(chunk: string): boolean {
+  const imprintHits = chunk.match(
+    /textbook society|published by|all rights reserved|isbn|malleshwaram|price\s*:|copyright|government press/gi,
+  )?.length ?? 0;
+  const lessonHits = chunk.match(
+    /matter|particle|atom|molecule|solid|liquid|gas|evaporat|cell|tissue|force|motion|gravity|mixture|solution|electron|proton/gi,
+  )?.length ?? 0;
+  return imprintHits >= 2 && lessonHits === 0;
+}
+
 function scoreExcerpt(chunk: string, query: string): number {
   const q = query
     .toLowerCase()
@@ -17,6 +36,7 @@ function scoreExcerpt(chunk: string, query: string): number {
   }
   if (/=/.test(chunk) || /\$/.test(chunk) || /E\s*\[/.test(chunk)) score += 3;
   if (/galton|regression|β|beta|matrix|squared.?error|σ|sigma/i.test(chunk)) score += 4;
+  if (IMPRINT_RE.test(chunk)) score -= 6;
   return score;
 }
 
@@ -91,7 +111,7 @@ export async function retrieveTextbookContext(
   const seen = new Set<string>();
   ragExcerpts = ragExcerpts.filter((c) => {
     const key = c.slice(0, 160);
-    if (seen.has(key)) return false;
+    if (seen.has(key) || isImprintChunk(c) || isGarbageChunk(c)) return false;
     seen.add(key);
     return true;
   });

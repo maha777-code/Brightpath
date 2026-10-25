@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Eye, Gamepad2, Loader2, Pencil, PlayCircle, Plus, Settings2 } from 'lucide-react';
 import {
   getGenerationTemplate,
@@ -15,7 +16,7 @@ import VideoReviewModal from './VideoReviewModal';
 import ActivityReviewModal from './ActivityReviewModal';
 import AttachMediaModal from './AttachMediaModal';
 import TemplateSelectorModal from './TemplateSelectorModal';
-import GamifiedVideoStudioModal from './GamifiedVideoStudioModal';
+import { gamifiedVideoHref } from '@/pages/tools/CurriculumTextbookStudio';
 
 interface SubtopicManagerProps {
   chapter: TeacherChapter | null;
@@ -41,6 +42,7 @@ export function SubtopicManager({
   onPreviewVideo,
   onAssignActivity,
 }: SubtopicManagerProps) {
+  const navigate = useNavigate();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [localSubs, setLocalSubs] = useState<TeacherSubtopic[]>([]);
   const [reviewSub, setReviewSub] = useState<TeacherSubtopic | null>(null);
@@ -57,7 +59,6 @@ export function SubtopicManager({
     focus: string;
     length: '30' | '45' | '60';
   } | null>(null);
-  const [gamifiedVideoSub, setGamifiedVideoSub] = useState<TeacherSubtopic | null>(null);
   const [activityTemplateBySub, setActivityTemplateBySub] = useState<
     Record<string, GenerationTemplateId>
   >({});
@@ -445,7 +446,9 @@ export function SubtopicManager({
 
                   <button
                     type="button"
-                    onClick={() => setGamifiedVideoSub(sub)}
+                    onClick={() =>
+                      navigate(gamifiedVideoHref({ chapterId: chapter?.id, subtopicId: sub.id }))
+                    }
                     className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-6 py-3 text-base font-medium text-emerald-100 hover:bg-emerald-500/25"
                   >
                     <Gamepad2 className="h-5 w-5 shrink-0" />
@@ -516,12 +519,6 @@ export function SubtopicManager({
           }}
         />
       )}
-      <GamifiedVideoStudioModal
-        open={Boolean(gamifiedVideoSub)}
-        subtopic={gamifiedVideoSub}
-        subject={chapter?.title}
-        onClose={() => setGamifiedVideoSub(null)}
-      />
       {attachSub && (
         <AttachMediaModal
           subtopicId={attachSub.id}

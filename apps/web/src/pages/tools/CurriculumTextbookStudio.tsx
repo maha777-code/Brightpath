@@ -17,10 +17,18 @@ import { TeacherDoubtAssistant } from '@/components/teacher/TeacherDoubtAssistan
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { AIToolHeader } from '@/components/tools/AIToolHeader';
 import { ProUpgradeDialog } from '@/components/billing/ProUpgradeDialog';
-import GamifiedVideoStudioModal from '@/components/teacher/GamifiedVideoStudioModal';
 import { canUserAccessTool, getRegistryTool } from '@/config/toolsRegistry';
 
 export const CURRICULUM_STUDIO_PATH = '/tools/curriculum-textbook-studio';
+export const GAMIFIED_VIDEO_PATH = '/tools/curriculum-textbook-studio/gamified-video';
+
+export function gamifiedVideoHref(input: { chapterId?: string | null; subtopicId?: string | null }) {
+  const params = new URLSearchParams();
+  if (input.chapterId) params.set('chapterId', input.chapterId);
+  if (input.subtopicId) params.set('subtopicId', input.subtopicId);
+  const query = params.toString();
+  return query ? `${GAMIFIED_VIDEO_PATH}?${query}` : GAMIFIED_VIDEO_PATH;
+}
 
 export default function CurriculumTextbookStudio() {
   const navigate = useNavigate();
@@ -36,7 +44,6 @@ export default function CurriculumTextbookStudio() {
   const [engagementNote, setEngagementNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [gamifiedVideoOpen, setGamifiedVideoOpen] = useState(false);
 
   const selectedChapter =
     chapters.find((c) => c.id === selectedChapterId) ??
@@ -131,7 +138,14 @@ export default function CurriculumTextbookStudio() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setGamifiedVideoOpen(true)}
+                onClick={() =>
+                  navigate(
+                    gamifiedVideoHref({
+                      chapterId: selectedChapter?.id,
+                      subtopicId: previewSubtopic?.id ?? selectedChapter?.subtopics[0]?.id,
+                    }),
+                  )
+                }
                 className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-sm font-semibold text-emerald-100 hover:bg-emerald-500/25"
               >
                 <Gamepad2 className="h-4 w-4" />
@@ -241,13 +255,6 @@ export default function CurriculumTextbookStudio() {
         )}
         </AIToolHeader>
       </main>
-      <GamifiedVideoStudioModal
-        open={gamifiedVideoOpen}
-        title={previewSubtopic ? `${previewSubtopic.code} ${previewSubtopic.title}` : textbook?.title}
-        subject={selectedChapter?.title}
-        subtopic={previewSubtopic}
-        onClose={() => setGamifiedVideoOpen(false)}
-      />
     </TeacherWorkspaceLayout>
   );
 }
