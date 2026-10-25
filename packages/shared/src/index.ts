@@ -504,6 +504,38 @@ export {
 export { escapeRoomToPlayableHtml } from './escapeRoomHtml.js';
 
 export type {
+  ClassroomBannerTheme,
+  ClassroomMemberRole,
+  ClassroomPostType,
+  ClassroomSubmissionStatus,
+  ClassroomGradingMode,
+  ClassroomDigestCadence,
+  ClassroomViewAs,
+  ClassroomPerson,
+  ClassroomClass,
+  ClassroomMember,
+  ClassroomTopic,
+  ClassroomRubricLevel,
+  ClassroomRubricCriterion,
+  ClassroomPost,
+  ClassroomComment,
+  ClassroomSubmission,
+  ClassroomGuardianEmail,
+  ClassroomWorkspace,
+  ClassroomActor,
+  ClassroomStateResponse,
+  ClassroomAction,
+  ClassroomActionResponse,
+} from './classroom.js';
+export {
+  CLASSROOM_BANNER_THEMES,
+  emptyClassroomWorkspace,
+  classroomCode,
+  classroomMeetLink,
+  submissionStats,
+} from './classroom.js';
+
+export type {
   GamifiedVideoMode,
   GamifiedVideoChoice,
   GamifiedVideoNode,

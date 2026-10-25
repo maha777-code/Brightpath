@@ -15,6 +15,7 @@ export type ToolComponentKey =
   | 'SongGenerator'
   | 'CurriculumStudio'
   | 'GamifiedActivity'
+  | 'Classroom'
   | 'CustomDynamicTool';
 
 export interface ToolDefinition {
@@ -37,6 +38,7 @@ const COMPONENT_KEYS: Record<string, ToolComponentKey> = {
   'song-generator': 'SongGenerator',
   'curriculum-studio': 'CurriculumStudio',
   'gamified-activity': 'GamifiedActivity',
+  classroom: 'Classroom',
 };
 
 function categoryFor(tool: TeacherToolDefinition): ToolDefinition['category'] {
@@ -53,6 +55,9 @@ function targetPlan(plan: AiToolPlan): ToolDefinition['targetPlan'] {
 }
 
 function allowedRoles(tool: TeacherToolDefinition): UserRole[] {
+  if (tool.id === 'classroom') {
+    return ['school', 'academy'];
+  }
   if (tool.id === 'curriculum-studio') {
     return ['admin', 'school', 'academy', 'teacher'];
   }

@@ -5,6 +5,7 @@ import { QuizGenerator } from '@/pages/TeacherTools/QuizGenerator';
 import LessonPlanGenerator from '@/pages/TeacherTools/LessonPlanGenerator';
 import SongGeneratorDashboard from '@/pages/TeacherTools/SongGeneratorDashboard';
 import { GamifiedActivityGenerator } from '@/pages/TeacherTools/GamifiedActivityGenerator';
+import { ClassroomApp } from '@/pages/TeacherTools/Classroom';
 import { CustomDynamicTool } from '@/components/tools/CustomDynamicTool';
 import { EmailResponder } from '@/components/tools/EmailResponder';
 import type { ToolDefinition } from '@/config/toolsRegistry';
@@ -24,6 +25,7 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
     (tool.componentKey === 'LessonPlanGenerator' ||
       tool.componentKey === 'SongGenerator' ||
       tool.componentKey === 'WorksheetGenerator' ||
+      tool.componentKey === 'Classroom' ||
       tool.id === 'family-email');
 
   const renderActualTool = () => {
@@ -38,6 +40,8 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
         return <SongGeneratorDashboard embedded={embedded} />;
       case 'GamifiedActivity':
         return <GamifiedActivityGenerator />;
+      case 'Classroom':
+        return <ClassroomApp />;
       case 'CurriculumStudio':
         return (
           <div className="space-y-3 text-slate-200">
@@ -55,7 +59,7 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
   };
 
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden rounded-2xl bg-[#060911] text-slate-100">
+    <div className={tool.componentKey === 'Classroom' ? 'relative w-full' : 'relative flex h-full w-full flex-col overflow-hidden rounded-2xl bg-[#060911] text-slate-100'}>
       {mode === 'admin-preview' ? (
         <div className="flex shrink-0 items-center justify-between border-b border-slate-800 bg-[#080d1a] px-6 py-2.5 text-xs font-bold text-cyan-400">
           <span className="flex items-center gap-2">

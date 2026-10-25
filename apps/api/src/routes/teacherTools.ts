@@ -4,6 +4,8 @@ import {
   TEACHER_TOOL_FOCUS_LABELS,
   TEACHER_TOOLS_CATALOG,
   getTeacherToolById,
+  isPlatformOwner,
+  type ClassroomAction,
   type TeacherToolsCatalogResponse,
   type ToggleTeacherToolFavoriteResponse,
   type WorksheetGeneratorResponse,
@@ -18,6 +20,7 @@ import type { AuthRequest } from '../middleware/auth.js';
 import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, translateLessonPlan, generateSharadaChat, generateEmailResponse } from '../services/llm.js';
 import { generateGamifiedActivityTool } from '../services/gamifiedActivityTool.js';
 import { generateGamifiedVideo } from '../services/gamifiedVideo.js';
+import { applyClassroomAction, canAccessClassroom, classroomOwnerKey, getClassroomState } from '../services/classroom.js';
 import { randomUUID } from 'node:crypto';
 
 const favoriteBody = z.object({
@@ -272,6 +275,76 @@ router.post('/tools/gamified-video', async (req: AuthRequest, res: Response) => 
     res.status(500).json({
       error: err instanceof Error ? err.message : 'Failed to generate gamified video from the textbook',
     });
+  }
+});
+
+function classroomActor(req: AuthRequest) {
+  const id = favoriteOwnerId(req);
+  if (!id) return null;
+  const name =
+    (req.user?.email ? req.user.email.split('@')[0] : '') ||
+    'School admin';
+  return {
+    id,
+    name: name.replace(/[._]/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase()),
+    email: req.user?.email || `${id}@school.local`,
+  };
+}
+
+function classroomAllowed(req: AuthRequest) {
+  return isPlatformOwner(req.auth?.role, req.user?.email) || canAccessClassroom(req.auth?.role);
+}
+
+/** GET /teacher/tools/classroom */
+router.get('/tools/classroom', async (req: AuthRequest, res: Response) => {
+  const actor = classroomActor(req);
+  if (!actor) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  if (!classroomAllowed(req)) {
+    res.status(403).json({ error: 'Classroom is available for school and tutor-center admins.' });
+    return;
+  }
+  try {
+    const result = await getClassroomState(classroomOwnerKey({ organizationId: req.organizationId, actorId: actor.id }), actor);
+    res.json(result);
+  } catch (err) {
+    console.error('[teacher/tools/classroom] load failed', err);
+    res.status(500).json({ error: 'Could not load Classroom.' });
+  }
+});
+
+const classroomActionBody = z.object({
+  type: z.string().min(1).max(40),
+}).passthrough();
+
+/** POST /teacher/tools/classroom */
+router.post('/tools/classroom', async (req: AuthRequest, res: Response) => {
+  const actor = classroomActor(req);
+  if (!actor) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  if (!classroomAllowed(req)) {
+    res.status(403).json({ error: 'Classroom is available for school and tutor-center admins.' });
+    return;
+  }
+  const parsed = classroomActionBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid classroom action.' });
+    return;
+  }
+  try {
+    const result = await applyClassroomAction(
+      classroomOwnerKey({ organizationId: req.organizationId, actorId: actor.id }),
+      actor,
+      parsed.data as ClassroomAction,
+    );
+    res.json(result);
+  } catch (err) {
+    console.error('[teacher/tools/classroom] action failed', err);
+    res.status(400).json({ error: err instanceof Error ? err.message : 'Classroom action failed.' });
   }
 });
 

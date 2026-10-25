@@ -8,6 +8,7 @@ import {
   ListChecks,
   Lock,
   Mail,
+  School,
   MessageSquare,
   Mic,
   Music,
@@ -40,6 +41,7 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   'message-square': MessageSquare,
   youtube: Youtube,
   mail: Mail,
+  school: School,
 };
 
 export function AiToolsLibrary({

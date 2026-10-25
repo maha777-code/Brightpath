@@ -12,6 +12,7 @@ import {
   Music,
   Pencil,
   Presentation,
+  School,
   Sparkles,
   Star,
   Youtube,
@@ -45,6 +46,7 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   'message-square': MessageSquare,
   youtube: Youtube,
   mail: Mail,
+  school: School,
 };
 
 function badgeClass(badge: TeacherToolBadge): string {
@@ -166,6 +168,10 @@ export default function TeacherTools() {
     }
     if (tool.id === 'gamified-activity') {
       navigate('/teacher/tools/gamified-activity');
+      return;
+    }
+    if (tool.id === 'classroom') {
+      navigate('/teacher/tools/classroom');
       return;
     }
     setActiveTool(tool);

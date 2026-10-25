@@ -216,6 +216,9 @@ import type {
   GamifiedActivityResponse,
   GamifiedVideoGeneratePayload,
   GamifiedVideoGenerateResponse,
+  ClassroomAction,
+  ClassroomActionResponse,
+  ClassroomStateResponse,
   WorksheetGeneratorPayload,
   WorksheetGeneratorResponse,
   WorksheetHistoryResponse,
@@ -695,6 +698,15 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
       timeoutMs: 120_000,
+    }),
+
+  classroomState: () => request<ClassroomStateResponse>('/teacher/tools/classroom'),
+
+  classroomAction: (body: ClassroomAction) =>
+    request<ClassroomActionResponse>('/teacher/tools/classroom', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      timeoutMs: 90_000,
     }),
 
   generateWorksheet: (body: WorksheetGeneratorPayload) =>

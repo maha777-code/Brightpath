@@ -82,7 +82,7 @@ function studentTools(tutorHref: string): StudentTool[] {
     popularity: 1000,
     newestRank: 0,
   };
-  const catalog = TEACHER_TOOLS_CATALOG.filter((item) => item.id !== 'curriculum-studio').flatMap((item) => {
+  const catalog = TEACHER_TOOLS_CATALOG.filter((item) => item.id !== 'curriculum-studio' && item.id !== 'classroom').flatMap((item) => {
     const id = item.id;
     const tool = getTeacherToolById(id);
     const registry = getRegistryTool(id);

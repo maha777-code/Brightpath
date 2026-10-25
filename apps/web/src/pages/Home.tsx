@@ -15,6 +15,7 @@ import {
   Pencil,
   Plus,
   Presentation,
+  School,
   Sparkles,
   Star,
 } from 'lucide-react';
@@ -66,6 +67,7 @@ const TOOL_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   'gamepad-2': Gamepad2,
   presentation: Presentation,
   mail: Mail,
+  school: School,
 };
 
 const RECENT_ACTIVITY = [
@@ -114,18 +116,23 @@ export function HomePage() {
   });
 
   const recommendedTools = useMemo(
-    () =>
-      HOME_TOOL_IDS.map((id) => {
+    () => {
+      const ids =
+        role === 'org_admin' || role === 'center_admin'
+          ? (['classroom', ...HOME_TOOL_IDS] as const)
+          : HOME_TOOL_IDS;
+      return ids.map((id) => {
         const tool = getTeacherToolById(id);
         return {
           id,
-          name: HOME_TOOL_LABELS[id],
+          name: id === 'classroom' ? 'Classroom' : HOME_TOOL_LABELS[id as (typeof HOME_TOOL_IDS)[number]],
           description: tool?.description ?? '',
           route: tool?.href ?? '/teacher/tools',
           iconName: tool?.icon ?? 'sparkles',
         };
-      }),
-    [],
+      });
+    },
+    [role],
   );
 
   useEffect(() => {

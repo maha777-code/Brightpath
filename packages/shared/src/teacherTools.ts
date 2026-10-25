@@ -120,6 +120,20 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     icon: 'list-checks',
   },
   {
+    id: 'classroom',
+    title: 'Classroom',
+    description:
+      'Create classes, run a stream, assign classwork, grade with rubrics, and send guardian summaries — for schools and tutor centers.',
+    focusArea: 'communication',
+    href: '/teacher/tools/classroom',
+    requiredPlan: 'free',
+    badge: 'New',
+    popularity: 96,
+    newestRank: 0,
+    highlighted: true,
+    icon: 'school',
+  },
+  {
     id: 'gamified-activity',
     title: 'Gamified Activity',
     description:

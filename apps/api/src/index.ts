@@ -32,6 +32,7 @@ import { ensureDatabaseSchema } from './lib/ensureDatabaseSchema.js';
 import { anthropicWorkspaceId, LESSON_VIDEO_MODEL } from './lib/llm/provider.js';
 import { ensureDemoTeacher } from './lib/ensureDemoTeacher.js';
 import { ensureDemoStudent } from './lib/ensureDemoStudent.js';
+import { ensureDemoSchool } from './lib/ensureDemoSchool.js';
 import { prisma } from './lib/prisma.js';
 import { migrateLegacyUsers } from './scripts/migrateLegacyUsers.js';
 import type { AuthRequest } from './middleware/auth.js';
@@ -273,6 +274,7 @@ async function start() {
 
   await ensureDemoTeacher();
   await ensureDemoStudent();
+  await ensureDemoSchool();
 
 
   app.listen(PORT, () => {

@@ -8,6 +8,7 @@ import {
   Gamepad2,
   ListChecks,
   Mail,
+  School,
   MessageSquare,
   Mic,
   Monitor,
@@ -44,6 +45,7 @@ const TOOL_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   'message-square': MessageSquare,
   youtube: Youtube,
   mail: Mail,
+  school: School,
   sparkles: Sparkles,
 };
 
@@ -71,6 +73,10 @@ export function RoleToolsPanel({
       return;
     }
     setDenied('');
+    if (tool.id === 'classroom') {
+      navigate('/teacher/tools/classroom');
+      return;
+    }
     if (tool.id === 'curriculum-studio') {
       if (!hasAiToolAccess({ role, email, planType, requiredPlan: 'pro' })) {
         setUpgradeOpen(true);
