@@ -123,7 +123,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
     id: 'gamified-activity',
     title: 'Gamified Activity',
     description:
-      'Turn unit PDFs, Docs, or slides into an escape room, choose-your-own-adventure quest, or XP skill-tree challenge.',
+      'Turn unit PDFs, Docs, or slides into a playable HTML escape room, choose-your-own-adventure quest, or XP skill-tree challenge.',
     focusArea: 'content',
     href: '/teacher/tools/gamified-activity',
     requiredPlan: 'free',

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Compass, RefreshCw } from 'lucide-react';
+import { Compass, Gamepad2, RefreshCw } from 'lucide-react';
 import type {
   StudentDoubt,
   TeacherChapter,
@@ -17,6 +17,7 @@ import { TeacherDoubtAssistant } from '@/components/teacher/TeacherDoubtAssistan
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { AIToolHeader } from '@/components/tools/AIToolHeader';
 import { ProUpgradeDialog } from '@/components/billing/ProUpgradeDialog';
+import GamifiedVideoStudioModal from '@/components/teacher/GamifiedVideoStudioModal';
 import { canUserAccessTool, getRegistryTool } from '@/config/toolsRegistry';
 
 export const CURRICULUM_STUDIO_PATH = '/tools/curriculum-textbook-studio';
@@ -35,6 +36,7 @@ export default function CurriculumTextbookStudio() {
   const [engagementNote, setEngagementNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [gamifiedVideoOpen, setGamifiedVideoOpen] = useState(false);
 
   const selectedChapter =
     chapters.find((c) => c.id === selectedChapterId) ??
@@ -127,6 +129,14 @@ export default function CurriculumTextbookStudio() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setGamifiedVideoOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-sm font-semibold text-emerald-100 hover:bg-emerald-500/25"
+              >
+                <Gamepad2 className="h-4 w-4" />
+                Gamified Video
+              </button>
               <button
                 type="button"
                 onClick={() => void load()}
@@ -231,6 +241,13 @@ export default function CurriculumTextbookStudio() {
         )}
         </AIToolHeader>
       </main>
+      <GamifiedVideoStudioModal
+        open={gamifiedVideoOpen}
+        title={previewSubtopic ? `${previewSubtopic.code} ${previewSubtopic.title}` : textbook?.title}
+        subject={selectedChapter?.title}
+        subtopic={previewSubtopic}
+        onClose={() => setGamifiedVideoOpen(false)}
+      />
     </TeacherWorkspaceLayout>
   );
 }

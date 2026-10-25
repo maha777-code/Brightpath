@@ -486,6 +486,7 @@ export type {
   GamifiedActivityResponse,
   GamifiedLessonContext,
   EscapeRoomDocument,
+  EscapeRoomPlayable,
   BranchingQuestDocument,
   SkillTreeDocument,
 } from './gamifiedActivityTool.js';
@@ -498,7 +499,9 @@ export {
   gamifiedActivityToMarkdown,
   fallbackGamifiedDocument,
   fallbackInsights,
+  fallbackPlayable,
 } from './gamifiedActivityTool.js';
+export { escapeRoomToPlayableHtml } from './escapeRoomHtml.js';
 
 export type {
   AppRole,

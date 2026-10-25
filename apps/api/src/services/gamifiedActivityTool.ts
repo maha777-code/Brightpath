@@ -40,10 +40,10 @@ function contextFrom(input: GamifiedActivityPayload): GamifiedLessonContext {
 function systemPrompt(kind: GamifiedActivityKind): string {
   const option = getGamifiedActivityOption(kind);
   if (kind === 'escape_room') {
-    return `Role: Educational Game Designer & Curriculum Specialist.
-Task: Gamify the attached learning material into a 4-Stage Digital Escape Room challenge.
-First extract key terms, learning objectives, and common misconceptions from the source, then build the game around those.
-Return JSON only. ${option.title} must be classroom-ready for Google Forms / Docs export.`;
+    return `Role: Full-Stack Educational Game Designer & Curriculum Specialist.
+Task: Gamify the attached learning material into a 4-Stage playable Digital Escape Room.
+First extract key terms, learning objectives, and common misconceptions, then build interactive puzzles around those.
+Return JSON only. The payload must be complete enough to render a single-file HTML game: start screen, 30-minute timer, four locked rooms, instant feedback, and a victory screen.`;
   }
   if (kind === 'branching_quest') {
     return `Role: Interactive Narrative & Gamification Strategist.
@@ -67,12 +67,12 @@ function userPrompt(kind: GamifiedActivityKind, ctx: GamifiedLessonContext, sour
 - Source Material: attached notes / pasted unit text below
 
 Game Mechanics:
-1. Theme & Narrative: Create a high-stakes, age-appropriate storyline.
-2. 4 Puzzles (Lock Codes):
-   - Stage 1 (Vocabulary Match): Decode a 4-letter keyword lock using key terms.
-   - Stage 2 (Sequence Puzzle): Arrange a process from the unit in order to reveal a numerical code.
-   - Stage 3 (Data Analysis): Solve a calculation/graph reading puzzle for a 3-digit combination.
-   - Stage 4 (Mastery Challenge): Fix a flawed scenario to get the final vault key.
+1. Theme & Narrative: Create a high-stakes, age-appropriate storyline. For photosynthesis / cellular respiration, prefer the title "Escape Bio-Dome Alpha: Project Green Horizon".
+2. 4 Sequential Rooms (students cannot skip):
+   - Stage 1 Vocabulary Match: 4 term/definition pairs for dropdown matching.
+   - Stage 2 Sequence Puzzle: 4 process cards labeled A-D whose correct order is B, D, C, A.
+   - Stage 3 Data Analysis: a small table plus numeric answers for X, Y, and Z.
+   - Stage 4 Mastery Challenge: a flawed scientific claim and 4 multiple-choice repairs, exactly one correct.
 
 Source material:
 ${source}
@@ -88,12 +88,24 @@ Return JSON:
   "storyIntro": "",
   "gameRules": [],
   "stages": [{ "stage": 1, "title": "Vocabulary Match", "kind": "vocabulary", "puzzle": "", "hiddenClues": [], "lockCode": "ABCD", "validationNote": "" }],
+  "playable": {
+    "timerMinutes": 30,
+    "missionName": "",
+    "vocabulary": { "prompt": "", "pairs": [{ "term": "", "definition": "" }] },
+    "sequence": { "prompt": "", "cards": [{ "id": "A", "text": "" }], "correctOrder": ["B", "D", "C", "A"] },
+    "data": {
+      "scenario": "",
+      "table": { "headers": [], "rows": [] },
+      "fields": [{ "id": "X", "label": "", "answer": "6" }, { "id": "Y", "label": "", "answer": "2" }, { "id": "Z", "label": "", "answer": "0" }]
+    },
+    "mastery": { "prompt": "", "flawedClaim": "", "options": [{ "id": "A", "text": "", "correct": true }] }
+  },
   "answerKey": [{ "stage": 1, "code": "ABCD", "rationale": "" }],
   "formsBranchingNotes": [],
   "extensionActivity": { "title": "", "instructions": "" }
 }
 
-Rules: exactly 4 stages in order vocabulary, sequence, data, mastery. Ground every puzzle in the source. Include teacher answer key and 1 extension activity.`;
+Rules: exactly 4 vocabulary pairs, 4 sequence cards A-D with correctOrder B-D-C-A, 3 data fields X/Y/Z, and 4 mastery options with exactly one correct. Ground every puzzle in the source. Include teacher answer key and 1 extension activity.`
   }
 
   if (kind === 'branching_quest') {

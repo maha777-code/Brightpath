@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Check, Copy, Download, Loader2, Sparkles, X } from 'lucide-react';
+import { Check, Copy, Download, ExternalLink, Loader2, Sparkles, X } from 'lucide-react';
 import {
   GAMIFIED_ACTIVITY_OPTIONS,
   LESSON_PLAN_GRADE_LEVELS,
@@ -22,14 +22,24 @@ import {
 
 const FILE_ACCEPT = '.pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,application/pdf,image/*';
 
-function downloadMarkdown(title: string, markdown: string) {
-  const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+function fileStem(title: string) {
+  return title.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'gamified-activity';
+}
+
+function downloadText(title: string, content: string, ext: 'md' | 'html', mime: string) {
+  const blob = new Blob([content], { type: `${mime};charset=utf-8` });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${title.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'gamified-activity'}.md`;
+  link.download = `${fileStem(title)}.${ext}`;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function openHtmlPreview(html: string) {
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 export function GamifiedActivityGenerator() {
@@ -42,7 +52,7 @@ export function GamifiedActivityGenerator() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GamifiedActivityResponse | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'html' | 'markdown' | null>(null);
 
   const option = getGamifiedActivityOption(kind);
   const processing = files.some((file) => file.isProcessing);
@@ -105,11 +115,12 @@ export function GamifiedActivityGenerator() {
     }
   };
 
-  const copyMarkdown = async () => {
-    if (!result?.markdown) return;
-    await navigator.clipboard.writeText(result.markdown);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
+  const copyText = async (which: 'html' | 'markdown') => {
+    const value = which === 'html' ? result?.html : result?.markdown;
+    if (!value) return;
+    await navigator.clipboard.writeText(value);
+    setCopied(which);
+    window.setTimeout(() => setCopied(null), 1800);
   };
 
   return (
@@ -119,7 +130,7 @@ export function GamifiedActivityGenerator() {
         <h2 className="mt-1 text-2xl font-extrabold text-white">Gamify an activity</h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-300">
           Attach a unit PDF, Doc, or slides. MindVault extracts key terms, objectives, and misconceptions,
-          then builds the game mechanics, rules, and scoring you can paste into Docs, Forms, or Slides.
+          then builds a playable escape room (single-file HTML), a branching quest, or an XP skill tree.
         </p>
       </div>
 
@@ -265,9 +276,37 @@ export function GamifiedActivityGenerator() {
               <h3 className="text-xl font-extrabold text-white">{result.document.title}</h3>
             </div>
             <div className="flex flex-wrap gap-2">
+              {result.html ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => openHtmlPreview(result.html!)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/40 px-3 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-400/10"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open game
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadText(result.document.title, result.html!, 'html', 'text/html')}
+                    className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-3 py-2 text-sm font-extrabold text-slate-950"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download HTML
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void copyText('html')}
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2 text-sm font-medium text-white hover:bg-white/10"
+                  >
+                    {copied === 'html' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied === 'html' ? 'HTML copied' : 'Copy HTML'}
+                  </button>
+                </>
+              ) : null}
               <button
                 type="button"
-                onClick={() => downloadMarkdown(result.document.title, result.markdown)}
+                onClick={() => downloadText(result.document.title, result.markdown, 'md', 'text/markdown')}
                 className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2 text-sm font-medium text-white hover:bg-white/10"
               >
                 <Download className="h-4 w-4" />
@@ -275,14 +314,28 @@ export function GamifiedActivityGenerator() {
               </button>
               <button
                 type="button"
-                onClick={() => void copyMarkdown()}
+                onClick={() => void copyText('markdown')}
                 className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2 text-sm font-medium text-white hover:bg-white/10"
               >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                {copied ? 'Copied' : 'Copy for Docs / Forms'}
+                {copied === 'markdown' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied === 'markdown' ? 'Copied' : 'Copy for Docs / Forms'}
               </button>
             </div>
           </div>
+
+          {result.html ? (
+            <section className="space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-cyan-200">
+                Playable HTML game · start screen, 30-minute timer, 4 locked rooms
+              </p>
+              <iframe
+                title="Playable digital escape room"
+                srcDoc={result.html}
+                sandbox="allow-scripts"
+                className="h-[780px] w-full rounded-2xl border border-cyan-400/30 bg-slate-950"
+              />
+            </section>
+          ) : null}
 
           <Insights insights={result.insights} />
           {result.document.kind === 'escape_room' ? <EscapeRoomView document={result.document} /> : null}
@@ -319,6 +372,7 @@ function Insights({
 }
 
 function EscapeRoomView({ document }: { document: EscapeRoomDocument }) {
+  const playable = document.playable;
   return (
     <div className="space-y-3">
       <Card eyebrow="Story intro" title={document.theme}>
@@ -332,6 +386,23 @@ function EscapeRoomView({ document }: { document: EscapeRoomDocument }) {
             <li key={rule}>{rule}</li>
           ))}
         </ul>
+      </Card>
+      <Card eyebrow="Student game" title={`${playable.missionName} · ${playable.timerMinutes} minute clock`}>
+        <p>
+          <span className="font-semibold text-amber-100">Vocabulary:</span>{' '}
+          {playable.vocabulary.pairs.map((pair) => pair.term).join(' · ')}
+        </p>
+        <p>
+          <span className="font-semibold text-amber-100">Sequence:</span> {playable.sequence.correctOrder.join('-')}
+        </p>
+        <p>
+          <span className="font-semibold text-amber-100">Data lock:</span>{' '}
+          {playable.data.fields.map((field) => `${field.id}=${field.answer}`).join(' · ')}
+        </p>
+        <p>
+          <span className="font-semibold text-amber-100">Mastery:</span>{' '}
+          {playable.mastery.options.find((option) => option.correct)?.id ?? 'A'}
+        </p>
       </Card>
       {document.stages.map((stage) => (
         <Card key={stage.stage} eyebrow={`Stage ${stage.stage}`} title={stage.title}>

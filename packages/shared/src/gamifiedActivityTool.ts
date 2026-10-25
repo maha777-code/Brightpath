@@ -1,3 +1,5 @@
+import { escapeRoomToPlayableHtml } from './escapeRoomHtml.js';
+
 export const GAMIFIED_ACTIVITY_KINDS = [
   'escape_room',
   'branching_quest',
@@ -18,10 +20,10 @@ export const GAMIFIED_ACTIVITY_OPTIONS: GamifiedActivityOption[] = [
   {
     id: 'escape_room',
     title: 'Digital Escape Room',
-    subtitle: 'Google Forms / Docs export',
+    subtitle: 'Playable HTML / Google Sites',
     description:
-      'A 4-stage lockout with story, hidden clues, teacher answer key, and an early-finisher extension.',
-    exportHint: 'Google Forms logic branching',
+      'A 4-stage lockout students play in the browser: start mission, countdown timer, instant feedback, and a victory screen.',
+    exportHint: 'single-file HTML',
   },
   {
     id: 'branching_quest',
@@ -57,6 +59,52 @@ export interface EscapeRoomStage {
   validationNote: string;
 }
 
+export interface EscapeVocabPair {
+  term: string;
+  definition: string;
+}
+
+export interface EscapeSequenceCard {
+  id: 'A' | 'B' | 'C' | 'D';
+  text: string;
+}
+
+export interface EscapeDataField {
+  id: 'X' | 'Y' | 'Z';
+  label: string;
+  answer: string;
+}
+
+export interface EscapeMasteryOption {
+  id: string;
+  text: string;
+  correct: boolean;
+}
+
+export interface EscapeRoomPlayable {
+  timerMinutes: number;
+  missionName: string;
+  vocabulary: {
+    prompt: string;
+    pairs: EscapeVocabPair[];
+  };
+  sequence: {
+    prompt: string;
+    cards: EscapeSequenceCard[];
+    correctOrder: Array<'A' | 'B' | 'C' | 'D'>;
+  };
+  data: {
+    scenario: string;
+    table: { headers: string[]; rows: string[][] };
+    fields: EscapeDataField[];
+  };
+  mastery: {
+    prompt: string;
+    flawedClaim: string;
+    options: EscapeMasteryOption[];
+  };
+}
+
 export interface EscapeRoomDocument {
   kind: 'escape_room';
   title: string;
@@ -66,6 +114,7 @@ export interface EscapeRoomDocument {
   storyIntro: string;
   gameRules: string[];
   stages: EscapeRoomStage[];
+  playable: EscapeRoomPlayable;
   answerKey: { stage: number; code: string; rationale: string }[];
   formsBranchingNotes: string[];
   extensionActivity: { title: string; instructions: string };
@@ -141,6 +190,7 @@ export interface GamifiedActivityResponse {
   insights: GamifiedActivityInsights;
   document: GamifiedActivityDocument;
   markdown: string;
+  html?: string;
 }
 
 export function isGamifiedActivityKind(value: unknown): value is GamifiedActivityKind {
@@ -198,24 +248,176 @@ export function fallbackInsights(ctx: GamifiedLessonContext): GamifiedActivityIn
   };
 }
 
+function isBioEnergyTopic(topic: string): boolean {
+  return /photo\s*synth|cellular\s*resp|chloro|mitochond/i.test(topic);
+}
+
+function playableLockCodes(playable: EscapeRoomPlayable): [string, string, string, string] {
+  const vocab = playable.vocabulary.pairs.map((pair) => pair.term.replace(/[^A-Za-z]/g, '').charAt(0).toUpperCase()).join('');
+  const sequence = playable.sequence.correctOrder.join('');
+  const data = playable.data.fields.map((field) => String(field.answer).trim()).join('');
+  const mastery = playable.mastery.options.find((option) => option.correct)?.id ?? 'A';
+  return [vocab || 'LOCK', sequence || 'BDCA', data || '620', mastery];
+}
+
+export function fallbackPlayable(ctx: GamifiedLessonContext): EscapeRoomPlayable {
+  if (isBioEnergyTopic(ctx.topic)) {
+    return {
+      timerMinutes: 30,
+      missionName: 'Project Green Horizon',
+      vocabulary: {
+        prompt: 'Match each station definition to the correct biological term. All four must lock in before the keyword will form.',
+        pairs: [
+          { term: 'Chloroplast', definition: 'The organelle that captures light energy to run photosynthesis.' },
+          { term: 'ATP', definition: 'The usable energy molecule cells make during cellular respiration.' },
+          { term: 'Glucose', definition: 'The sugar produced by photosynthesis and later broken down for energy.' },
+          { term: 'Mitochondria', definition: 'The organelle where cellular respiration releases ATP, CO₂, and water.' },
+        ],
+      },
+      sequence: {
+        prompt: 'Restore the bio-dome energy cycle. Place the process cards in the only order that keeps oxygen and ATP flowing (B → D → C → A).',
+        cards: [
+          { id: 'A', text: 'Mitochondria convert glucose and oxygen into ATP, carbon dioxide, and water.' },
+          { id: 'B', text: 'Chloroplasts absorb light energy, water, and carbon dioxide.' },
+          { id: 'C', text: 'Cells take in the glucose and oxygen produced by the plants.' },
+          { id: 'D', text: 'Photosynthesis releases glucose and oxygen as products.' },
+        ],
+        correctOrder: ['B', 'D', 'C', 'A'],
+      },
+      data: {
+        scenario:
+          'Elodea chambers were logged for 1 hour. Use the table to find X, Y, and Z. In the light, photosynthesis output exceeds respiration. In the dark, photosynthesis stops but respiration continues.',
+        table: {
+          headers: ['Chamber', 'Light', 'Organism', 'O₂ change (units)', 'CO₂ change (units)'],
+          rows: [
+            ['A', 'High', 'Elodea', '+6', '−6'],
+            ['B', 'Dark', 'Elodea', '−2', '+2'],
+            ['C', 'High', 'None (control)', '0', '0'],
+          ],
+        },
+        fields: [
+          { id: 'X', label: 'X = O₂ produced in Chamber A (high light)', answer: '6' },
+          { id: 'Y', label: 'Y = CO₂ released in Chamber B (dark, respiration only)', answer: '2' },
+          { id: 'Z', label: 'Z = net gas change in empty Chamber C', answer: '0' },
+        ],
+      },
+      mastery: {
+        prompt: 'The station AI posted a corrupted protocol. Choose the scientifically correct repair.',
+        flawedClaim:
+          'To save energy, keep every plant in permanent darkness. Plants only perform photosynthesis and never perform cellular respiration.',
+        options: [
+          {
+            id: 'A',
+            text: 'Reject it. Plants photosynthesize in light and respire day and night. Darkness stops food-making, not ATP production.',
+            correct: true,
+          },
+          {
+            id: 'B',
+            text: 'Accept it. Plants only photosynthesize, so darkness is a safe energy-saving mode.',
+            correct: false,
+          },
+          {
+            id: 'C',
+            text: 'Accept it. Cellular respiration is the same as breathing, so plants do not do it.',
+            correct: false,
+          },
+          {
+            id: 'D',
+            text: 'Rewrite it to say darkness increases photosynthesis because plants rest and store extra energy.',
+            correct: false,
+          },
+        ],
+      },
+    };
+  }
+
+  const topic = ctx.topic;
+  return {
+    timerMinutes: 30,
+    missionName: `${topic} Lockout`,
+    vocabulary: {
+      prompt: `Match each definition to the correct ${topic} term.`,
+      pairs: [
+        { term: 'Core idea', definition: `The central mechanism of ${topic}.` },
+        { term: 'Condition', definition: `What must be true before ${topic} can start.` },
+        { term: 'Evidence', definition: `An observable result that ${topic} occurred.` },
+        { term: 'Limit', definition: `A constraint or misconception to watch for in ${topic}.` },
+      ],
+    },
+    sequence: {
+      prompt: `Order the ${topic} process so the later steps only happen after the required earlier ones (B → D → C → A).`,
+      cards: [
+        { id: 'A', text: `The observable result of ${topic} is recorded.` },
+        { id: 'B', text: `The required starting condition for ${topic} is in place.` },
+        { id: 'C', text: `The mechanism of ${topic} is applied to the new situation.` },
+        { id: 'D', text: `The key transformation in ${topic} begins.` },
+      ],
+      correctOrder: ['B', 'D', 'C', 'A'],
+    },
+    data: {
+      scenario: `A three-trial table from the ${topic} notes is missing three values. Read or calculate X, Y, and Z.`,
+      table: {
+        headers: ['Trial', 'Input', 'Measured result'],
+        rows: [
+          ['1', 'High', '6'],
+          ['2', 'Low', '2'],
+          ['3', 'Control', '0'],
+        ],
+      },
+      fields: [
+        { id: 'X', label: 'X = high-input result', answer: '6' },
+        { id: 'Y', label: 'Y = low-input result', answer: '2' },
+        { id: 'Z', label: 'Z = control result', answer: '0' },
+      ],
+    },
+    mastery: {
+      prompt: `A report about ${topic} contains one flawed claim. Choose the correction.`,
+      flawedClaim: `${topic} is optional flavor instead of the mechanism, so any surprising example can overwrite the unit model.`,
+      options: [
+        {
+          id: 'A',
+          text: `Keep the unit model. A surprising example must still satisfy the required conditions of ${topic}.`,
+          correct: true,
+        },
+        {
+          id: 'B',
+          text: `Throw out the model because one surprising number appeared.`,
+          correct: false,
+        },
+        {
+          id: 'C',
+          text: `Treat ${topic} as optional flavor and guess from intuition.`,
+          correct: false,
+        },
+        {
+          id: 'D',
+          text: `Recommend the opposite of the unit rule because it feels efficient.`,
+          correct: false,
+        },
+      ],
+    },
+  };
+}
+
 export function fallbackEscapeRoom(ctx: GamifiedLessonContext): EscapeRoomDocument {
   const topic = ctx.topic;
-  const keyword = topic.replace(/[^A-Za-z]/g, '').slice(0, 4).toUpperCase().padEnd(4, 'X');
-  const sequence = '1324';
-  const dataCode = '247';
-  const vault = `${keyword.slice(0, 2)}${dataCode.slice(0, 2)}`;
+  const playable = fallbackPlayable(ctx);
+  const [keyword, sequence, dataCode, vault] = playableLockCodes(playable);
+  const bio = isBioEnergyTopic(topic);
   return {
     kind: 'escape_room',
-    title: `${topic} Lockout`,
-    theme: `The ${topic} Lockout`,
+    title: bio ? 'Escape Bio-Dome Alpha: Project Green Horizon' : `${topic} Lockout`,
+    theme: bio ? 'Project Green Horizon' : `The ${topic} Lockout`,
     subject: ctx.subject,
     gradeLabel: ctx.gradeLevel,
-    storyIntro: `The classroom lab just sealed. Only a team that understands ${topic} can restore power before the period ends. Four locks stand between you and the vault.`,
+    storyIntro: bio
+      ? 'WARNING. Emergency at Bio-Dome Alpha. A power surge sealed the life-support locks. Oxygen is falling and the atmospheric scrubbers are offline. As chief station biologist, you must clear four overrides with photosynthesis and cellular respiration before the air runs out.'
+      : `The classroom lab just sealed. Only a team that understands ${topic} can restore power before the period ends. Four locks stand between you and the vault.`,
     gameRules: [
       'Work Stage 1 to Stage 4 in order. Later locks stay closed until the previous code is accepted.',
       'Use only the attached unit material — no outside spoilers.',
-      'Type lock codes exactly (letters uppercase, no spaces).',
-      'If a code fails, reread that stage’s hidden clue before trying again.',
+      'Wrong answers shake the panel and reveal a hint. Correct answers flash green and unlock the next room.',
+      'The mission clock starts when you press Start Mission.',
     ],
     stages: [
       {
@@ -267,6 +469,7 @@ export function fallbackEscapeRoom(ctx: GamifiedLessonContext): EscapeRoomDocume
         validationNote: `Accept ${vault} as the final Forms section jump.`,
       },
     ],
+    playable,
     answerKey: [
       { stage: 1, code: keyword, rationale: `First letters of the four required ${topic} terms.` },
       { stage: 2, code: sequence, rationale: `Correct process order for ${topic}.` },
@@ -431,9 +634,102 @@ function parseInsights(raw: unknown, ctx: GamifiedLessonContext): GamifiedActivi
   };
 }
 
+function parsePlayable(raw: unknown, ctx: GamifiedLessonContext): EscapeRoomPlayable {
+  const defaults = fallbackPlayable(ctx);
+  const rec = asRecord(raw) ?? {};
+  const vocab = asRecord(rec.vocabulary) ?? {};
+  const sequence = asRecord(rec.sequence) ?? {};
+  const data = asRecord(rec.data) ?? {};
+  const mastery = asRecord(rec.mastery) ?? {};
+  const pairsRaw = Array.isArray(vocab.pairs) ? vocab.pairs : [];
+  const cardsRaw = Array.isArray(sequence.cards) ? sequence.cards : [];
+  const fieldsRaw = Array.isArray(data.fields) ? data.fields : [];
+  const optionsRaw = Array.isArray(mastery.options) ? mastery.options : [];
+  const tableRaw = asRecord(data.table) ?? {};
+  const rowsRaw = Array.isArray(tableRaw.rows) ? tableRaw.rows : [];
+  const orderRaw = Array.isArray(sequence.correctOrder) ? sequence.correctOrder : [];
+  const ids = ['A', 'B', 'C', 'D'] as const;
+
+  const pairs = defaults.vocabulary.pairs.map((pair, index) => {
+    const next = asRecord(pairsRaw[index]) ?? {};
+    return {
+      term: asString(next.term, pair.term),
+      definition: asString(next.definition, pair.definition),
+    };
+  });
+
+  const cards = defaults.sequence.cards.map((card, index) => {
+    const next = asRecord(cardsRaw[index]) ?? {};
+    const id = ids.includes(asString(next.id) as (typeof ids)[number])
+      ? (asString(next.id) as (typeof ids)[number])
+      : card.id;
+    return { id, text: asString(next.text, card.text) };
+  });
+
+  const correctOrder = defaults.sequence.correctOrder.map((letter, index) => {
+    const next = String(orderRaw[index] ?? '').trim().toUpperCase();
+    return ids.includes(next as (typeof ids)[number]) ? (next as (typeof ids)[number]) : letter;
+  });
+
+  const fields = defaults.data.fields.map((field, index) => {
+    const next = asRecord(fieldsRaw[index]) ?? {};
+    return {
+      ...field,
+      label: asString(next.label, field.label),
+      answer: asString(next.answer, field.answer),
+    };
+  });
+
+  const options = defaults.mastery.options.map((option, index) => {
+    const next = asRecord(optionsRaw[index]) ?? {};
+    return {
+      id: asString(next.id, option.id),
+      text: asString(next.text, option.text),
+      correct: typeof next.correct === 'boolean' ? next.correct : option.correct,
+    };
+  });
+  if (!options.some((option) => option.correct)) options[0].correct = true;
+
+  return {
+    timerMinutes: Math.min(90, Math.max(5, asNumber(rec.timerMinutes, defaults.timerMinutes))),
+    missionName: asString(rec.missionName, defaults.missionName),
+    vocabulary: {
+      prompt: asString(vocab.prompt, defaults.vocabulary.prompt),
+      pairs,
+    },
+    sequence: {
+      prompt: asString(sequence.prompt, defaults.sequence.prompt),
+      cards,
+      correctOrder,
+    },
+    data: {
+      scenario: asString(data.scenario, defaults.data.scenario),
+      table: {
+        headers: asStringList(tableRaw.headers, defaults.data.table.headers),
+        rows:
+          rowsRaw.length >= defaults.data.table.rows.length
+            ? defaults.data.table.rows.map((row, index) => {
+                const next = Array.isArray(rowsRaw[index]) ? rowsRaw[index].map((cell) => asString(cell)) : row;
+                return next.length ? next : row;
+              })
+            : defaults.data.table.rows,
+      },
+      fields,
+    },
+    mastery: {
+      prompt: asString(mastery.prompt, defaults.mastery.prompt),
+      flawedClaim: asString(mastery.flawedClaim, defaults.mastery.flawedClaim),
+      options,
+    },
+  };
+}
+
 function parseEscapeRoom(raw: Record<string, unknown>, ctx: GamifiedLessonContext): EscapeRoomDocument {
   const defaults = fallbackEscapeRoom(ctx);
+  const playable = parsePlayable(raw.playable ?? raw, ctx);
+  const [vocabCode, sequenceCode, dataCode, masteryCode] = playableLockCodes(playable);
   const stagesRaw = Array.isArray(raw.stages) ? raw.stages : [];
+  const generatedCodes = [vocabCode, sequenceCode, dataCode, masteryCode];
   const stages = defaults.stages.map((fallback, index) => {
     const rec = asRecord(stagesRaw[index]) ?? {};
     return {
@@ -441,7 +737,7 @@ function parseEscapeRoom(raw: Record<string, unknown>, ctx: GamifiedLessonContex
       title: asString(rec.title, fallback.title),
       puzzle: asString(rec.puzzle, fallback.puzzle),
       hiddenClues: asStringList(rec.hiddenClues, fallback.hiddenClues),
-      lockCode: clampCode(asString(rec.lockCode, fallback.lockCode), fallback.lockCode),
+      lockCode: clampCode(asString(rec.lockCode, generatedCodes[index] ?? fallback.lockCode), fallback.lockCode),
       validationNote: asString(rec.validationNote, fallback.validationNote),
     };
   });
@@ -456,6 +752,7 @@ function parseEscapeRoom(raw: Record<string, unknown>, ctx: GamifiedLessonContex
     storyIntro: asString(raw.storyIntro, defaults.storyIntro),
     gameRules: asStringList(raw.gameRules, defaults.gameRules),
     stages,
+    playable,
     answerKey: stages.map((stage, index) => {
       const rec = asRecord(answerRaw[index]) ?? {};
       return {
@@ -578,6 +875,7 @@ export function parseGamifiedActivityResponse(
     insights,
     document,
     markdown: asString(rec.markdown, gamifiedActivityToMarkdown(insights, document)),
+    html: document.kind === 'escape_room' ? escapeRoomToPlayableHtml(document) : undefined,
   };
 }
 

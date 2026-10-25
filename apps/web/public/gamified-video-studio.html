@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gamified Video Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gblue: '#1a73e8',
+            gink: '#5f6368',
+            gline: '#dadce0',
+            gbg: '#f8f9fa',
+            gok: '#188038',
+            gwarn: '#f9ab00',
+            gbad: '#d93025',
+            gpurple: '#9334e6',
+          },
+          fontFamily: { sans: ['Roboto', 'Arial', 'sans-serif'] },
+        },
+      },
+    };
+  </script>
+  <style>
+    html, body { height: 100%; margin: 0; background: #f8f9fa; font-family: Roboto, Arial, sans-serif; color: #202124; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+    .ms-fill { font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+    .node-quiz { background: #1a73e8; }
+    .node-branch { background: #9334e6; }
+    .node-escape { background: #f9ab00; }
+    .node-skill { background: #188038; }
+    @keyframes popIn { from { transform: scale(.92); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+    @keyframes pulseXP { 0%{transform:scale(1)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
+    .anim-pop { animation: popIn .22s ease-out; }
+    .anim-shake { animation: shake .28s ease-in-out; }
+    .anim-xp { animation: pulseXP .35s ease; }
+    #yt-host { width: 100%; height: 100%; }
+  </style>
+</head>
+<body class="h-full overflow-hidden">
+  <div id="app" class="flex h-full flex-col"></div>
+  <script>
+    const MODE_META = {
+      quiz: { label: 'Multiple-choice quiz', color: 'node-quiz', icon: 'quiz', chip: 'bg-blue-50 text-[#1a73e8]' },
+      branch: { label: 'Branching scenario', color: 'node-branch', icon: 'account_tree', chip: 'bg-purple-50 text-[#9334e6]' },
+      escape: { label: 'Time-attack / escape code', color: 'node-escape', icon: 'lock', chip: 'bg-amber-50 text-[#b06000]' },
+      skill: { label: 'Skill check / true-false', color: 'node-skill', icon: 'bolt', chip: 'bg-green-50 text-[#188038]' },
+    };
+
+    const SAMPLE_HTML5_A = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4';
+    const SAMPLE_HTML5_B = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
+
+    const TEMPLATES = {
+      bio: {
+        id: 'photosynthesis-bio-lab',
+        title: 'Photosynthesis Bio-Lab',
+        subject: '8th Grade Science',
+        video: { type: 'html5', src: SAMPLE_HTML5_A },
+        nodes: [
+          {
+            id: 'bio-1', at: 6, mode: 'quiz', xp: 100,
+            prompt: 'The bio-dome lights flicker on. Which gas must the scrubbers feed the plants first?',
+            hint: 'Photosynthesis starts with carbon dioxide and water.',
+            options: [
+              { id: 'A', text: 'Nitrogen', correct: false },
+              { id: 'B', text: 'Carbon dioxide', correct: true },
+              { id: 'C', text: 'Ozone', correct: false },
+              { id: 'D', text: 'Helium', correct: false },
+            ],
+            feedbackCorrect: 'Correct. Plants fix CO₂ into glucose when light is available.',
+            feedbackWrong: 'Not that gas. Photosynthesis consumes CO₂ and releases O₂.',
+          },
+          {
+            id: 'bio-2', at: 16, mode: 'skill', xp: 50,
+            prompt: 'True or false: plants only photosynthesize — they never perform cellular respiration.',
+            hint: 'Mitochondria still make ATP in plant cells, day and night.',
+            options: [
+              { id: 'T', text: 'True', correct: false },
+              { id: 'F', text: 'False', correct: true },
+            ],
+            feedbackCorrect: 'False — plants respire continuously and photosynthesize in the light.',
+            feedbackWrong: 'That is a common misconception. Plants do both processes.',
+          },
+          {
+            id: 'bio-3', at: 28, mode: 'escape', xp: 150, timerSec: 25, code: 'ATP',
+            prompt: 'Lockout! Enter the 3-letter energy currency produced when glucose is broken down.',
+            hint: 'Adenosine triphosphate.',
+            feedbackCorrect: 'Vault unlocked. ATP is the usable energy packet.',
+            feedbackWrong: 'Code rejected. Think of the molecule that stores energy from respiration.',
+          },
+          {
+            id: 'bio-4', at: 42, mode: 'branch', xp: 120,
+            prompt: 'A technician wants to save power by leaving the dome in permanent darkness. What do you advise?',
+            hint: 'Without light, photosynthesis stops and oxygen will fall.',
+            options: [
+              { id: 'A', text: 'Keep it dark to “preserve energy”', correct: false, jumpTo: 16 },
+              { id: 'B', text: 'Restore light so photosynthesis can run', correct: true },
+              { id: 'C', text: 'Flood only CO₂ and skip water', correct: false, jumpTo: 6 },
+            ],
+            feedbackCorrect: 'Light is required to convert CO₂ and water into glucose and oxygen.',
+            feedbackWrong: 'That choice starves the cycle. Review the earlier checkpoint.',
+          },
+        ],
+      },
+      physics: {
+        id: 'physics-of-motion',
+        title: 'Physics of Motion',
+        subject: 'High School Physics',
+        video: { type: 'html5', src: SAMPLE_HTML5_B },
+        nodes: [
+          {
+            id: 'phy-1', at: 5, mode: 'quiz', xp: 100,
+            prompt: 'A cart rolls at constant velocity on a smooth track. The net force is closest to…',
+            hint: 'Newton’s first law: no acceleration means balanced forces.',
+            options: [
+              { id: 'A', text: 'A large forward force', correct: false },
+              { id: 'B', text: 'Zero net force', correct: true },
+              { id: 'C', text: 'A net force opposite the motion', correct: false },
+              { id: 'D', text: 'Infinite force', correct: false },
+            ],
+            feedbackCorrect: 'Constant velocity means acceleration is zero, so net force is zero.',
+            feedbackWrong: 'If a net force acted, the cart would speed up or slow down.',
+          },
+          {
+            id: 'phy-2', at: 18, mode: 'skill', xp: 50,
+            prompt: 'True or false: an object can keep moving even when no net force acts on it.',
+            hint: 'Inertia keeps motion until a force changes it.',
+            options: [
+              { id: 'T', text: 'True', correct: true },
+              { id: 'F', text: 'False', correct: false },
+            ],
+            feedbackCorrect: 'Yes — motion does not require a continuous push.',
+            feedbackWrong: 'Forces change motion; they are not required to “keep it going.”',
+          },
+          {
+            id: 'phy-3', at: 30, mode: 'escape', xp: 150, timerSec: 20, code: '20',
+            prompt: 'A 4 kg cart accelerates at 5 m/s². Enter the net force in newtons (whole number).',
+            hint: 'F = m × a',
+            feedbackCorrect: 'F = 4 × 5 = 20 N. The lock opens.',
+            feedbackWrong: 'Use F = ma. Multiply mass by acceleration.',
+          },
+          {
+            id: 'phy-4', at: 44, mode: 'branch', xp: 120,
+            prompt: 'The track ahead splits. Which choice keeps the cart’s kinetic energy from being wasted?',
+            hint: 'Friction does negative work and converts kinetic energy to heat.',
+            options: [
+              { id: 'A', text: 'Steer onto the rough gravel (high friction)', correct: false, jumpTo: 18 },
+              { id: 'B', text: 'Stay on the smooth rail', correct: true },
+              { id: 'C', text: 'Hit the bumper to “store” speed', correct: false, jumpTo: 5 },
+            ],
+            feedbackCorrect: 'Low friction means less work against the motion — speed is conserved longer.',
+            feedbackWrong: 'That path dumps kinetic energy. Replay the earlier idea, then continue.',
+          },
+        ],
+      },
+    };
+
+    const params = new URLSearchParams(location.search);
+    const state = {
+      view: 'studio',
+      spec: structuredClone(TEMPLATES.bio),
+      selectedNodeId: TEMPLATES.bio.nodes[0].id,
+      duration: 60,
+      play: {
+        xp: 0,
+        streak: 0,
+        bestStreak: 0,
+        health: 100,
+        resolved: {},
+        results: [],
+        activeNodeId: null,
+        feedback: null,
+        ended: false,
+        codeInput: '',
+        remain: 0,
+        lastTick: 0,
+      },
+    };
+
+    if (params.get('title')) state.spec.title = params.get('title');
+    if (params.get('subject')) state.spec.subject = params.get('subject');
+    if (params.get('video')) {
+      state.spec.video = { type: 'html5', src: params.get('video') };
+    }
+    if (params.get('youtube')) {
+      state.spec.video = { type: 'youtube', src: params.get('youtube') };
+    }
+
+    let htmlVideo = null;
+    let ytPlayer = null;
+    let ytReady = false;
+    let pollTimer = null;
+    let escapeTimer = null;
+    let objectUrl = null;
+
+    function uid(prefix) {
+      return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+    function fmt(t) {
+      const s = Math.max(0, Math.floor(Number(t) || 0));
+      return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    }
+    function youtubeId(value) {
+      if (!value) return '';
+      const m = String(value).match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{6,})/);
+      if (m) return m[1];
+      return /^[A-Za-z0-9_-]{11}$/.test(value.trim()) ? value.trim() : '';
+    }
+    function selectedNode() {
+      return state.spec.nodes.find((n) => n.id === state.selectedNodeId) || state.spec.nodes[0] || null;
+    }
+    function sortedNodes() {
+      return [...state.spec.nodes].sort((a, b) => a.at - b.at);
+    }
+    function isHtml5() {
+      return state.spec.video.type !== 'youtube';
+    }
+
+    function loadYouTubeApi() {
+      if (window.YT && window.YT.Player) return Promise.resolve();
+      return new Promise((resolve) => {
+        const prev = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = () => {
+          if (typeof prev === 'function') prev();
+          resolve();
+        };
+        if (!document.getElementById('yt-api')) {
+          const s = document.createElement('script');
+          s.id = 'yt-api';
+          s.src = 'https://www.youtube.com/iframe_api';
+          document.head.appendChild(s);
+        }
+      });
+    }
+
+    function destroyPlayers() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = null;
+      if (escapeTimer) clearInterval(escapeTimer);
+      escapeTimer = null;
+      if (ytPlayer && ytPlayer.destroy) {
+        try { ytPlayer.destroy(); } catch {}
+      }
+      ytPlayer = null;
+      ytReady = false;
+      htmlVideo = null;
+    }
+
+    function attachHtml5(el) {
+      htmlVideo = el;
+      if (!el) return;
+      el.addEventListener('loadedmetadata', () => {
+        state.duration = el.duration || state.duration;
+        render();
+      });
+      el.addEventListener('ended', () => {
+        if (state.view === 'play') finishPlay();
+      });
+    }
+
+    async function attachYouTube(host) {
+      const id = youtubeId(state.spec.video.src);
+      if (!id || !host) return;
+      await loadYouTubeApi();
+      ytPlayer = new YT.Player(host, {
+        videoId: id,
+        playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
+        events: {
+          onReady: (e) => {
+            ytReady = true;
+            const d = e.target.getDuration();
+            if (d) state.duration = d;
+            renderChromeOnly();
+          },
+          onStateChange: (e) => {
+            if (e.data === YT.PlayerState.ENDED && state.view === 'play') finishPlay();
+          },
+        },
+      });
+    }
+
+    function getTime() {
+      if (isHtml5()) return htmlVideo ? htmlVideo.currentTime : 0;
+      if (ytReady && ytPlayer && ytPlayer.getCurrentTime) return ytPlayer.getCurrentTime();
+      return 0;
+    }
+    function getDuration() {
+      if (isHtml5() && htmlVideo && htmlVideo.duration) return htmlVideo.duration;
+      if (ytReady && ytPlayer && ytPlayer.getDuration) return ytPlayer.getDuration() || state.duration;
+      return state.duration || 60;
+    }
+    function playMedia() {
+      if (isHtml5() && htmlVideo) htmlVideo.play().catch(() => {});
+      else if (ytReady && ytPlayer) ytPlayer.playVideo();
+    }
+    function pauseMedia() {
+      if (isHtml5() && htmlVideo) htmlVideo.pause();
+      else if (ytReady && ytPlayer) ytPlayer.pauseVideo();
+    }
+    function seekMedia(t) {
+      if (isHtml5() && htmlVideo) htmlVideo.currentTime = t;
+      else if (ytReady && ytPlayer) ytPlayer.seekTo(t, true);
+    }
+
+    function startPlayLoop() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(() => {
+        if (state.view !== 'play' || state.play.activeNodeId || state.play.ended) return;
+        const t = getTime();
+        const dur = getDuration();
+        if (dur && Math.abs(dur - state.duration) > 0.5) state.duration = dur;
+        const next = sortedNodes().find((n) => !state.play.resolved[n.id] && t >= n.at);
+        if (next) {
+          pauseMedia();
+          openChallenge(next);
+          return;
+        }
+        updatePlayHud();
+        if (dur && t >= dur - 0.35) finishPlay();
+      }, 200);
+    }
+
+    function openChallenge(node) {
+      state.play.activeNodeId = node.id;
+      state.play.feedback = null;
+      state.play.codeInput = '';
+      state.play.remain = node.mode === 'escape' ? (node.timerSec || 20) : 0;
+      if (escapeTimer) clearInterval(escapeTimer);
+      if (node.mode === 'escape') {
+        escapeTimer = setInterval(() => {
+          if (state.play.activeNodeId !== node.id) return;
+          state.play.remain -= 1;
+          if (state.play.remain <= 0) {
+            clearInterval(escapeTimer);
+            resolveNode(node, false, 'Time expired. The lock holds.');
+          } else {
+            const clock = document.getElementById('escape-clock');
+            if (clock) clock.textContent = `${state.play.remain}s`;
+          }
+        }, 1000);
+      }
+      paintPlayOverlay();
+    }
+
+    function resolveNode(node, correct, message, jumpTo) {
+      if (escapeTimer) clearInterval(escapeTimer);
+      const already = state.play.resolved[node.id];
+      if (!already) {
+        state.play.resolved[node.id] = correct ? 'ok' : 'miss';
+        if (correct) {
+          const bonus = Math.min(50, state.play.streak * 10);
+          state.play.xp += (node.xp || 0) + bonus;
+          state.play.streak += 1;
+          state.play.bestStreak = Math.max(state.play.bestStreak, state.play.streak);
+        } else {
+          state.play.streak = 0;
+          state.play.health = Math.max(0, state.play.health - 15);
+        }
+        state.play.results.push({ id: node.id, correct, xp: correct ? node.xp : 0, prompt: node.prompt });
+      }
+      state.play.feedback = { correct, message: message || (correct ? node.feedbackCorrect : node.feedbackWrong) };
+      paintPlayOverlay();
+      setTimeout(() => {
+        state.play.activeNodeId = null;
+        state.play.feedback = null;
+        if (state.play.health <= 0) {
+          state.play.ended = true;
+          paintPlayOverlay();
+          return;
+        }
+        if (jumpTo != null) seekMedia(Math.max(0, jumpTo + 0.05));
+        else seekMedia(Math.max(getTime(), node.at + 0.2));
+        playMedia();
+        paintPlayOverlay();
+      }, 1100);
+    }
+
+    function finishPlay() {
+      if (state.play.ended) return;
+      pauseMedia();
+      state.play.ended = true;
+      state.play.activeNodeId = null;
+      paintPlayOverlay();
+    }
+
+    function resetPlay() {
+      state.play = {
+        xp: 0, streak: 0, bestStreak: 0, health: 100,
+        resolved: {}, results: [], activeNodeId: null, feedback: null,
+        ended: false, codeInput: '', remain: 0, lastTick: 0,
+      };
+    }
+
+    function enterPlay() {
+      try {
+      state.view = 'play';
+      resetPlay();
+      render();
+      requestAnimationFrame(() => {
+        seekMedia(0);
+        playMedia();
+        startPlayLoop();
+      });
+      } catch (err) {
+        window.__playError = String(err && err.stack || err);
+        console.error(err);
+      }
+    }
+
+    function enterStudio() {
+      state.view = 'studio';
+      pauseMedia();
+      if (pollTimer) clearInterval(pollTimer);
+      if (escapeTimer) clearInterval(escapeTimer);
+      render();
+    }
+
+    function addNode() {
+      const last = sortedNodes().at(-1);
+      const node = {
+        id: uid('node'),
+        at: Math.min((last ? last.at + 8 : 5), Math.max(5, Math.floor(getDuration()) - 2)),
+        mode: 'quiz',
+        xp: 100,
+        prompt: 'New checkpoint question',
+        hint: '',
+        options: [
+          { id: 'A', text: 'Choice A', correct: true },
+          { id: 'B', text: 'Choice B', correct: false },
+          { id: 'C', text: 'Choice C', correct: false },
+        ],
+        code: '',
+        timerSec: 20,
+        feedbackCorrect: 'Nice work — continue the video.',
+        feedbackWrong: 'Not quite. Check the hint and try the idea again.',
+      };
+      state.spec.nodes.push(node);
+      state.selectedNodeId = node.id;
+      render();
+    }
+
+    function removeNode(id) {
+      state.spec.nodes = state.spec.nodes.filter((n) => n.id !== id);
+      if (state.selectedNodeId === id) state.selectedNodeId = state.spec.nodes[0]?.id || null;
+      render();
+    }
+
+    function exportJson() {
+      const blob = new Blob([JSON.stringify(state.spec, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(state.spec.title || 'gamified-video').replace(/[^\w]+/g, '-').toLowerCase()}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function importJson(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const spec = JSON.parse(String(reader.result || ''));
+          if (!spec || !Array.isArray(spec.nodes) || !spec.video) throw new Error('Invalid spec');
+          state.spec = spec;
+          state.selectedNodeId = spec.nodes[0]?.id || null;
+          resetPlay();
+          render();
+        } catch (err) {
+          alert(err instanceof Error ? err.message : 'Could not import that JSON file.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function loadTemplate(key) {
+      state.spec = structuredClone(TEMPLATES[key]);
+      state.selectedNodeId = state.spec.nodes[0].id;
+      resetPlay();
+      render();
+    }
+
+    function closeHost() {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'gamified-video-close' }, '*');
+      }
+    }
+
+    function icon(name, fill) {
+      return `<span class="material-symbols-outlined ${fill ? 'ms-fill' : ''} text-[20px]">${name}</span>`;
+    }
+
+    function renderVideoStage(kind) {
+      const v = state.spec.video;
+      if (v.type === 'youtube') {
+        return `<div class="relative h-full w-full bg-black"><div id="yt-host"></div></div>`;
+      }
+      return `<video id="html5-player" class="h-full w-full bg-black object-contain" ${kind === 'studio' ? 'controls' : ''} playsinline src="${escapeAttr(v.src || '')}"></video>`;
+    }
+
+    function escapeAttr(value) {
+      return String(value ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+    }
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function timeline(kind) {
+      const dur = getDuration() || 60;
+      const t = kind === 'play' ? getTime() : 0;
+      const pct = Math.min(100, (t / dur) * 100);
+      const marks = sortedNodes().map((n) => {
+        const left = Math.min(98, Math.max(1, (n.at / dur) * 100));
+        const done = state.play.resolved[n.id];
+        return `<button type="button" data-seek="${n.at}" data-select="${n.id}" class="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white shadow ${MODE_META[n.mode].color} ${done === 'ok' ? 'outline outline-2 outline-emerald-300' : ''}" title="${escapeAttr(MODE_META[n.mode].label)} @ ${fmt(n.at)}"></button>`.replace('left', '')
+          .replace('absolute top-1/2', `absolute top-1/2 left-[${left}%]`);
+      }).join('');
+      return `
+        <div class="relative h-2 w-full rounded-full bg-[#e8eaed]" data-timeline="${kind}">
+          ${kind === 'play' ? `<div id="play-progress" class="absolute inset-y-0 left-0 rounded-full bg-[#1a73e8]" style="width:${pct}%"></div>` : ''}
+          ${marks}
+        </div>`;
+    }
+
+    function studio() {
+      const node = selectedNode();
+      const mode = node ? MODE_META[node.mode] : MODE_META.quiz;
+      return `
+        <header class="flex items-center justify-between gap-3 border-b border-gline bg-white px-4 py-2.5">
+          <div class="flex items-center gap-3">
+            ${icon('smart_display', true)}
+            <div>
+              <p class="text-[11px] font-medium uppercase tracking-wide text-gink">Curriculum Studio</p>
+              <h1 class="text-lg font-medium leading-tight">Gamified Video Generator</h1>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" data-act="template-bio" class="rounded-full border border-gline px-3 py-1.5 text-sm hover:bg-gbg">Bio-Lab sample</button>
+            <button type="button" data-act="template-physics" class="rounded-full border border-gline px-3 py-1.5 text-sm hover:bg-gbg">Physics sample</button>
+            <label class="cursor-pointer rounded-full border border-gline px-3 py-1.5 text-sm hover:bg-gbg">
+              Import JSON<input id="import-json" type="file" accept="application/json" class="hidden" />
+            </label>
+            <button type="button" data-act="export" class="rounded-full border border-gline px-3 py-1.5 text-sm hover:bg-gbg">${icon('download')} Export</button>
+            <button type="button" data-act="play" class="inline-flex items-center gap-1 rounded-full bg-gblue px-4 py-1.5 text-sm font-medium text-white shadow">${icon('play_arrow', true)} Student play</button>
+            <button type="button" data-act="close" class="rounded-full p-1.5 text-gink hover:bg-gbg" title="Close">${icon('close')}</button>
+          </div>
+        </header>
+        <div class="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.9fr)]">
+          <section class="flex min-h-0 flex-col gap-3 p-4">
+            <div class="overflow-hidden rounded-xl bg-black shadow-md" style="aspect-ratio:16/9">${renderVideoStage('studio')}</div>
+            <div class="px-1">${timeline('studio')}</div>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label class="block text-sm">Title
+                <input id="spec-title" value="${escapeAttr(state.spec.title)}" class="mt-1 w-full rounded-lg border border-gline px-3 py-2" />
+              </label>
+              <label class="block text-sm">Subject
+                <input id="spec-subject" value="${escapeAttr(state.spec.subject || '')}" class="mt-1 w-full rounded-lg border border-gline px-3 py-2" />
+              </label>
+              <label class="block text-sm md:col-span-2">Video URL (YouTube or MP4)
+                <input id="spec-video" value="${escapeAttr(state.spec.video.src || '')}" class="mt-1 w-full rounded-lg border border-gline px-3 py-2" placeholder="https://youtube.com/watch?v=… or https://…mp4" />
+              </label>
+              <label class="block text-sm">Or upload an MP4
+                <input id="spec-file" type="file" accept="video/*" class="mt-1 w-full text-sm" />
+              </label>
+            </div>
+          </section>
+          <aside class="min-h-0 overflow-auto border-l border-gline bg-white p-4">
+            <div class="mb-3 flex items-center justify-between">
+              <h2 class="font-medium">Interactive nodes</h2>
+              <button data-act="add-node" class="inline-flex items-center gap-1 rounded-full bg-[#e8f0fe] px-3 py-1.5 text-sm font-medium text-gblue">${icon('add')} Add node</button>
+            </div>
+            <ul class="mb-4 space-y-2">
+              ${sortedNodes().map((n) => `
+                <li>
+                  <button data-select="${n.id}" class="flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left ${n.id === state.selectedNodeId ? 'border-gblue bg-[#e8f0fe]' : 'border-gline hover:bg-gbg'}">
+                    <span class="h-2.5 w-2.5 rounded-full ${MODE_META[n.mode].color}"></span>
+                    <span class="flex-1 text-sm font-medium">${escapeHtml(n.prompt).slice(0, 48)}</span>
+                    <span class="text-xs text-gink">${fmt(n.at)}</span>
+                  </button>
+                </li>`).join('')}
+            </ul>
+            ${node ? nodeEditor(node, mode) : '<p class="text-sm text-gink">Add a node to begin.</p>'}
+          </aside>
+        </div>`;
+    }
+
+    function nodeEditor(node, mode) {
+      const optionRows = (node.options || []).map((opt, i) => `
+        <div class="grid grid-cols-[2rem_1fr_5rem_6rem_2rem] items-center gap-2">
+          <span class="text-xs font-medium text-gink">${escapeHtml(opt.id || String.fromCharCode(65 + i))}</span>
+          <input data-opt="${i}" data-field="text" value="${escapeAttr(opt.text)}" class="rounded-lg border border-gline px-2 py-1.5 text-sm" />
+          <label class="flex items-center gap-1 text-xs"><input type="checkbox" data-opt="${i}" data-field="correct" ${opt.correct ? 'checked' : ''} /> Correct</label>
+          <input data-opt="${i}" data-field="jumpTo" value="${opt.jumpTo ?? ''}" placeholder="Jump s" class="rounded-lg border border-gline px-2 py-1.5 text-sm" />
+          <button data-del-opt="${i}" class="text-gink hover:text-gbad">${icon('close')}</button>
+        </div>`).join('');
+      return `
+        <div class="space-y-3 rounded-xl border border-gline p-3">
+          <div class="flex items-center justify-between">
+            <span class="rounded-full px-2 py-0.5 text-xs font-medium ${mode.chip}">${icon(mode.icon)} ${mode.label}</span>
+            <button data-act="del-node" class="text-sm text-gbad">Remove</button>
+          </div>
+          <label class="block text-sm">Mode
+            <select id="node-mode" class="mt-1 w-full rounded-lg border border-gline px-2 py-2">
+              ${Object.entries(MODE_META).map(([k, m]) => `<option value="${k}" ${node.mode === k ? 'selected' : ''}>${m.label}</option>`).join('')}
+            </select>
+          </label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="text-sm">Timestamp (s)<input id="node-at" type="number" min="0" step="0.5" value="${node.at}" class="mt-1 w-full rounded-lg border border-gline px-2 py-2" /></label>
+            <label class="text-sm">XP<input id="node-xp" type="number" min="0" value="${node.xp || 0}" class="mt-1 w-full rounded-lg border border-gline px-2 py-2" /></label>
+          </div>
+          <label class="block text-sm">Prompt<textarea id="node-prompt" rows="3" class="mt-1 w-full rounded-lg border border-gline px-2 py-2">${escapeHtml(node.prompt)}</textarea></label>
+          <label class="block text-sm">Hint<input id="node-hint" value="${escapeAttr(node.hint || '')}" class="mt-1 w-full rounded-lg border border-gline px-2 py-2" /></label>
+          ${node.mode === 'escape' ? `
+            <div class="grid grid-cols-2 gap-2">
+              <label class="text-sm">Lock code<input id="node-code" value="${escapeAttr(node.code || '')}" class="mt-1 w-full rounded-lg border border-gline px-2 py-2" /></label>
+              <label class="text-sm">Timer (s)<input id="node-timer" type="number" min="5" value="${node.timerSec || 20}" class="mt-1 w-full rounded-lg border border-gline px-2 py-2" /></label>
+            </div>` : `
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-sm font-medium">Choices <button data-act="add-opt" class="text-gblue">Add</button></div>
+              ${optionRows}
+            </div>`}
+          <label class="block text-sm">Correct feedback<input id="node-ok" value="${escapeAttr(node.feedbackCorrect || '')}" class="mt-1 w-full rounded-lg border border-gline px-2 py-2" /></label>
+          <label class="block text-sm">Incorrect feedback<input id="node-bad" value="${escapeAttr(node.feedbackWrong || '')}" class="mt-1 w-full rounded-lg border border-gline px-2 py-2" /></label>
+        </div>`;
+    }
+
+    function playView() {
+      return `
+        <div class="relative flex min-h-0 flex-1 flex-col bg-black text-white">
+          <div class="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between bg-gradient-to-b from-black/70 to-transparent p-4">
+            <div>
+              <p class="text-xs uppercase tracking-wide text-white/70">Student play</p>
+              <h2 class="text-lg font-medium">${escapeHtml(state.spec.title)}</h2>
+            </div>
+            <div class="pointer-events-auto flex items-center gap-2">
+              <button data-act="studio" class="rounded-full bg-white/10 px-3 py-1.5 text-sm hover:bg-white/20">Studio</button>
+              <button data-act="close" class="rounded-full bg-white/10 p-1.5 hover:bg-white/20">${icon('close')}</button>
+            </div>
+          </div>
+          <div id="play-stage" class="flex min-h-0 flex-1 items-center justify-center">${renderVideoStage('play')}</div>
+          <div id="play-overlay"></div>
+          <div class="absolute inset-x-0 bottom-0 z-10 space-y-2 bg-gradient-to-t from-black/80 to-transparent p-4">
+            <div class="flex flex-wrap items-center gap-4 text-sm">
+              <div class="anim-xp rounded-full bg-white/10 px-3 py-1">XP <b id="hud-xp">${state.play.xp}</b></div>
+              <div id="hud-streak" class="rounded-full bg-white/10 px-3 py-1">Streak <b>${state.play.streak}</b> · best ${state.play.bestStreak}</div>
+              <div class="min-w-[140px] flex-1">
+                <div id="hud-health" class="mb-1 text-xs text-white/70">Focus ${state.play.health}%</div>
+                <div class="h-2 rounded-full bg-white/20"><div id="hud-health-bar" class="h-2 rounded-full ${state.play.health > 40 ? 'bg-emerald-400' : 'bg-rose-400'}" style="width:${state.play.health}%"></div></div>
+              </div>
+            </div>
+            ${timeline('play')}
+          </div>
+        </div>`;
+    }
+
+    function paintPlayOverlay() {
+      const host = document.getElementById('play-overlay');
+      if (!host) return;
+      const node = state.spec.nodes.find((n) => n.id === state.play.activeNodeId);
+      const answered = state.play.results.length;
+      const accuracy = answered ? Math.round((state.play.results.filter((r) => r.correct).length / answered) * 100) : 0;
+      host.innerHTML = state.play.ended ? victory(accuracy) : node ? challengeOverlay(node) : '';
+      updatePlayHud();
+    }
+
+    function challengeOverlay(node) {
+      const fb = state.play.feedback;
+      const opts = (node.options || []).map((opt) => `
+        <button data-answer="${escapeAttr(opt.id)}" class="w-full rounded-xl bg-white px-4 py-3 text-left text-[#202124] shadow hover:bg-[#e8f0fe]">
+          <span class="mr-2 font-medium text-gblue">${escapeHtml(opt.id)}</span>${escapeHtml(opt.text)}
+        </button>`).join('');
+      return `
+        <div class="absolute inset-0 z-20 flex items-center justify-center bg-black/55 p-4">
+          <div class="anim-pop w-full max-w-lg rounded-2xl bg-white p-5 text-[#202124] shadow-2xl ${fb && !fb.correct ? 'anim-shake' : ''}">
+            <div class="mb-2 flex items-center justify-between">
+              <span class="rounded-full px-2 py-0.5 text-xs font-medium ${MODE_META[node.mode].chip}">${MODE_META[node.mode].label}</span>
+              <span class="text-sm font-medium text-gblue">+${node.xp || 0} XP</span>
+            </div>
+            <h3 class="text-lg font-medium">${escapeHtml(node.prompt)}</h3>
+            ${node.hint ? `<p class="mt-1 text-sm text-gink">Hint: ${escapeHtml(node.hint)}</p>` : ''}
+            ${fb ? `<p class="mt-3 rounded-lg ${fb.correct ? 'bg-green-50 text-gok' : 'bg-red-50 text-gbad'} px-3 py-2 text-sm">${escapeHtml(fb.message)}</p>` : `
+              ${node.mode === 'escape' ? `
+                <p class="mt-3 text-sm">Time left: <b id="escape-clock">${state.play.remain}s</b></p>
+                <form id="escape-form" class="mt-3 flex gap-2">
+                  <input id="escape-input" autocomplete="off" class="flex-1 rounded-lg border border-gline px-3 py-2" placeholder="Enter lock code" />
+                  <button class="rounded-full bg-gblue px-4 py-2 text-white">Unlock</button>
+                </form>` : `<div class="mt-4 space-y-2">${opts}</div>`}
+            `}
+          </div>
+        </div>`;
+    }
+
+    function victory(accuracy) {
+      const collapsed = state.play.health <= 0;
+      return `
+        <div class="absolute inset-0 z-30 flex items-center justify-center bg-black/70 p-4">
+          <div class="anim-pop w-full max-w-md rounded-2xl bg-white p-6 text-center text-[#202124] shadow-2xl">
+            <span class="material-symbols-outlined ms-fill text-5xl text-[#f9ab00]">military_tech</span>
+            <h3 class="mt-2 text-2xl font-medium">${collapsed ? 'Checkpoint failed' : 'Victory summary'}</h3>
+            <p class="mt-1 text-sm text-gink">${escapeHtml(state.spec.title)} · ${escapeHtml(state.spec.subject || '')}</p>
+            <div class="mt-4 grid grid-cols-3 gap-2 text-sm">
+              <div class="rounded-xl bg-gbg p-3"><div class="text-gink">XP</div><b>${state.play.xp}</b></div>
+              <div class="rounded-xl bg-gbg p-3"><div class="text-gink">Best streak</div><b>${state.play.bestStreak}</b></div>
+              <div class="rounded-xl bg-gbg p-3"><div class="text-gink">Accuracy</div><b>${accuracy}%</b></div>
+            </div>
+            <ul class="mt-4 max-h-40 space-y-1 overflow-auto text-left text-sm">
+              ${state.play.results.map((r) => `<li class="${r.correct ? 'text-gok' : 'text-gbad'}">${r.correct ? '✓' : '✕'} ${escapeHtml(r.prompt)}</li>`).join('')}
+            </ul>
+            <div class="mt-5 flex justify-center gap-2">
+              <button data-act="replay" class="rounded-full bg-gblue px-4 py-2 text-white">Play again</button>
+              <button data-act="studio" class="rounded-full border border-gline px-4 py-2">Back to studio</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function renderChromeOnly() {
+      const hud = document.getElementById('hud-xp');
+      if (hud) hud.textContent = String(state.play.xp);
+    }
+
+    function updatePlayHud() {
+      const xp = document.getElementById('hud-xp');
+      const streak = document.getElementById('hud-streak');
+      const health = document.getElementById('hud-health');
+      const bar = document.getElementById('hud-health-bar');
+      const fill = document.getElementById('play-progress');
+      if (xp) xp.textContent = String(state.play.xp);
+      if (streak) streak.innerHTML = `Streak <b>${state.play.streak}</b> · best ${state.play.bestStreak}`;
+      if (health) health.textContent = `Focus ${state.play.health}%`;
+      if (bar) bar.style.width = `${state.play.health}%`;
+      if (fill) fill.style.width = `${Math.min(100, (getTime() / (getDuration() || 1)) * 100)}%`;
+    }
+
+    function bindStudioFields() {
+      const title = document.getElementById('spec-title');
+      const subject = document.getElementById('spec-subject');
+      const video = document.getElementById('spec-video');
+      const file = document.getElementById('spec-file');
+      if (title) title.addEventListener('change', (e) => { state.spec.title = e.target.value; });
+      if (subject) subject.addEventListener('change', (e) => { state.spec.subject = e.target.value; });
+      if (video) video.addEventListener('change', (e) => {
+        const src = e.target.value.trim();
+        state.spec.video = { type: youtubeId(src) ? 'youtube' : 'html5', src };
+        render();
+      });
+      if (file) file.addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = URL.createObjectURL(f);
+        state.spec.video = { type: 'html5', src: objectUrl };
+        render();
+      });
+      const node = selectedNode();
+      if (!node) return;
+      const bind = (id, fn) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => { fn(el); render(); });
+      };
+      bind('node-mode', (el) => {
+        node.mode = el.value;
+        if (node.mode === 'skill' && (!node.options || node.options.length !== 2)) {
+          node.options = [{ id: 'T', text: 'True', correct: true }, { id: 'F', text: 'False', correct: false }];
+        }
+      });
+      bind('node-at', (el) => { node.at = Number(el.value) || 0; });
+      bind('node-xp', (el) => { node.xp = Number(el.value) || 0; });
+      bind('node-prompt', (el) => { node.prompt = el.value; });
+      bind('node-hint', (el) => { node.hint = el.value; });
+      bind('node-code', (el) => { node.code = el.value; });
+      bind('node-timer', (el) => { node.timerSec = Number(el.value) || 20; });
+      bind('node-ok', (el) => { node.feedbackCorrect = el.value; });
+      bind('node-bad', (el) => { node.feedbackWrong = el.value; });
+      document.querySelectorAll('[data-opt]').forEach((el) => {
+        el.addEventListener('change', () => {
+          const i = Number(el.getAttribute('data-opt'));
+          const field = el.getAttribute('data-field');
+          if (!node.options[i]) return;
+          if (field === 'correct') {
+            node.options.forEach((o, idx) => { o.correct = idx === i ? el.checked : (node.mode === 'quiz' || node.mode === 'skill' ? false : o.correct); });
+            node.options[i].correct = el.checked;
+          } else if (field === 'jumpTo') {
+            node.options[i].jumpTo = el.value === '' ? undefined : Number(el.value);
+          } else {
+            node.options[i][field] = el.value;
+          }
+        });
+      });
+    }
+
+    function mountMedia() {
+      const v = document.getElementById('html5-player');
+      if (v) attachHtml5(v);
+      const yt = document.getElementById('yt-host');
+      if (yt) void attachYouTube(yt);
+    }
+
+    function bindPlayOverlay() {
+      document.querySelectorAll('#play-overlay [data-act]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const act = btn.getAttribute('data-act');
+          if (act === 'replay') enterPlay();
+          if (act === 'studio') enterStudio();
+          if (act === 'close') closeHost();
+        });
+      });
+      document.querySelectorAll('#play-overlay [data-answer]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const node = state.spec.nodes.find((n) => n.id === state.play.activeNodeId);
+          if (!node || state.play.feedback) return;
+          const opt = (node.options || []).find((o) => o.id === btn.getAttribute('data-answer'));
+          if (!opt) return;
+          resolveNode(node, Boolean(opt.correct), opt.correct ? node.feedbackCorrect : node.feedbackWrong, opt.correct ? undefined : opt.jumpTo);
+        });
+      });
+      const form = document.getElementById('escape-form');
+      if (form) form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const node = state.spec.nodes.find((n) => n.id === state.play.activeNodeId);
+        if (!node || state.play.feedback) return;
+        const value = (document.getElementById('escape-input').value || '').trim();
+        const ok = value.toUpperCase() === String(node.code || '').trim().toUpperCase();
+        resolveNode(node, ok, ok ? node.feedbackCorrect : node.feedbackWrong);
+      });
+    }
+
+    function handleAction(act) {
+      window.__lastAct = act;
+      if (act === 'play' || act === 'replay') enterPlay();
+      if (act === 'studio') enterStudio();
+      if (act === 'export') exportJson();
+      if (act === 'add-node') addNode();
+      if (act === 'del-node' && state.selectedNodeId) removeNode(state.selectedNodeId);
+      if (act === 'add-opt') {
+        const node = selectedNode();
+        if (!node) return;
+        node.options = node.options || [];
+        node.options.push({ id: String.fromCharCode(65 + node.options.length), text: 'New choice', correct: false });
+        render();
+      }
+      if (act === 'template-bio') loadTemplate('bio');
+      if (act === 'template-physics') loadTemplate('physics');
+      if (act === 'close') closeHost();
+    }
+
+    function bindAppEvents() {
+      if (document.body.dataset.gvBound === '1') return;
+      document.body.dataset.gvBound = '1';
+      document.addEventListener('click', (e) => {
+        const t = e.target instanceof Element ? e.target : null;
+        if (!t) return;
+        const actBtn = t.closest('[data-act]');
+        if (actBtn) {
+          handleAction(actBtn.getAttribute('data-act'));
+          return;
+        }
+        const answer = t.closest('[data-answer]');
+        if (answer) {
+          const node = state.spec.nodes.find((n) => n.id === state.play.activeNodeId);
+          if (!node || state.play.feedback) return;
+          const opt = (node.options || []).find((o) => o.id === answer.getAttribute('data-answer'));
+          if (!opt) return;
+          resolveNode(node, Boolean(opt.correct), opt.correct ? node.feedbackCorrect : node.feedbackWrong, opt.correct ? undefined : opt.jumpTo);
+          return;
+        }
+        const del = t.closest('[data-del-opt]');
+        if (del) {
+          const node = selectedNode();
+          if (!node) return;
+          node.options.splice(Number(del.getAttribute('data-del-opt')), 1);
+          render();
+          return;
+        }
+        const seekBtn = t.closest('[data-seek]');
+        if (seekBtn) {
+          const at = Number(seekBtn.getAttribute('data-seek'));
+          if (!Number.isNaN(at)) seekMedia(at);
+          const selectId = seekBtn.getAttribute('data-select');
+          if (selectId) state.selectedNodeId = selectId;
+          if (state.view === 'studio') render();
+          return;
+        }
+        const selectBtn = t.closest('[data-select]');
+        if (selectBtn) {
+          state.selectedNodeId = selectBtn.getAttribute('data-select');
+          if (state.view === 'studio') render();
+          return;
+        }
+        const bar = t.closest('[data-timeline]');
+        if (bar) {
+          const rect = bar.getBoundingClientRect();
+          const time = ((e.clientX - rect.left) / rect.width) * getDuration();
+          seekMedia(time);
+          const node = selectedNode();
+          if (state.view === 'studio' && node) {
+            node.at = Math.round(time * 2) / 2;
+            render();
+          }
+        }
+      });
+      document.addEventListener('change', (e) => {
+        if (e.target && e.target.id === 'import-json' && e.target.files && e.target.files[0]) {
+          importJson(e.target.files[0]);
+        }
+      });
+      document.addEventListener('submit', (e) => {
+        if (!(e.target instanceof HTMLFormElement) || e.target.id !== 'escape-form') return;
+        e.preventDefault();
+        const node = state.spec.nodes.find((n) => n.id === state.play.activeNodeId);
+        if (!node || state.play.feedback) return;
+        const value = (document.getElementById('escape-input').value || '').trim();
+        const ok = value.toUpperCase() === String(node.code || '').trim().toUpperCase();
+        resolveNode(node, ok, ok ? node.feedbackCorrect : node.feedbackWrong);
+      });
+    }
+
+    function render() {
+      const app = document.getElementById('app');
+      const keepTime = getTime();
+      destroyPlayers();
+      app.innerHTML = state.view === 'play' ? playView() : studio();
+      bindAppEvents();
+      if (state.view === 'studio') bindStudioFields();
+      mountMedia();
+      if (keepTime > 0.4 && state.view === 'studio') {
+        setTimeout(() => seekMedia(keepTime), 250);
+      }
+      if (state.view === 'play') {
+        paintPlayOverlay();
+        if (!state.play.ended) startPlayLoop();
+      }
+    }
+
+    window.MVAnswer = function (id) {
+      const node = state.spec.nodes.find((n) => n.id === state.play.activeNodeId);
+      if (!node || state.play.feedback) return;
+      const opt = (node.options || []).find((o) => o.id === id);
+      if (!opt) return;
+      resolveNode(node, Boolean(opt.correct), opt.correct ? node.feedbackCorrect : node.feedbackWrong, opt.correct ? undefined : opt.jumpTo);
+    };
+    window.MVAct = handleAction;
+    bindAppEvents();
+    render();
+  </script>
+</body>
+</html>
