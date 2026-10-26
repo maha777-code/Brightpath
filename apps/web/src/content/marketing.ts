@@ -3,6 +3,7 @@
 export const SITE_URL = 'https://mindvault.academy';
 export const SUPPORT_EMAIL = 'customersupport@mindvault.academy';
 export const OFFICE_ADDRESS = '130, 1st 7th cross Teachers layout, Nagarabhavi, Bangalore, 560072';
+export const INSTAGRAM_URL = 'https://www.instagram.com/mindvault.academy?dlrf=MWdlaGdoNTM2aWNsNg==';
 
 export const TEACHER_TOOL_NAMES = [
   'Lesson Plan Generator',

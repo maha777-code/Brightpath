@@ -4,6 +4,7 @@ import type { Plugin } from 'vite';
 import {
   COMPARISON_ROWS,
   FAQ_ITEMS,
+  INSTAGRAM_URL,
   OFFICE_ADDRESS,
   PUBLIC_PAGES,
   SITE_URL,
@@ -91,7 +92,7 @@ ${trustHtml()}
     case '/compare':
       return `<h1>MindVault vs generic AI chatbots</h1><p>General-purpose AI chat tools start from a blank prompt every time and know nothing about your class. MindVault is built around the textbook and syllabus you actually teach.</p>${comparisonHtml()}<p><a href="/register">Start free</a> · <a href="/pricing">See pricing</a></p>`;
     case '/contact':
-      return `<h1>Contact MindVault</h1><p>Book a walkthrough for your school or academy, or get help with your account.</p><p>Email: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p><p>Office: ${esc(OFFICE_ADDRESS)}</p>`;
+      return `<h1>Contact MindVault</h1><p>Book a walkthrough for your school or academy, or get help with your account.</p><p>Email: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p><p>Office: ${esc(OFFICE_ADDRESS)}</p><p>Instagram: <a href="${esc(INSTAGRAM_URL)}">@mindvault.academy</a></p>`;
     case '/security':
       return `<h1>Security overview</h1>${trustHtml()}<p>Security inquiries: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>`;
     default:
@@ -107,6 +108,7 @@ function structuredData(page: PublicPage): object[] {
     url: SITE_URL,
     logo: `${SITE_URL}/assets/brand/mindvault-icon-512.png`,
     email: SUPPORT_EMAIL,
+    sameAs: [INSTAGRAM_URL],
     address: { '@type': 'PostalAddress', streetAddress: OFFICE_ADDRESS, addressLocality: 'Bangalore', addressCountry: 'IN' },
   };
   const offers = PRICING_PLANS.filter((p) => typeof p.priceINR.annualMonthly === 'number').map((p) => ({

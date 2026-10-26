@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Mail, MapPin } from 'lucide-react';
+import { ArrowLeft, Instagram, Mail, MapPin } from 'lucide-react';
 import { api } from '@/lib/api';
+import { INSTAGRAM_URL } from '@/content/marketing';
 
 const CONTACT_EMAIL = 'customersupport@mindvault.academy';
 const BACK_CLASS =
@@ -79,6 +80,29 @@ export default function ContactUs() {
                   <br />
                   Nagarabhavi, Bangalore, 560072
                 </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="MindVault on Instagram"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-950/60 text-cyan-400 transition-colors hover:border-cyan-400 hover:text-cyan-300"
+              >
+                <Instagram className="h-5 w-5" aria-hidden="true" />
+              </a>
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Instagram</h3>
+                <a
+                  href={INSTAGRAM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-lg font-bold text-white transition-colors hover:text-cyan-400"
+                >
+                  @mindvault.academy
+                </a>
               </div>
             </div>
           </div>
