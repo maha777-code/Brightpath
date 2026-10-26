@@ -203,6 +203,7 @@ export function ClassroomApp() {
           onCreate={async (payload) => {
             const next = await apply(payload);
             if (next) setAssignOpen(false);
+            return next;
           }}
         />
       ) : null}
@@ -386,8 +387,8 @@ function StreamTab({
               type: 'create_post',
               classId: cls.id,
               postType: 'announcement',
-              title: draft.title || 'Announcement',
               ...draft,
+              title: draft.title || 'Announcement',
             });
             setDraft({ title: '', body: '', youtubeUrl: '', driveUrl: '', webUrl: '', fileName: '' });
           }}
