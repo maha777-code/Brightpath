@@ -2,6 +2,9 @@
   "name": "brightpath",
   "private": true,
   "version": "0.2.0",
+  "engines": {
+    "node": ">=22.23.4"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
