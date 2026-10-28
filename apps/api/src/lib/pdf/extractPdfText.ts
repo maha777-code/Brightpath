@@ -220,7 +220,6 @@ async function extractWithPdfJs(filePath: string, opts: PdfExtractOptions): Prom
   const data = new Uint8Array(await fsPromises.readFile(filePath));
   const doc = await getDocument({
     data,
-    disableWorker: true,
     isEvalSupported: false,
     useSystemFonts: true,
   }).promise;
