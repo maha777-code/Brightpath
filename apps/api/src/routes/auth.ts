@@ -602,7 +602,11 @@ const lastResetSentAt = new Map<string, number>();
 const RESET_SENT_MESSAGE =
   'If an account exists for that email, we have sent a link to reset your password. Check your inbox and spam folder.';
 
-const appUrl = () => (process.env.APP_URL ?? 'http://localhost:5173').replace(/\/+$/, '');
+const appUrl = () =>
+  (process.env.APP_URL ?? (process.env.NODE_ENV === 'production' ? 'https://mindvault.academy' : 'http://localhost:5174')).replace(
+    /\/+$/,
+    '',
+  );
 
 async function currentPasswordHash(userId: string) {
   const user = await prisma.platformUser.findUnique({ where: { id: userId }, select: { passwordHash: true } });
@@ -644,7 +648,10 @@ router.post('/password/forgot', async (req, res) => {
       });
     }
   } catch (err) {
+    lastResetSentAt.delete(email);
     console.error('Password reset email failed:', err instanceof Error ? err.message : err);
+    res.status(503).json({ error: 'Could not send the reset email. Please try again in a minute.' });
+    return;
   }
   res.json({ ok: true, message: RESET_SENT_MESSAGE });
 });

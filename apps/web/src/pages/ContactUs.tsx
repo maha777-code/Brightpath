@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Instagram, Mail, MapPin } from 'lucide-react';
 import { api } from '@/lib/api';
-import { INSTAGRAM_URL } from '@/content/marketing';
+import { FOUNDER_EMAIL, INSTAGRAM_URL } from '@/content/marketing';
 
 const CONTACT_EMAIL = 'customersupport@mindvault.academy';
 const BACK_CLASS =
@@ -65,6 +65,21 @@ export default function ContactUs() {
                   className="break-all text-lg font-bold text-white transition-colors hover:text-cyan-400"
                 >
                   {CONTACT_EMAIL}
+                </a>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-950/60 text-cyan-400">
+                <Mail className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Founder</h3>
+                <a
+                  href={`mailto:${FOUNDER_EMAIL}`}
+                  className="break-all text-lg font-bold text-white transition-colors hover:text-cyan-400"
+                >
+                  {FOUNDER_EMAIL}
                 </a>
               </div>
             </div>

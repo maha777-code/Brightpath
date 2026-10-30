@@ -1,7 +1,7 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { type Transporter } from 'nodemailer';
 
 export const CONTACT_INBOX = 'customersupport@mindvault.academy';
-export const FEEDBACK_INBOX = 'customersupport@mindvault.academy';
+export const FEEDBACK_INBOX = 'founder@mindvault.academy';
 /** Gmail login that GMAIL_APP_PASSWORD belongs to; never shown to users, replies go to CONTACT_INBOX. */
 const GMAIL_ACCOUNT = 'qxicybertech.helpcenter@gmail.com';
 
@@ -13,8 +13,8 @@ export class MailerUnconfiguredError extends Error {
   }
 }
 
-let transporter: nodemailer.Transporter | null = null;
-let gmailTransporter: nodemailer.Transporter | null = null;
+let transporter: Transporter | null = null;
+let gmailTransporter: Transporter | null = null;
 
 function escapeHtml(value: string) {
   return value
@@ -106,7 +106,7 @@ export async function sendPasswordResetEmail(input: {
   if (!mailer) throw new MailerUnconfiguredError();
   const greeting = input.name?.trim() ? `Hi ${input.name.trim()},` : 'Hi,';
   await mailer.sendMail({
-    from: `"MindVault" <${senderAddress()}>`,
+    from: `"MindVault" <${CONTACT_INBOX}>`,
     replyTo: CONTACT_INBOX,
     to: input.to,
     subject: 'Reset your MindVault password',

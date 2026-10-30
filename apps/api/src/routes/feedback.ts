@@ -65,7 +65,7 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
     console.error('Feedback submission failed', error);
     if (error instanceof MailerUnconfiguredError) {
       res.status(503).json({
-        error: 'Email delivery is not configured yet. Please email customersupport@mindvault.academy directly.',
+        error: 'Email delivery is not configured yet. Please email founder@mindvault.academy directly.',
       });
       return;
     }
