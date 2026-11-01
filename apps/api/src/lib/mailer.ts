@@ -66,19 +66,6 @@ function senderAddress() {
   return process.env.GMAIL_USER ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? GMAIL_ACCOUNT;
 }
 
-function deliveryErrorText(err: unknown): string {
-  const message = err instanceof Error ? err.message : String(err);
-  const response = err && typeof err === 'object' && 'response' in err && typeof err.response === 'string' ? err.response : '';
-  return `${message}\n${response}`;
-}
-
-/** Gmail only allows a From address that is the login or a verified "Send mail as" alias. */
-function isUnauthorizedFrom(err: unknown): boolean {
-  return /5\.7\.(0|1|26)|dmarc|sender address|from address|not allowed to send|prohibited the mail|unauthenticated email|relay denied/i.test(
-    deliveryErrorText(err),
-  );
-}
-
 export async function sendVerificationCodeEmail(input: { to: string; name?: string | null; code: string }): Promise<void> {
   const mailer = getContactTransporter();
   if (!mailer) throw new MailerUnconfiguredError();
@@ -144,15 +131,11 @@ export async function sendPasswordResetEmail(input: {
       </div>
     `,
   };
-  const supportFrom = `"MindVault" <${CONTACT_INBOX}>`;
-  const authenticatedFrom = `"MindVault" <${senderAddress()}>`;
-  try {
-    await mailer.sendMail({ ...message, from: supportFrom, replyTo: CONTACT_INBOX });
-  } catch (err) {
-    if (supportFrom === authenticatedFrom || !isUnauthorizedFrom(err)) throw err;
-    console.error('Gmail rejected customersupport@mindvault.academy as the sender. Sending the reset from the authenticated mailbox.');
-    await mailer.sendMail({ ...message, from: authenticatedFrom, replyTo: CONTACT_INBOX });
-  }
+  await mailer.sendMail({
+    ...message,
+    from: `"MindVault" <${CONTACT_INBOX}>`,
+    replyTo: CONTACT_INBOX,
+  });
 }
 
 export async function sendAccountInviteEmail(input: {
