@@ -7,6 +7,7 @@ import {
   PRESENTATION_THEMES,
   fallbackPresentation,
   presentationSlideTarget,
+  revisePresentation,
   type PresentationPayload,
   type PresentationResponse,
   type PresentationSlideCount,
@@ -21,21 +22,20 @@ import {
 } from '@/lib/extractDocumentText';
 
 const WORD_LIMIT = 75_000;
-const FIELD =
-  'mt-2 w-full rounded-xl border border-white/10 bg-[#12141c] px-4 py-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-violet-400/70';
+const FIELD = 'mv-pres-field mt-2 w-full rounded-xl px-4 py-3 text-sm outline-none focus:border-violet-400';
 
 const THEME_STYLE: Record<
   PresentationTheme,
-  { stage: string; card: string; title: string; body: string; chip: string; dot: string }
+  { stage: string; card: string; title: string; body: string; chip: string; dot: string; art: string }
 > = {
-  made: { stage: '#14161e', card: '#e07a62', title: '#1c1917', body: '#44403c', chip: '#fff7f3', dot: '#e07a62' },
-  light: { stage: '#ececef', card: '#ffffff', title: '#18181b', body: '#3f3f46', chip: '#f4f4f5', dot: '#d4d4d8' },
-  dark: { stage: '#0c0e14', card: '#18181b', title: '#fafafa', body: '#d4d4d8', chip: '#27272a', dot: '#52525b' },
-  magic: { stage: '#140c24', card: '#5b21b6', title: '#f5f3ff', body: '#ddd6fe', chip: '#2e1065', dot: '#c4b5fd' },
-  playful: { stage: '#1a120c', card: '#f59e0b', title: '#1c1917', body: '#44403c', chip: '#fffbeb', dot: '#fbbf24' },
-  chalk: { stage: '#0d1f18', card: '#166534', title: '#ecfccb', body: '#d9f99d', chip: '#052e16', dot: '#4ade80' },
-  notebook: { stage: '#f3efe6', card: '#fffdf8', title: '#1e3a5f', body: '#334155', chip: '#eff6ff', dot: '#93c5fd' },
-  scholar: { stage: '#0b1220', card: '#1e293b', title: '#f8fafc', body: '#cbd5e1', chip: '#0f172a', dot: '#eab308' },
+  made: { stage: '#14161e', card: '#fff7f3', title: '#1c1917', body: '#44403c', chip: '#fff7f3', dot: '#e07a62', art: 'linear-gradient(160deg,#fde7df,#e07a62 48%,#9a3412)' },
+  light: { stage: '#ececef', card: '#ffffff', title: '#18181b', body: '#3f3f46', chip: '#f4f4f5', dot: '#d4d4d8', art: 'linear-gradient(160deg,#fafafa,#d4d4d8 55%,#71717a)' },
+  dark: { stage: '#0c0e14', card: '#18181b', title: '#fafafa', body: '#d4d4d8', chip: '#27272a', dot: '#52525b', art: 'linear-gradient(160deg,#3f3f46,#18181b 50%,#09090b)' },
+  magic: { stage: '#140c24', card: '#f5f3ff', title: '#1e1b4b', body: '#4c1d95', chip: '#ede9fe', dot: '#c4b5fd', art: 'linear-gradient(160deg,#f3e8ff,#7c3aed 46%,#4c1d95)' },
+  playful: { stage: '#1a120c', card: '#fffbeb', title: '#1c1917', body: '#44403c', chip: '#fffbeb', dot: '#fbbf24', art: 'linear-gradient(160deg,#fef3c7,#f59e0b 50%,#c2410c)' },
+  chalk: { stage: '#0d1f18', card: '#f0fdf4', title: '#052e16', body: '#14532d', chip: '#dcfce7', dot: '#4ade80', art: 'linear-gradient(160deg,#bbf7d0,#166534 48%,#052e16)' },
+  notebook: { stage: '#f3efe6', card: '#fffdf8', title: '#1e3a5f', body: '#334155', chip: '#eff6ff', dot: '#93c5fd', art: 'linear-gradient(160deg,#eff6ff,#93c5fd 50%,#1e3a5f)' },
+  scholar: { stage: '#0b1220', card: '#f8fafc', title: '#0f172a', body: '#334155', chip: '#e2e8f0', dot: '#eab308', art: 'linear-gradient(160deg,#fef9c3,#1e293b 52%,#0f172a)' },
 };
 
 function countWords(value: string): number {
@@ -105,10 +105,10 @@ function FileRow({
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div className="mt-3">
-      <div className="flex items-center justify-between gap-3 text-xs text-slate-400">
+      <div className="mv-pres-muted flex items-center justify-between gap-3 text-xs">
         <button
           type="button"
-          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#12141c] px-3 py-1.5 font-semibold text-slate-200"
+          className="mv-pres-field inline-flex items-center gap-2 rounded-lg px-3 py-1.5 font-semibold"
           onClick={() => inputRef.current?.click()}
         >
           <FileText className="h-3.5 w-3.5" />
@@ -131,15 +131,25 @@ function FileRow({
       {files.length ? (
         <ul className="mt-2 flex flex-wrap gap-2">
           {files.map((file) => (
-            <li key={file.id} className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300">
+            <li key={file.id} className="mv-pres-field inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs">
               {file.isProcessing ? 'Reading…' : file.name}
-              <button type="button" className="text-slate-400" onClick={() => onRemove(file.id)} aria-label={`Remove ${file.name}`}>
+              <button type="button" className="mv-pres-muted" onClick={() => onRemove(file.id)} aria-label={`Remove ${file.name}`}>
                 ×
               </button>
             </li>
           ))}
         </ul>
       ) : null}
+    </div>
+  );
+}
+
+function CoverArt() {
+  return (
+    <div className="mv-pres-art relative min-h-[240px] overflow-hidden" aria-hidden>
+      <span className="absolute left-[14%] top-[18%] h-44 w-44 rounded-full border-[10px] border-white/50 bg-white/25" />
+      <span className="absolute left-[34%] top-[26%] h-36 w-36 rounded-full border-[10px] border-white/40 bg-white/20" />
+      <span className="absolute left-[26%] top-[34%] h-16 w-16 rounded-full bg-white/70" />
     </div>
   );
 }
@@ -160,7 +170,10 @@ export function PresentationGenerator() {
   const [promptOpen, setPromptOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [followUp, setFollowUp] = useState('');
+  const [thread, setThread] = useState<string[]>([]);
+  const [revising, setRevising] = useState(false);
   const [favorited, setFavorited] = useState(false);
+  const seenDeck = useRef(false);
   const topicMic = useDictation((text) => setTopic((prev) => (prev ? `${prev} ${text}` : text)));
   const criteriaMic = useDictation((text) => setCriteria((prev) => (prev ? `${prev} ${text}` : text)));
 
@@ -204,35 +217,61 @@ export function PresentationGenerator() {
   };
 
   const run = async (extra?: string) => {
-    if (!extra && !canGenerate) return;
+    const instruction = extra?.trim() ?? '';
+    const isRevision = Boolean(instruction && deck);
+    if (!isRevision && !canGenerate) return;
     if (topic.trim().length < 3) return;
     setBusy(true);
+    setRevising(isRevision);
     setError('');
     setPhase('studio');
-    setDeck(null);
-    setShown(0);
+    if (!isRevision) {
+      seenDeck.current = false;
+      setDeck(null);
+      setShown(0);
+      setThread([]);
+    }
     const body = payload();
-    if (extra?.trim()) {
-      body.additionalCriteria = [body.additionalCriteria, extra.trim()].filter(Boolean).join('\n\n');
+    if (isRevision && deck) {
+      body.revision = instruction;
+      body.currentSlides = deck.slides;
     }
     try {
-      setDeck(await api.generatePresentation(body));
+      const next = await api.generatePresentation(body);
+      if (isRevision && deck) {
+        const unchanged =
+          next.slides.length === deck.slides.length &&
+          next.slides.every((slide, index) => slide.title === deck.slides[index]?.title && slide.bullets.join('|') === deck.slides[index]?.bullets.join('|'));
+        setDeck(unchanged ? revisePresentation(deck, instruction) : next);
+        setThread((prev) => [...prev, instruction]);
+      } else {
+        setDeck(next);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : '';
-      if (/unauthorized|grade level/i.test(message)) {
+      if (!isRevision && /unauthorized|grade level/i.test(message)) {
         setPhase('form');
         setError(message || 'Could not generate the presentation.');
+      } else if (isRevision && deck) {
+        setDeck(revisePresentation(deck, instruction));
+        setThread((prev) => [...prev, instruction]);
       } else {
         setDeck(fallbackPresentation(body));
       }
     } finally {
       setBusy(false);
+      setRevising(false);
       setFollowUp('');
     }
   };
 
   useEffect(() => {
     if (!deck) return;
+    if (seenDeck.current) {
+      setShown(deck.slides.length);
+      return;
+    }
+    seenDeck.current = true;
     setShown(1);
     let current = 1;
     const timer = window.setInterval(() => {
@@ -267,10 +306,12 @@ export function PresentationGenerator() {
   const download = (kind: 'html' | 'txt') => {
     if (!deck) return;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(deck.title)}</title>
-      <style>body{margin:0;font-family:Georgia,serif;background:${colors.stage}} section{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px} article{width:min(960px,100%);background:${colors.card};color:${colors.title};border-radius:28px;padding:64px} h1{font-size:64px;margin:0} h2{font-size:36px;margin:0 0 16px} p,li{color:${colors.body};font-size:22px;line-height:1.45}</style></head><body>
+      <style>body{margin:0;font-family:Georgia,serif;background:${colors.stage}} section{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px} article{width:min(1080px,100%);border-radius:28px;overflow:hidden} .cover{display:grid;grid-template-columns:1.1fr .9fr;min-height:70vh;background:${colors.card};color:${colors.title}} .art{background:${colors.art}} .copy{display:flex;flex-direction:column;justify-content:center;padding:48px} .content{background:#fffdf8;color:#1c1917;padding:64px} h1{font-size:56px;line-height:1.05;margin:0} h2{font-size:40px;margin:0 0 20px} p,li{font-size:22px;line-height:1.45} .chip{display:inline-block;margin-top:20px;padding:8px 16px;border-radius:999px;background:${colors.chip};color:${colors.body}}</style></head><body>
       ${deck.slides
-        .map(
-          (slide) => `<section><article><p>Slide</p><h1>${escapeHtml(slide.title)}</h1>${slide.subtitle ? `<p>${escapeHtml(slide.subtitle)}</p>` : ''}${slide.bullets.length ? `<ul>${slide.bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}${slide.question ? `<p><strong>${escapeHtml(slide.question)}</strong></p>` : ''}</article></section>`,
+        .map((slide, index) =>
+          index === 0
+            ? `<section><article class="cover"><div class="art"></div><div class="copy"><h1>${escapeHtml(slide.title)}</h1>${slide.subtitle ? `<p class="chip">${escapeHtml(slide.subtitle)}</p>` : ''}</div></article></section>`
+            : `<section><article class="content"><h2>${escapeHtml(slide.title)}</h2>${slide.subtitle ? `<p>${escapeHtml(slide.subtitle)}</p>` : ''}${slide.bullets.length ? `<ul>${slide.bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}${slide.question ? `<p class="chip">${escapeHtml(slide.question)}</p>` : ''}</article></section>`,
         )
         .join('')}</body></html>`;
     const blob = new Blob([kind === 'html' ? html : outline], { type: kind === 'html' ? 'text/html' : 'text/plain' });
@@ -285,69 +326,74 @@ export function PresentationGenerator() {
 
   if (phase === 'studio') {
     return (
-      <div className="flex min-h-[780px] w-full text-slate-100" style={{ background: '#0e1016' }}>
-        <aside className="flex w-[280px] shrink-0 flex-col border-r border-white/10 p-4">
+      <div className="mv-presentation mv-pres-studio grid min-h-[780px] w-full max-w-full grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="mv-pres-rail flex flex-col border-b p-4 lg:border-b-0 lg:border-r">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Presentation Generator</h2>
-            <button type="button" className="text-slate-400" onClick={() => void api.toggleTeacherToolFavorite('presentation-generator').then((res) => setFavorited(res.favorited)).catch(() => setFavorited((value) => !value))} aria-label="Favorite">
+            <button type="button" className="mv-pres-muted" onClick={() => void api.toggleTeacherToolFavorite('presentation-generator').then((res) => setFavorited(res.favorited)).catch(() => setFavorited((value) => !value))} aria-label="Favorite">
               <Star className={`h-4 w-4 ${favorited ? 'fill-amber-300 text-amber-300' : ''}`} />
             </button>
           </div>
-          <button type="button" className="mt-4 inline-flex items-center gap-2 text-sm text-slate-300" onClick={() => setPromptOpen((open) => !open)}>
+          <button type="button" className="mv-pres-muted mt-4 inline-flex items-center gap-2 text-sm" onClick={() => setPromptOpen((open) => !open)}>
             Show prompt <ChevronDown className="h-4 w-4" />
           </button>
           {promptOpen ? (
-            <div className="mt-3 rounded-xl bg-white/5 p-3 text-xs leading-5 text-slate-300">
-              <p><span className="text-slate-500">Grade:</span> {gradeLevel}</p>
-              <p className="mt-1"><span className="text-slate-500">Slides:</span> {PRESENTATION_SLIDE_OPTIONS.find((item) => item.id === slideCount)?.label}</p>
+            <div className="mv-pres-field mt-3 rounded-xl p-3 text-xs leading-5">
+              <p>Grade: {gradeLevel}</p>
+              <p className="mt-1">Slides: {PRESENTATION_SLIDE_OPTIONS.find((item) => item.id === slideCount)?.label}</p>
               <p className="mt-2 whitespace-pre-wrap">{topic}</p>
-              {criteria ? <p className="mt-2 whitespace-pre-wrap text-slate-400">{criteria}</p> : null}
+              {criteria ? <p className="mv-pres-muted mt-2 whitespace-pre-wrap">{criteria}</p> : null}
             </div>
           ) : null}
-          <div className="mt-4 rounded-xl border border-violet-400/40 bg-[#171a24] p-3">
+          <div className="mv-pres-field mt-4 rounded-xl p-3">
             <p className="font-semibold">{deckTitle}</p>
-            <p className="mt-2 text-xs text-slate-400">{writing ? `Writing your slides… ${shown} of ${total}` : `${total} slides ready`}</p>
+            <p className="mv-pres-muted mt-2 text-xs">{revising ? 'Updating the deck…' : writing ? `Writing your slides… ${shown} of ${total}` : `${total} slides ready`}</p>
           </div>
+          {thread.length ? (
+            <ul className="mt-3 space-y-2 text-xs">
+              {thread.map((note, index) => (
+                <li key={`${index}-${note}`} className="mv-pres-field rounded-xl px-3 py-2">{note}</li>
+              ))}
+            </ul>
+          ) : null}
           <div className="mt-auto pt-4">
             <label className="sr-only" htmlFor="presentation-follow-up">Continue the conversation</label>
             <textarea
               id="presentation-follow-up"
               value={followUp}
               onChange={(event) => setFollowUp(event.target.value)}
-              placeholder="Continue the conversation…"
-              className="h-20 w-full resize-none rounded-xl border border-white/10 bg-[#12141c] px-3 py-2 text-sm outline-none"
+              placeholder="Add a slide, change one, or ask for a quiz…"
+              className="mv-pres-field h-20 w-full resize-none rounded-xl px-3 py-2 text-sm outline-none"
             />
             <button
               type="button"
               disabled={busy || followUp.trim().length < 2}
-              className="mt-2 w-full rounded-xl bg-violet-500 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              className="mv-pres-generate mt-2 w-full rounded-xl py-2 text-sm font-semibold disabled:opacity-50"
               onClick={() => void run(followUp)}
             >
-              {busy ? 'Updating…' : 'Update slides'}
+              {revising ? 'Updating…' : 'Update slides'}
             </button>
-            <button type="button" className="mt-2 w-full text-xs text-slate-400" onClick={() => setPhase('form')}>
+            <button type="button" className="mv-pres-muted mt-2 w-full text-xs" onClick={() => setPhase('form')}>
               Edit the form
             </button>
           </div>
         </aside>
-        <section className="min-w-0 flex-1" style={{ background: colors.stage }}>
+        <section className="min-w-0 overflow-x-hidden" style={{ background: colors.stage }}>
           <header className="flex items-center justify-between gap-3 border-b border-black/10 px-5 py-3" style={{ color: colors.title }}>
-            <h1 className="truncate text-sm font-semibold">{deckTitle}</h1>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <button type="button" className="rounded-lg border border-black/10 bg-black/20 px-3 py-1.5 text-xs font-semibold text-white" onClick={() => setExportOpen((open) => !open)}>
-                  Export
-                </button>
-                {exportOpen ? (
-                  <div className="absolute right-0 z-10 mt-2 w-44 rounded-xl border border-white/10 bg-[#171a24] p-1 text-sm text-slate-100 shadow-xl">
-                    <button type="button" className="block w-full rounded-lg px-3 py-2 text-left hover:bg-white/5" onClick={() => download('html')}>Download slides</button>
-                    <button type="button" className="block w-full rounded-lg px-3 py-2 text-left hover:bg-white/5" onClick={() => download('txt')}>Download outline</button>
-                  </div>
-                ) : null}
-              </div>
+            <h1 className="min-w-0 truncate text-sm font-semibold">{deckTitle}</h1>
+            <div className="relative shrink-0">
+              <button type="button" className="rounded-lg px-3 py-1.5 text-xs font-semibold" style={{ background: 'rgba(0,0,0,0.35)', color: '#fff' }} onClick={() => setExportOpen((open) => !open)}>
+                Export
+              </button>
+              {exportOpen ? (
+                <div className="mv-pres-field absolute right-0 z-10 mt-2 w-44 rounded-xl p-1 text-sm shadow-xl">
+                  <button type="button" className="block w-full rounded-lg px-3 py-2 text-left" onClick={() => download('html')}>Download slides</button>
+                  <button type="button" className="block w-full rounded-lg px-3 py-2 text-left" onClick={() => download('txt')}>Download outline</button>
+                </div>
+              ) : null}
             </div>
           </header>
-          <div className="flex flex-wrap items-center gap-2 px-5 py-3">
+          <div className="mx-auto flex w-full max-w-[1080px] flex-wrap items-center gap-2 px-4 py-3 sm:px-8">
             {PRESENTATION_THEMES.map((item) => (
               <button
                 key={item.id}
@@ -355,7 +401,7 @@ export function PresentationGenerator() {
                 onClick={() => setTheme(item.id)}
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
                 style={{
-                  background: theme === item.id ? '#6d28d9' : 'rgba(255,255,255,0.08)',
+                  background: theme === item.id ? '#6d28d9' : 'rgba(255,255,255,0.14)',
                   color: '#fff',
                 }}
               >
@@ -365,35 +411,44 @@ export function PresentationGenerator() {
               </button>
             ))}
           </div>
-          <p className="px-5 text-sm text-slate-300">{writing ? `Generating slides… ${shown}/${total}` : `${total} slides`}</p>
-          <div className="space-y-8 px-5 py-6">
+          <p className="mx-auto w-full max-w-[1080px] px-4 text-sm sm:px-8" style={{ color: colors.title }}>{revising ? 'Applying your change…' : writing ? `Generating slides… ${shown}/${total}` : `Slide ${Math.min(shown, total)}/${total}`}</p>
+          <div className="mx-auto w-full max-w-[1080px] space-y-8 px-4 py-6 sm:px-8">
             {visibleSlides.map((slide, index) => (
-              <article key={`${slide.title}-${index}`}>
-                <p className="mb-2 text-xs text-slate-400">Slide {index + 1}/{total}</p>
-                <div className="mx-auto flex min-h-[360px] max-w-4xl flex-col items-center justify-center rounded-[28px] px-10 py-14 text-center shadow-xl" style={{ background: colors.card, color: colors.title }}>
-                  <h2 className="text-5xl font-semibold tracking-tight">{slide.title}</h2>
-                  {slide.subtitle ? (
-                    <p className="mt-6 rounded-full px-4 py-1 text-sm" style={{ background: colors.chip, color: colors.body }}>{slide.subtitle}</p>
-                  ) : null}
-                  {slide.bullets.length ? (
-                    <ul className="mt-6 max-w-xl space-y-2 text-left text-base" style={{ color: colors.body }}>
-                      {slide.bullets.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  {slide.question ? <p className="mt-6 max-w-xl text-base font-medium" style={{ color: colors.body }}>{slide.question}</p> : null}
-                  {writing && index === visibleSlides.length - 1 ? (
-                    <p className="mt-8 rounded-full bg-white/80 px-4 py-1 text-xs font-semibold text-slate-700">Generating illustration…</p>
-                  ) : (
-                    <p className="mt-8 max-w-lg text-xs" style={{ color: colors.body }}>{slide.imagePrompt}</p>
-                  )}
-                </div>
-                {slide.speakerNotes ? <p className="mx-auto mt-3 max-w-4xl text-xs text-slate-400">Teacher notes: {slide.speakerNotes}</p> : null}
+              <article key={`${index}-${slide.title}`}>
+                <p className="mb-2 text-xs" style={{ color: colors.title }}>Slide {index + 1}/{total}</p>
+                {index === 0 ? (
+                  <div className="mv-pres-slide grid w-full overflow-hidden rounded-[28px] shadow-xl md:grid-cols-[1.15fr_0.85fr]" style={{ background: colors.card, color: colors.title }}>
+                    <div style={{ background: colors.art }}>
+                      <CoverArt />
+                    </div>
+                    <div className="flex min-w-0 flex-col justify-center px-8 py-10 text-left md:px-10">
+                      <h2 className="break-words text-4xl font-semibold tracking-tight md:text-5xl">{slide.title}</h2>
+                      {slide.subtitle ? (
+                        <p className="mt-6 w-fit max-w-full rounded-full px-4 py-2 text-sm" style={{ background: colors.chip, color: colors.body }}>{slide.subtitle}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mv-pres-slide w-full rounded-[28px] px-8 py-12 text-left shadow-xl md:px-12" style={{ background: '#fffdf8', color: '#1c1917' }}>
+                    <h2 className="break-words text-4xl font-semibold tracking-tight">{slide.title}</h2>
+                    {slide.subtitle ? <p className="mt-4 text-lg" style={{ color: '#44403c' }}>{slide.subtitle}</p> : null}
+                    {slide.bullets.length ? (
+                      <ul className="mt-6 list-disc space-y-2 pl-5 text-lg" style={{ color: '#44403c' }}>
+                        {slide.bullets.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {slide.question ? (
+                      <p className="mt-6 w-fit max-w-full rounded-full px-4 py-2 text-base font-medium" style={{ background: colors.chip, color: colors.body }}>{slide.question}</p>
+                    ) : null}
+                  </div>
+                )}
+                {slide.speakerNotes ? <p className="mt-3 text-xs" style={{ color: colors.title }}>Teacher notes: {slide.speakerNotes}</p> : null}
               </article>
             ))}
             {!deck ? (
-              <div className="mx-auto flex min-h-[360px] max-w-4xl items-center justify-center rounded-[28px] text-slate-300" style={{ background: colors.card }}>
+              <div className="mv-pres-slide flex min-h-[360px] w-full items-center justify-center rounded-[28px]" style={{ background: colors.card, color: colors.title }}>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Writing your slides…
               </div>
             ) : null}
@@ -404,15 +459,14 @@ export function PresentationGenerator() {
   }
 
   return (
-    <div className="min-h-[780px] px-4 py-8 text-slate-100" style={{ background: '#0e1016' }}>
-      <nav className="mx-auto mb-6 flex max-w-3xl items-center gap-2 text-sm text-slate-400">
-        <Link to="/teacher/tools" className="text-slate-300 no-underline">Teacher Tools</Link>
-        <span>›</span>
-        <span className="text-slate-200">Presentation Generator</span>
+    <div className="mv-presentation mv-pres-form min-h-[780px] w-full px-4 py-8 md:px-8">
+      <nav className="mb-6 flex w-full items-center gap-2 text-sm">
+        <Link to="/teacher/tools" className="mv-pres-link no-underline">Teacher Tools</Link>
+        <span className="mv-pres-muted">›</span>
+        <span>Presentation Generator</span>
       </nav>
       <form
-        className="mx-auto max-w-3xl rounded-2xl border border-white/10 p-6 shadow-2xl"
-        style={{ background: '#171922' }}
+        className="mv-pres-card w-full rounded-2xl p-6 shadow-2xl md:p-8"
         onSubmit={(event) => {
           event.preventDefault();
           void run();
@@ -423,14 +477,14 @@ export function PresentationGenerator() {
             <h1 className="flex items-center gap-2 text-2xl font-semibold">
               Presentation Generator
               <button type="button" aria-label="Favorite this tool" onClick={() => void api.toggleTeacherToolFavorite('presentation-generator').then((res) => setFavorited(res.favorited)).catch(() => setFavorited((value) => !value))}>
-                <Star className={`h-5 w-5 ${favorited ? 'fill-amber-300 text-amber-300' : 'text-slate-500'}`} />
+                <Star className={`h-5 w-5 ${favorited ? 'fill-amber-300 text-amber-300' : 'mv-pres-muted'}`} />
               </button>
             </h1>
-            <p className="mt-2 text-sm text-slate-400">All-new presentation generator experience with images, themes, editing, and exports.</p>
+            <p className="mv-pres-muted mt-2 text-sm">All-new presentation generator experience with images, themes, editing, and exports.</p>
           </div>
           <button
             type="button"
-            className="text-sm font-semibold text-violet-300"
+            className="mv-pres-accent text-sm font-semibold"
             onClick={() => {
               setGradeLevel('9th grade');
               setSlideCount('standard');
@@ -466,10 +520,10 @@ export function PresentationGenerator() {
             onChange={(event) => setTopic(event.target.value)}
             placeholder="Add the topic, standard, or longer description of what you’re teaching. You can also use the paperclip icon to the left to attach content to base your presentation on."
           />
-          <button type="button" className="absolute bottom-3 left-3 text-slate-500" aria-label="Dictate the topic" onClick={topicMic.toggle}>
+          <button type="button" className="mv-pres-muted absolute bottom-3 left-3" aria-label="Dictate the topic" onClick={topicMic.toggle}>
             <Mic className={`h-4 w-4 ${topicMic.listening ? 'text-violet-300' : ''}`} />
           </button>
-          <Paperclip className="pointer-events-none absolute bottom-3 right-3 h-4 w-4 text-slate-600" />
+          <Paperclip className="mv-pres-muted pointer-events-none absolute bottom-3 right-3 h-4 w-4" />
         </div>
         <FileRow files={topicFiles} words={fileWords(topicFiles)} onPick={(list) => void attach('topic', list)} onRemove={(id) => setTopicFiles((prev) => prev.filter((file) => file.id !== id))} />
 
@@ -477,7 +531,7 @@ export function PresentationGenerator() {
           <h2 className="text-sm font-semibold">Additional Criteria:</h2>
           <button
             type="button"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-violet-300"
+            className="mv-pres-accent inline-flex items-center gap-1 text-xs font-semibold"
             onClick={() => {
               if (topic.trim().length < 3) {
                 setError('Add a topic first, then the prompt assistant can expand it.');
@@ -502,7 +556,7 @@ export function PresentationGenerator() {
             onChange={(event) => setCriteria(event.target.value)}
             placeholder="Make sure that the slides include at least three questions throughout"
           />
-          <button type="button" className="absolute bottom-3 left-3 text-slate-500" aria-label="Dictate additional criteria" onClick={criteriaMic.toggle}>
+          <button type="button" className="mv-pres-muted absolute bottom-3 left-3" aria-label="Dictate additional criteria" onClick={criteriaMic.toggle}>
             <Mic className={`h-4 w-4 ${criteriaMic.listening ? 'text-violet-300' : ''}`} />
           </button>
         </div>
@@ -514,7 +568,7 @@ export function PresentationGenerator() {
         <button
           type="submit"
           disabled={!canGenerate}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500 py-3 text-base font-semibold text-white disabled:opacity-50"
+          className="mv-pres-generate mt-6 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-base font-semibold disabled:opacity-50"
         >
           {busy || filesBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {filesBusy ? 'Reading files…' : 'Generate'}

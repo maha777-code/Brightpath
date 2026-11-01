@@ -489,6 +489,7 @@ export {
   PRESENTATION_THEMES,
   presentationSlideTarget,
   fallbackPresentation,
+  revisePresentation,
 } from './presentation.js';
 
 export {

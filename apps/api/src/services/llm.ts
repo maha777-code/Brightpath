@@ -16,7 +16,7 @@ import type {
   EmailResponderRequest,
   EmailResponderResponse,
 } from '@brightpath/shared';
-import { applyWorksheetFollowUp, applyWorksheetTranslation, classroomLessonPlanFallback, classifyUserIntent, cleanLessonSource, emailResponderPrompt, fallbackEmailResponse, fallbackPresentation, fallbackSharadaChat, KHDA_LESSON_RULES, lessonSubjectLabel, presentationSlideTarget } from '@brightpath/shared';
+import { applyWorksheetFollowUp, applyWorksheetTranslation, classroomLessonPlanFallback, classifyUserIntent, cleanLessonSource, emailResponderPrompt, fallbackEmailResponse, fallbackPresentation, fallbackSharadaChat, KHDA_LESSON_RULES, lessonSubjectLabel, presentationSlideTarget, revisePresentation } from '@brightpath/shared';
 import { getActiveProvider, imagePartsFromDataUrls } from '../lib/llm/provider.js';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
@@ -774,9 +774,17 @@ Rules:
 - Progress from a phenomenon, to the model, to a worked example, to a misconception, to a new case, to an exit ticket.
 - At least three slides must have a non-empty question.
 - Bullets are short lines a teacher can say, not paragraphs.
-- The first slide is a title slide with a driving question in the subtitle.`;
+- The first slide is a title slide only: a short title, one driving question in the subtitle, and an empty bullets array. Do not put teaching points on the title slide.
+- Every later slide uses a different job: phenomenon, model, worked example, misconception, new case, or exit ticket. Give each one a headline and two or three short bullets.
+- imagePrompt describes one classroom-safe picture with no words in it. The title slide picture should show the phenomenon, not a slide layout.
+- Name the real mechanism for the grade. Do not write generic welcome lines.`;
 
-function normalizePresentation(raw: Record<string, unknown>, input: PresentationPayload, fallback: PresentationResponse): PresentationResponse {
+function normalizePresentation(
+  raw: Record<string, unknown>,
+  input: PresentationPayload,
+  fallback: PresentationResponse,
+  options?: { revising?: boolean },
+): PresentationResponse {
   const wanted = presentationSlideTarget(input.slideCount);
   const parsed = Array.isArray(raw.slides) ? raw.slides : [];
   const slides: PresentationSlide[] = [];
@@ -794,6 +802,23 @@ function normalizePresentation(raw: Record<string, unknown>, input: Presentation
       speakerNotes: String(slide.speakerNotes ?? '').trim() || 'Pause and ask students to restate the idea.',
       imagePrompt: String(slide.imagePrompt ?? '').trim() || `A classroom illustration of ${title}.`,
     });
+  }
+
+  if (options?.revising) {
+    const kept = slides.slice(0, 20);
+    const title = String(raw.title ?? '').trim();
+    if (!kept.length) {
+      return revisePresentation(
+        { ...fallback, slides: input.currentSlides?.length ? input.currentSlides : fallback.slides },
+        input.revision ?? '',
+      );
+    }
+    return {
+      title: title || fallback.title,
+      gradeLevel: input.gradeLevel,
+      objective: String(raw.objective ?? '').trim() || fallback.objective,
+      slides: kept,
+    };
   }
 
   const filled = slides.slice(0, wanted);
@@ -814,32 +839,71 @@ function normalizePresentation(raw: Record<string, unknown>, input: Presentation
   };
 }
 
+const PRESENTATION_REVISION_SYSTEM = `You revise an existing classroom slide deck. Return JSON only:
+{
+  "title": "short deck title",
+  "objective": "one sentence students will be able to do",
+  "slides": [
+    {
+      "title": "slide title",
+      "subtitle": "optional short line",
+      "bullets": ["short spoken line"],
+      "question": "a student question, or empty string",
+      "speakerNotes": "what the teacher says and listens for",
+      "imagePrompt": "one classroom-safe illustration with no words in the picture"
+    }
+  ]
+}
+Rules:
+- Apply the teacher's follow-up to the current deck. If they ask to add a slide, keep the existing slides and add the new one. If they ask to change a slide, change that slide and keep the rest.
+- The first slide stays a title slide: short title, driving question in the subtitle, empty bullets. Later slides stay content slides with a headline and short bullets.
+- Return the full updated deck, not only the new slide.
+- Keep the grade and topic. Do not drop slides the teacher did not ask to remove.`;
+
 export async function generatePresentation(input: PresentationPayload): Promise<PresentationResponse> {
   const fallback = fallbackPresentation(input);
   const source = (input.attachedDocumentContext ?? '').replace(/\s+/g, ' ').trim().slice(0, 12_000);
+  const revision = input.revision?.trim() ?? '';
+  const current = input.currentSlides ?? [];
   const llm = getActiveProvider();
-  if (!llm) return fallback;
+  if (!llm) {
+    return revision && current.length ? revisePresentation({ ...fallback, slides: current, title: fallback.title }, revision) : fallback;
+  }
   try {
+    const revising = Boolean(revision && current.length);
     const raw = await llm.completeJson<Record<string, unknown>>({
-      system: PRESENTATION_SYSTEM,
-      user: [
-        `Grade level: ${input.gradeLevel}`,
-        `Number of slides: ${presentationSlideTarget(input.slideCount)}`,
-        `Topic, standard, or objective:\n${input.topic}`,
-        input.additionalCriteria?.trim() ? `Additional criteria:\n${input.additionalCriteria.trim()}` : '',
-        input.attachments?.length ? `Uploaded file names: ${input.attachments.join(', ')}` : '',
-        source ? `Uploaded file text:\n${source}` : '',
-        input.imageFiles?.length ? 'Images are attached. Read labels and diagrams in them.' : '',
-      ]
-        .filter(Boolean)
-        .join('\n\n'),
-      images: imagePartsFromDataUrls(input.imageFiles),
-      temperature: 0.4,
+      system: revising ? PRESENTATION_REVISION_SYSTEM : PRESENTATION_SYSTEM,
+      user: revising
+        ? [
+            `Grade level: ${input.gradeLevel}`,
+            `Topic:\n${input.topic}`,
+            `Current deck JSON:\n${JSON.stringify({ slides: current })}`,
+            `Teacher follow-up:\n${revision}`,
+            'Return the full deck after applying that follow-up.',
+          ].join('\n\n')
+        : [
+            `Grade level: ${input.gradeLevel}`,
+            `Number of slides: ${presentationSlideTarget(input.slideCount)}`,
+            `Topic, standard, or objective:\n${input.topic}`,
+            input.additionalCriteria?.trim() ? `Additional criteria:\n${input.additionalCriteria.trim()}` : '',
+            input.attachments?.length ? `Uploaded file names: ${input.attachments.join(', ')}` : '',
+            source ? `Uploaded file text:\n${source}` : '',
+            input.imageFiles?.length ? 'Images are attached. Read labels and diagrams in them.' : '',
+          ]
+            .filter(Boolean)
+            .join('\n\n'),
+      images: revising ? undefined : imagePartsFromDataUrls(input.imageFiles),
+      temperature: revising ? 0.3 : 0.4,
     });
-    return normalizePresentation(raw, input, fallback);
+    const deck = normalizePresentation(raw, input, fallback, { revising });
+    if (!revising) return deck;
+    const same =
+      deck.slides.length === current.length &&
+      deck.slides.every((slide, index) => slide.title === current[index]?.title && slide.bullets.join('|') === (current[index]?.bullets ?? []).join('|'));
+    return same ? revisePresentation({ ...deck, slides: current }, revision) : deck;
   } catch (err) {
     console.error('[llm] presentation generation failed', err);
-    return fallback;
+    return revision && current.length ? revisePresentation({ ...fallback, slides: current }, revision) : fallback;
   }
 }
 

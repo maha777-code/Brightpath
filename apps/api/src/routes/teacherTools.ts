@@ -604,6 +604,20 @@ const presentationBody = z.object({
   attachments: z.array(z.string().max(300)).max(12).optional(),
   attachedDocumentContext: z.string().max(180_000).optional(),
   imageFiles: z.array(z.string().max(6_000_000)).max(4).optional(),
+  revision: z.string().trim().max(4_000).optional(),
+  currentSlides: z
+    .array(
+      z.object({
+        title: z.string().max(200),
+        subtitle: z.string().max(300).optional(),
+        bullets: z.array(z.string().max(400)).max(8),
+        question: z.string().max(400).optional(),
+        speakerNotes: z.string().max(800),
+        imagePrompt: z.string().max(500),
+      }),
+    )
+    .max(20)
+    .optional(),
 });
 
 /** POST /teacher/tools/presentation-generator */

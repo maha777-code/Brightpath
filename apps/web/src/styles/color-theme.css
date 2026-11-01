@@ -1009,3 +1009,72 @@ html[data-theme='light'] .mv-status-banner--rose {
   .mv-text-plus-2 .md\:text-4xl { font-size: calc(2.25rem + 2px); }
   .mv-text-plus-2 .md\:text-5xl { font-size: calc(3rem + 2px); }
 }
+
+/* Presentation generator keeps its own palette. Global light-theme text
+   rewrites were turning this dark form into dark type on a dark card. */
+.mv-presentation {
+  background: #0e1016;
+  color: #e2e8f0;
+}
+.mv-pres-card,
+.mv-pres-rail {
+  background: #171922;
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.mv-pres-field {
+  background: #12141c;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.mv-pres-field::placeholder {
+  color: #94a3b8;
+}
+.mv-pres-muted {
+  color: #94a3b8;
+}
+.mv-pres-link,
+.mv-pres-accent {
+  color: #c4b5fd;
+}
+.mv-pres-generate {
+  background: #8b5cf6;
+  color: #ffffff;
+}
+.mv-pres-art {
+  min-height: 100%;
+  background: transparent;
+}
+
+html[data-theme='light'] .mv-presentation {
+  background: #f4f7fb !important;
+  color: #0f172a !important;
+}
+html[data-theme='light'] .mv-presentation .mv-pres-card,
+html[data-theme='light'] .mv-presentation .mv-pres-rail {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #dbe3ee !important;
+}
+html[data-theme='light'] .mv-presentation :is(textarea, select, input).mv-pres-field,
+html[data-theme='light'] .mv-presentation .mv-pres-field {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+html[data-theme='light'] .mv-presentation .mv-pres-field::placeholder,
+html[data-theme='light'] .mv-presentation .mv-pres-muted {
+  color: #64748b !important;
+}
+html[data-theme='light'] .mv-presentation .mv-pres-link,
+html[data-theme='light'] .mv-presentation .mv-pres-accent {
+  color: #6d28d9 !important;
+}
+html[data-theme='light'] .mv-presentation .mv-pres-generate {
+  background: #7c3aed !important;
+  color: #ffffff !important;
+}
+html[data-theme='light'] .mv-presentation .mv-pres-generate * {
+  color: #ffffff !important;
+  background: transparent !important;
+}

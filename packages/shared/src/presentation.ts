@@ -27,6 +27,9 @@ export interface PresentationPayload {
   attachments?: string[];
   attachedDocumentContext?: string;
   imageFiles?: string[];
+  /** Teacher follow-up that should change the deck already on screen. */
+  revision?: string;
+  currentSlides?: PresentationSlide[];
 }
 
 export interface PresentationSlide {
@@ -254,5 +257,26 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
     gradeLevel: grade,
     objective: `Students can explain ${title} and use it on a new example.${criteria ? ` Teacher note: ${clip(criteria, 240)}` : ''}`,
     slides: selected.slice(0, count),
+  };
+}
+
+/** Applies a follow-up when the model returns the same deck unchanged. */
+export function revisePresentation(deck: PresentationResponse, instruction: string): PresentationResponse {
+  const ask = clip(instruction, 180);
+  const added: PresentationSlide = {
+    title: clip(ask.replace(/^(please\s+)?(add|insert|include|create)\s+(a\s+)?(new\s+)?(slide\s+)?(about|on|for)?\s*/i, ''), 72) || 'Follow-up',
+    subtitle: 'Added from the conversation',
+    bullets: [
+      ask,
+      `Connect this to ${deck.title}.`,
+      'Ask students what they would change in an earlier answer.',
+    ],
+    question: `What new idea does this add to ${deck.title}?`,
+    speakerNotes: `The teacher asked: ${ask}. Teach this as its own slide, then return to the driving question.`,
+    imagePrompt: `A classroom diagram for ${deck.title}: ${ask}`,
+  };
+  return {
+    ...deck,
+    slides: [...deck.slides, added].slice(0, 20),
   };
 }

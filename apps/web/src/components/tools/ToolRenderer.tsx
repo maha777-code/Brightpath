@@ -63,7 +63,7 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
   };
 
   return (
-    <div className={tool.componentKey === 'Classroom' ? 'relative w-full' : 'relative flex h-full w-full flex-col overflow-hidden rounded-2xl bg-[#060911] text-slate-100'}>
+    <div className={tool.componentKey === 'Classroom' || tool.componentKey === 'PresentationGenerator' ? 'relative w-full min-w-0' : 'relative flex h-full w-full flex-col overflow-hidden rounded-2xl bg-[#060911] text-slate-100'}>
       {mode === 'admin-preview' ? (
         <div className="flex shrink-0 items-center justify-between border-b border-slate-800 bg-[#080d1a] px-6 py-2.5 text-xs font-bold text-cyan-400">
           <span className="flex items-center gap-2">
