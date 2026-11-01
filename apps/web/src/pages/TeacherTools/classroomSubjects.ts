@@ -1,6 +1,17 @@
 /** School subjects taught across major curricula worldwide, grouped for the class form. */
 export const CLASSROOM_SUBJECT_GROUPS: { label: string; subjects: string[] }[] = [
   {
+    label: 'UAE national subjects (KHDA)',
+    subjects: [
+      'Arabic as a First Language',
+      'Arabic as an Additional Language',
+      'Islamic Education',
+      'Social Studies',
+      'UAE Moral, Social and Cultural Studies',
+      'Moral Education',
+    ],
+  },
+  {
     label: 'Languages & literature',
     subjects: [
       'Arabic',

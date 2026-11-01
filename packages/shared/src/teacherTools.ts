@@ -150,7 +150,7 @@ export const TEACHER_TOOLS_CATALOG: TeacherToolDefinition[] = [
   {
     id: 'presentation-generator',
     title: 'Presentation Generator',
-    description: 'Generate exportable slides based on a topic or video.',
+    description: 'All-new presentation generator experience with images, themes, editing, and exports.',
     focusArea: 'content',
     href: '/teacher/tools/presentation-generator',
     requiredPlan: 'free',
@@ -311,6 +311,8 @@ export interface LessonPlanPayload {
   attachedDocumentContext?: string;
   /** Image data URLs sent to the model for vision. */
   imageFiles?: string[];
+  /** When set, the lesson follows Dubai private-school curriculum, safety, and wellbeing rules. */
+  khdaAlign?: boolean;
 }
 
 export interface LessonPlanSection {

@@ -228,6 +228,8 @@ import type {
   WorksheetTranslatePayload,
   LessonPlanPayload,
   LessonPlanResponse,
+  PresentationPayload,
+  PresentationResponse,
   SharadaChatRequest,
   SharadaChatResponse,
   EmailResponderRequest,
@@ -717,6 +719,13 @@ export const api = {
 
   generateLessonPlan: (body: LessonPlanPayload) =>
     request<LessonPlanResponse>('/teacher/tools/lesson-plan-generator', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      timeoutMs: 120_000,
+    }),
+
+  generatePresentation: (body: PresentationPayload) =>
+    request<PresentationResponse>('/teacher/tools/presentation-generator', {
       method: 'POST',
       body: JSON.stringify(body),
       timeoutMs: 120_000,

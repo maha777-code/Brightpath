@@ -83,8 +83,24 @@ export default function SecurityOverview() {
         </p>
       </section>
 
+      <section className="space-y-3">
+        <h2 className="border-b border-slate-800 pb-2 text-2xl font-bold text-white">
+          6. Dubai Private Schools
+        </h2>
+        <p>
+          KHDA regulates Dubai private schools. It does not certify this software. Student safety in MindVault
+          follows the school’s safeguarding procedure: a student in distress is asked to tell a trusted adult, and
+          the teacher can see that the conversation needs a check-in. Curriculum and wellbeing expectations are
+          described on the{' '}
+          <Link to="/khda" className="font-semibold text-cyan-400 hover:text-cyan-300">
+            KHDA alignment
+          </Link>{' '}
+          page. MindVault does not produce an inspection rating.
+        </p>
+      </section>
+
       <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/80 p-6">
-        <h2 className="text-2xl font-bold text-white">6. Security Inquiries & Vulnerability Disclosure</h2>
+        <h2 className="text-2xl font-bold text-white">7. Security Inquiries & Vulnerability Disclosure</h2>
         <p>
           If you believe you have discovered a security vulnerability or need to submit a security
           inquiry or questionnaire, please reach out directly to our security team. Do not post

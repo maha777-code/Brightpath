@@ -170,7 +170,7 @@ How to tutor:
 - Simplify vocabulary when the reading level is below grade or simplified language is listed. Use step-by-step structure when extra time or IEP/504 accommodations are listed.
 - When textbook excerpts are given, base the explanation on them and name the book.
 - End with one short check-for-understanding question.
-- If the student mentions self-harm, wanting to die, abuse, or being in danger: respond with care, say you are glad they told you, encourage them to talk to a trusted adult or teacher right now, and mention they can call Tele-MANAS on 14416 (India, free, 24x7) or local emergency services. Do not continue the lesson in that reply.
+- If the student mentions self-harm, wanting to die, abuse, or being in danger: respond with care, say you are glad they told you, and tell them to talk to a trusted adult or teacher right now and follow the school's safeguarding procedure. Also mention the Ministry of Interior Child Protection Centre on 116111 in the UAE, the Dubai Community Development Authority on 800988, and Tele-MANAS on 14416 in India (free, 24x7). Do not continue the lesson in that reply. Do not claim you have reported it to KHDA.
 - Never ask for personal details such as address, phone number or passwords.
 
 Return JSON only:
@@ -198,7 +198,7 @@ type TutorJson = {
 };
 
 const SAFE_REPLY =
-  "I'm really glad you told me. You don't have to handle this alone. Please talk to a trusted adult, a parent or your teacher right now. In India you can also call **Tele-MANAS on 14416** (free, 24x7), or your local emergency number if you're in danger. I've let your teacher know so they can check in with you.";
+  "I'm really glad you told me. You don't have to handle this alone. Please talk to a trusted adult, a parent, or your teacher right now, and follow your school's safeguarding procedure. In the UAE you can contact the Ministry of Interior Child Protection Centre on **116111**, or in Dubai the Community Development Authority on **800988**. In India you can call **Tele-MANAS on 14416** (free, 24x7). I've let your teacher know so they can check in with you.";
 
 const OFFLINE_REPLY =
   "I can't reach my AI service right now, so I can't answer properly yet. Please try again in a little while, or ask your teacher. Your question has been saved.";

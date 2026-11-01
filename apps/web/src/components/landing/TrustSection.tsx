@@ -19,7 +19,11 @@ export function TrustSection() {
             <Link to="/privacy" className="font-bold text-cyan-400 underline-offset-4 hover:underline">
               Privacy Policy
             </Link>
-            .
+            . Dubai private schools can read how this maps to KHDA safety, curriculum, and wellbeing rules on the{' '}
+            <Link to="/khda" className="font-bold text-cyan-400 underline-offset-4 hover:underline">
+              KHDA alignment
+            </Link>{' '}
+            page. MindVault is not KHDA-certified.
           </p>
         </div>
 

@@ -18,6 +18,7 @@ import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLay
 import { AIToolHeader } from '@/components/tools/AIToolHeader';
 import { ProUpgradeDialog } from '@/components/billing/ProUpgradeDialog';
 import { canUserAccessTool, getRegistryTool } from '@/config/toolsRegistry';
+import { KhdaAlignControl } from '@/components/khda/KhdaAlignControl';
 
 export const CURRICULUM_STUDIO_PATH = '/tools/curriculum-textbook-studio';
 export const GAMIFIED_VIDEO_PATH = '/tools/curriculum-textbook-studio/gamified-video';
@@ -99,10 +100,10 @@ export default function CurriculumTextbookStudio() {
   if (!allowed) {
     return (
       <TeacherWorkspaceLayout>
-        <main className="w-full max-w-lg px-6 py-10">
+        <main className="mv-text-plus-2 w-full max-w-lg px-6 py-10">
           <div className="rounded-3xl border border-rose-500/30 bg-slate-900 p-8 text-white">
             <h1 className="text-2xl font-bold">Curriculum & Textbook Studio</h1>
-            <p className="mt-2 text-sm font-semibold text-rose-300">Teacher access required</p>
+            <p className="mv-status-banner mv-status-banner--rose mt-4 text-sm font-semibold">Teacher access required</p>
           </div>
         </main>
       </TeacherWorkspaceLayout>
@@ -119,7 +120,7 @@ export default function CurriculumTextbookStudio() {
 
   return (
     <TeacherWorkspaceLayout>
-      <main className="w-full max-w-full space-y-8 px-5 py-6 sm:px-8 lg:px-12 lg:py-8">
+      <main className="mv-text-plus-2 w-full max-w-full space-y-8 px-5 py-6 sm:px-8 lg:px-12 lg:py-8">
         <AIToolHeader
           toolName="Curriculum & Textbook Studio"
           description="Upload textbooks, enrich lessons, and approve AI answers before class."
@@ -178,13 +179,15 @@ export default function CurriculumTextbookStudio() {
           </p>
         )}
         {error && (
-          <p className="rounded-2xl border border-rose-400/40 bg-rose-950/50 p-8 text-base font-semibold text-rose-200">
+          <p className="mv-status-banner mv-status-banner--rose text-base font-semibold" role="alert">
             {error}
           </p>
         )}
 
         {!loading && (
           <>
+            <KhdaAlignControl compact />
+
             <DocumentUploader
               textbook={textbook}
               onUploaded={(t) => {

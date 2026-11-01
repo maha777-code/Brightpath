@@ -37,6 +37,7 @@ const FONT = CYBER_FONT_STYLE;
 
 const HOME_TOOL_IDS = [
   'curriculum-studio',
+  'gamified-activity',
   'worksheet-generator',
   'lesson-plan',
   'family-email',
@@ -48,6 +49,7 @@ const HOME_TOOL_IDS = [
 
 const HOME_TOOL_LABELS: Record<(typeof HOME_TOOL_IDS)[number], string> = {
   'curriculum-studio': 'Curriculum & Textbook Studio',
+  'gamified-activity': 'Gamified Activity',
   'worksheet-generator': 'Worksheet Generator',
   'lesson-plan': 'Lesson Plan',
   'family-email': 'Email Responder',

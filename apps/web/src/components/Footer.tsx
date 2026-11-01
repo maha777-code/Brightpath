@@ -20,6 +20,7 @@ const TOOL_LINKS = [
 const RESOURCE_LINKS = [
   { label: 'FAQs', href: '/faq' },
   { label: 'Security Overview', href: '/security' },
+  { label: 'KHDA Alignment', href: '/khda' },
   { label: 'Privacy Policy', href: '/privacy' },
   { label: 'Help & Support', href: '/contact' },
 ];
@@ -95,6 +96,9 @@ export function Footer() {
             </Link>
             <Link to="/security" className="transition-colors hover:text-cyan-400">
               Security Overview
+            </Link>
+            <Link to="/khda" className="transition-colors hover:text-cyan-400">
+              KHDA Alignment
             </Link>
             <Link to="/cookie-preferences" className="transition-colors hover:text-cyan-400">
               Cookie Preferences

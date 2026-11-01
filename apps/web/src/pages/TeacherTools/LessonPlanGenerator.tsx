@@ -40,7 +40,9 @@ import {
 import { api } from '@/lib/api';
 import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { AIToolHeader } from '@/components/tools/AIToolHeader';
+import { KhdaAlignControl } from '@/components/khda/KhdaAlignControl';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
+import { readKhdaAlign } from '@/lib/khdaAlign';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { VoiceListeningIndicator } from '@/components/VoiceListeningIndicator';
@@ -182,7 +184,7 @@ const TOPIC_PLACEHOLDER =
 const CRITERIA_PLACEHOLDER =
   'Students are in a unit about world regions, students last lesson was on the geography of the United States, have the lesson include group work, etc.';
 
-const STANDARDS_PLACEHOLDER = 'Any standards worldwide (CCSS, TEKS, Ontario, Florida)';
+const STANDARDS_PLACEHOLDER = 'Any standards worldwide (CCSS, TEKS, Ontario, MoE, Florida)';
 
 const EXEMPLAR: FormState = {
   gradeLevel: '9th grade',
@@ -1412,6 +1414,7 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
       attachments: files.map((file) => file.name),
       attachedDocumentContext: fileText || undefined,
       imageFiles: images.length ? images : undefined,
+      khdaAlign: readKhdaAlign(),
     };
     try {
       publishPlan(await api.generateLessonPlan(payload), payload, files.map((file) => file.name), criteriaText);
@@ -1575,6 +1578,8 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
                 minHeight={140}
               />
             </div>
+
+            <KhdaAlignControl />
 
             {fileNotice ? (
               <p className="rounded-xl border border-cyan-500/30 bg-cyan-950/40 px-4 py-3 text-sm text-cyan-200">

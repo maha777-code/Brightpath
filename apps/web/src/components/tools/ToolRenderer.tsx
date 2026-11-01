@@ -6,6 +6,7 @@ import LessonPlanGenerator from '@/pages/TeacherTools/LessonPlanGenerator';
 import SongGeneratorDashboard from '@/pages/TeacherTools/SongGeneratorDashboard';
 import { GamifiedActivityGenerator } from '@/pages/TeacherTools/GamifiedActivityGenerator';
 import { ClassroomApp } from '@/pages/TeacherTools/Classroom';
+import { PresentationGenerator } from '@/pages/TeacherTools/PresentationGenerator';
 import { CustomDynamicTool } from '@/components/tools/CustomDynamicTool';
 import { EmailResponder } from '@/components/tools/EmailResponder';
 import type { ToolDefinition } from '@/config/toolsRegistry';
@@ -26,6 +27,7 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
       tool.componentKey === 'SongGenerator' ||
       tool.componentKey === 'WorksheetGenerator' ||
       tool.componentKey === 'Classroom' ||
+      tool.componentKey === 'PresentationGenerator' ||
       tool.id === 'family-email');
 
   const renderActualTool = () => {
@@ -42,6 +44,8 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
         return <GamifiedActivityGenerator />;
       case 'Classroom':
         return <ClassroomApp />;
+      case 'PresentationGenerator':
+        return <PresentationGenerator />;
       case 'CurriculumStudio':
         return (
           <div className="space-y-3 text-slate-200">

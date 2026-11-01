@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "@brightpath/shared": "*",
-    "@prisma/client": "^6.1.0",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
@@ -31,15 +32,16 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
-    "nodemailer": "^9.0.5",
+    "nodemailer": "10.2.1",
     "papaparse": "^5.6.0",
     "pdfjs-dist": "^4.10.38",
-    "prisma": "^6.1.0",
+    "pg": "^8.23.1",
+    "prisma": "7.10.1",
     "razorpay": "^2.9.8",
     "redis": "^4.7.0",
     "stripe": "^22.5.0",
     "typescript": "~5.7.2",
-    "zod": "4.4.3"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "tsx": "^4.19.2"

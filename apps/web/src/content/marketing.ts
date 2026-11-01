@@ -54,6 +54,11 @@ export const FAQ_ITEMS: FaqItem[] = [
       'Schools, tutoring centers, teachers, parents and students only see what their role allows. Each school’s data is logically separated, and parent and class links need an invite code.',
   },
   {
+    question: 'Does MindVault align with KHDA for Dubai private schools?',
+    answer:
+      'KHDA regulates Dubai private schools and does not certify school software. MindVault is not KHDA-approved or rated. With KHDA alignment on, lesson plans keep Arabic, Islamic Education, and social and moral studies on the UAE Ministry of Education curriculum, and keep other subjects on the school’s licensed curriculum. Safeguarding, the timetable, external benchmarks, the wellbeing census, and reports to KHDA stay with the school. Details are on the KHDA alignment page.',
+  },
+  {
     question: 'Which languages are supported?',
     answer: 'The interface is available in English (India and US), Hindi and Arabic, including right-to-left layout.',
   },
@@ -170,6 +175,12 @@ export const PUBLIC_PAGES: PublicPage[] = [
     path: '/contact',
     title: 'Contact MindVault — school demos and support',
     description: `Book a walkthrough for your school or academy, or get support. Email ${SUPPORT_EMAIL} or visit our Bangalore office.`,
+  },
+  {
+    path: '/khda',
+    title: 'MindVault KHDA alignment for Dubai private schools',
+    description:
+      'How MindVault supports KHDA safety, curriculum, and wellbeing expectations for Dubai private schools, and what the school still owns. MindVault is not KHDA-certified.',
   },
   {
     path: '/security',

@@ -16,6 +16,7 @@ export type ToolComponentKey =
   | 'CurriculumStudio'
   | 'GamifiedActivity'
   | 'Classroom'
+  | 'PresentationGenerator'
   | 'CustomDynamicTool';
 
 export interface ToolDefinition {
@@ -39,6 +40,7 @@ const COMPONENT_KEYS: Record<string, ToolComponentKey> = {
   'curriculum-studio': 'CurriculumStudio',
   'gamified-activity': 'GamifiedActivity',
   classroom: 'Classroom',
+  'presentation-generator': 'PresentationGenerator',
 };
 
 function categoryFor(tool: TeacherToolDefinition): ToolDefinition['category'] {

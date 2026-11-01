@@ -69,7 +69,7 @@ export default function PricingPage() {
   );
 
   return (
-    <div id="pricing" className="flex min-h-screen w-full flex-col items-center bg-slate-950 px-4 py-10 text-slate-100 md:px-8">
+    <div id="pricing" className="mv-text-plus-2 flex min-h-screen w-full flex-col items-center bg-slate-950 px-4 py-10 text-slate-100 md:px-8">
       <header className="mb-8 flex w-full max-w-[1400px] items-center justify-between">
         <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
         {role ? null : (

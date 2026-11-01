@@ -312,6 +312,11 @@ export function classroomLessonPlanFallback(input: LessonPlanPayload): LessonPla
       'Below grade level: provide a word bank, a labeled diagram, and sentence frames for the explanation.',
       'On grade level: students complete every station and the independent scenario with the key terms.',
       `Above grade level: connect ${subject} to a pattern or second concept and defend the connection.`,
+      ...(input.khdaAlign
+        ? [
+            'Dubai private school: also adapt the task for students of determination. Do not place an Arabic-first-language student in an additional-language class. The teacher checks this plan against the Ministry of Education curriculum before use. This plan is not a KHDA rating.',
+          ]
+        : []),
     ].join('\n'),
   };
 }

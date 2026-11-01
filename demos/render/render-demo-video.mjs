@@ -7,7 +7,8 @@
 //
 // Env: CHROME_PATH, FFMPEG, FFPROBE, ELEVENLABS_API_KEY (ELEVENLABS_VOICE_ID optional),
 //      MV_DEPS (folder whose node_modules has puppeteer-core), FPS (default 30),
-//      REUSE_VIDEO=1 to remix audio onto the previously rendered frames.
+//      REUSE_VIDEO=1 to remix audio onto the previously rendered frames (add REMIX_BED=1 to
+//      re-render the music + SFX bed too).
 // Run: bash demos/render/render-in-wsl.sh (WSL), or on Windows point FFMPEG/FFPROBE at
 //      node_modules/@remotion/compositor-win32-x64-msvc, CHROME_PATH at chrome.exe, then
 //      node demos/render/render-demo-video.mjs
@@ -237,9 +238,11 @@ async function main() {
 
     let bed = cachedBed;
     let video = cachedVideo;
-    if (!reuse) {
+    if (!reuse || process.env.REMIX_BED) {
       console.log('Music + sound effects (offline Web Audio)…');
       bed = await renderMusicAndSfx(await getBrowser(), url, duration);
+    }
+    if (!reuse) {
       console.log(`Frames (${FPS} fps)…`);
       video = await renderFrames(await getBrowser(), url, duration);
     }

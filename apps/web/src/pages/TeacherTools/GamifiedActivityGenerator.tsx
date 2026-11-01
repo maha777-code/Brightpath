@@ -124,7 +124,7 @@ export function GamifiedActivityGenerator() {
   };
 
   return (
-    <div className="gamified-activity-tool space-y-6 text-slate-100">
+    <div className="gamified-activity-tool mv-text-plus-2 space-y-6 text-slate-100">
       <div>
         <p className="text-xs font-bold uppercase tracking-wider text-cyan-300">Starter prompt</p>
         <h2 className="mt-1 text-2xl font-extrabold text-white">Gamify an activity</h2>

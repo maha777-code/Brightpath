@@ -70,6 +70,15 @@ export function TeacherToolLauncher({
     return rendered;
   }
 
+  if (tool.id === 'presentation-generator') {
+    if (embedded) return rendered;
+    return (
+      <TeacherWorkspaceLayout>
+        <main className="w-full min-w-0">{rendered}</main>
+      </TeacherWorkspaceLayout>
+    );
+  }
+
   if (tool.id === 'family-email') {
     if (embedded) return rendered;
     return (

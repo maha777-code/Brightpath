@@ -158,6 +158,13 @@ const toolsRow1: ToolCard[] = [
     bgColor: 'bg-cyan-500/10',
     borderColor: 'border-cyan-500/30',
   },
+  {
+    title: 'Gamified Activity',
+    description: 'Turn unit notes into an escape room, a quest, or an XP skill tree.',
+    icon: '🎮',
+    bgColor: 'bg-amber-500/10',
+    borderColor: 'border-amber-500/30',
+  },
 ];
 
 const toolsRow2: ToolCard[] = [

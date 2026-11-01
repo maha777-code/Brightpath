@@ -45,6 +45,7 @@ import BrandingSettingsPage from '@/pages/BrandingSettingsPage';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import TermsOfService from '@/pages/TermsOfService';
 import SecurityOverview from '@/pages/SecurityOverview';
+import KhdaAlignment from '@/pages/KhdaAlignment';
 import CookiePreferences from '@/pages/CookiePreferences';
 import ContactUs from '@/pages/ContactUs';
 import ComparePage from '@/pages/ComparePage';
@@ -195,6 +196,7 @@ export default function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/security" element={<SecurityOverview />} />
+        <Route path="/khda" element={<KhdaAlignment />} />
         <Route path="/cookie-preferences" element={<CookiePreferences />} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/compare" element={<ComparePage />} />

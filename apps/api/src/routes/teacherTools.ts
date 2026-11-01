@@ -17,7 +17,7 @@ import {
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
-import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, translateLessonPlan, generateSharadaChat, generateEmailResponse } from '../services/llm.js';
+import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, translateLessonPlan, generatePresentation, generateSharadaChat, generateEmailResponse } from '../services/llm.js';
 import { generateGamifiedActivityTool } from '../services/gamifiedActivityTool.js';
 import { generateGamifiedVideo } from '../services/gamifiedVideo.js';
 import { applyClassroomAction, canAccessClassroom, classroomOwnerKey, getClassroomState } from '../services/classroom.js';
@@ -372,6 +372,7 @@ const lessonPlanBody = z.object({
   attachments: z.array(z.string().max(240)).max(20).optional(),
   attachedDocumentContext: z.string().max(400_000).optional(),
   imageFiles: z.array(z.string().max(8_000_000)).max(4).optional(),
+  khdaAlign: z.boolean().optional(),
 });
 
 const refineBody = z.object({
@@ -593,6 +594,36 @@ const lessonBookmarkBody = z.object({
   id: z.string().min(1).max(80),
   bookmarked: z.boolean(),
   title: z.string().max(200).optional(),
+});
+
+const presentationBody = z.object({
+  gradeLevel: z.string().trim().min(1).max(80),
+  slideCount: z.enum(['short', 'standard', 'long']),
+  topic: z.string().trim().min(3).max(20_000),
+  additionalCriteria: z.string().trim().max(20_000).optional(),
+  attachments: z.array(z.string().max(300)).max(12).optional(),
+  attachedDocumentContext: z.string().max(180_000).optional(),
+  imageFiles: z.array(z.string().max(6_000_000)).max(4).optional(),
+});
+
+/** POST /teacher/tools/presentation-generator */
+router.post('/tools/presentation-generator', async (req: AuthRequest, res: Response) => {
+  if (!favoriteOwnerId(req)) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  const parsed = presentationBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Grade level, slide count, and a topic or objective are required' });
+    return;
+  }
+  try {
+    const deck = await generatePresentation(parsed.data);
+    res.json(deck);
+  } catch (err) {
+    console.error('[teacher/tools/presentation-generator] failed', err);
+    res.status(500).json({ error: 'Failed to generate the presentation' });
+  }
 });
 
 /** POST /teacher/tools/lesson-plan-generator/bookmark */

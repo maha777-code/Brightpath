@@ -874,3 +874,138 @@ html[data-theme='light'] .gamified-activity-tool select {
   color: #0f172a !important;
   border-color: #cbd5e1 !important;
 }
+
+/* Light theme: pale status text was written for dark panels. Keep it dark on light surfaces. */
+html[data-theme='light'] :where(
+  [class*='text-rose-50'],
+  [class*='text-rose-100'],
+  [class*='text-rose-200'],
+  [class*='text-rose-300'],
+  [class*='text-rose-400']
+) {
+  color: #9f1239 !important;
+}
+
+html[data-theme='light'] :where(
+  [class*='text-emerald-50'],
+  [class*='text-emerald-100'],
+  [class*='text-emerald-200'],
+  [class*='text-emerald-300']
+) {
+  color: #047857 !important;
+}
+
+html[data-theme='light'] :where(
+  [class*='text-amber-50'],
+  [class*='text-amber-100'],
+  [class*='text-amber-200'],
+  [class*='text-amber-300']
+) {
+  color: #92400e !important;
+}
+
+html[data-theme='light'] :where(
+  [class*='text-violet-100'],
+  [class*='text-violet-200'],
+  [class*='text-violet-300'],
+  [class*='text-purple-200'],
+  [class*='text-purple-300']
+) {
+  color: #6d28d9 !important;
+}
+
+html[data-theme='light'] :where(
+  [class*='text-cyan-50'],
+  [class*='text-cyan-100'],
+  [class*='text-[#A5F3FC]'],
+  [class*='text-[#cffafe]'],
+  [class*='text-[#CFFAFE]']
+) {
+  color: #0e7490 !important;
+}
+
+html[data-theme='light'] :where(
+  [class*='bg-rose-950'],
+  [class*='bg-rose-900']
+) {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+}
+
+html[data-theme='light'] :where(
+  [class*='bg-emerald-950'],
+  [class*='bg-emerald-900']
+) {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+}
+
+html[data-theme='light'] :where(
+  [class*='bg-amber-950'],
+  [class*='bg-amber-900']
+) {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+}
+
+html[data-theme='light'] :where(
+  [class*='bg-violet-950'],
+  [class*='bg-purple-950']
+) {
+  background-color: #f5f3ff !important;
+  border-color: #ddd6fe !important;
+}
+
+html[data-theme='light'] .td-input,
+html[data-theme='light'] .td-input::placeholder {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+html[data-theme='light'] .td-input::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+}
+
+html[data-theme='dark'] .td-dash {
+  --td-muted: #94a3b8;
+}
+
+.mv-status-banner {
+  border-radius: 1rem;
+  border: 1px solid transparent;
+  padding: 1rem 1.25rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.mv-status-banner--rose {
+  background: #4c0519;
+  border-color: #fb7185;
+  color: #fff1f2;
+}
+
+html[data-theme='light'] .mv-status-banner--rose {
+  background: #fff1f2 !important;
+  border-color: #fda4af !important;
+  color: #9f1239 !important;
+}
+
+/* +2px on every text size used by pricing, Curriculum Studio, and Gamified Activity. */
+.mv-text-plus-2 { font-size: calc(1rem + 2px); }
+.mv-text-plus-2 .text-\[10px\] { font-size: 12px; }
+.mv-text-plus-2 .text-\[11px\] { font-size: 13px; }
+.mv-text-plus-2 .text-xs { font-size: calc(0.75rem + 2px); }
+.mv-text-plus-2 .text-sm { font-size: calc(0.875rem + 2px); }
+.mv-text-plus-2 .text-base { font-size: calc(1rem + 2px); }
+.mv-text-plus-2 .text-lg { font-size: calc(1.125rem + 2px); }
+.mv-text-plus-2 .text-xl { font-size: calc(1.25rem + 2px); }
+.mv-text-plus-2 .text-2xl { font-size: calc(1.5rem + 2px); }
+.mv-text-plus-2 .text-3xl { font-size: calc(1.875rem + 2px); }
+.mv-text-plus-2 .text-4xl { font-size: calc(2.25rem + 2px); }
+.mv-text-plus-2 .text-5xl { font-size: calc(3rem + 2px); }
+@media (min-width: 768px) {
+  .mv-text-plus-2 .md\:text-lg { font-size: calc(1.125rem + 2px); }
+  .mv-text-plus-2 .md\:text-4xl { font-size: calc(2.25rem + 2px); }
+  .mv-text-plus-2 .md\:text-5xl { font-size: calc(3rem + 2px); }
+}

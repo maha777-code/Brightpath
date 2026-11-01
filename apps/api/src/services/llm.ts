@@ -7,13 +7,16 @@ import type {
   SongLyricsDraft,
   LessonPlanPayload,
   LessonPlanResponse,
+  PresentationPayload,
+  PresentationResponse,
+  PresentationSlide,
   SharadaChatRequest,
   SharadaChatResponse,
   RouterIntent,
   EmailResponderRequest,
   EmailResponderResponse,
 } from '@brightpath/shared';
-import { applyWorksheetFollowUp, applyWorksheetTranslation, classroomLessonPlanFallback, classifyUserIntent, cleanLessonSource, emailResponderPrompt, fallbackEmailResponse, fallbackSharadaChat, lessonSubjectLabel } from '@brightpath/shared';
+import { applyWorksheetFollowUp, applyWorksheetTranslation, classroomLessonPlanFallback, classifyUserIntent, cleanLessonSource, emailResponderPrompt, fallbackEmailResponse, fallbackPresentation, fallbackSharadaChat, KHDA_LESSON_RULES, lessonSubjectLabel, presentationSlideTarget } from '@brightpath/shared';
 import { getActiveProvider, imagePartsFromDataUrls } from '../lib/llm/provider.js';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
@@ -649,6 +652,7 @@ function lessonPlanUserPrompt(input: LessonPlanPayload, source = cleanLessonSour
     `4. The lesson title must name the requested subject ("${subject}"), never the filename or the words "generate lesson plan".`,
     '5. Return the JSON object from the system instruction.',
     imageCount ? `6. ${imageCount} image(s) are attached. Read their labels and diagrams as part of the source.` : '',
+    input.khdaAlign ? '7. Apply the Dubai private school (KHDA) alignment rules from the system instruction.' : '',
   ]
     .filter(Boolean)
     .join('\n');
@@ -735,7 +739,7 @@ export async function generateLessonPlan(input: LessonPlanPayload): Promise<Less
 
   try {
     const raw = await llm.completeJson<Record<string, unknown>>({
-      system: LESSON_PLAN_SYSTEM,
+      system: input.khdaAlign ? `${LESSON_PLAN_SYSTEM}\n\n${KHDA_LESSON_RULES}` : LESSON_PLAN_SYSTEM,
       user: lessonPlanUserPrompt(input, sourceForPrompt),
       images: imagePartsFromDataUrls(input.imageFiles),
       temperature: 0.2,
@@ -744,6 +748,97 @@ export async function generateLessonPlan(input: LessonPlanPayload): Promise<Less
   } catch (err) {
     if (err instanceof Error && /readable chapter content|could not read the attached file/i.test(err.message)) throw err;
     console.error('[llm] lesson plan generation failed', err);
+    return fallback;
+  }
+}
+
+const PRESENTATION_SYSTEM = `You are an expert instructional designer creating an advanced classroom slide deck.
+Return JSON only:
+{
+  "title": "short deck title",
+  "objective": "one sentence students will be able to do",
+  "slides": [
+    {
+      "title": "slide title",
+      "subtitle": "optional short line",
+      "bullets": ["short spoken line"],
+      "question": "a student question, or empty string",
+      "speakerNotes": "what the teacher says and listens for",
+      "imagePrompt": "one classroom-safe illustration with no words in the picture"
+    }
+  ]
+}
+Rules:
+- Match the requested slide count exactly.
+- Write for the stated grade. Use the topic, additional criteria, and attached source. Do not invent page numbers or quotations that are not in the source.
+- Progress from a phenomenon, to the model, to a worked example, to a misconception, to a new case, to an exit ticket.
+- At least three slides must have a non-empty question.
+- Bullets are short lines a teacher can say, not paragraphs.
+- The first slide is a title slide with a driving question in the subtitle.`;
+
+function normalizePresentation(raw: Record<string, unknown>, input: PresentationPayload, fallback: PresentationResponse): PresentationResponse {
+  const wanted = presentationSlideTarget(input.slideCount);
+  const parsed = Array.isArray(raw.slides) ? raw.slides : [];
+  const slides: PresentationSlide[] = [];
+  for (const item of parsed) {
+    const slide = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    const title = String(slide.title ?? '').trim();
+    if (!title) continue;
+    const question = String(slide.question ?? '').trim();
+    const subtitle = String(slide.subtitle ?? '').trim();
+    slides.push({
+      title,
+      subtitle: subtitle || undefined,
+      bullets: asStringList(slide.bullets).slice(0, 5),
+      question: question || undefined,
+      speakerNotes: String(slide.speakerNotes ?? '').trim() || 'Pause and ask students to restate the idea.',
+      imagePrompt: String(slide.imagePrompt ?? '').trim() || `A classroom illustration of ${title}.`,
+    });
+  }
+
+  const filled = slides.slice(0, wanted);
+  if (filled.length < wanted) {
+    for (const extra of fallback.slides) {
+      if (filled.length >= wanted) break;
+      if (!filled.some((slide) => slide.title === extra.title)) filled.push(extra);
+    }
+  }
+  while (filled.length < wanted) filled.push(fallback.slides[filled.length % fallback.slides.length]);
+
+  const title = String(raw.title ?? '').trim();
+  return {
+    title: title || fallback.title,
+    gradeLevel: input.gradeLevel,
+    objective: String(raw.objective ?? '').trim() || fallback.objective,
+    slides: filled.slice(0, wanted),
+  };
+}
+
+export async function generatePresentation(input: PresentationPayload): Promise<PresentationResponse> {
+  const fallback = fallbackPresentation(input);
+  const source = (input.attachedDocumentContext ?? '').replace(/\s+/g, ' ').trim().slice(0, 12_000);
+  const llm = getActiveProvider();
+  if (!llm) return fallback;
+  try {
+    const raw = await llm.completeJson<Record<string, unknown>>({
+      system: PRESENTATION_SYSTEM,
+      user: [
+        `Grade level: ${input.gradeLevel}`,
+        `Number of slides: ${presentationSlideTarget(input.slideCount)}`,
+        `Topic, standard, or objective:\n${input.topic}`,
+        input.additionalCriteria?.trim() ? `Additional criteria:\n${input.additionalCriteria.trim()}` : '',
+        input.attachments?.length ? `Uploaded file names: ${input.attachments.join(', ')}` : '',
+        source ? `Uploaded file text:\n${source}` : '',
+        input.imageFiles?.length ? 'Images are attached. Read labels and diagrams in them.' : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+      images: imagePartsFromDataUrls(input.imageFiles),
+      temperature: 0.4,
+    });
+    return normalizePresentation(raw, input, fallback);
+  } catch (err) {
+    console.error('[llm] presentation generation failed', err);
     return fallback;
   }
 }

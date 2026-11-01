@@ -14,6 +14,7 @@ import {
   TRUST_FACTS,
   type PublicPage,
 } from '../content/marketing';
+import { KHDA_DISCLAIMER, KHDA_PILLARS } from '../../../../packages/shared/src/khdaAlignment';
 import { PRICING_PLANS, type PricingPlan } from '../pages/pricingData';
 
 /** Shell served for every non-public route (dashboards, tools) so they don't carry landing-page content. */
@@ -96,6 +97,15 @@ ${trustHtml()}
       return `<h1>Contact MindVault</h1><p>Book a walkthrough for your school or academy, or get help with your account.</p><p>Email: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p><p>Founder: <a href="mailto:${FOUNDER_EMAIL}">${FOUNDER_EMAIL}</a></p><p>Office: ${esc(OFFICE_ADDRESS)}</p><p>Instagram: <a href="${esc(INSTAGRAM_URL)}">@mindvault.academy</a></p>`;
     case '/security':
       return `<h1>Security overview</h1>${trustHtml()}<p>Security inquiries: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>`;
+    case '/khda':
+      return `<h1>KHDA alignment</h1><p>${esc(KHDA_DISCLAIMER)}</p>${KHDA_PILLARS.map(
+        (pillar) =>
+          `<section><h2>${esc(pillar.title)}</h2><p>${esc(pillar.framework)}</p><h3>What MindVault supports</h3><ul>${pillar.supports
+            .map((item) => `<li>${esc(item)}</li>`)
+            .join('')}</ul><h3>What the school still owns</h3><ul>${pillar.schoolOwns
+            .map((item) => `<li>${esc(item)}</li>`)
+            .join('')}</ul></section>`,
+      ).join('')}<p><a href="/security">Security Overview</a></p>`;
     default:
       return `<h1>${esc(page.title)}</h1><p>${esc(page.description)}</p>`;
   }

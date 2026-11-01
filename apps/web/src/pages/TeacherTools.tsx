@@ -174,6 +174,10 @@ export default function TeacherTools() {
       navigate('/teacher/tools/classroom');
       return;
     }
+    if (tool.id === 'presentation-generator') {
+      navigate('/teacher/tools/presentation-generator');
+      return;
+    }
     setActiveTool(tool);
   };
 

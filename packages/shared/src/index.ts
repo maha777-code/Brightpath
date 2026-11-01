@@ -478,6 +478,31 @@ export {
 export type { AiToolPlan } from './teacherTools.js';
 
 export type {
+  PresentationSlideCount,
+  PresentationTheme,
+  PresentationPayload,
+  PresentationSlide,
+  PresentationResponse,
+} from './presentation.js';
+export {
+  PRESENTATION_SLIDE_OPTIONS,
+  PRESENTATION_THEMES,
+  presentationSlideTarget,
+  fallbackPresentation,
+} from './presentation.js';
+
+export {
+  KHDA_DISCLAIMER,
+  KHDA_SOURCES,
+  KHDA_TIME_GRADES,
+  KHDA_MANDATORY_TIME,
+  KHDA_MANDATORY_SUBJECTS,
+  KHDA_PILLARS,
+  KHDA_LESSON_RULES,
+} from './khdaAlignment.js';
+export type { KhdaPeriod, KhdaPillar } from './khdaAlignment.js';
+
+export type {
   GamifiedActivityKind,
   GamifiedActivityOption,
   GamifiedActivityInsights,
