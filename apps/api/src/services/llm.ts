@@ -776,7 +776,7 @@ Rules:
 - Bullets are short lines a teacher can say, not paragraphs.
 - The first slide is a title slide only: a short title, one driving question in the subtitle, and an empty bullets array. Do not put teaching points on the title slide.
 - Every later slide uses a different job: phenomenon, model, worked example, misconception, new case, or exit ticket. Give each one a headline and two or three short bullets.
-- imagePrompt describes one classroom-safe picture with no words in it. The title slide picture should show the phenomenon, not a slide layout.
+- imagePrompt is a short photographic subject for that slide, 6 to 14 words, such as "fluorescence micrograph of animal cells in metaphase". Name a real thing a camera could photograph. No text, labels, or slide layout in the picture. Every slide needs a different subject.
 - Name the real mechanism for the grade. Do not write generic welcome lines.`;
 
 function normalizePresentation(

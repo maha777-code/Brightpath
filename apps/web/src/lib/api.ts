@@ -728,7 +728,7 @@ export const api = {
     request<PresentationResponse>('/teacher/tools/presentation-generator', {
       method: 'POST',
       body: JSON.stringify(body),
-      timeoutMs: 120_000,
+      timeoutMs: 180_000,
     }),
 
   translateLessonPlan: (body: { targetLanguage: string; plan: LessonPlanResponse }) =>

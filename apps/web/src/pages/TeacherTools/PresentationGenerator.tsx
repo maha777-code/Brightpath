@@ -26,17 +26,23 @@ const FIELD = 'mv-pres-field mt-2 w-full rounded-xl px-4 py-3 text-sm outline-no
 
 const THEME_STYLE: Record<
   PresentationTheme,
-  { stage: string; card: string; title: string; body: string; chip: string; dot: string; art: string }
+  { stage: string; wash: string; card: string; title: string; body: string; chip: string; dot: string; art: string }
 > = {
-  made: { stage: '#14161e', card: '#fff7f3', title: '#1c1917', body: '#44403c', chip: '#fff7f3', dot: '#e07a62', art: 'linear-gradient(160deg,#fde7df,#e07a62 48%,#9a3412)' },
-  light: { stage: '#ececef', card: '#ffffff', title: '#18181b', body: '#3f3f46', chip: '#f4f4f5', dot: '#d4d4d8', art: 'linear-gradient(160deg,#fafafa,#d4d4d8 55%,#71717a)' },
-  dark: { stage: '#0c0e14', card: '#18181b', title: '#fafafa', body: '#d4d4d8', chip: '#27272a', dot: '#52525b', art: 'linear-gradient(160deg,#3f3f46,#18181b 50%,#09090b)' },
-  magic: { stage: '#140c24', card: '#f5f3ff', title: '#1e1b4b', body: '#4c1d95', chip: '#ede9fe', dot: '#c4b5fd', art: 'linear-gradient(160deg,#f3e8ff,#7c3aed 46%,#4c1d95)' },
-  playful: { stage: '#1a120c', card: '#fffbeb', title: '#1c1917', body: '#44403c', chip: '#fffbeb', dot: '#fbbf24', art: 'linear-gradient(160deg,#fef3c7,#f59e0b 50%,#c2410c)' },
-  chalk: { stage: '#0d1f18', card: '#f0fdf4', title: '#052e16', body: '#14532d', chip: '#dcfce7', dot: '#4ade80', art: 'linear-gradient(160deg,#bbf7d0,#166534 48%,#052e16)' },
-  notebook: { stage: '#f3efe6', card: '#fffdf8', title: '#1e3a5f', body: '#334155', chip: '#eff6ff', dot: '#93c5fd', art: 'linear-gradient(160deg,#eff6ff,#93c5fd 50%,#1e3a5f)' },
-  scholar: { stage: '#0b1220', card: '#f8fafc', title: '#0f172a', body: '#334155', chip: '#e2e8f0', dot: '#eab308', art: 'linear-gradient(160deg,#fef9c3,#1e293b 52%,#0f172a)' },
+  made: { stage: '#14161e', wash: '#f6f3f1', card: '#fff7f3', title: '#1c1917', body: '#44403c', chip: '#fff7f3', dot: '#e07a62', art: 'linear-gradient(160deg,#fde7df,#e07a62 48%,#9a3412)' },
+  light: { stage: '#ececef', wash: '#f4f4f5', card: '#ffffff', title: '#18181b', body: '#3f3f46', chip: '#f4f4f5', dot: '#d4d4d8', art: 'linear-gradient(160deg,#fafafa,#d4d4d8 55%,#71717a)' },
+  dark: { stage: '#0c0e14', wash: '#eef1f6', card: '#18181b', title: '#fafafa', body: '#d4d4d8', chip: '#27272a', dot: '#52525b', art: 'linear-gradient(160deg,#3f3f46,#18181b 50%,#09090b)' },
+  magic: { stage: '#140c24', wash: '#f6f3ff', card: '#f5f3ff', title: '#1e1b4b', body: '#4c1d95', chip: '#ede9fe', dot: '#c4b5fd', art: 'linear-gradient(160deg,#f3e8ff,#7c3aed 46%,#4c1d95)' },
+  playful: { stage: '#1a120c', wash: '#fff8f1', card: '#fffbeb', title: '#1c1917', body: '#44403c', chip: '#fffbeb', dot: '#fbbf24', art: 'linear-gradient(160deg,#fef3c7,#f59e0b 50%,#c2410c)' },
+  chalk: { stage: '#0d1f18', wash: '#f3faf6', card: '#f0fdf4', title: '#052e16', body: '#14532d', chip: '#dcfce7', dot: '#4ade80', art: 'linear-gradient(160deg,#bbf7d0,#166534 48%,#052e16)' },
+  notebook: { stage: '#f3efe6', wash: '#f7f4ee', card: '#fffdf8', title: '#1e3a5f', body: '#334155', chip: '#eff6ff', dot: '#93c5fd', art: 'linear-gradient(160deg,#eff6ff,#93c5fd 50%,#1e3a5f)' },
+  scholar: { stage: '#0b1220', wash: '#f4f7fb', card: '#f8fafc', title: '#0f172a', body: '#334155', chip: '#e2e8f0', dot: '#eab308', art: 'linear-gradient(160deg,#fef9c3,#1e293b 52%,#0f172a)' },
 };
+
+function stageInk(stage: string, title: string): string {
+  const n = Number.parseInt(stage.replace('#', ''), 16);
+  const lum = (((n >> 16) & 255) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000;
+  return lum < 150 ? '#f8fafc' : title;
+}
 
 function countWords(value: string): number {
   return value.trim() ? value.trim().split(/\s+/).length : 0;
@@ -144,12 +150,12 @@ function FileRow({
   );
 }
 
-function CoverArt() {
+function SlidePhoto({ src, art }: { src?: string; art: string }) {
+  if (src) return <img src={src} alt="" className="h-full w-full object-cover" />;
   return (
-    <div className="mv-pres-art relative min-h-[240px] overflow-hidden" aria-hidden>
-      <span className="absolute left-[14%] top-[18%] h-44 w-44 rounded-full border-[10px] border-white/50 bg-white/25" />
-      <span className="absolute left-[34%] top-[26%] h-36 w-36 rounded-full border-[10px] border-white/40 bg-white/20" />
-      <span className="absolute left-[26%] top-[34%] h-16 w-16 rounded-full bg-white/70" />
+    <div className="relative h-full w-full overflow-hidden" style={{ background: art }} aria-hidden>
+      <span className="absolute left-[14%] top-[18%] h-[42%] w-[42%] rounded-full border-[10px] border-white/50 bg-white/25" />
+      <span className="absolute left-[36%] top-[28%] h-[34%] w-[34%] rounded-full border-[10px] border-white/40 bg-white/20" />
     </div>
   );
 }
@@ -305,13 +311,14 @@ export function PresentationGenerator() {
 
   const download = (kind: 'html' | 'txt') => {
     if (!deck) return;
+    const picture = (slide: { imageUrl?: string }) =>
+      slide.imageUrl ? `<img src="${escapeHtml(slide.imageUrl)}" alt="">` : `<div class="art"></div>`;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(deck.title)}</title>
-      <style>body{margin:0;font-family:Georgia,serif;background:${colors.stage}} section{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px} article{width:min(1080px,100%);border-radius:28px;overflow:hidden} .cover{display:grid;grid-template-columns:1.1fr .9fr;min-height:70vh;background:${colors.card};color:${colors.title}} .art{background:${colors.art}} .copy{display:flex;flex-direction:column;justify-content:center;padding:48px} .content{background:#fffdf8;color:#1c1917;padding:64px} h1{font-size:56px;line-height:1.05;margin:0} h2{font-size:40px;margin:0 0 20px} p,li{font-size:22px;line-height:1.45} .chip{display:inline-block;margin-top:20px;padding:8px 16px;border-radius:999px;background:${colors.chip};color:${colors.body}}</style></head><body>
+      <style>body{margin:0;background:#111} section{width:13.333in;height:7.5in;margin:0 auto 16px;overflow:hidden} article{width:13.333in;height:7.5in;display:grid;grid-template-columns:1.15fr .85fr;overflow:hidden;background:#fffdf8;color:#1c1917;font-family:Georgia,serif} img,.art{width:100%;height:100%;object-fit:cover;background:${colors.art}} .copy{display:flex;flex-direction:column;justify-content:center;padding:.6in;min-width:0} h1{font-size:42pt;line-height:1.05;margin:0} h2{font-size:28pt;line-height:1.1;margin:0 0 12pt} p,li{font-size:16pt;line-height:1.35} .chip{display:inline-block;margin-top:14pt;padding:6pt 12pt;border-radius:999px;background:${colors.chip};color:${colors.body}}</style></head><body>
       ${deck.slides
-        .map((slide, index) =>
-          index === 0
-            ? `<section><article class="cover"><div class="art"></div><div class="copy"><h1>${escapeHtml(slide.title)}</h1>${slide.subtitle ? `<p class="chip">${escapeHtml(slide.subtitle)}</p>` : ''}</div></article></section>`
-            : `<section><article class="content"><h2>${escapeHtml(slide.title)}</h2>${slide.subtitle ? `<p>${escapeHtml(slide.subtitle)}</p>` : ''}${slide.bullets.length ? `<ul>${slide.bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}${slide.question ? `<p class="chip">${escapeHtml(slide.question)}</p>` : ''}</article></section>`,
+        .map(
+          (slide, index) =>
+            `<section><article>${index === 0 ? picture(slide) : ''}<div class="copy">${index === 0 ? `<h1>${escapeHtml(slide.title)}</h1>` : `<h2>${escapeHtml(slide.title)}</h2>`}${slide.subtitle ? `<p>${escapeHtml(slide.subtitle)}</p>` : ''}${slide.bullets.length ? `<ul>${slide.bullets.slice(0, 4).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}${slide.question ? `<p class="chip">${escapeHtml(slide.question)}</p>` : ''}</div>${index === 0 ? '' : picture(slide)}</article></section>`,
         )
         .join('')}</body></html>`;
     const blob = new Blob([kind === 'html' ? html : outline], { type: kind === 'html' ? 'text/html' : 'text/plain' });
@@ -345,9 +352,14 @@ export function PresentationGenerator() {
               {criteria ? <p className="mv-pres-muted mt-2 whitespace-pre-wrap">{criteria}</p> : null}
             </div>
           ) : null}
-          <div className="mv-pres-field mt-4 rounded-xl p-3">
+          <div className="mv-pres-field mv-pres-status mt-4 rounded-xl p-3">
             <p className="font-semibold">{deckTitle}</p>
             <p className="mv-pres-muted mt-2 text-xs">{revising ? 'Updating the deck…' : writing ? `Writing your slides… ${shown} of ${total}` : `${total} slides ready`}</p>
+            {writing ? (
+              <div className="mv-pres-progress mt-3" aria-hidden>
+                <span style={{ width: `${Math.max(8, Math.round((shown / Math.max(total, 1)) * 100))}%` }} />
+              </div>
+            ) : null}
           </div>
           {thread.length ? (
             <ul className="mt-3 space-y-2 text-xs">
@@ -356,7 +368,7 @@ export function PresentationGenerator() {
               ))}
             </ul>
           ) : null}
-          <div className="mt-auto pt-4">
+          <div className="pt-4">
             <label className="sr-only" htmlFor="presentation-follow-up">Continue the conversation</label>
             <textarea
               id="presentation-follow-up"
@@ -378,11 +390,17 @@ export function PresentationGenerator() {
             </button>
           </div>
         </aside>
-        <section className="min-w-0 overflow-x-hidden" style={{ background: colors.stage }}>
-          <header className="flex items-center justify-between gap-3 border-b border-black/10 px-5 py-3" style={{ color: colors.title }}>
-            <h1 className="min-w-0 truncate text-sm font-semibold">{deckTitle}</h1>
+        <section
+          className="mv-pres-stage min-w-0 overflow-x-hidden"
+          style={{ background: colors.stage, ['--pres-wash' as string]: colors.wash }}
+        >
+          <header className="mv-pres-chrome flex items-center justify-between gap-3 border-b border-black/5 px-5 py-3" style={{ color: stageInk(colors.stage, colors.title) }}>
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-semibold">{deckTitle}</h1>
+              <p className="mt-0.5 text-xs">{revising ? 'Applying your change…' : writing ? `Generating slides… ${shown}/${total}` : `Slide ${Math.min(shown, total)}/${total}`}</p>
+            </div>
             <div className="relative shrink-0">
-              <button type="button" className="rounded-lg px-3 py-1.5 text-xs font-semibold" style={{ background: 'rgba(0,0,0,0.35)', color: '#fff' }} onClick={() => setExportOpen((open) => !open)}>
+              <button type="button" className="mv-pres-export rounded-lg px-3 py-1.5 text-xs font-semibold" onClick={() => setExportOpen((open) => !open)}>
                 Export
               </button>
               {exportOpen ? (
@@ -399,57 +417,55 @@ export function PresentationGenerator() {
                 key={item.id}
                 type="button"
                 onClick={() => setTheme(item.id)}
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
-                style={{
-                  background: theme === item.id ? '#6d28d9' : 'rgba(255,255,255,0.14)',
-                  color: '#fff',
-                }}
+                data-active={theme === item.id ? 'true' : 'false'}
+                className="mv-pres-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
               >
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: THEME_STYLE[item.id].dot }} />
+                <span className="h-2.5 w-2.5 rounded-full ring-1 ring-black/15" style={{ background: THEME_STYLE[item.id].dot }} />
                 {item.id === 'made' ? <Sparkles className="h-3 w-3" /> : null}
                 {item.label}
               </button>
             ))}
           </div>
-          <p className="mx-auto w-full max-w-[1080px] px-4 text-sm sm:px-8" style={{ color: colors.title }}>{revising ? 'Applying your change…' : writing ? `Generating slides… ${shown}/${total}` : `Slide ${Math.min(shown, total)}/${total}`}</p>
-          <div className="mx-auto w-full max-w-[1080px] space-y-8 px-4 py-6 sm:px-8">
+          <div className={`mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-8 ${deck ? 'space-y-8' : 'flex min-h-[62vh] flex-col justify-center'}`}>
             {visibleSlides.map((slide, index) => (
               <article key={`${index}-${slide.title}`}>
-                <p className="mb-2 text-xs" style={{ color: colors.title }}>Slide {index + 1}/{total}</p>
-                {index === 0 ? (
-                  <div className="mv-pres-slide grid w-full overflow-hidden rounded-[28px] shadow-xl md:grid-cols-[1.15fr_0.85fr]" style={{ background: colors.card, color: colors.title }}>
-                    <div style={{ background: colors.art }}>
-                      <CoverArt />
-                    </div>
-                    <div className="flex min-w-0 flex-col justify-center px-8 py-10 text-left md:px-10">
-                      <h2 className="break-words text-4xl font-semibold tracking-tight md:text-5xl">{slide.title}</h2>
-                      {slide.subtitle ? (
-                        <p className="mt-6 w-fit max-w-full rounded-full px-4 py-2 text-sm" style={{ background: colors.chip, color: colors.body }}>{slide.subtitle}</p>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mv-pres-slide w-full rounded-[28px] px-8 py-12 text-left shadow-xl md:px-12" style={{ background: '#fffdf8', color: '#1c1917' }}>
-                    <h2 className="break-words text-4xl font-semibold tracking-tight">{slide.title}</h2>
-                    {slide.subtitle ? <p className="mt-4 text-lg" style={{ color: '#44403c' }}>{slide.subtitle}</p> : null}
-                    {slide.bullets.length ? (
-                      <ul className="mt-6 list-disc space-y-2 pl-5 text-lg" style={{ color: '#44403c' }}>
-                        {slide.bullets.map((item) => (
-                          <li key={item}>{item}</li>
+                <p className="mv-pres-chrome mx-auto mb-2 w-full max-w-[1280px] text-xs" style={{ color: stageInk(colors.stage, colors.title) }}>Slide {index + 1}/{total}</p>
+                <div className="mv-slide-frame overflow-hidden rounded-md shadow-xl">
+                <div className="mv-slide-canvas mv-pres-slide grid grid-cols-[1.15fr_0.85fr]" style={{ background: index === 0 ? colors.card : '#fffdf8', color: index === 0 ? colors.title : '#1c1917' }}>
+                  {index === 0 ? <SlidePhoto src={slide.imageUrl} art={colors.art} /> : null}
+                  <div className="flex min-h-0 min-w-0 flex-col justify-center overflow-hidden px-[5%] py-[6%] text-left">
+                    <h2 className="mv-slide-title break-words font-semibold tracking-tight">{slide.title}</h2>
+                    {slide.subtitle ? <p className="mv-slide-copy mt-[0.6em] line-clamp-2" style={{ color: index === 0 ? colors.body : '#44403c' }}>{slide.subtitle}</p> : null}
+                    {index > 0 && slide.bullets.length ? (
+                      <ul className="mv-slide-copy mt-[0.7em] list-disc space-y-[0.25em] pl-[1.1em]" style={{ color: '#44403c' }}>
+                        {slide.bullets.slice(0, 4).map((item) => (
+                          <li key={item} className="line-clamp-2">{item}</li>
                         ))}
                       </ul>
                     ) : null}
                     {slide.question ? (
-                      <p className="mt-6 w-fit max-w-full rounded-full px-4 py-2 text-base font-medium" style={{ background: colors.chip, color: colors.body }}>{slide.question}</p>
+                      <p className="mv-slide-copy mt-[0.7em] line-clamp-2 w-fit max-w-full rounded-full px-[0.8em] py-[0.35em]" style={{ background: colors.chip, color: colors.body }}>{slide.question}</p>
                     ) : null}
                   </div>
-                )}
-                {slide.speakerNotes ? <p className="mt-3 text-xs" style={{ color: colors.title }}>Teacher notes: {slide.speakerNotes}</p> : null}
+                  {index > 0 ? <SlidePhoto src={slide.imageUrl} art={colors.art} /> : null}
+                </div>
+                </div>
+                {slide.speakerNotes ? <p className="mv-pres-chrome mx-auto mt-3 w-full max-w-[1280px] text-xs" style={{ color: stageInk(colors.stage, colors.title) }}>Teacher notes: {slide.speakerNotes}</p> : null}
               </article>
             ))}
             {!deck ? (
-              <div className="mv-pres-slide flex min-h-[360px] w-full items-center justify-center rounded-[28px]" style={{ background: colors.card, color: colors.title }}>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Writing your slides…
+              <div className="mv-slide-frame mv-pres-loading overflow-hidden rounded-md" role="status">
+                <div className="mv-slide-canvas grid grid-cols-[1.15fr_0.85fr] bg-white">
+                  <div className="mv-pres-shimmer h-full" />
+                  <div className="flex flex-col justify-center gap-3 px-[8%]">
+                    <span className="h-6 w-4/5 rounded-lg bg-black/10" />
+                    <span className="h-6 w-3/5 rounded-lg bg-black/10" />
+                    <span className="mt-2 h-7 w-2/3 rounded-full bg-black/5" />
+                  </div>
+                  <p className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-2 text-sm font-medium" style={{ color: '#57534e' }}>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Writing slides and pictures…
+                  </p>
+                </div>
               </div>
             ) : null}
           </div>

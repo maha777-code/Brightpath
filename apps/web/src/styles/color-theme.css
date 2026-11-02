@@ -1045,6 +1045,66 @@ html[data-theme='light'] .mv-status-banner--rose {
   min-height: 100%;
   background: transparent;
 }
+/* Widescreen slide, the same 16:9 frame as Google Slides and PowerPoint (13.333in × 7.5in). */
+.mv-slide-frame {
+  position: relative;
+  width: min(100%, 1280px);
+  height: 0;
+  padding-bottom: 56.25%;
+  margin-inline: auto;
+  overflow: hidden;
+  container-type: inline-size;
+}
+.mv-slide-frame > .mv-slide-canvas {
+  position: absolute;
+  inset: 0;
+}
+.mv-slide-title {
+  font-size: clamp(1.15rem, 4.2cqw, 2.45rem);
+  line-height: 1.08;
+}
+.mv-slide-copy {
+  font-size: clamp(0.72rem, 1.65cqw, 1.05rem);
+  line-height: 1.35;
+}
+.mv-pres-chip {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+.mv-pres-chip[data-active='true'] {
+  background: #6d28d9;
+  color: #ffffff;
+}
+.mv-pres-export {
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+.mv-pres-loading {
+  background: #fffdf8;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+}
+.mv-pres-shimmer {
+  background: linear-gradient(110deg, #f6d7cc 8%, #fff7f3 18%, #f6d7cc 33%);
+  background-size: 200% 100%;
+  animation: mv-pres-sheen 1.4s linear infinite;
+}
+@keyframes mv-pres-sheen {
+  to { background-position-x: -200%; }
+}
+.mv-pres-progress {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.18);
+}
+.mv-pres-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #7c3aed;
+}
 
 html[data-theme='light'] .mv-presentation {
   background: #f4f7fb !important;
@@ -1077,4 +1137,34 @@ html[data-theme='light'] .mv-presentation .mv-pres-generate {
 html[data-theme='light'] .mv-presentation .mv-pres-generate * {
   color: #ffffff !important;
   background: transparent !important;
+}
+html[data-theme='light'] .mv-pres-stage {
+  background: var(--pres-wash, #eef3f9) !important;
+}
+html[data-theme='light'] .mv-pres-chrome {
+  color: #334155 !important;
+}
+html[data-theme='light'] .mv-pres-chip {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border-color: #d5deea !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+html[data-theme='light'] .mv-pres-chip[data-active='true'] {
+  background: #6d28d9 !important;
+  color: #ffffff !important;
+  border-color: #6d28d9 !important;
+}
+html[data-theme='light'] .mv-pres-export {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #d5deea !important;
+}
+html[data-theme='light'] .mv-presentation .mv-pres-status {
+  background: #f6f3ff !important;
+  border-color: #ddd6fe !important;
+}
+html[data-theme='light'] .mv-pres-loading {
+  background: #ffffff !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
 }

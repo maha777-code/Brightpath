@@ -39,6 +39,8 @@ export interface PresentationSlide {
   question?: string;
   speakerNotes: string;
   imagePrompt: string;
+  /** Photograph that matches this slide. Absolute URL. */
+  imageUrl?: string;
 }
 
 export interface PresentationResponse {

@@ -5,6 +5,7 @@ dist
 *.local
 apps/api/dist
 apps/api/uploads
+apps/api/public/presentations/
 apps/api/public/teacher-songs/*.mp3
 apps/api/public/teacher-songs/*.wav
 apps/web/dist

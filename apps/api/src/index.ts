@@ -253,7 +253,11 @@ async function start() {
 
   if (process.env.REDIS_URL) {
     try {
-      const redis = createClient({ url: process.env.REDIS_URL });
+      const redis = createClient({
+        url: process.env.REDIS_URL,
+        socket: { connectTimeout: 2000, reconnectStrategy: false },
+      });
+      redis.on('error', () => {});
       await redis.connect();
       await redis.ping();
       console.log('Redis connected');

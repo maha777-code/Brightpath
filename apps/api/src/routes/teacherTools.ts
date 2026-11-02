@@ -18,6 +18,7 @@ import {
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, translateLessonPlan, generatePresentation, generateSharadaChat, generateEmailResponse } from '../services/llm.js';
+import { attachPresentationImages } from '../lib/presentationImages.js';
 import { generateGamifiedActivityTool } from '../services/gamifiedActivityTool.js';
 import { generateGamifiedVideo } from '../services/gamifiedVideo.js';
 import { applyClassroomAction, canAccessClassroom, classroomOwnerKey, getClassroomState } from '../services/classroom.js';
@@ -614,6 +615,7 @@ const presentationBody = z.object({
         question: z.string().max(400).optional(),
         speakerNotes: z.string().max(800),
         imagePrompt: z.string().max(500),
+        imageUrl: z.string().max(2_000).optional(),
       }),
     )
     .max(20)
@@ -632,7 +634,7 @@ router.post('/tools/presentation-generator', async (req: AuthRequest, res: Respo
     return;
   }
   try {
-    const deck = await generatePresentation(parsed.data);
+    const deck = await attachPresentationImages(await generatePresentation(parsed.data), parsed.data);
     res.json(deck);
   } catch (err) {
     console.error('[teacher/tools/presentation-generator] failed', err);
