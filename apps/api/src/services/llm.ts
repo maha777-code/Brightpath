@@ -16,7 +16,7 @@ import type {
   EmailResponderRequest,
   EmailResponderResponse,
 } from '@brightpath/shared';
-import { applyWorksheetFollowUp, applyWorksheetTranslation, classroomLessonPlanFallback, classifyUserIntent, cleanLessonSource, emailResponderPrompt, fallbackEmailResponse, fallbackPresentation, fallbackSharadaChat, KHDA_LESSON_RULES, lessonSubjectLabel, presentationSlideTarget, revisePresentation } from '@brightpath/shared';
+import { applyWorksheetFollowUp, applyWorksheetTranslation, assignSlideLayouts, classroomLessonPlanFallback, classifyUserIntent, cleanLessonSource, emailResponderPrompt, fallbackEmailResponse, fallbackPresentation, fallbackSharadaChat, KHDA_LESSON_RULES, lessonSubjectLabel, PRESENTATION_LAYOUTS, presentationSlideTarget, revisePresentation } from '@brightpath/shared';
 import { getActiveProvider, imagePartsFromDataUrls } from '../lib/llm/provider.js';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
@@ -764,7 +764,8 @@ Return JSON only:
       "bullets": ["short spoken line"],
       "question": "a student question, or empty string",
       "speakerNotes": "what the teacher says and listens for",
-      "imagePrompt": "one classroom-safe illustration with no words in the picture"
+      "layout": "cover",
+      "imagePrompt": ""
     }
   ]
 }
@@ -774,9 +775,12 @@ Rules:
 - Progress from a phenomenon, to the model, to a worked example, to a misconception, to a new case, to an exit ticket.
 - At least three slides must have a non-empty question.
 - Bullets are short lines a teacher can say, not paragraphs.
-- The first slide is a title slide only: a short title, one driving question in the subtitle, and an empty bullets array. Do not put teaching points on the title slide.
-- Every later slide uses a different job: phenomenon, model, worked example, misconception, new case, or exit ticket. Give each one a headline and two or three short bullets.
-- imagePrompt is a short photographic subject for that slide, 6 to 14 words, such as "fluorescence micrograph of animal cells in metaphase". Name a real thing a camera could photograph. No text, labels, or slide layout in the picture. Every slide needs a different subject.
+- The first slide is a title slide only: layout "cover", a short title, one driving question in the subtitle, and an empty bullets array. Do not put teaching points on the title slide.
+- Every later slide uses a different job and a different layout. layout is one of: split, cards, quote, steps, focus. Do not use the same layout twice in a row.
+- split and focus are the picture layouts. Use them when a student needs to see a phenomenon, a structure, a process, or a comparison. A short deck has 2 picture slides. A longer deck has 3 to 5. Never use a picture layout for the cover, a goal list, vocabulary, partner talk, or the exit ticket.
+- cards shows two or three separate ideas. steps shows an ordered process. quote is one big student question with an empty or one-item bullets array.
+- imagePrompt is empty except on split and focus. There it is one sentence of 12 to 30 words naming that slide's exact objects and what they are doing. No words, labels, or slide layout in the picture. Each picture is a different scene.
+- Example: "An Elodea sprig underwater in a glass tube, bright light from above, oxygen bubbles rising from the cut stem."
 - Name the real mechanism for the grade. Do not write generic welcome lines.`;
 
 function normalizePresentation(
@@ -794,13 +798,17 @@ function normalizePresentation(
     if (!title) continue;
     const question = String(slide.question ?? '').trim();
     const subtitle = String(slide.subtitle ?? '').trim();
+    const layout = String(slide.layout ?? '').trim();
     slides.push({
       title,
       subtitle: subtitle || undefined,
       bullets: asStringList(slide.bullets).slice(0, 5),
       question: question || undefined,
       speakerNotes: String(slide.speakerNotes ?? '').trim() || 'Pause and ask students to restate the idea.',
-      imagePrompt: String(slide.imagePrompt ?? '').trim() || `A classroom illustration of ${title}.`,
+      imagePrompt: String(slide.imagePrompt ?? '').trim(),
+      layout: PRESENTATION_LAYOUTS.includes(layout as (typeof PRESENTATION_LAYOUTS)[number])
+        ? (layout as (typeof PRESENTATION_LAYOUTS)[number])
+        : undefined,
     });
   }
 
@@ -817,7 +825,7 @@ function normalizePresentation(
       title: title || fallback.title,
       gradeLevel: input.gradeLevel,
       objective: String(raw.objective ?? '').trim() || fallback.objective,
-      slides: kept,
+      slides: assignSlideLayouts(kept),
     };
   }
 
@@ -835,7 +843,7 @@ function normalizePresentation(
     title: title || fallback.title,
     gradeLevel: input.gradeLevel,
     objective: String(raw.objective ?? '').trim() || fallback.objective,
-    slides: filled.slice(0, wanted),
+    slides: assignSlideLayouts(filled.slice(0, wanted)),
   };
 }
 
@@ -850,15 +858,19 @@ const PRESENTATION_REVISION_SYSTEM = `You revise an existing classroom slide dec
       "bullets": ["short spoken line"],
       "question": "a student question, or empty string",
       "speakerNotes": "what the teacher says and listens for",
-      "imagePrompt": "one classroom-safe illustration with no words in the picture"
+      "layout": "cover",
+      "imagePrompt": ""
     }
   ]
 }
 Rules:
 - Apply the teacher's follow-up to the current deck. If they ask to add a slide, keep the existing slides and add the new one. If they ask to change a slide, change that slide and keep the rest.
-- The first slide stays a title slide: short title, driving question in the subtitle, empty bullets. Later slides stay content slides with a headline and short bullets.
+- The first slide stays a title slide: layout "cover", short title, driving question in the subtitle, empty bullets. Later slides keep a headline, short bullets, and their layout.
 - Return the full updated deck, not only the new slide.
-- Keep the grade and topic. Do not drop slides the teacher did not ask to remove.`;
+- Keep the grade and topic. Do not drop slides the teacher did not ask to remove.
+- Copy layout and imagePrompt unchanged on every slide you do not change.
+- A new slide needs its own layout: split, cards, quote, steps, or focus. Do not repeat the previous slide's layout.
+- imagePrompt stays empty unless the slide layout is split or focus and a picture of a phenomenon, structure, process, or comparison would teach it. At most 5 slides in the deck may have a picture. A new picture prompt names the exact objects and the action, with no words in the picture.`;
 
 export async function generatePresentation(input: PresentationPayload): Promise<PresentationResponse> {
   const fallback = fallbackPresentation(input);

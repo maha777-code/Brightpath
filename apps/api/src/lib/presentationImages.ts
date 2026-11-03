@@ -4,21 +4,45 @@ import path from 'node:path';
 import type { PresentationPayload, PresentationResponse, PresentationSlide } from '@brightpath/shared';
 import { PUBLIC_DIR, apiPublicOrigin } from './videoPipeline/mediaPaths.js';
 
-const IMAGE_MODELS = ['gemini-2.5-flash-image', 'gemini-3.1-flash-lite-image'];
-const USER_AGENT = 'MindVaultPresentation/1.0 (educational; https://mindvault.academy)';
-const SKIP_FILE = /logo|icon|flag|map|coat of arms|signature|autograph|diagram|schematic|chart\b|graph\b|svg/i;
+/** Picture layouts only. Cards, quotes, and steps stay designed text. */
+const MAX_PICTURES = 5;
+const DRAW_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
+const GENERIC_PROMPT =
+  /classroom illustration|classroom-safe|title illustration|goal markers|vocabulary cards|students noticing|two students|closing slide|teacher reviewing|step cards|claim, a piece of evidence|unordered step/i;
+const ALLOWED_TAGS = new Map([
+  ['svg', 'svg'],
+  ['g', 'g'],
+  ['path', 'path'],
+  ['circle', 'circle'],
+  ['ellipse', 'ellipse'],
+  ['rect', 'rect'],
+  ['line', 'line'],
+  ['polyline', 'polyline'],
+  ['polygon', 'polygon'],
+  ['defs', 'defs'],
+  ['lineargradient', 'linearGradient'],
+  ['radialgradient', 'radialGradient'],
+  ['stop', 'stop'],
+  ['filter', 'filter'],
+  ['fegaussianblur', 'feGaussianBlur'],
+  ['feoffset', 'feOffset'],
+  ['femerge', 'feMerge'],
+  ['femergenode', 'feMergeNode'],
+  ['feflood', 'feFlood'],
+  ['fecomposite', 'feComposite'],
+]);
 
-let imageGenDisabled = false;
+const failedModels = new Set<string>();
 
-function searchTerms(slide: PresentationSlide, topic: string): string {
-  const prompt = slide.imagePrompt
-    .replace(/classroom[- ]safe illustration of/gi, '')
-    .replace(/a classroom illustration of/gi, '')
-    .replace(/\bno (words|text|labels|watermark)[^.]*/gi, '')
-    .replace(/photorealistic photograph of/gi, '')
-    .trim();
-  const base = prompt.length > 12 ? prompt : `${topic} ${slide.title}`;
-  return base.replace(/[^\w\s-]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 110);
+function drawModels(): string[] {
+  return [...new Set(DRAW_MODELS)];
+}
+
+/** A prompt is worth drawing only when it names a concrete scene. */
+export function teachingImagePrompt(slide: PresentationSlide): string | null {
+  const prompt = slide.imagePrompt.trim();
+  if (prompt.length < 24 || GENERIC_PROMPT.test(prompt)) return null;
+  return prompt.slice(0, 400);
 }
 
 function reuseImages(slides: PresentationSlide[], previous: PresentationSlide[]): PresentationSlide[] {
@@ -30,124 +54,112 @@ function reuseImages(slides: PresentationSlide[], previous: PresentationSlide[])
   });
 }
 
-async function mapPool<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(items.length);
-  let cursor = 0;
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (cursor < items.length) {
-      const index = cursor++;
-      out[index] = await fn(items[index], index);
-    }
+function sanitizeSvg(raw: string): string | null {
+  const unfenced = raw.replace(/```(?:xml|svg)?/gi, '').trim();
+  const match = unfenced.match(/<svg\b[\s\S]*<\/svg>/i);
+  if (!match) return null;
+  let svg = match[0]
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '')
+    .replace(/<(iframe|image|use|style|object|embed)\b[\s\S]*?(?:<\/\1>|\/>)/gi, '');
+  svg = svg.replace(/<\/?([a-zA-Z0-9:-]+)([^>]*)>/g, (full, tag: string, attrs: string) => {
+    const name = ALLOWED_TAGS.get(tag.toLowerCase().replace(/^.*:/, ''));
+    if (!name) return '';
+    const selfClose = /\/\s*$/.test(attrs);
+    const clean = attrs
+      .replace(/\/\s*$/, '')
+      .replace(/\son[a-z]+\s*=\s*(['"]).*?\1/gi, '')
+      .replace(/\s(?:href|xlink:href)\s*=\s*(['"])(?!#).*?\1/gi, '');
+    if (full.startsWith('</')) return `</${name}>`;
+    return `<${name}${clean}${selfClose ? ' />' : '>'}`;
   });
-  await Promise.all(workers);
-  return out;
+  if (!/<svg\b/i.test(svg) || svg.length < 40 || svg.length > 80_000) return null;
+  if (!/viewBox\s*=/i.test(svg)) svg = svg.replace(/<svg\b/i, '<svg viewBox="0 0 640 360"');
+  return svg;
 }
 
-async function geminiPhotograph(prompt: string): Promise<string | null> {
+async function drawTeachingSvg(prompt: string): Promise<string | null> {
   const key = process.env.GEMINI_API_KEY?.trim();
-  if (!key || imageGenDisabled) return null;
-  for (const model of IMAGE_MODELS) {
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(40_000),
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `Photorealistic 16:9 photograph. No text, letters, labels, watermark, collage, or slide layout. Subject: ${prompt}`,
-                  },
-                ],
-              },
-            ],
-            generationConfig: {
-              responseModalities: ['IMAGE'],
-              imageConfig: { aspectRatio: '16:9' },
-            },
-          }),
-        },
-      );
-      if (res.status === 429) {
-        imageGenDisabled = true;
-        return null;
+  if (!key) return null;
+  for (const model of drawModels()) {
+    if (failedModels.has(model)) continue;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(35_000),
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: [
+                        'Draw one classroom illustration as a single SVG.',
+                        `Scene: ${prompt}`,
+                        'Return only the SVG. viewBox="0 0 640 360".',
+                        'No text, letters, numbers, words, or labels.',
+                        'No scripts. Show the objects and the action a student needs to see, with a few clear filled shapes.',
+                      ].join('\n'),
+                    },
+                  ],
+                },
+              ],
+              generationConfig: { temperature: 0.4 },
+            }),
+          },
+        );
+        if (res.status === 404 || res.status === 503 || res.status === 429) {
+          failedModels.add(model);
+          break;
+        }
+        if (!res.ok) break;
+        const data = (await res.json()) as {
+          candidates?: { content?: { parts?: { text?: string }[] } }[];
+        };
+        const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text ?? '').join('') ?? '';
+        const svg = sanitizeSvg(text);
+        if (!svg) break;
+        const dir = path.join(PUBLIC_DIR, 'presentations');
+        await mkdir(dir, { recursive: true });
+        const name = `${randomUUID()}.svg`;
+        await writeFile(path.join(dir, name), svg, 'utf8');
+      console.log(`[presentation] drew a teaching image with ${model}`);
+      const origin = apiPublicOrigin().replace('://localhost:', '://127.0.0.1:');
+      return `${origin}/public/presentations/${name}`;
+      } catch (err) {
+        if (attempt === 1) failedModels.add(model);
+        console.error('[presentation] image generation failed', model, err instanceof Error ? err.message : err);
       }
-      if (!res.ok) continue;
-      const data = (await res.json()) as {
-        candidates?: { content?: { parts?: { inlineData?: { mimeType?: string; data?: string } }[] } }[];
-      };
-      const image = data.candidates?.[0]?.content?.parts?.find((part) => part.inlineData?.data)?.inlineData;
-      if (!image?.data) continue;
-      const ext = image.mimeType?.includes('jpeg') || image.mimeType?.includes('jpg') ? 'jpg' : 'png';
-      const dir = path.join(PUBLIC_DIR, 'presentations');
-      await mkdir(dir, { recursive: true });
-      const name = `${randomUUID()}.${ext}`;
-      await writeFile(path.join(dir, name), Buffer.from(image.data, 'base64'));
-      return `${apiPublicOrigin()}/public/presentations/${name}`;
-    } catch (err) {
-      console.error('[presentation] image generation failed', err instanceof Error ? err.message : err);
     }
   }
   return null;
 }
 
-type CommonsPage = {
-  title?: string;
-  imageinfo?: { mime?: string; thumburl?: string; url?: string }[];
-};
-
-async function commonsPhotographs(query: string): Promise<string[]> {
-  const url = new URL('https://commons.wikimedia.org/w/api.php');
-  url.searchParams.set('action', 'query');
-  url.searchParams.set('format', 'json');
-  url.searchParams.set('generator', 'search');
-  url.searchParams.set('gsrsearch', `${query} filetype:bitmap`);
-  url.searchParams.set('gsrnamespace', '6');
-  url.searchParams.set('gsrlimit', '8');
-  url.searchParams.set('prop', 'imageinfo');
-  url.searchParams.set('iiprop', 'url|mime');
-  url.searchParams.set('iiurlwidth', '1280');
-  const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(12_000) });
-  if (!res.ok) return [];
-  const data = (await res.json()) as { query?: { pages?: Record<string, CommonsPage> } };
-  const pages = Object.values(data.query?.pages ?? {});
-  const photos: string[] = [];
-  const diagrams: string[] = [];
-  for (const page of pages) {
-    const info = page.imageinfo?.[0];
-    const mime = info?.mime ?? '';
-    const src = info?.thumburl || info?.url;
-    if (!src || !mime.startsWith('image/') || mime.includes('svg')) continue;
-    if (SKIP_FILE.test(page.title ?? '')) diagrams.push(src);
-    else if (mime === 'image/jpeg') photos.push(src);
-    else diagrams.push(src);
-  }
-  return [...photos, ...diagrams];
-}
-
-/** Adds a 16:9 photograph to every slide. Uses the image model when it is available, otherwise a matching Commons photograph. */
+/** Draws a picture only on slides whose prompt names a concept a student should see. */
 export async function attachPresentationImages(
   deck: PresentationResponse,
   input: PresentationPayload,
 ): Promise<PresentationResponse> {
-  const previous = input.currentSlides ?? [];
-  const seeded = reuseImages(deck.slides, previous);
-  const used = new Set(seeded.map((slide) => slide.imageUrl).filter((url): url is string => Boolean(url)));
-  const slides = await mapPool(seeded, 3, async (slide) => {
-    if (slide.imageUrl) return slide;
-    const query = searchTerms(slide, input.topic);
-    const generated = await geminiPhotograph(query);
-    if (generated) {
-      used.add(generated);
-      return { ...slide, imageUrl: generated };
+  const seeded = reuseImages(deck.slides, input.currentSlides ?? []);
+  let budget = MAX_PICTURES - seeded.filter((slide) => slide.imageUrl).length;
+  const slides: PresentationSlide[] = [];
+  for (const slide of seeded) {
+    const prompt = teachingImagePrompt(slide);
+    const pictureLayout = slide.layout === 'split' || slide.layout === 'focus';
+    if (slide.imageUrl || budget <= 0 || !prompt || !pictureLayout) {
+      slides.push(slide.imageUrl ? slide : { ...slide, imageUrl: undefined });
+      continue;
     }
-    const found = (await commonsPhotographs(query)).find((url) => !used.has(url));
-    if (!found) return slide;
-    used.add(found);
-    return { ...slide, imageUrl: found };
-  });
+    const imageUrl = await drawTeachingSvg(prompt);
+    if (!imageUrl) {
+      slides.push({ ...slide, imageUrl: undefined });
+      continue;
+    }
+    budget -= 1;
+    slides.push({ ...slide, imageUrl });
+  }
   return { ...deck, slides };
 }

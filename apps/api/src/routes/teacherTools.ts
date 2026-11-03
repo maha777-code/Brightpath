@@ -73,6 +73,55 @@ async function favoriteIdsForTeacher(teacherId: string): Promise<string[]> {
   return rows.map((r) => r.toolId).filter((id) => known.has(id));
 }
 
+let userFavoritesTableReady = false;
+
+/** Students, parents and platform users have no Teacher row, so their pins live here. */
+async function ensureUserFavoritesTable(): Promise<void> {
+  if (userFavoritesTableReady) return;
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "UserToolFavorite" (
+      "id" TEXT NOT NULL,
+      "ownerId" TEXT NOT NULL,
+      "toolId" TEXT NOT NULL,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "UserToolFavorite_pkey" PRIMARY KEY ("id")
+    )
+  `);
+  await prisma.$executeRawUnsafe(`
+    CREATE UNIQUE INDEX IF NOT EXISTS "UserToolFavorite_ownerId_toolId_key"
+    ON "UserToolFavorite"("ownerId", "toolId")
+  `);
+  userFavoritesTableReady = true;
+}
+
+async function favoriteIdsForUser(ownerId: string): Promise<string[]> {
+  await ensureUserFavoritesTable();
+  const rows = await prisma.$queryRawUnsafe<Array<{ toolId: string }>>(
+    `SELECT "toolId" FROM "UserToolFavorite" WHERE "ownerId" = $1 ORDER BY "createdAt" ASC`,
+    ownerId,
+  );
+  const known = new Set(TEACHER_TOOLS_CATALOG.map((t) => t.id));
+  return rows.map((r) => r.toolId).filter((id) => known.has(id));
+}
+
+async function toggleUserFavorite(ownerId: string, toolId: string): Promise<void> {
+  await ensureUserFavoritesTable();
+  const removed = await prisma.$executeRawUnsafe(
+    `DELETE FROM "UserToolFavorite" WHERE "ownerId" = $1 AND "toolId" = $2`,
+    ownerId,
+    toolId,
+  );
+  if (removed === 0) {
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "UserToolFavorite" ("id", "ownerId", "toolId") VALUES ($1, $2, $3)
+       ON CONFLICT ("ownerId", "toolId") DO NOTHING`,
+      randomUUID(),
+      ownerId,
+      toolId,
+    );
+  }
+}
+
 function favoriteOwnerId(req: AuthRequest): string | null {
   return req.teacherId ?? req.platformUserId ?? req.parentId ?? null;
 }
@@ -88,7 +137,9 @@ router.get('/tools', async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const favoriteIds = req.teacherId ? await favoriteIdsForTeacher(ownerId) : [];
+    const favoriteIds = req.teacherId
+      ? await favoriteIdsForTeacher(req.teacherId)
+      : await favoriteIdsForUser(ownerId);
     const payload: TeacherToolsCatalogResponse = {
       tools: TEACHER_TOOLS_CATALOG,
       focusAreas: FOCUS_AREAS,
@@ -104,8 +155,9 @@ router.get('/tools', async (req: AuthRequest, res: Response) => {
 /** POST /teacher/tools/favorite — toggle pin for this teacher */
 router.post('/tools/favorite', async (req: AuthRequest, res: Response) => {
   const teacherId = req.teacherId;
-  if (!teacherId) {
-    res.json({ toolId: '', favorited: false, favoriteIds: [] });
+  const ownerId = favoriteOwnerId(req);
+  if (!ownerId) {
+    res.status(401).json({ error: 'Unauthorized' });
     return;
   }
 
@@ -122,6 +174,18 @@ router.post('/tools/favorite', async (req: AuthRequest, res: Response) => {
   }
 
   try {
+    if (!teacherId) {
+      await toggleUserFavorite(ownerId, toolId);
+      const favoriteIds = await favoriteIdsForUser(ownerId);
+      const payload: ToggleTeacherToolFavoriteResponse = {
+        toolId,
+        favorited: favoriteIds.includes(toolId),
+        favoriteIds,
+      };
+      res.json(payload);
+      return;
+    }
+
     await ensureFavoritesTable();
     const existing = await prisma.teacherToolFavorite.findUnique({
       where: { teacherId_toolId: { teacherId, toolId } },
@@ -615,6 +679,7 @@ const presentationBody = z.object({
         question: z.string().max(400).optional(),
         speakerNotes: z.string().max(800),
         imagePrompt: z.string().max(500),
+        layout: z.enum(['cover', 'split', 'cards', 'quote', 'steps', 'focus']).optional(),
         imageUrl: z.string().max(2_000).optional(),
       }),
     )

@@ -145,19 +145,15 @@ function QuizMicButton({ listening, onClick }: { listening: boolean; onClick: ()
       type="button"
       className={
         listening
-          ? 'relative inline-flex h-11 w-11 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border border-rose-200/80 bg-gradient-to-br from-rose-400 via-rose-500 to-fuchsia-600 text-white shadow-[0_8px_24px_rgba(244,63,94,0.5)] ring-4 ring-rose-400/30'
-          : 'relative inline-flex h-11 w-11 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border border-cyan-100/50 bg-gradient-to-br from-cyan-300 via-sky-500 to-indigo-600 text-white shadow-[0_8px_22px_rgba(34,211,238,0.42)] ring-4 ring-cyan-400/20 transition-transform duration-200 hover:scale-105 hover:shadow-[0_10px_28px_rgba(34,211,238,0.6)]'
+          ? 'inline-flex h-9 w-9 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-300 shadow-none outline-none transition-colors'
+          : 'inline-flex h-9 w-9 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border border-slate-700/70 bg-slate-800/40 text-slate-400 shadow-none outline-none transition-colors hover:border-slate-600 hover:bg-slate-800/70 hover:text-slate-200'
       }
       aria-label={listening ? 'Stop recording' : 'Dictate with microphone'}
       aria-pressed={listening}
       title={listening ? 'Stop recording' : 'Start voice input'}
       onClick={onClick}
     >
-      <span className="pointer-events-none absolute inset-[3px] rounded-full bg-gradient-to-b from-white/40 to-transparent" />
-      {listening ? (
-        <span className="pointer-events-none absolute -inset-1 animate-ping rounded-full bg-rose-400/30" />
-      ) : null}
-      <Mic className={`relative h-[18px] w-[18px] drop-shadow-sm ${listening ? 'animate-pulse' : ''}`} strokeWidth={2.4} />
+      <Mic className={`h-4 w-4 ${listening ? 'animate-pulse' : ''}`} strokeWidth={2} />
     </button>
   );
 }
@@ -215,7 +211,7 @@ function SelectField({
       <FieldLabel required={required}>{label}</FieldLabel>
       <div className="relative">
         <select
-          className="w-full cursor-pointer appearance-none rounded-xl border border-slate-800 bg-[#0b101d] px-3.5 py-2.5 pr-9 text-sm text-white shadow-none outline-none transition-all hover:border-slate-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50"
+          className="w-full cursor-pointer appearance-none rounded-xl border border-slate-800 bg-[#0b101d] px-3.5 py-2.5 pr-9 text-sm text-white shadow-none outline-none transition-colors hover:border-slate-700 focus:border-slate-600 focus:outline-none focus:ring-0"
           style={{
             fontFamily: CYBER_FONT_STYLE.fontFamily,
             backgroundColor: '#0b101d',
@@ -278,12 +274,12 @@ function RichTextArea({
   return (
     <div>
       <FieldLabel required={required}>{label}</FieldLabel>
-      <div className="space-y-3 rounded-xl border border-slate-800 bg-[#0b101d] p-3 transition-all hover:border-slate-700 focus-within:border-cyan-500/60 focus-within:ring-1 focus-within:ring-cyan-500/50">
+      <div className="space-y-3 rounded-xl border border-slate-800 bg-[#0b101d] p-3 transition-colors hover:border-slate-700 focus-within:border-slate-600">
         <div className="flex items-start gap-3">
           <div className="relative flex-1" style={{ minHeight }}>
             <textarea
-              className="w-full resize-none bg-transparent p-0 text-sm leading-relaxed text-white focus:outline-none"
-              style={{ ...TOOL_TEXTAREA_STYLE, minHeight }}
+              className="block w-full resize-none border-0 bg-transparent p-0 text-sm leading-relaxed text-white shadow-none outline-none ring-0 focus:outline-none focus:ring-0"
+              style={{ ...TOOL_TEXTAREA_STYLE, minHeight, border: 'none', outline: 'none', boxShadow: 'none' }}
               aria-label={label}
               value={value}
               onChange={handleTextChange}
@@ -364,11 +360,15 @@ export function QuizGeneratorForm({
   const [localFavorited, setLocalFavorited] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
 
+  const favoriteTouchedRef = useRef(false);
+
   useEffect(() => {
     if (favoritedProp !== undefined) return;
     void api
       .teacherTools()
-      .then((res) => setLocalFavorited(res.favoriteIds.includes('quiz-generator')))
+      .then((res) => {
+        if (!favoriteTouchedRef.current) setLocalFavorited(res.favoriteIds.includes('quiz-generator'));
+      })
       .catch(() => undefined);
   }, [favoritedProp]);
 
@@ -379,10 +379,15 @@ export function QuizGeneratorForm({
       onToggleFavorite();
       return;
     }
-    setLocalFavorited((v) => !v);
-    void api.toggleTeacherToolFavorite('quiz-generator').then((res) => {
-      setLocalFavorited(res.favorited);
-    });
+    favoriteTouchedRef.current = true;
+    const next = !localFavorited;
+    setLocalFavorited(next);
+    void api
+      .toggleTeacherToolFavorite('quiz-generator')
+      .then((res) => {
+        if (res.toolId === 'quiz-generator') setLocalFavorited(res.favorited);
+      })
+      .catch(() => setLocalFavorited(!next));
   };
 
   const topicWords = sourceWords(topicDescription, assessmentFiles);
@@ -457,7 +462,26 @@ export function QuizGeneratorForm({
     }
   };
 
-  const loadExemplar = () => {
+  const beforeExemplarRef = useRef<{
+    gradeLevel: string;
+    numberOfQuestions: number;
+    optionsPerQuestion: number;
+    topicDescription: string;
+  } | null>(null);
+
+  const toggleExemplar = () => {
+    if (showExemplar) {
+      const previous = beforeExemplarRef.current;
+      setShowExemplar(false);
+      beforeExemplarRef.current = null;
+      if (!previous) return;
+      setGradeLevel(previous.gradeLevel);
+      setNumberOfQuestions(previous.numberOfQuestions);
+      setOptionsPerQuestion(previous.optionsPerQuestion);
+      setTopicDescription(previous.topicDescription);
+      return;
+    }
+    beforeExemplarRef.current = { gradeLevel, numberOfQuestions, optionsPerQuestion, topicDescription };
     setShowExemplar(true);
     setGradeLevel('9th grade');
     setNumberOfQuestions(5);
@@ -481,35 +505,31 @@ export function QuizGeneratorForm({
 
   return (
     <div className="ms-quiz-form space-y-5 font-sans text-slate-100">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-black tracking-tight text-white">
-              Multiple Choice Quiz / Assessment
-            </h2>
-            {onToggleFavorite || favoritedProp === undefined ? (
-              <button
-                type="button"
-                className={`cursor-pointer appearance-none border-0 bg-transparent p-0 ${favorited ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}`}
-                aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
-                aria-pressed={Boolean(favorited)}
-                onClick={toggleFavorite}
-              >
-                <Star className="h-5 w-5" fill={favorited ? 'currentColor' : 'none'} />
-              </button>
-            ) : null}
-          </div>
-          <p className="mt-1 max-w-2xl text-xs font-medium leading-relaxed text-slate-400">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="max-w-2xl text-xs font-medium leading-relaxed text-slate-400">
             Generate a multiple choice assessment, quiz, or test based on any topic, standard(s), or
             criteria.
           </p>
+          {onToggleFavorite || favoritedProp === undefined ? (
+            <button
+              type="button"
+              className={`shrink-0 cursor-pointer appearance-none border-0 bg-transparent p-0 ${favorited ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}`}
+              aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+              aria-pressed={Boolean(favorited)}
+              onClick={toggleFavorite}
+            >
+              <Star className="h-5 w-5" fill={favorited ? 'currentColor' : 'none'} />
+            </button>
+          ) : null}
         </div>
         <button
           type="button"
           className="shrink-0 cursor-pointer appearance-none rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-400 transition-all hover:bg-cyan-500/20"
-          onClick={loadExemplar}
+          aria-pressed={showExemplar}
+          onClick={toggleExemplar}
         >
-          {showExemplar ? 'Exemplar loaded' : 'Show exemplar'}
+          {showExemplar ? 'Hide exemplar' : 'Show exemplar'}
         </button>
       </header>
 

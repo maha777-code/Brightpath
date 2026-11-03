@@ -19,6 +19,10 @@ export const PRESENTATION_THEMES = [
 
 export type PresentationTheme = (typeof PRESENTATION_THEMES)[number]['id'];
 
+export const PRESENTATION_LAYOUTS = ['cover', 'split', 'cards', 'quote', 'steps', 'focus'] as const;
+
+export type PresentationLayout = (typeof PRESENTATION_LAYOUTS)[number];
+
 export interface PresentationPayload {
   gradeLevel: string;
   slideCount: PresentationSlideCount;
@@ -39,7 +43,9 @@ export interface PresentationSlide {
   question?: string;
   speakerNotes: string;
   imagePrompt: string;
-  /** Photograph that matches this slide. Absolute URL. */
+  /** How this slide is arranged. Cover, picture, cards, quote, or steps. */
+  layout?: PresentationLayout;
+  /** Teaching illustration for this slide, when a picture explains the concept. Absolute URL. */
   imageUrl?: string;
 }
 
@@ -48,6 +54,41 @@ export interface PresentationResponse {
   gradeLevel: string;
   objective: string;
   slides: PresentationSlide[];
+}
+
+const LAYOUT_CYCLE: PresentationLayout[] = ['split', 'cards', 'steps', 'focus', 'quote'];
+
+function isLayout(value: string | undefined): value is PresentationLayout {
+  return PRESENTATION_LAYOUTS.includes(value as PresentationLayout);
+}
+
+/** Gives every slide a layout, and keeps the same arrangement from repeating back to back. */
+export function assignSlideLayouts(slides: PresentationSlide[]): PresentationSlide[] {
+  let previous: PresentationLayout | '' = '';
+  return slides.map((slide, index) => {
+    if (index === 0) {
+      previous = 'cover';
+      return { ...slide, layout: 'cover', imagePrompt: '' };
+    }
+    let layout = slide.layout;
+    const visual = slide.imagePrompt.trim().length >= 24;
+    if (!isLayout(layout) || layout === 'cover' || layout === previous) {
+      layout = visual ? (index % 2 === 0 ? 'focus' : 'split') : LAYOUT_CYCLE[index % LAYOUT_CYCLE.length];
+      if (layout === previous) layout = LAYOUT_CYCLE[(LAYOUT_CYCLE.indexOf(layout) + 1) % LAYOUT_CYCLE.length];
+    }
+    previous = layout;
+    return { ...slide, layout };
+  });
+}
+
+/** Layout to draw. A picture slide stays a picture slide only when an image arrived. */
+export function slideLayout(slide: PresentationSlide, index: number): PresentationLayout {
+  if (index === 0) return 'cover';
+  if (slide.imageUrl) return slide.layout === 'focus' ? 'focus' : 'split';
+  if (slide.layout === 'cards' || slide.layout === 'quote' || slide.layout === 'steps') return slide.layout;
+  if (slide.question && slide.bullets.length <= 1) return 'quote';
+  if (slide.bullets.length >= 3) return index % 2 === 0 ? 'cards' : 'steps';
+  return 'steps';
 }
 
 export function presentationSlideTarget(id: PresentationSlideCount): number {
@@ -89,7 +130,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
       subtitle: `How does this idea work for ${grade}?`,
       bullets: [],
       speakerNotes: `Open with the driving question. Tell students the deck will end with them explaining ${title} in their own words. ${fileNote}`,
-      imagePrompt: `A classroom-safe title illustration of ${title}, with no words in the picture.`,
+      imagePrompt: '',
     },
     {
       title: 'Start with something you can see',
@@ -101,7 +142,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
       ],
       question: `Where have you already seen ${title} without calling it that?`,
       speakerNotes: 'Pause after the question. Accept everyday language before introducing the formal term.',
-      imagePrompt: `Students noticing a real-world example connected to ${title}.`,
+      imagePrompt: '',
     },
     {
       title: 'What we will be able to do',
@@ -111,7 +152,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
         criteria ? clip(criteria, 180) : 'Answer a check-for-understanding question without looking back.',
       ],
       speakerNotes: 'Read the goals aloud and ask which one feels hardest. That becomes the stretch check later.',
-      imagePrompt: `Three simple goal markers on a desk, suggesting a lesson about ${title}.`,
+      imagePrompt: '',
     },
     {
       title: 'The model',
@@ -122,7 +163,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
         'Point to the part of the model that does the work.',
       ],
       speakerNotes: 'Build the model in two steps. First the whole picture, then the one moving part students confuse.',
-      imagePrompt: `A clean diagram of the core model for ${title}, with labels left for the teacher to say aloud.`,
+      imagePrompt: '',
     },
     {
       title: 'Words that carry the idea',
@@ -133,7 +174,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
       ],
       question: 'Which word names the process, and which word only describes the result?',
       speakerNotes: 'Have pairs write one sentence that uses the term correctly. Listen for the result being mistaken for the process.',
-      imagePrompt: `Two vocabulary cards side by side about ${title}.`,
+      imagePrompt: '',
     },
     {
       title: 'Watch it happen',
@@ -144,7 +185,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
         'End with the result and why it had to come out that way.',
       ],
       speakerNotes: 'Narrate the example slowly. Ask students to predict the next step before you reveal it.',
-      imagePrompt: `A step-by-step classroom diagram of a worked example for ${title}.`,
+      imagePrompt: '',
     },
     {
       title: 'Check the model',
@@ -155,7 +196,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
       ],
       question: `If one step of ${title} were skipped, what would be different in the result?`,
       speakerNotes: 'This is a reasoning question, not a recall question. Ask a student to point at the step, not just name it.',
-      imagePrompt: `A before-and-after comparison that shows why ${title} matters.`,
+      imagePrompt: '',
     },
     {
       title: 'The mix-up to avoid',
@@ -165,7 +206,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
         'The correction is to name the step that actually does the work.',
       ],
       speakerNotes: 'Show the wrong explanation kindly, then repair it with the model from the earlier slide.',
-      imagePrompt: `Two similar diagrams, one correct and one a common mix-up about ${title}.`,
+      imagePrompt: '',
     },
     {
       title: 'Try a new case',
@@ -177,7 +218,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
       ],
       question: `How would you use ${title} to explain this new case to a classmate?`,
       speakerNotes: 'Circulate and look for students who restate the title without using the mechanism.',
-      imagePrompt: `A fresh example scene that students can explain using ${title}.`,
+      imagePrompt: '',
     },
     {
       title: 'Put the pieces in order',
@@ -187,7 +228,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
         'Say what evidence would show the step occurred.',
       ],
       speakerNotes: 'Use this as a quick sort. Students can number the steps on paper before you show an order.',
-      imagePrompt: `Unordered step cards related to ${title} waiting to be sequenced.`,
+      imagePrompt: '',
     },
     {
       title: 'Why it matters outside this class',
@@ -197,7 +238,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
         evidence ? `Connect it back to the source: ${clip(evidence, 140)}` : 'Keep the transfer concrete for this grade.',
       ],
       speakerNotes: 'Ask for a local example before offering your own.',
-      imagePrompt: `A real-world setting where understanding ${title} changes what someone does.`,
+      imagePrompt: '',
     },
     {
       title: 'Argue from the model',
@@ -208,7 +249,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
       ],
       question: `What is the strongest evidence that ${title} explains the opening phenomenon?`,
       speakerNotes: 'Require the because. A correct word without a reason is not finished.',
-      imagePrompt: `A claim, a piece of evidence, and an arrow of reasoning about ${title}.`,
+      imagePrompt: '',
     },
     {
       title: 'What a strong answer includes',
@@ -218,7 +259,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
         'One specific example.',
       ],
       speakerNotes: 'Show an almost-right answer and ask the class what is missing.',
-      imagePrompt: `A teacher reviewing a student explanation of ${title}.`,
+      imagePrompt: '',
     },
     {
       title: 'Discuss with a partner',
@@ -228,7 +269,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
         'Switch, and improve one sentence.',
       ],
       speakerNotes: 'Give 90 seconds. Then take one improved sentence from the room.',
-      imagePrompt: `Two students talking through a diagram of ${title}.`,
+      imagePrompt: '',
     },
     {
       title: 'Before you leave',
@@ -240,7 +281,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
       ],
       question: `In two or three sentences, how would you teach ${title} to someone who missed class?`,
       speakerNotes: 'Collect the exit ticket. The next lesson should reopen whatever most students skipped.',
-      imagePrompt: `A closing slide image of a finished explanation about ${title}.`,
+      imagePrompt: '',
     },
   ];
 
@@ -258,7 +299,7 @@ export function fallbackPresentation(input: PresentationPayload): PresentationRe
     title,
     gradeLevel: grade,
     objective: `Students can explain ${title} and use it on a new example.${criteria ? ` Teacher note: ${clip(criteria, 240)}` : ''}`,
-    slides: selected.slice(0, count),
+    slides: assignSlideLayouts(selected.slice(0, count)),
   };
 }
 
@@ -275,10 +316,10 @@ export function revisePresentation(deck: PresentationResponse, instruction: stri
     ],
     question: `What new idea does this add to ${deck.title}?`,
     speakerNotes: `The teacher asked: ${ask}. Teach this as its own slide, then return to the driving question.`,
-    imagePrompt: `A classroom diagram for ${deck.title}: ${ask}`,
+    imagePrompt: '',
   };
   return {
     ...deck,
-    slides: [...deck.slides, added].slice(0, 20),
+    slides: assignSlideLayouts([...deck.slides, added].slice(0, 20)),
   };
 }

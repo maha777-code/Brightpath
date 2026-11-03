@@ -480,6 +480,7 @@ export type { AiToolPlan } from './teacherTools.js';
 export type {
   PresentationSlideCount,
   PresentationTheme,
+  PresentationLayout,
   PresentationPayload,
   PresentationSlide,
   PresentationResponse,
@@ -487,7 +488,10 @@ export type {
 export {
   PRESENTATION_SLIDE_OPTIONS,
   PRESENTATION_THEMES,
+  PRESENTATION_LAYOUTS,
   presentationSlideTarget,
+  assignSlideLayouts,
+  slideLayout,
   fallbackPresentation,
   revisePresentation,
 } from './presentation.js';

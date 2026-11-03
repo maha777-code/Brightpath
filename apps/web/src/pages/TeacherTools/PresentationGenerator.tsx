@@ -8,8 +8,10 @@ import {
   fallbackPresentation,
   presentationSlideTarget,
   revisePresentation,
+  slideLayout,
   type PresentationPayload,
   type PresentationResponse,
+  type PresentationSlide,
   type PresentationSlideCount,
   type PresentationTheme,
 } from '@brightpath/shared';
@@ -26,17 +28,35 @@ const FIELD = 'mv-pres-field mt-2 w-full rounded-xl px-4 py-3 text-sm outline-no
 
 const THEME_STYLE: Record<
   PresentationTheme,
-  { stage: string; wash: string; card: string; title: string; body: string; chip: string; dot: string; art: string }
+  {
+    stage: string;
+    wash: string;
+    card: string;
+    title: string;
+    body: string;
+    chip: string;
+    dot: string;
+    art: string;
+    paper: string;
+    ink: string;
+    muted: string;
+    accent: string;
+    soft: string;
+    band: string;
+    onBand: string;
+  }
 > = {
-  made: { stage: '#14161e', wash: '#f6f3f1', card: '#fff7f3', title: '#1c1917', body: '#44403c', chip: '#fff7f3', dot: '#e07a62', art: 'linear-gradient(160deg,#fde7df,#e07a62 48%,#9a3412)' },
-  light: { stage: '#ececef', wash: '#f4f4f5', card: '#ffffff', title: '#18181b', body: '#3f3f46', chip: '#f4f4f5', dot: '#d4d4d8', art: 'linear-gradient(160deg,#fafafa,#d4d4d8 55%,#71717a)' },
-  dark: { stage: '#0c0e14', wash: '#eef1f6', card: '#18181b', title: '#fafafa', body: '#d4d4d8', chip: '#27272a', dot: '#52525b', art: 'linear-gradient(160deg,#3f3f46,#18181b 50%,#09090b)' },
-  magic: { stage: '#140c24', wash: '#f6f3ff', card: '#f5f3ff', title: '#1e1b4b', body: '#4c1d95', chip: '#ede9fe', dot: '#c4b5fd', art: 'linear-gradient(160deg,#f3e8ff,#7c3aed 46%,#4c1d95)' },
-  playful: { stage: '#1a120c', wash: '#fff8f1', card: '#fffbeb', title: '#1c1917', body: '#44403c', chip: '#fffbeb', dot: '#fbbf24', art: 'linear-gradient(160deg,#fef3c7,#f59e0b 50%,#c2410c)' },
-  chalk: { stage: '#0d1f18', wash: '#f3faf6', card: '#f0fdf4', title: '#052e16', body: '#14532d', chip: '#dcfce7', dot: '#4ade80', art: 'linear-gradient(160deg,#bbf7d0,#166534 48%,#052e16)' },
-  notebook: { stage: '#f3efe6', wash: '#f7f4ee', card: '#fffdf8', title: '#1e3a5f', body: '#334155', chip: '#eff6ff', dot: '#93c5fd', art: 'linear-gradient(160deg,#eff6ff,#93c5fd 50%,#1e3a5f)' },
-  scholar: { stage: '#0b1220', wash: '#f4f7fb', card: '#f8fafc', title: '#0f172a', body: '#334155', chip: '#e2e8f0', dot: '#eab308', art: 'linear-gradient(160deg,#fef9c3,#1e293b 52%,#0f172a)' },
+  made: { stage: '#14161e', wash: '#f6f3f1', card: '#fff7f3', title: '#1c1917', body: '#44403c', chip: '#fff7f3', dot: '#e07a62', art: 'linear-gradient(160deg,#fde7df,#e07a62 48%,#9a3412)', paper: '#fff7f3', ink: '#1c1917', muted: '#57534e', accent: '#c2410c', soft: '#ffedd5', band: '#9a3412', onBand: '#fff7f3' },
+  light: { stage: '#ececef', wash: '#f4f4f5', card: '#ffffff', title: '#18181b', body: '#3f3f46', chip: '#f4f4f5', dot: '#d4d4d8', art: 'linear-gradient(160deg,#fafafa,#d4d4d8 55%,#71717a)', paper: '#ffffff', ink: '#18181b', muted: '#3f3f46', accent: '#52525b', soft: '#f4f4f5', band: '#18181b', onBand: '#fafafa' },
+  dark: { stage: '#0c0e14', wash: '#eef1f6', card: '#18181b', title: '#fafafa', body: '#d4d4d8', chip: '#27272a', dot: '#52525b', art: 'linear-gradient(160deg,#3f3f46,#18181b 50%,#09090b)', paper: '#18181b', ink: '#fafafa', muted: '#d4d4d8', accent: '#e4e4e7', soft: '#27272a', band: '#09090b', onBand: '#fafafa' },
+  magic: { stage: '#140c24', wash: '#f6f3ff', card: '#f5f3ff', title: '#1e1b4b', body: '#4c1d95', chip: '#ede9fe', dot: '#c4b5fd', art: 'linear-gradient(160deg,#f3e8ff,#7c3aed 46%,#4c1d95)', paper: '#f5f3ff', ink: '#1e1b4b', muted: '#5b21b6', accent: '#7c3aed', soft: '#ede9fe', band: '#4c1d95', onBand: '#f5f3ff' },
+  playful: { stage: '#1a120c', wash: '#fff8f1', card: '#fffbeb', title: '#1c1917', body: '#44403c', chip: '#fffbeb', dot: '#fbbf24', art: 'linear-gradient(160deg,#fef3c7,#f59e0b 50%,#c2410c)', paper: '#fffbeb', ink: '#1c1917', muted: '#44403c', accent: '#d97706', soft: '#fef3c7', band: '#c2410c', onBand: '#fffbeb' },
+  chalk: { stage: '#0d1f18', wash: '#f3faf6', card: '#f0fdf4', title: '#052e16', body: '#14532d', chip: '#dcfce7', dot: '#4ade80', art: 'linear-gradient(160deg,#bbf7d0,#166534 48%,#052e16)', paper: '#052e16', ink: '#ecfdf5', muted: '#bbf7d0', accent: '#4ade80', soft: '#14532d', band: '#022c22', onBand: '#ecfdf5' },
+  notebook: { stage: '#f3efe6', wash: '#f7f4ee', card: '#fffdf8', title: '#1e3a5f', body: '#334155', chip: '#eff6ff', dot: '#93c5fd', art: 'linear-gradient(160deg,#eff6ff,#93c5fd 50%,#1e3a5f)', paper: '#fffdf8', ink: '#1e3a5f', muted: '#334155', accent: '#2563eb', soft: '#dbeafe', band: '#1e3a5f', onBand: '#fffdf8' },
+  scholar: { stage: '#0b1220', wash: '#f4f7fb', card: '#f8fafc', title: '#0f172a', body: '#334155', chip: '#e2e8f0', dot: '#eab308', art: 'linear-gradient(160deg,#fef9c3,#1e293b 52%,#0f172a)', paper: '#0f172a', ink: '#f8fafc', muted: '#cbd5e1', accent: '#eab308', soft: '#1e293b', band: '#020617', onBand: '#fef9c3' },
 };
+
+type SlideColors = (typeof THEME_STYLE)[PresentationTheme];
 
 function stageInk(stage: string, title: string): string {
   const n = Number.parseInt(stage.replace('#', ''), 16);
@@ -46,6 +66,35 @@ function stageInk(stage: string, title: string): string {
 
 function countWords(value: string): number {
   return value.trim() ? value.trim().split(/\s+/).length : 0;
+}
+
+function exportSlideHtml(slide: PresentationSlide, index: number, colors: SlideColors): string {
+  const layout = slideLayout(slide, index);
+  const title = escapeHtml(slide.title);
+  const subtitle = slide.subtitle ? `<p>${escapeHtml(slide.subtitle)}</p>` : '';
+  const bullets = slide.bullets.slice(0, 4).map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  const question = slide.question ? `<p class="chip">${escapeHtml(slide.question)}</p>` : '';
+  const img = slide.imageUrl ? `<img src="${escapeHtml(slideImageSrc(slide.imageUrl))}" alt="">` : '';
+  if (layout === 'cover') {
+    return `<section><div class="cover"><p class="kicker">Lesson</p><h2>${title}</h2>${subtitle}<div class="mark"></div></div></section>`;
+  }
+  if (layout === 'quote') {
+    const line = escapeHtml(slide.question || slide.subtitle || slide.bullets[0] || slide.title);
+    return `<section><div class="quote"><p class="kicker">${title}</p><p>${line}</p></div></section>`;
+  }
+  if (layout === 'cards') {
+    const cards = slide.bullets.slice(0, 3).map((item, itemIndex) => `<div class="card"><span class="num">${itemIndex + 1}</span><p>${escapeHtml(item)}</p></div>`).join('');
+    return `<section><div class="paper cards"><h2>${title}</h2>${subtitle}<div class="grid">${cards}</div></div></section>`;
+  }
+  if (layout === 'steps') {
+    const steps = slide.bullets.slice(0, 4).map((item, itemIndex) => `<div class="step"><span class="bubble">${itemIndex + 1}</span><p>${escapeHtml(item)}</p></div>`).join('');
+    return `<section><div class="paper steps"><h2>${title}</h2>${steps}${question}</div></section>`;
+  }
+  if (layout === 'focus') {
+    return `<section><div class="paper focus">${img || '<div class="band"></div>'}<div class="copy"><h2>${title}</h2>${subtitle}${bullets ? `<ul>${bullets}</ul>` : ''}${question}</div></div></section>`;
+  }
+  const side = img || `<div class="band"><p class="kicker">Look</p><p>${escapeHtml(slide.question || slide.subtitle || 'What do you notice?')}</p></div>`;
+  return `<section><div class="paper split"><div class="copy"><h2>${title}</h2>${subtitle}${bullets ? `<ul>${bullets}</ul>` : ''}${question}</div>${side}</div></section>`;
 }
 
 function escapeHtml(value: string): string {
@@ -150,12 +199,112 @@ function FileRow({
   );
 }
 
-function SlidePhoto({ src, art }: { src?: string; art: string }) {
-  if (src) return <img src={src} alt="" className="h-full w-full object-cover" />;
+function slideImageSrc(src: string): string {
+  if (typeof window === 'undefined') return src;
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') return src.replace('://localhost:', '://127.0.0.1:');
+  return src;
+}
+
+function SlidePicture({ src }: { src: string }) {
+  return <img src={slideImageSrc(src)} alt="" className="h-full w-full object-cover" />;
+}
+
+function SlideCopy({ slide, colors, cover = false }: { slide: PresentationSlide; colors: SlideColors; cover?: boolean }) {
   return (
-    <div className="relative h-full w-full overflow-hidden" style={{ background: art }} aria-hidden>
-      <span className="absolute left-[14%] top-[18%] h-[42%] w-[42%] rounded-full border-[10px] border-white/50 bg-white/25" />
-      <span className="absolute left-[36%] top-[28%] h-[34%] w-[34%] rounded-full border-[10px] border-white/40 bg-white/20" />
+    <>
+      <h2 className="mv-slide-title break-words font-semibold tracking-tight">{slide.title}</h2>
+      {slide.subtitle ? <p className="mv-slide-copy mt-[0.45em] line-clamp-2" style={{ color: cover ? colors.onBand : colors.muted }}>{slide.subtitle}</p> : null}
+      {slide.bullets.length ? (
+        <ul className="mv-slide-copy mt-[0.7em] list-disc space-y-[0.28em] pl-[1.15em]">
+          {slide.bullets.slice(0, 4).map((item) => (
+            <li key={item} className="line-clamp-2">{item}</li>
+          ))}
+        </ul>
+      ) : null}
+      {slide.question ? (
+        <p className="mv-slide-copy mt-[0.7em] line-clamp-2 w-fit max-w-full rounded-full px-[0.8em] py-[0.35em]" style={{ background: colors.soft, color: colors.ink }}>{slide.question}</p>
+      ) : null}
+    </>
+  );
+}
+
+function VisualSlide({ slide, index, colors }: { slide: PresentationSlide; index: number; colors: SlideColors }) {
+  const layout = slideLayout(slide, index);
+  const picture = slide.imageUrl ? <SlidePicture src={slide.imageUrl} /> : null;
+  if (layout === 'cover') {
+    return (
+      <div className="mv-slide-canvas mv-pres-slide flex flex-col justify-center px-[10%]" style={{ background: colors.band, color: colors.onBand }}>
+        <p className="mv-slide-copy font-semibold uppercase tracking-[0.16em] opacity-80">Lesson</p>
+        <h2 className="mv-slide-title mt-[0.35em] max-w-[18ch] font-semibold tracking-tight">{slide.title}</h2>
+        {slide.subtitle ? <p className="mv-slide-copy mt-[0.7em] max-w-[40ch] opacity-90">{slide.subtitle}</p> : null}
+        <span className="mt-[1.1em] h-[0.42em] w-[3.4em] rounded-full" style={{ background: colors.onBand }} />
+      </div>
+    );
+  }
+  if (layout === 'quote') {
+    return (
+      <div className="mv-slide-canvas mv-pres-slide flex flex-col justify-center px-[12%]" style={{ background: colors.band, color: colors.onBand }}>
+        <p className="mv-slide-copy font-semibold uppercase tracking-[0.14em] opacity-80">{slide.title}</p>
+        <p className="mt-[0.45em] max-w-[22ch] font-semibold tracking-tight" style={{ fontSize: 'clamp(1.35rem, 4.8cqw, 2.8rem)', lineHeight: 1.12 }}>{slide.question || slide.subtitle || slide.bullets[0]}</p>
+      </div>
+    );
+  }
+  if (layout === 'cards') {
+    const items = slide.bullets.slice(0, 3);
+    return (
+      <div className="mv-slide-canvas mv-pres-slide flex flex-col px-[6%] py-[7%]" style={{ background: colors.paper, color: colors.ink }}>
+        <h2 className="mv-slide-title font-semibold tracking-tight">{slide.title}</h2>
+        {slide.subtitle ? <p className="mv-slide-copy mt-[0.35em]" style={{ color: colors.muted }}>{slide.subtitle}</p> : null}
+        <div className={`mt-[4%] grid min-h-0 flex-1 gap-[2.5%] ${items.length > 2 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          {items.map((item, itemIndex) => (
+            <div key={item} className="flex min-h-0 flex-col justify-between rounded-[1.2cqw] p-[7%]" style={{ background: colors.soft }}>
+              <span className="font-semibold" style={{ color: colors.accent, fontSize: 'clamp(1rem, 2.4cqw, 1.6rem)' }}>{itemIndex + 1}</span>
+              <p className="mv-slide-copy line-clamp-4">{item}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (layout === 'steps') {
+    return (
+      <div className="mv-slide-canvas mv-pres-slide flex flex-col justify-center px-[8%] py-[7%]" style={{ background: colors.paper, color: colors.ink }}>
+        <h2 className="mv-slide-title font-semibold tracking-tight">{slide.title}</h2>
+        <ol className="mt-[4%] space-y-[0.55em]">
+          {slide.bullets.slice(0, 4).map((item, itemIndex) => (
+            <li key={item} className="mv-slide-copy flex items-start gap-[0.7em]">
+              <span className="grid h-[1.7em] w-[1.7em] shrink-0 place-items-center rounded-full font-semibold" style={{ background: colors.accent, color: colors.paper }}>{itemIndex + 1}</span>
+              <span className="line-clamp-2 pt-[0.15em]">{item}</span>
+            </li>
+          ))}
+        </ol>
+        {slide.question ? <p className="mv-slide-copy mt-[0.8em] line-clamp-2 w-fit max-w-full rounded-full px-[0.8em] py-[0.35em]" style={{ background: colors.soft }}>{slide.question}</p> : null}
+      </div>
+    );
+  }
+  if (layout === 'focus') {
+    return (
+      <div className="mv-slide-canvas mv-pres-slide grid grid-cols-[1.05fr_0.95fr]" style={{ background: colors.paper, color: colors.ink }}>
+        {picture ?? <div style={{ background: colors.soft }} />}
+        <div className="flex min-w-0 flex-col justify-center px-[7%] py-[8%]">
+          <SlideCopy slide={slide} colors={colors} />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="mv-slide-canvas mv-pres-slide grid grid-cols-[1.15fr_0.85fr]" style={{ background: colors.paper, color: colors.ink }}>
+      <div className="flex min-w-0 flex-col justify-center px-[6%] py-[7%]">
+        <span className="mb-[0.7em] h-[0.38em] w-[2.4em] rounded-full" style={{ background: colors.accent }} />
+        <SlideCopy slide={slide} colors={colors} />
+      </div>
+      {picture ?? (
+        <div className="flex flex-col justify-end p-[8%]" style={{ background: colors.band, color: colors.onBand }}>
+          <p className="mv-slide-copy font-semibold uppercase tracking-[0.14em]" style={{ color: colors.accent }}>Look</p>
+          <p className="mt-[0.4em] font-semibold" style={{ fontSize: 'clamp(1rem, 2.6cqw, 1.7rem)', lineHeight: 1.2 }}>{slide.question || slide.subtitle || 'What do you notice?'}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -311,16 +460,32 @@ export function PresentationGenerator() {
 
   const download = (kind: 'html' | 'txt') => {
     if (!deck) return;
-    const picture = (slide: { imageUrl?: string }) =>
-      slide.imageUrl ? `<img src="${escapeHtml(slide.imageUrl)}" alt="">` : `<div class="art"></div>`;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(deck.title)}</title>
-      <style>body{margin:0;background:#111} section{width:13.333in;height:7.5in;margin:0 auto 16px;overflow:hidden} article{width:13.333in;height:7.5in;display:grid;grid-template-columns:1.15fr .85fr;overflow:hidden;background:#fffdf8;color:#1c1917;font-family:Georgia,serif} img,.art{width:100%;height:100%;object-fit:cover;background:${colors.art}} .copy{display:flex;flex-direction:column;justify-content:center;padding:.6in;min-width:0} h1{font-size:42pt;line-height:1.05;margin:0} h2{font-size:28pt;line-height:1.1;margin:0 0 12pt} p,li{font-size:16pt;line-height:1.35} .chip{display:inline-block;margin-top:14pt;padding:6pt 12pt;border-radius:999px;background:${colors.chip};color:${colors.body}}</style></head><body>
-      ${deck.slides
-        .map(
-          (slide, index) =>
-            `<section><article>${index === 0 ? picture(slide) : ''}<div class="copy">${index === 0 ? `<h1>${escapeHtml(slide.title)}</h1>` : `<h2>${escapeHtml(slide.title)}</h2>`}${slide.subtitle ? `<p>${escapeHtml(slide.subtitle)}</p>` : ''}${slide.bullets.length ? `<ul>${slide.bullets.slice(0, 4).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}${slide.question ? `<p class="chip">${escapeHtml(slide.question)}</p>` : ''}</div>${index === 0 ? '' : picture(slide)}</article></section>`,
-        )
-        .join('')}</body></html>`;
+      <style>
+        body{margin:0;background:#111}
+        section{width:13.333in;height:7.5in;margin:0 auto 16px;overflow:hidden;font-family:Georgia,serif}
+        img{width:100%;height:100%;object-fit:cover}
+        h2{font-size:32pt;line-height:1.08;margin:0}
+        p,li{font-size:16pt;line-height:1.35}
+        .kicker{font-size:13pt;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:${colors.accent}}
+        .cover,.quote{background:${colors.band};color:${colors.onBand};display:flex;flex-direction:column;justify-content:center;padding:.9in;height:7.5in}
+        .quote p{font-size:36pt;line-height:1.12;margin:.3in 0 0;max-width:9in}
+        .mark{width:.7in;height:.12in;border-radius:99px;background:${colors.accent};margin-top:.35in}
+        .paper{background:${colors.paper};color:${colors.ink};height:7.5in}
+        .split{display:grid;grid-template-columns:1.15fr .85fr}
+        .focus{display:grid;grid-template-columns:1.05fr .95fr}
+        .copy{display:flex;flex-direction:column;justify-content:center;padding:.55in .6in;min-width:0}
+        .band{background:${colors.band};color:${colors.onBand};display:flex;flex-direction:column;justify-content:flex-end;padding:.55in}
+        .cards{display:flex;flex-direction:column;padding:.5in .6in}
+        .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.22in;margin-top:.3in;flex:1}
+        .card{background:${colors.soft};border-radius:16px;padding:.24in;display:flex;flex-direction:column;justify-content:space-between}
+        .num{color:${colors.accent};font-size:22pt;font-weight:700}
+        .steps{padding:.55in .75in;display:flex;flex-direction:column;justify-content:center}
+        .step{display:flex;gap:.18in;align-items:flex-start;margin-top:.16in}
+        .bubble{width:.38in;height:.38in;border-radius:99px;background:${colors.accent};color:${colors.paper};display:grid;place-items:center;font-weight:700;flex:none}
+        .chip{display:inline-block;margin-top:.18in;padding:6pt 12pt;border-radius:999px;background:${colors.soft};color:${colors.ink}}
+      </style></head><body>
+      ${deck.slides.map((slide, index) => exportSlideHtml(slide, index, colors)).join('')}</body></html>`;
     const blob = new Blob([kind === 'html' ? html : outline], { type: kind === 'html' ? 'text/html' : 'text/plain' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -431,39 +596,22 @@ export function PresentationGenerator() {
               <article key={`${index}-${slide.title}`}>
                 <p className="mv-pres-chrome mx-auto mb-2 w-full max-w-[1280px] text-xs" style={{ color: stageInk(colors.stage, colors.title) }}>Slide {index + 1}/{total}</p>
                 <div className="mv-slide-frame overflow-hidden rounded-md shadow-xl">
-                <div className="mv-slide-canvas mv-pres-slide grid grid-cols-[1.15fr_0.85fr]" style={{ background: index === 0 ? colors.card : '#fffdf8', color: index === 0 ? colors.title : '#1c1917' }}>
-                  {index === 0 ? <SlidePhoto src={slide.imageUrl} art={colors.art} /> : null}
-                  <div className="flex min-h-0 min-w-0 flex-col justify-center overflow-hidden px-[5%] py-[6%] text-left">
-                    <h2 className="mv-slide-title break-words font-semibold tracking-tight">{slide.title}</h2>
-                    {slide.subtitle ? <p className="mv-slide-copy mt-[0.6em] line-clamp-2" style={{ color: index === 0 ? colors.body : '#44403c' }}>{slide.subtitle}</p> : null}
-                    {index > 0 && slide.bullets.length ? (
-                      <ul className="mv-slide-copy mt-[0.7em] list-disc space-y-[0.25em] pl-[1.1em]" style={{ color: '#44403c' }}>
-                        {slide.bullets.slice(0, 4).map((item) => (
-                          <li key={item} className="line-clamp-2">{item}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    {slide.question ? (
-                      <p className="mv-slide-copy mt-[0.7em] line-clamp-2 w-fit max-w-full rounded-full px-[0.8em] py-[0.35em]" style={{ background: colors.chip, color: colors.body }}>{slide.question}</p>
-                    ) : null}
-                  </div>
-                  {index > 0 ? <SlidePhoto src={slide.imageUrl} art={colors.art} /> : null}
-                </div>
+                  <VisualSlide slide={slide} index={index} colors={colors} />
                 </div>
                 {slide.speakerNotes ? <p className="mv-pres-chrome mx-auto mt-3 w-full max-w-[1280px] text-xs" style={{ color: stageInk(colors.stage, colors.title) }}>Teacher notes: {slide.speakerNotes}</p> : null}
               </article>
             ))}
             {!deck ? (
               <div className="mv-slide-frame mv-pres-loading overflow-hidden rounded-md" role="status">
-                <div className="mv-slide-canvas grid grid-cols-[1.15fr_0.85fr] bg-white">
-                  <div className="mv-pres-shimmer h-full" />
-                  <div className="flex flex-col justify-center gap-3 px-[8%]">
-                    <span className="h-6 w-4/5 rounded-lg bg-black/10" />
-                    <span className="h-6 w-3/5 rounded-lg bg-black/10" />
-                    <span className="mt-2 h-7 w-2/3 rounded-full bg-black/5" />
+                <div className="mv-slide-canvas grid grid-cols-1 bg-white">
+                  <div className="flex flex-col justify-center gap-3 px-[10%]">
+                    <span className="h-6 w-2/5 rounded-lg bg-black/10" />
+                    <span className="h-4 w-3/5 rounded-lg bg-black/10" />
+                    <span className="h-4 w-1/2 rounded-lg bg-black/10" />
+                    <span className="mt-2 h-7 w-1/3 rounded-full bg-black/5" />
                   </div>
                   <p className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-2 text-sm font-medium" style={{ color: '#57534e' }}>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Writing slides and pictures…
+                    <Loader2 className="h-4 w-4 animate-spin" /> Writing your slides…
                   </p>
                 </div>
               </div>
