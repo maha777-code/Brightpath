@@ -85,6 +85,29 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
   }
 }
 
+/** School and tutor-centre admins run Curriculum Studio on their own teacher workspace. */
+const STUDIO_ADMIN_ROLES = new Set<string>(['org_admin', 'center_admin']);
+
+async function ensureAdminTeacherWorkspace(platformUserId: string): Promise<string | null> {
+  const user = await prisma.platformUser.findUnique({ where: { id: platformUserId } });
+  if (!user) return null;
+  if (user.teacherId) return user.teacherId;
+
+  const teacher =
+    (await prisma.teacher.findUnique({ where: { email: user.email } })) ??
+    (await prisma.teacher.create({
+      data: {
+        email: user.email,
+        passwordHash: user.passwordHash,
+        name: user.name,
+        organizationId: user.organizationId,
+        planType: user.planType,
+      },
+    }));
+  await prisma.platformUser.update({ where: { id: user.id }, data: { teacherId: teacher.id } });
+  return teacher.id;
+}
+
 export async function requireTeacher(req: AuthRequest, res: Response, next: NextFunction) {
   const token = readBearer(req);
   if (!token) {
@@ -104,7 +127,10 @@ export async function requireTeacher(req: AuthRequest, res: Response, next: Next
     if (!teacherId && payload.role === 'teacher' && !payload.platform) {
       teacherId = payload.sub;
     }
-    if (!teacherId || payload.role !== 'teacher') {
+    if (!teacherId && req.platformUserId && STUDIO_ADMIN_ROLES.has(payload.role)) {
+      teacherId = await ensureAdminTeacherWorkspace(req.platformUserId);
+    }
+    if (!teacherId || !(payload.role === 'teacher' || STUDIO_ADMIN_ROLES.has(payload.role))) {
       res.status(403).json({ error: 'Teacher access required' });
       return;
     }
@@ -115,7 +141,7 @@ export async function requireTeacher(req: AuthRequest, res: Response, next: Next
       return;
     }
     req.teacherId = teacher.id;
-    req.planType = teacher.planType ?? req.planType;
+    if (!STUDIO_ADMIN_ROLES.has(payload.role)) req.planType = teacher.planType ?? req.planType;
     next();
   } catch {
     res.status(401).json({ error: 'Invalid token' });

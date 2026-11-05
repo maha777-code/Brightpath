@@ -120,7 +120,7 @@ export default function CurriculumTextbookStudio() {
 
   return (
     <TeacherWorkspaceLayout>
-      <main className="mv-text-plus-2 w-full max-w-full space-y-8 px-5 py-6 sm:px-8 lg:px-12 lg:py-8">
+      <main className="mv-tool-surface mv-text-plus-2 w-full max-w-full space-y-8 px-5 py-6 sm:px-8 lg:px-12 lg:py-8">
         <AIToolHeader
           toolName="Curriculum & Textbook Studio"
           description="Upload textbooks, enrich lessons, and approve AI answers before class."

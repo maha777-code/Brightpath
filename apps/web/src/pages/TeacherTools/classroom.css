@@ -4,8 +4,8 @@
   --cr-surface: #101b2d;
   --cr-surface-2: #0c1524;
   --cr-text: #e8eef8;
-  --cr-muted: #94a3b8;
-  --cr-line: rgba(148, 163, 184, 0.22);
+  --cr-muted: #b4c0d0;
+  --cr-line: rgba(148, 163, 184, 0.32);
   --cr-accent: #22d3ee;
   --cr-accent-2: #0891b2;
   --cr-accent-ink: #042f2e;
@@ -83,7 +83,7 @@ html[data-theme='light'] .classroom-app {
 
 .classroom-app .cr-kicker {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -130,7 +130,7 @@ html[data-theme='light'] .classroom-app {
 .classroom-app .cr-segment button {
   border-radius: 999px;
   padding: 0.35rem 0.85rem;
-  font-size: 0.82rem;
+  font-size: 0.92rem;
   font-weight: 600;
 }
 
@@ -146,7 +146,7 @@ html[data-theme='light'] .classroom-app {
   background: var(--cr-surface);
   color: var(--cr-text);
   padding: 0.45rem 0.95rem;
-  font-size: 0.86rem;
+  font-size: 0.96rem;
   font-weight: 650;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
@@ -176,14 +176,14 @@ html[data-theme='light'] .classroom-app {
 
 .classroom-app .cr-text-btn {
   padding: 0.35rem 0.2rem;
-  font-size: 0.86rem;
+  font-size: 0.96rem;
   font-weight: 650;
   color: var(--cr-accent);
 }
 
 .classroom-app .cr-link {
   color: var(--cr-accent);
-  font-size: 0.86rem;
+  font-size: 0.96rem;
   font-weight: 650;
   text-decoration: none;
 }
@@ -235,14 +235,14 @@ html[data-theme='light'] .classroom-app {
   padding: 0.65rem 1rem;
   background: var(--cr-danger-soft);
   color: var(--cr-danger);
-  font-size: 0.86rem;
+  font-size: 0.96rem;
 }
 
 .classroom-app .cr-busy {
   margin: 0;
   padding: 0.35rem 1rem;
   color: var(--cr-muted);
-  font-size: 0.75rem;
+  font-size: 0.84rem;
 }
 
 .classroom-app .cr-grid {
@@ -311,7 +311,7 @@ html[data-theme='light'] .classroom-app {
 
 .classroom-app .cr-banner p {
   margin: 0.2rem 0 0;
-  font-size: 0.88rem;
+  font-size: 0.98rem;
   opacity: 0.92;
 }
 
@@ -325,7 +325,7 @@ html[data-theme='light'] .classroom-app {
   color: #fff !important;
   border: 1px solid rgba(255, 255, 255, 0.25);
   padding: 0.3rem 0.75rem;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 650;
   text-decoration: none;
 }
@@ -336,7 +336,7 @@ html[data-theme='light'] .classroom-app {
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.8rem 1rem;
-  font-size: 0.86rem;
+  font-size: 0.96rem;
   color: var(--cr-muted);
 }
 
@@ -351,7 +351,7 @@ html[data-theme='light'] .classroom-app {
 .classroom-app .cr-tab {
   border-radius: 999px;
   padding: 0.45rem 0.9rem;
-  font-size: 0.86rem;
+  font-size: 0.96rem;
   font-weight: 650;
   text-transform: capitalize;
 }
@@ -363,10 +363,10 @@ html[data-theme='light'] .classroom-app {
 
 .classroom-app .cr-stack {
   display: grid;
-  gap: 0.9rem;
-  max-width: 56rem;
-  margin: 0 auto;
-  padding: 1.15rem;
+  gap: 1rem;
+  width: 100%;
+  margin: 0;
+  padding: 1.25rem 1.5rem;
 }
 
 .classroom-app .cr-board {
@@ -378,7 +378,7 @@ html[data-theme='light'] .classroom-app {
 .classroom-app .cr-attach label {
   display: grid;
   gap: 0.35rem;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -387,7 +387,7 @@ html[data-theme='light'] .classroom-app {
 
 .classroom-app .cr-label-text {
   margin: 0 0 0.45rem;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -441,7 +441,7 @@ html[data-theme='light'] .classroom-app {
 .classroom-app .cr-subject-group {
   margin: 0.55rem 0 0.15rem;
   padding: 0 0.45rem;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -457,7 +457,7 @@ html[data-theme='light'] .classroom-app {
   color: var(--cr-text);
   padding: 0.45rem 0.6rem;
   cursor: pointer;
-  font-size: 0.92rem;
+  font-size: 1.02rem;
 }
 
 .classroom-app .cr-subject-option:hover,
@@ -569,7 +569,7 @@ html[data-theme='light'] .classroom-app {
   border-radius: 999px;
   background: var(--cr-accent-soft);
   color: var(--cr-accent);
-  font-size: 0.75rem;
+  font-size: 0.84rem;
   font-weight: 800;
 }
 
@@ -600,7 +600,7 @@ html[data-theme='light'] .classroom-app {
   display: inline-grid;
   place-items: center;
   border-radius: 0.8rem;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 800;
   text-transform: uppercase;
   background: var(--cr-accent-soft);
@@ -627,7 +627,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
 .classroom-app .cr-link-card .cr-code {
   display: block;
   padding: 0.55rem 0.7rem;
-  font-size: 0.82rem;
+  font-size: 0.92rem;
 }
 
 .classroom-app .cr-person-copy {
@@ -645,7 +645,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
 
 .classroom-app .cr-person-copy span {
   color: var(--cr-muted);
-  font-size: 0.8rem;
+  font-size: 0.9rem;
 }
 
 .classroom-app .cr-person-actions {
@@ -658,7 +658,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
   align-items: center;
   border-radius: 999px;
   padding: 0.28rem 0.65rem;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 700;
 }
 
@@ -735,13 +735,13 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
 .classroom-app .cr-topic h3,
 .classroom-app .cr-modal h3 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 700;
 }
 
 .classroom-app .cr-kicker-type {
   margin: 0 0 0.25rem;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -761,7 +761,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
   background: var(--cr-accent-soft);
   color: var(--cr-accent);
   padding: 0.2rem 0.65rem;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 700;
   text-decoration: none;
 }
@@ -779,7 +779,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
   display: flex;
   justify-content: space-between;
   gap: 0.75rem;
-  font-size: 0.86rem;
+  font-size: 0.96rem;
 }
 
 .classroom-app .cr-topic {
@@ -805,7 +805,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
 
 .classroom-app .cr-work strong {
   display: block;
-  font-size: 0.98rem;
+  font-size: 1.08rem;
 }
 
 .classroom-app .cr-chip {
@@ -813,7 +813,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
   background: var(--cr-accent-soft);
   color: var(--cr-accent);
   padding: 0.35rem 0.7rem;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 700;
 }
 
@@ -826,7 +826,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
   border: 1px solid var(--cr-line);
   padding: 0.15rem 0.4rem;
   color: var(--cr-text);
-  font-size: 0.78rem;
+  font-size: 0.88rem;
 }
 
 .classroom-app .cr-people {
@@ -863,7 +863,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
   border-radius: 999px;
   background: var(--cr-accent-soft);
   color: var(--cr-accent);
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 800;
 }
 
@@ -878,7 +878,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
   min-width: 36rem;
   border-collapse: collapse;
   border: 0;
-  font-size: 0.86rem;
+  font-size: 0.96rem;
 }
 
 .classroom-app .cr-table th,
@@ -891,7 +891,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
 .classroom-app .cr-table th {
   background: var(--cr-surface-2);
   color: var(--cr-muted);
-  font-size: 0.75rem;
+  font-size: 0.84rem;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -909,7 +909,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
 .classroom-app .cr-paper,
 .classroom-app .cr-private {
   background: var(--cr-surface-2);
-  font-size: 0.86rem;
+  font-size: 0.96rem;
   white-space: pre-wrap;
 }
 
@@ -928,7 +928,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.88rem;
+  font-size: 0.98rem;
 }
 
 .classroom-app input[type='checkbox'] {
@@ -1020,7 +1020,7 @@ html[data-theme='light'] .classroom-app .cr-type-assignment { background: #ccfbf
 .classroom-app .cr-student span {
   display: block;
   color: var(--cr-muted);
-  font-size: 0.75rem;
+  font-size: 0.84rem;
   text-transform: capitalize;
 }
 

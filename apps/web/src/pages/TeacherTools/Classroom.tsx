@@ -109,7 +109,7 @@ export function ClassroomApp() {
   if (!ws || !actor) return null;
 
   return (
-    <div className="classroom-app min-h-[70vh]">
+    <div className="classroom-app min-h-[calc(100vh-9rem)]">
       <header className="cr-header">
         <div>
           <p className="cr-kicker">School / Tutor center</p>

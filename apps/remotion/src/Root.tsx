@@ -11,6 +11,7 @@ import { Box3DVideoComposition } from './Compositions/Box3DVideoComposition';
 import { LESSON_PLAN_FILM, MindVaultLessonPlanFilm } from './Compositions/MindVaultLessonPlanFilm';
 import { FIVE_QUESTIONS_FILM, MindVaultFiveQuestionsFilm } from './Compositions/MindVaultFiveQuestionsFilm';
 import { MindVaultPromo } from './promo/MindVaultPromo';
+import { GAMIFIED_ACTIVITY_FILM, MindVaultGamifiedActivityFilm } from './Compositions/GamifiedActivityFilm';
 import {
   PROMO_FPS,
   PROMO_HEIGHT,
@@ -136,6 +137,14 @@ export const RemotionRoot: React.FC = () => {
         fps={FIVE_QUESTIONS_FILM.fps}
         width={FIVE_QUESTIONS_FILM.width}
         height={FIVE_QUESTIONS_FILM.height}
+      />
+      <Composition
+        id={GAMIFIED_ACTIVITY_FILM.id}
+        component={MindVaultGamifiedActivityFilm}
+        durationInFrames={GAMIFIED_ACTIVITY_FILM.durationInFrames}
+        fps={GAMIFIED_ACTIVITY_FILM.fps}
+        width={GAMIFIED_ACTIVITY_FILM.width}
+        height={GAMIFIED_ACTIVITY_FILM.height}
       />
       <Composition
         id="Box3DPhysics"

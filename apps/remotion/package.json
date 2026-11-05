@@ -10,6 +10,7 @@
     "audio:promo": "node scripts/generate-promo-audio.mjs",
     "voiceover:promo": "node scripts/generate-promo-voiceover.mjs",
     "render:promo": "remotion render src/index.ts MindVaultPromo out/mindvault-promo.mp4",
+    "render:gamified-activity": "remotion render src/index.ts MindVaultGamifiedActivity out/mindvault-gamified-activity.mp4",
     "render:five-questions": "remotion render src/index.ts MindVaultFiveQuestions out/mindvault-five-questions.mp4",
     "upgrade": "remotion upgrade"
   },
