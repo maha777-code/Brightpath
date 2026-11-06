@@ -68,7 +68,7 @@ function countWords(value: string): number {
   return value.trim() ? value.trim().split(/\s+/).length : 0;
 }
 
-function exportSlideHtml(slide: PresentationSlide, index: number, colors: SlideColors): string {
+function exportSlideHtml(slide: PresentationSlide, index: number, _colors: SlideColors): string {
   const layout = slideLayout(slide, index);
   const title = escapeHtml(slide.title);
   const subtitle = slide.subtitle ? `<p>${escapeHtml(slide.subtitle)}</p>` : '';
