@@ -875,6 +875,31 @@ html[data-theme='light'] .gamified-activity-tool select {
   border-color: #cbd5e1 !important;
 }
 
+html[data-theme='light'] .gamified-activity-tool :where(input, textarea, select):focus {
+  border-color: #22d3ee !important;
+}
+
+.quiz-watermark {
+  color: rgb(148 163 184 / 0.5);
+}
+
+.quiz-watermark > * > span:first-child {
+  opacity: 0.45;
+}
+
+html[data-theme='light'] .quiz-watermark {
+  color: rgb(100 116 139 / 0.5);
+}
+
+html[data-theme='light'] .gamified-activity-tool .ga-intro {
+  border-color: #e2e8f0;
+}
+
+html[data-theme='light'] .gamified-activity-tool .ga-option-selected {
+  background-color: #fff7ed;
+  border-color: #f59e0b;
+}
+
 /* Light theme: pale status text was written for dark panels. Keep it dark on light surfaces. */
 html[data-theme='light'] :where(
   [class*='text-rose-50'],

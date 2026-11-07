@@ -178,14 +178,14 @@ function StructurePanel({ overview, onChange }: { overview: RosterOverview; onCh
           </span>
         ))}
       </div>
-      <form onSubmit={add} className="mt-3 flex flex-wrap gap-2">
+      <form onSubmit={add} className="mt-3 flex flex-wrap items-center gap-2">
         {!isAcademy ? (
-          <select className={`${field} w-auto`} value={kind} onChange={(e) => setKind(e.target.value as OrgUnit['kind'])}>
+          <select className={`${field} sm:!w-48`} value={kind} onChange={(e) => setKind(e.target.value as OrgUnit['kind'])}>
             <option value="grade">Grade</option>
             <option value="department">Department</option>
           </select>
         ) : null}
-        <input className={`${field} max-w-xs`} placeholder={isAcademy ? 'Course name' : 'e.g. Class 9'} value={name} onChange={(e) => setName(e.target.value)} />
+        <input className={`${field} min-w-[12rem] flex-1 sm:!w-auto`} placeholder={isAcademy ? 'Course name' : 'e.g. Class 9'} value={name} onChange={(e) => setName(e.target.value)} />
         <button type="submit" className={ghostBtn}>
           <Plus className="h-4 w-4" /> Add
         </button>
@@ -580,7 +580,7 @@ export default function ClassesRoster() {
   return (
     <DashboardLayout>
       <div className="mv-roster h-full overflow-y-auto px-4 py-6 md:px-8">
-        <div className="mx-auto max-w-6xl space-y-6">
+        <div className="w-full space-y-6">
           <header className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-cyan-300">{overview?.organization?.name ?? 'My classes'}</p>

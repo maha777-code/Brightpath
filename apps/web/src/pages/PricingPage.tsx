@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { isCheckoutPlanId } from '@brightpath/shared';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
@@ -30,9 +30,12 @@ function billingCaption(plan: PricingPlan, currency: 'INR' | 'USD', isAnnual: bo
 }
 
 export default function PricingPage() {
+  const [searchParams] = useSearchParams();
+  const focusPlan = PRICING_PLANS.find((plan) => plan.id === searchParams.get('plan')) ?? null;
+  const returnPath = focusPlan ? `/pricing?plan=${focusPlan.id}` : '/pricing';
   const [isAnnual, setIsAnnual] = useState(true);
   const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
-  const [activeRole, setActiveRole] = useState<string>('All Plans');
+  const [activeRole, setActiveRole] = useState<string>(focusPlan?.roleCategory ?? 'All Plans');
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const [planError, setPlanError] = useState<{ planId: string; message: string } | null>(null);
   const { role, loading } = useAuth();
@@ -42,7 +45,7 @@ export default function PricingPage() {
     if (!isCheckoutPlanId(plan.id)) return;
     if (loading) return;
     if (!role) {
-      navigate(`/login?next=${encodeURIComponent('/pricing')}`);
+      navigate(`/login?next=${encodeURIComponent(returnPath)}`);
       return;
     }
     setPlanError(null);
@@ -68,12 +71,20 @@ export default function PricingPage() {
     [activeRole],
   );
 
+  useEffect(() => {
+    if (!focusPlan) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`plan-${focusPlan.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusPlan]);
+
   return (
     <div id="pricing" className="mv-text-plus-2 flex min-h-screen w-full flex-col items-center bg-slate-950 px-4 py-10 text-slate-100 md:px-8">
       <header className="mb-8 flex w-full max-w-[1400px] items-center justify-between">
         <BrandLogo variant="full" to="/" imgClassName="h-12 w-auto object-contain" />
         {role ? null : (
-          <Link to="/login?next=%2Fpricing" className="text-sm font-semibold text-slate-300 underline underline-offset-4 hover:text-white">
+          <Link to={`/login?next=${encodeURIComponent(returnPath)}`} className="text-sm font-semibold text-slate-300 underline underline-offset-4 hover:text-white">
             Log in
           </Link>
         )}
@@ -157,13 +168,24 @@ export default function PricingPage() {
         {filteredPlans.map((plan) => {
           const priceLabel = formatPrice(plan, currency, isAnnual);
           const showPeriod = priceLabel !== 'Free' && priceLabel !== 'Custom';
+          const focused = focusPlan?.id === plan.id;
           return (
           <article
             key={plan.id}
+            id={`plan-${plan.id}`}
             className={`relative flex flex-col justify-between rounded-3xl border bg-slate-900/90 p-6 shadow-xl backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] ${
-              plan.isPro ? 'border-cyan-500/50 shadow-[0_0_25px_rgba(6,182,212,0.15)]' : 'border-slate-800 hover:border-slate-700'
+              focused
+                ? 'border-amber-400 ring-2 ring-amber-400/40 shadow-[0_0_35px_rgba(251,191,36,0.25)]'
+                : plan.isPro
+                  ? 'border-cyan-500/50 shadow-[0_0_25px_rgba(6,182,212,0.15)]'
+                  : 'border-slate-800 hover:border-slate-700'
             }`}
           >
+            {focused ? (
+              <span className="absolute -top-3 left-6 rounded-full bg-amber-400 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-950 shadow">
+                Unlocks Curriculum &amp; Textbook Studio
+              </span>
+            ) : null}
             <div>
               <div className="mb-4 flex items-center justify-between">
                 <span

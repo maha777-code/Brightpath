@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   ClipboardList,
+  Crown,
   FileText,
   Gamepad2,
   ListChecks,
+  Lock,
   Mail,
   MessageSquare,
   Mic,
@@ -32,6 +34,7 @@ import { AIToolWizardModal } from '@/components/tools/AIToolWizardModal';
 import { ToolsFilterBar, type ToolsLibraryFilter, type ToolsSortKey } from '@/components/tools/ToolsFilterBar';
 import { TeacherToolLauncher } from '@/pages/TeacherToolPage';
 import { canUserAccessTool, getRegistryTool, toolVisibleToRole } from '@/config/toolsRegistry';
+import { proUpgradeHref } from '@/lib/proUpgrade';
 
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   'book-open': BookOpen,
@@ -135,6 +138,15 @@ export default function TeacherTools() {
     isTeacherToolEnabled(tool.id) &&
     canUserAccessTool(actor, getRegistryTool(tool.id)?.allowedRoles ?? []) &&
     hasAiToolAccess({ role, email, planType, requiredPlan: tool.requiredPlan ?? 'free' });
+  const planLocked = (tool: TeacherToolDefinition) =>
+    isTeacherToolEnabled(tool.id) &&
+    canUserAccessTool(actor, getRegistryTool(tool.id)?.allowedRoles ?? []) &&
+    !hasAiToolAccess({
+      role,
+      email,
+      planType,
+      requiredPlan: tool.id === 'curriculum-studio' ? 'pro' : tool.requiredPlan ?? 'free',
+    });
 
   const openTool = (tool: TeacherToolDefinition) => {
     if (!isTeacherToolEnabled(tool.id)) return;
@@ -234,29 +246,46 @@ export default function TeacherTools() {
             {visible.map((tool) => {
               const Icon = ICONS[tool.icon] ?? Sparkles;
               const favorited = favoriteIds.includes(tool.id);
+              const locked = planLocked(tool);
               return (
                 <article
                   key={tool.id}
                   className={[
-                    'td-tool-tile group relative flex min-h-[220px] cursor-pointer flex-col rounded-xl border border-slate-600 bg-slate-800/90 p-5 text-left text-white shadow-lg backdrop-blur-md transition-all',
-                    'hover:border-cyan-500/50 hover:bg-slate-800 hover:shadow-cyan-500/10',
-                    tool.highlighted ? 'lg:col-span-2 border-cyan-500/40 bg-slate-800' : '',
+                    'td-tool-tile relative flex min-h-[220px] flex-col rounded-xl border bg-slate-800/90 p-5 text-left text-white shadow-lg backdrop-blur-md transition-all',
+                    locked
+                      ? 'cursor-default border-amber-500/30'
+                      : 'group cursor-pointer border-slate-600 hover:border-cyan-500/50 hover:bg-slate-800 hover:shadow-cyan-500/10',
+                    tool.highlighted ? `lg:col-span-2 bg-slate-800 ${locked ? '' : 'border-cyan-500/40'}` : '',
                   ].join(' ')}
-                  onClick={() => openTool(tool)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      openTool(tool);
-                    }
-                  }}
-                  role="link"
-                  tabIndex={0}
+                  onClick={locked ? undefined : () => openTool(tool)}
+                  onKeyDown={
+                    locked
+                      ? undefined
+                      : (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openTool(tool);
+                          }
+                        }
+                  }
+                  role={locked ? undefined : 'link'}
+                  tabIndex={locked ? undefined : 0}
+                  aria-disabled={locked || undefined}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-950 text-cyan-400">
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                        locked ? 'bg-slate-900 text-slate-500' : 'bg-cyan-950 text-cyan-400'
+                      }`}
+                    >
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="flex items-center gap-2">
+                      {locked ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300">
+                          <Lock className="h-3 w-3" /> Pro
+                        </span>
+                      ) : null}
                       {teacherToolBadges(tool).map((badge) => (
                         <span key={badge} className={badgeClass(badge)}>{badge}</span>
                       ))}
@@ -280,9 +309,18 @@ export default function TeacherTools() {
                     </div>
                   </div>
                   <div className="mt-4 text-lg tracking-tight">
-                    <span className="font-bold text-slate-100">{tool.title}. </span>
+                    <span className={`font-bold ${locked ? 'text-slate-300' : 'text-slate-100'}`}>{tool.title}. </span>
                     <span className="font-normal text-slate-400">{tool.description}</span>
                   </div>
+                  {locked ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(proUpgradeHref(role))}
+                      className="mt-auto inline-flex w-fit cursor-pointer appearance-none items-center gap-1.5 rounded-xl border-0 bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-2 text-sm font-bold text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.3)] transition hover:brightness-110"
+                    >
+                      <Crown className="h-4 w-4" /> Upgrade
+                    </button>
+                  ) : (
                   <p
                     className={`mt-4 text-sm font-medium tracking-tight ${
                       !isTeacherToolEnabled(tool.id)
@@ -300,6 +338,7 @@ export default function TeacherTools() {
                           : 'Launch tool'
                         : '🔒 Upgrade to unlock'}
                   </p>
+                  )}
                 </article>
               );
             })}
@@ -315,6 +354,7 @@ export default function TeacherTools() {
           onClose={() => setActiveTool(null)}
           toolName={activeTool.title}
           description={activeTool.description}
+          defaultExpanded={activeTool.id === 'quiz-generator'}
         >
           <TeacherToolLauncher
             tool={activeTool}

@@ -4,7 +4,8 @@ import { Moon, Sun } from 'lucide-react';
 
 export type ColorTheme = 'dark' | 'light';
 
-const STORAGE_KEY = 'brightpath.color-theme';
+/** Only written when the user clicks the toggle, so everyone else gets the light default. */
+const STORAGE_KEY = 'mindvault.theme-choice';
 
 type ColorThemeContextValue = {
   theme: ColorTheme;
@@ -16,10 +17,9 @@ const ColorThemeContext = createContext<ColorThemeContextValue | null>(null);
 
 function readTheme(): ColorTheme {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved === 'light' || saved === 'bright' ? 'light' : 'dark';
+    return localStorage.getItem(STORAGE_KEY) === 'dark' ? 'dark' : 'light';
   } catch {
-    return 'dark';
+    return 'light';
   }
 }
 
@@ -36,15 +36,20 @@ export function ColorThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     applyTheme(theme);
+  }, [theme]);
+
+  const persist = (next: ColorTheme) => {
     try {
-      localStorage.setItem(STORAGE_KEY, theme);
+      localStorage.setItem(STORAGE_KEY, next);
     } catch {
       /* private browsing can block storage */
     }
-  }, [theme]);
-
-  const setTheme = (next: ColorTheme) => setThemeState(next);
-  const toggleTheme = () => setThemeState((current) => (current === 'dark' ? 'light' : 'dark'));
+  };
+  const setTheme = (next: ColorTheme) => {
+    persist(next);
+    setThemeState(next);
+  };
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
   return (
     <ColorThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>

@@ -102,6 +102,7 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
           toolName={tool.title}
           description={tool.description}
           onClose={onClose}
+          defaultExpanded={tool.id === 'quiz-generator'}
           className={
             tool.id === 'quiz-generator'
               ? 'flex h-full min-h-0 w-full flex-col'

@@ -618,7 +618,13 @@ export default function OwnerDashboard() {
 
 function AdminToolPreview({ tool, onClose }: { tool: ToolDefinition; onClose: () => void }) {
   return (
-    <AIToolWizardModal isOpen onClose={onClose} toolName={tool.title} description={tool.description}>
+    <AIToolWizardModal
+      isOpen
+      onClose={onClose}
+      toolName={tool.title}
+      description={tool.description}
+      defaultExpanded={tool.id === 'quiz-generator'}
+    >
       <ToolRenderer tool={tool} mode="admin-preview" hideHeader onClose={onClose} />
     </AIToolWizardModal>
   );

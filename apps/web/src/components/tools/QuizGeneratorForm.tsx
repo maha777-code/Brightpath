@@ -166,28 +166,17 @@ function ExampleGlyph() {
   );
 }
 
-function ExampleHints({
-  examples,
-  onPick,
-}: {
-  examples: string[];
-  onPick: (value: string) => void;
-}) {
+function ExampleHints({ examples }: { examples: string[] }) {
   return (
-    <div className="pointer-events-none absolute inset-0 flex flex-col gap-3.5 overflow-hidden">
+    <div
+      className="quiz-watermark pointer-events-none absolute inset-0 flex select-none flex-col gap-3.5 overflow-hidden"
+      aria-hidden
+    >
       {examples.map((example, index) => (
-        <button
-          key={example}
-          type="button"
-          className={`pointer-events-auto flex cursor-pointer appearance-none items-start gap-2.5 border-0 bg-transparent p-0 text-left text-sm leading-relaxed transition-colors hover:text-slate-200 ${
-            index === 0 ? 'text-slate-300' : 'text-slate-500'
-          }`}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => onPick(example)}
-        >
-          {index === 0 ? <ExampleGlyph /> : <span className="inline-block h-5 w-5 shrink-0" aria-hidden />}
+        <div key={example} className="flex items-start gap-2.5 text-sm leading-relaxed">
+          {index === 0 ? <ExampleGlyph /> : <span className="inline-block h-5 w-5 shrink-0" />}
           <span>{example}</span>
-        </button>
+        </div>
       ))}
     </div>
   );
@@ -286,7 +275,7 @@ function RichTextArea({
               onPaste={handlePaste}
               spellCheck
             />
-            {showExamples ? <ExampleHints examples={examples} onPick={onChange} /> : null}
+            {showExamples ? <ExampleHints examples={examples} /> : null}
           </div>
           <QuizMicButton listening={listening} onClick={toggle} />
         </div>

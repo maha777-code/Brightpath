@@ -93,17 +93,24 @@ async function ensureAdminTeacherWorkspace(platformUserId: string): Promise<stri
   if (!user) return null;
   if (user.teacherId) return user.teacherId;
 
-  const teacher =
-    (await prisma.teacher.findUnique({ where: { email: user.email } })) ??
-    (await prisma.teacher.create({
-      data: {
-        email: user.email,
-        passwordHash: user.passwordHash,
-        name: user.name,
-        organizationId: user.organizationId,
-        planType: user.planType,
-      },
-    }));
+  let teacher = await prisma.teacher.findUnique({ where: { email: user.email } });
+  if (!teacher) {
+    try {
+      teacher = await prisma.teacher.create({
+        data: {
+          email: user.email,
+          passwordHash: user.passwordHash,
+          name: user.name,
+          organizationId: user.organizationId,
+          planType: user.planType,
+        },
+      });
+    } catch (err) {
+      // Studio pages fire parallel requests; a concurrent request may have created it first.
+      teacher = await prisma.teacher.findUnique({ where: { email: user.email } });
+      if (!teacher) throw err;
+    }
+  }
   await prisma.platformUser.update({ where: { id: user.id }, data: { teacherId: teacher.id } });
   return teacher.id;
 }
@@ -115,8 +122,15 @@ export async function requireTeacher(req: AuthRequest, res: Response, next: Next
     return;
   }
 
+  let payload: JwtPayload;
   try {
-    const payload = verifyToken(token);
+    payload = verifyToken(token);
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+    return;
+  }
+
+  try {
     const ok = await attachAuth(req, payload);
     if (!ok) {
       res.status(401).json({ error: 'Unauthorized' });
@@ -143,8 +157,9 @@ export async function requireTeacher(req: AuthRequest, res: Response, next: Next
     req.teacherId = teacher.id;
     if (!STUDIO_ADMIN_ROLES.has(payload.role)) req.planType = teacher.planType ?? req.planType;
     next();
-  } catch {
-    res.status(401).json({ error: 'Invalid token' });
+  } catch (err) {
+    console.error('requireTeacher: could not resolve teacher workspace', err);
+    res.status(500).json({ error: 'Could not open your teacher workspace. Please try again.' });
   }
 }
 

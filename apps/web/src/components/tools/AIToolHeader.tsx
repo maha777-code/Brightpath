@@ -10,6 +10,7 @@ export function AIToolHeader({
   children,
   className = '',
   contentClassName = '',
+  defaultExpanded = false,
 }: {
   toolName: string;
   description?: string;
@@ -18,9 +19,10 @@ export function AIToolHeader({
   children?: ReactNode;
   className?: string;
   contentClassName?: string;
+  defaultExpanded?: boolean;
 }) {
   const navigate = useNavigate();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   useEffect(() => {
     if (!isExpanded) return;

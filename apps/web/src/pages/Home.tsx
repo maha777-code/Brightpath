@@ -6,9 +6,11 @@ import {
   BookOpen,
   ClipboardList,
   Clock,
+  Crown,
   FileText,
   Gamepad2,
   ListChecks,
+  Lock,
   Mail,
   Mic,
   Music,
@@ -26,7 +28,7 @@ import { useDisplayUser } from '@/lib/displayUser';
 import { workspaceForRole } from '@/lib/workspaceRole';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { SharadaPromptFrame } from '@/components/SharadaChatBadge';
-import { ProUpgradeDialog } from '@/components/billing/ProUpgradeDialog';
+import { proUpgradeHref } from '@/lib/proUpgrade';
 import { voicePromptButtonClass } from '@/components/VoiceListeningIndicator';
 import { useDictation } from '@/hooks/useDictation';
 import { readSavedWorksheets } from '@/lib/savedWorksheets';
@@ -111,7 +113,7 @@ export function HomePage() {
   const [reply, setReply] = useState<string | null>(null);
   const [savedWorksheets, setSavedWorksheets] = useState(() => readSavedWorksheets());
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const studioAccess = hasAiToolAccess({ role, email, planType, requiredPlan: 'pro' });
   const { listening, toggle } = useDictation((text) => {
     setPrompt((current) => (current.trim() ? `${current.trim()} ${text}` : text));
     setReply(null);
@@ -173,10 +175,7 @@ export function HomePage() {
   };
 
   const openRecommended = (id: string, route: string) => {
-    if (id === 'curriculum-studio' && !hasAiToolAccess({ role, email, planType, requiredPlan: 'pro' })) {
-      setUpgradeOpen(true);
-      return;
-    }
+    if (id === 'curriculum-studio' && !studioAccess) return;
     navigate(route);
   };
 
@@ -314,23 +313,40 @@ export function HomePage() {
               {recommendedTools.map((tool) => {
                 const Icon = TOOL_ICONS[tool.iconName] ?? Sparkles;
                 const favorited = favoriteIds.includes(tool.id);
+                const locked = tool.id === 'curriculum-studio' && !studioAccess;
                 return (
                   <div
                     key={tool.id}
-                    role="link"
-                    tabIndex={0}
-                    onClick={() => openRecommended(tool.id, tool.route)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        openRecommended(tool.id, tool.route);
-                      }
-                    }}
-                    className="group flex min-h-[160px] cursor-pointer flex-col justify-between rounded-2xl border border-slate-800/80 bg-[#080d1a] p-5 shadow-lg transition-all duration-200 hover:border-cyan-500/40 hover:bg-[#0b1326]"
+                    role={locked ? undefined : 'link'}
+                    tabIndex={locked ? undefined : 0}
+                    aria-disabled={locked || undefined}
+                    onClick={locked ? undefined : () => openRecommended(tool.id, tool.route)}
+                    onKeyDown={
+                      locked
+                        ? undefined
+                        : (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              openRecommended(tool.id, tool.route);
+                            }
+                          }
+                    }
+                    className={
+                      locked
+                        ? 'flex min-h-[160px] cursor-default flex-col justify-between rounded-2xl border border-amber-500/25 bg-[#080d1a] p-5 shadow-lg'
+                        : 'group flex min-h-[160px] cursor-pointer flex-col justify-between rounded-2xl border border-slate-800/80 bg-[#080d1a] p-5 shadow-lg transition-all duration-200 hover:border-cyan-500/40 hover:bg-[#0b1326]'
+                    }
                   >
                     <div className="flex items-center justify-between">
-                      <div className="rounded-xl border border-cyan-500/20 bg-[#0e172a] p-2.5 text-cyan-400">
-                        <Icon className="h-5 w-5" />
+                      <div className="flex items-center gap-2">
+                        <div className={`rounded-xl border p-2.5 ${locked ? 'border-slate-700/60 bg-[#0e172a] text-slate-500' : 'border-cyan-500/20 bg-[#0e172a] text-cyan-400'}`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        {locked ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-300">
+                            <Lock className="h-3 w-3" /> Pro
+                          </span>
+                        ) : null}
                       </div>
                       <button
                         type="button"
@@ -345,8 +361,17 @@ export function HomePage() {
                       </button>
                     </div>
                     <div>
-                      <h3 className="mt-3 text-lg font-extrabold text-white transition-colors group-hover:text-cyan-300">{tool.name}</h3>
-                      <p className="mt-1 line-clamp-2 text-base leading-relaxed text-slate-300">{tool.description}</p>
+                      <h3 className={`mt-3 text-lg font-extrabold transition-colors ${locked ? 'text-slate-300' : 'text-white group-hover:text-cyan-300'}`}>{tool.name}</h3>
+                      <p className={`mt-1 line-clamp-2 text-base leading-relaxed ${locked ? 'text-slate-400' : 'text-slate-300'}`}>{tool.description}</p>
+                      {locked ? (
+                        <button
+                          type="button"
+                          onClick={() => navigate(proUpgradeHref(role))}
+                          className="mt-4 inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-xl border-0 bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-2 text-sm font-bold text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.3)] transition hover:brightness-110"
+                        >
+                          <Crown className="h-4 w-4" /> Upgrade
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -415,7 +440,6 @@ export function HomePage() {
           </div>
         </div>
       </div>
-      <ProUpgradeDialog open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </TeacherWorkspaceLayout>
   );
 }

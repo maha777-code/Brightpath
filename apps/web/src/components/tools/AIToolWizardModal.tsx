@@ -8,14 +8,22 @@ interface AIToolWizardModalProps {
   toolName: string;
   description?: string;
   children: ReactNode;
+  defaultExpanded?: boolean;
 }
 
-export function AIToolWizardModal({ isOpen, onClose, toolName, description, children }: AIToolWizardModalProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function AIToolWizardModal({
+  isOpen,
+  onClose,
+  toolName,
+  description,
+  children,
+  defaultExpanded = false,
+}: AIToolWizardModalProps) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   useEffect(() => {
-    if (!isOpen) setIsExpanded(false);
-  }, [isOpen]);
+    setIsExpanded(defaultExpanded);
+  }, [isOpen, toolName, defaultExpanded]);
 
   if (!isOpen) return null;
 

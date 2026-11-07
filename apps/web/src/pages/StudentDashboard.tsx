@@ -610,7 +610,13 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
       </main>
 
       {active ? (
-        <AIToolWizardModal isOpen onClose={() => setActive(null)} toolName={active.title} description={active.description}>
+        <AIToolWizardModal
+          isOpen
+          onClose={() => setActive(null)}
+          toolName={active.title}
+          description={active.description}
+          defaultExpanded={active.id === 'quiz-generator'}
+        >
           <ToolRenderer tool={active} embed hideHeader onClose={() => setActive(null)} />
         </AIToolWizardModal>
       ) : null}

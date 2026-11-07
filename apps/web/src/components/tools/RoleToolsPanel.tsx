@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   ClipboardList,
+  Crown,
   Eye,
   FileText,
   Gamepad2,
@@ -25,6 +26,7 @@ import { ToolRenderer } from '@/components/tools/ToolRenderer';
 import { AIToolWizardModal } from '@/components/tools/AIToolWizardModal';
 import { ProUpgradeDialog } from '@/components/billing/ProUpgradeDialog';
 import { CURRICULUM_STUDIO_PATH } from '@/pages/tools/CurriculumTextbookStudio';
+import { proUpgradeHref } from '@/lib/proUpgrade';
 
 function planPill(plan: ToolDefinition['targetPlan']): string {
   if (plan === 'Pro') return 'Teacher Pro';
@@ -66,6 +68,7 @@ export function RoleToolsPanel({
   const [active, setActive] = useState<ToolDefinition | null>(null);
   const [denied, setDenied] = useState('');
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const studioAccess = hasAiToolAccess({ role, email, planType, requiredPlan: 'pro' });
   const launch = (tool: ToolDefinition) => {
     if (!canUserAccessTool({ role, email }, tool.allowedRoles)) {
       setDenied('This tool is not available for your role');
@@ -110,6 +113,37 @@ export function RoleToolsPanel({
             const Icon = TOOL_ICONS[tool.icon] ?? Sparkles;
             const catalogTool = TEACHER_TOOLS_CATALOG.find((item) => item.id === tool.id);
             const badges = catalogTool ? teacherToolBadges(catalogTool) : [];
+            if (tool.id === 'curriculum-studio' && !studioAccess) {
+              return (
+                <div
+                  key={tool.id}
+                  aria-disabled
+                  className="flex cursor-default flex-col justify-between rounded-2xl border border-amber-500/25 bg-[#090e1a] p-5 text-left text-white shadow-lg"
+                >
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="rounded-xl border border-slate-700/60 bg-[#0e172a] p-2.5 text-slate-500">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-sm font-extrabold uppercase tracking-wider text-amber-300">
+                        Pro
+                      </span>
+                    </div>
+                    <h3 className="mt-3 line-clamp-1 text-lg font-bold tracking-tight text-slate-300">{tool.title}</h3>
+                    <p className="mt-1 line-clamp-2 min-h-[3.25rem] text-base leading-relaxed text-slate-400">{tool.description}</p>
+                  </div>
+                  <div className="mt-2 border-t border-slate-800/60 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => navigate(proUpgradeHref(role))}
+                      className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-xl border-0 bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-2 text-sm font-bold text-slate-950 transition hover:brightness-110"
+                    >
+                      <Crown className="h-4 w-4" /> Upgrade
+                    </button>
+                  </div>
+                </div>
+              );
+            }
             return (
               <button
                 key={tool.id}
@@ -167,7 +201,13 @@ export function RoleToolsPanel({
         </div>
       )}
       {active ? (
-        <AIToolWizardModal isOpen onClose={() => setActive(null)} toolName={active.title} description={active.description}>
+        <AIToolWizardModal
+          isOpen
+          onClose={() => setActive(null)}
+          toolName={active.title}
+          description={active.description}
+          defaultExpanded={active.id === 'quiz-generator'}
+        >
           <ToolRenderer tool={active} embed hideHeader onClose={() => setActive(null)} />
         </AIToolWizardModal>
       ) : null}

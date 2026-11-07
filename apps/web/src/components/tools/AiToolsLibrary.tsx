@@ -1,5 +1,5 @@
-import { useState, type ComponentType } from 'react';
-import { Link } from 'react-router-dom';
+import { type ComponentType } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   ClipboardList,
@@ -26,7 +26,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { isTeacherToolEnabled } from '@/lib/teacherToolAvailability';
 import { toolVisibleToRole } from '@/config/toolsRegistry';
-import { ProUpgradeDialog } from '@/components/billing/ProUpgradeDialog';
+import { proUpgradeHref } from '@/lib/proUpgrade';
 
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   'book-open': BookOpen,
@@ -51,13 +51,13 @@ export function AiToolsLibrary({
   userRole: string | null;
   userPlan: string | null;
 }) {
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const navigate = useNavigate();
   const { user, teacher, parent } = useAuth();
   const email = user?.email ?? teacher?.email ?? parent?.email ?? null;
   const owner = isPlatformOwner(userRole, email);
 
   const openUpgrade = () => {
-    setUpgradeOpen(true);
+    navigate(proUpgradeHref(userRole));
   };
 
   return (
@@ -100,8 +100,6 @@ export function AiToolsLibrary({
           );
         })}
       </div>
-
-      <ProUpgradeDialog open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </>
   );
 }
@@ -152,9 +150,9 @@ function ToolCard({
           <button
             type="button"
             onClick={onUpgrade}
-            className="flex cursor-pointer appearance-none items-center gap-1 border-0 bg-transparent text-sm font-semibold text-amber-300"
+            className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-xl border-0 bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-2 text-sm font-bold text-slate-950 transition hover:brightness-110"
           >
-            <Lock className="h-3.5 w-3.5" /> Upgrade to unlock
+            <Lock className="h-3.5 w-3.5" /> Upgrade
           </button>
         )}
       </div>

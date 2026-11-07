@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { proUpgradeHref } from '@/lib/proUpgrade';
 
 /** Shown when a non-Pro account opens Curriculum & Textbook Studio. */
 export function ProUpgradeDialog({
@@ -9,6 +11,7 @@ export function ProUpgradeDialog({
   onClose: () => void;
 }) {
   const navigate = useNavigate();
+  const { role } = useAuth();
   if (!open) return null;
 
   return (
@@ -35,7 +38,7 @@ export function ProUpgradeDialog({
           <button
             type="button"
             className="cursor-pointer appearance-none rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-bold text-slate-950"
-            onClick={() => navigate('/pricing')}
+            onClick={() => navigate(proUpgradeHref(role))}
           >
             Upgrade to Pro
           </button>

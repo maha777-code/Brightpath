@@ -6,7 +6,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/favicon-32.png" />
     <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#030712" />
+    <meta name="theme-color" content="#f8fafc" />
     <meta name="description" content="Lesson plans, quizzes, worksheets, slides, songs and podcasts grounded in your own textbooks. 11 AI tools for teachers, students, parents and schools. Free to start; Teacher Pro from ₹499/month." />
     <title>MindVault — AI teaching assistant that follows your syllabus</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -22,21 +22,26 @@
       html, body {
         font-size: 12px;
         line-height: 1.5;
-        background: #030712;
-        color: #f8fafc;
+        background: #f8fafc;
+        color: #0f172a;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         letter-spacing: -0.015em;
       }
+      html[data-theme='dark'], html[data-theme='dark'] body {
+        background: #030712;
+        color: #f8fafc;
+      }
     </style>
     <script>
+      var theme = 'light';
       try {
-        var savedTheme = localStorage.getItem('brightpath.color-theme');
-        document.documentElement.setAttribute('data-theme', savedTheme === 'light' || savedTheme === 'bright' ? 'light' : 'dark');
+        if (localStorage.getItem('mindvault.theme-choice') === 'dark') theme = 'dark';
       } catch (e) {}
+      document.documentElement.setAttribute('data-theme', theme);
     </script>
   </head>
-  <body style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'SF Pro', Inter, system-ui, sans-serif; background: #030712;">
+  <body style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'SF Pro', Inter, system-ui, sans-serif;">
     <div id="root"></div>
     <script>
       if ('serviceWorker' in navigator) {

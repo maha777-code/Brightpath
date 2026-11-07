@@ -124,8 +124,8 @@ export function GamifiedActivityGenerator() {
   };
 
   return (
-    <div className="gamified-activity-tool mv-text-plus-2 space-y-6 text-slate-100">
-      <div>
+    <div className="gamified-activity-tool mv-text-plus-2 space-y-6 p-5 text-slate-100 sm:p-7">
+      <div className="ga-intro border-b border-slate-700/50 pb-5">
         <p className="text-xs font-bold uppercase tracking-wider text-cyan-300">Starter prompt</p>
         <h2 className="mt-1 text-2xl font-extrabold text-white">Gamify an activity</h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-300">
@@ -134,22 +134,28 @@ export function GamifiedActivityGenerator() {
         </p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3">
         {GAMIFIED_ACTIVITY_OPTIONS.map((item) => {
           const selected = item.id === kind;
           return (
             <button
               key={item.id}
               type="button"
+              aria-pressed={selected}
               onClick={() => setKind(item.id)}
               className={[
-                'rounded-2xl border p-4 text-left transition',
+                'ga-option relative rounded-2xl border p-5 text-left transition duration-200',
                 selected
-                  ? 'border-amber-300/70 bg-amber-500/15 ring-2 ring-amber-300/30'
-                  : 'border-white/10 bg-slate-950/50 hover:border-amber-300/40',
+                  ? 'ga-option-selected border-amber-300/70 bg-amber-500/15 shadow-[0_8px_24px_rgba(245,158,11,0.18)]'
+                  : 'border-slate-700/60 bg-slate-950/50 hover:-translate-y-0.5 hover:border-amber-300/50 hover:shadow-lg',
               ].join(' ')}
             >
-              <p className="text-sm font-extrabold text-white">{item.title}</p>
+              {selected ? (
+                <span className="absolute right-3 top-3 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-slate-950">
+                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                </span>
+              ) : null}
+              <p className="pr-6 text-sm font-extrabold text-white">{item.title}</p>
               <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-amber-200/80">
                 {item.subtitle}
               </p>
@@ -260,7 +266,7 @@ export function GamifiedActivityGenerator() {
         type="button"
         onClick={() => void generate()}
         disabled={!canGenerate || busy}
-        className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-extrabold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-xl border-0 bg-gradient-to-r from-amber-400 to-orange-400 px-6 py-3 text-sm font-extrabold text-slate-950 shadow-[0_8px_20px_rgba(245,158,11,0.3)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
         {busy ? 'Generating game…' : `Generate ${option.title}`}
