@@ -14,66 +14,91 @@ import { HeroRotatingWord } from '@/components/landing/HeroRotatingWord';
 
 const HERO_AUDIENCES = ['teachers', 'schools', 'students', 'parents'] as const;
 
-const SUBJECTS = [
+/** Light-theme accent colour, mapped to CSS variables in landing.css. */
+type Tone =
+  | 'blue'
+  | 'violet'
+  | 'pink'
+  | 'green'
+  | 'orange'
+  | 'teal'
+  | 'amber'
+  | 'indigo'
+  | 'purple'
+  | 'sky'
+  | 'rose'
+  | 'cyan'
+  | 'fuchsia';
+
+const SUBJECTS: { name: string; icon: string; description: string; tone: Tone }[] = [
   {
     name: 'Mathematics',
     icon: '%',
     description: 'Algebra, geometry, and problem-solving at every grade.',
+    tone: 'blue',
   },
   {
     name: 'Computer Science',
     icon: '🖥',
     description: 'Coding, logic, and computational thinking.',
+    tone: 'violet',
   },
   {
     name: 'Languages',
     icon: '💬',
     description: 'Reading, writing, and conversation practice.',
+    tone: 'pink',
   },
   {
     name: 'Sciences',
     icon: '⚗',
     description: 'Physics, chemistry, and biology made visual.',
+    tone: 'green',
   },
   {
     name: 'Test Prep',
     icon: '⚙',
     description: 'Exam strategies and targeted practice sets.',
+    tone: 'orange',
   },
   {
     name: 'Study Skills',
     icon: '📋',
     description: 'Notes, revision, and exam-day confidence.',
+    tone: 'teal',
   },
 ];
 
-const FEATURES: { icon: LucideIcon; title: string; description: string }[] = [
+const FEATURES: { icon: LucideIcon; title: string; description: string; tone: Tone }[] = [
   {
     icon: BookOpen,
     title: 'Follows your syllabus',
     description: 'Upload a textbook once; every tool uses your chapters',
+    tone: 'blue',
   },
   {
     icon: Sparkles,
     title: '11 AI tools, free to start',
     description: 'Lesson plans, quizzes, worksheets, slides, songs and more',
+    tone: 'purple',
   },
   {
     icon: Languages,
     title: 'English, Hindi & Arabic',
     description: 'Full interface, including right-to-left layout',
+    tone: 'pink',
   },
 ];
 
 function FeatureBanner() {
   return (
-    <div className="w-full rounded-2xl border border-cyan-500/30 bg-[#0b0f19]/80 p-6 shadow-[0_0_20px_rgba(6,182,212,0.1)] backdrop-blur-md">
+    <div className="bp-feature-banner w-full rounded-2xl border border-cyan-500/30 bg-[#0b0f19]/80 p-6 shadow-[0_0_20px_rgba(6,182,212,0.1)] backdrop-blur-md">
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-0 md:divide-x md:divide-slate-800">
         {FEATURES.map((feature) => {
           const Icon = feature.icon;
           return (
-            <div key={feature.title} className="flex items-center gap-4 px-4 first:pl-0 last:pr-0 md:px-6 md:first:pl-0 md:last:pr-0">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-950/60 text-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.2)]">
+            <div key={feature.title} data-tone={feature.tone} className="flex items-center gap-4 px-4 first:pl-0 last:pr-0 md:px-6 md:first:pl-0 md:last:pr-0">
+              <div className="bp-feature-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-950/60 text-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.2)]">
                 <Icon className="h-6 w-6 stroke-[2.2]" />
               </div>
               <div>
@@ -107,12 +132,95 @@ function HeroAITutorCard() {
   );
 }
 
+const QUIZ_OPTIONS = ['Carbon dioxide', 'Oxygen', 'Nitrogen', 'Hydrogen'];
+
+/** Light theme hero: three overlapping, gently floating cards. */
+function HeroShowcase({ startHref }: { startHref: string }) {
+  return (
+    <div className="bp-showcase relative mx-auto aspect-square w-full max-w-[640px]">
+      <motion.div
+        className="absolute right-0 top-0 z-[1] w-[74%]"
+        animate={{ y: [0, -8, 0] }}
+        transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut' }}
+      >
+        <div className="bp-show-card bp-show-photo relative overflow-hidden rounded-[22px]" style={{ ['--tilt' as string]: '3deg' }}>
+          <img
+            src="/landing/hero-classroom.jpg"
+            alt="A teacher and her students working on a laptop together in class"
+            className="block aspect-[4/3] h-auto w-full object-cover"
+            width={1024}
+            height={768}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-blue-800/90 via-blue-600/25 to-transparent" />
+          <div className="absolute left-0 top-0 p-5 sm:p-6">
+            <p className="text-[13px] font-bold uppercase tracking-[0.14em] text-sky-100">Follows your syllabus</p>
+            <p className="mt-1 max-w-[18rem] text-[20px] font-extrabold leading-tight text-[#ffffff] sm:text-[24px]">
+              Upload a textbook once. Every tool uses your chapters.
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
+      <motion.div
+        className="absolute left-0 top-[44%] z-[2] w-[56%]"
+        animate={{ y: [0, 10, 0] }}
+        transition={{ repeat: Infinity, duration: 7, ease: 'easeInOut', delay: 0.6 }}
+      >
+        <div className="bp-show-card bp-show-quiz rounded-[20px] bg-white p-4 sm:p-5" style={{ ['--tilt' as string]: '-4deg' }}>
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-600">Multiple choice quiz · Class 8</p>
+          <p className="mt-2 text-[14px] font-bold leading-snug text-slate-900 sm:text-[15px]">
+            Which gas do plants release during photosynthesis?
+          </p>
+          <ul className="mt-3 space-y-1.5">
+            {QUIZ_OPTIONS.map((option) => {
+              const correct = option === 'Oxygen';
+              return (
+                <li
+                  key={option}
+                  className={`flex items-center justify-between rounded-lg px-3 py-1.5 text-[13px] ${
+                    correct ? 'bg-emerald-50 font-semibold text-emerald-700 ring-1 ring-emerald-300' : 'bg-slate-50 text-slate-600'
+                  }`}
+                >
+                  {option}
+                  {correct ? <span aria-hidden="true">✓</span> : null}
+                </li>
+              );
+            })}
+          </ul>
+          <Link to={startHref} className="bp-show-yellow mt-4 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold">
+            Start free <span aria-hidden="true">↗</span>
+          </Link>
+        </div>
+      </motion.div>
+
+      <motion.div
+        className="absolute bottom-[4%] right-0 z-[3] w-[54%]"
+        animate={{ y: [0, -10, 0] }}
+        transition={{ repeat: Infinity, duration: 5.5, ease: 'easeInOut', delay: 1.2 }}
+      >
+        <div className="bp-show-card bp-show-game rounded-[20px] p-4 sm:p-5" style={{ ['--tilt' as string]: '-2deg' }}>
+          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.14em] text-indigo-200">
+            <span>Escape room</span>
+            <span>🔓 4/4</span>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-indigo-950/60">
+            <div className="h-full w-full rounded-full bg-gradient-to-r from-amber-300 via-pink-400 to-fuchsia-400" />
+          </div>
+          <p className="mt-4 text-[19px] font-black leading-tight text-[#ffffff] sm:text-[22px]">Mission complete 🏆</p>
+          <p className="mt-1 text-[13px] text-indigo-100">Vault unlocked. Every room solved.</p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 type ToolCard = {
   title: string;
   description: string;
   icon: string;
   bgColor: string;
   borderColor: string;
+  tone: Tone;
 };
 
 const toolsRow1: ToolCard[] = [
@@ -122,6 +230,7 @@ const toolsRow1: ToolCard[] = [
     icon: '📋',
     bgColor: 'bg-amber-500/10',
     borderColor: 'border-amber-500/30',
+    tone: 'blue',
   },
   {
     title: 'Presentation Generator',
@@ -129,6 +238,7 @@ const toolsRow1: ToolCard[] = [
     icon: '📊',
     bgColor: 'bg-fuchsia-500/10',
     borderColor: 'border-fuchsia-500/30',
+    tone: 'fuchsia',
   },
   {
     title: 'Lesson Plan',
@@ -136,6 +246,7 @@ const toolsRow1: ToolCard[] = [
     icon: '📐',
     bgColor: 'bg-sky-500/10',
     borderColor: 'border-sky-500/30',
+    tone: 'indigo',
   },
   {
     title: 'Writing Feedback',
@@ -143,6 +254,7 @@ const toolsRow1: ToolCard[] = [
     icon: '🪶',
     bgColor: 'bg-purple-500/10',
     borderColor: 'border-purple-500/30',
+    tone: 'violet',
   },
   {
     title: 'Worksheet Generator',
@@ -150,6 +262,7 @@ const toolsRow1: ToolCard[] = [
     icon: '📝',
     bgColor: 'bg-emerald-500/10',
     borderColor: 'border-emerald-500/30',
+    tone: 'green',
   },
   {
     title: 'Curriculum & Textbook Studio',
@@ -157,6 +270,7 @@ const toolsRow1: ToolCard[] = [
     icon: '📚',
     bgColor: 'bg-cyan-500/10',
     borderColor: 'border-cyan-500/30',
+    tone: 'cyan',
   },
   {
     title: 'Gamified Activity',
@@ -164,6 +278,7 @@ const toolsRow1: ToolCard[] = [
     icon: '🎮',
     bgColor: 'bg-amber-500/10',
     borderColor: 'border-amber-500/30',
+    tone: 'purple',
   },
 ];
 
@@ -174,6 +289,7 @@ const toolsRow2: ToolCard[] = [
     icon: '🎵',
     bgColor: 'bg-emerald-500/10',
     borderColor: 'border-emerald-500/30',
+    tone: 'orange',
   },
   {
     title: 'Text Rewriter',
@@ -181,6 +297,7 @@ const toolsRow2: ToolCard[] = [
     icon: '✏️',
     bgColor: 'bg-amber-500/10',
     borderColor: 'border-amber-500/30',
+    tone: 'amber',
   },
   {
     title: 'Educational Podcast',
@@ -188,6 +305,7 @@ const toolsRow2: ToolCard[] = [
     icon: '🎙️',
     bgColor: 'bg-orange-500/10',
     borderColor: 'border-orange-500/30',
+    tone: 'teal',
   },
   {
     title: 'Email Responder',
@@ -195,6 +313,7 @@ const toolsRow2: ToolCard[] = [
     icon: '✉️',
     bgColor: 'bg-blue-500/10',
     borderColor: 'border-blue-500/30',
+    tone: 'sky',
   },
   {
     title: 'YouTube Questions',
@@ -202,6 +321,7 @@ const toolsRow2: ToolCard[] = [
     icon: '▶️',
     bgColor: 'bg-rose-500/10',
     borderColor: 'border-rose-500/30',
+    tone: 'rose',
   },
 ];
 
@@ -223,9 +343,12 @@ function ToolsMarqueeRow({
       >
         {looped.map((tool, idx) => (
           <Fragment key={`${tool.title}-${idx}`}>
-            <div className="flex w-[360px] shrink-0 items-center gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-[0_0_20px_rgba(6,182,212,0.1)] backdrop-blur-md transition-colors hover:border-cyan-500/50">
+            <div
+              data-tone={tool.tone}
+              className="bp-tool-card relative flex w-[360px] shrink-0 items-center gap-4 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-[0_0_20px_rgba(6,182,212,0.1)] backdrop-blur-md transition-colors hover:border-cyan-500/50"
+            >
               <div
-                className={`shrink-0 rounded-xl border p-4 text-3xl ${tool.bgColor} ${tool.borderColor}`}
+                className={`bp-tool-icon shrink-0 rounded-xl border p-4 text-3xl ${tool.bgColor} ${tool.borderColor}`}
               >
                 {tool.icon}
               </div>
@@ -244,7 +367,7 @@ function ToolsMarqueeRow({
                 </p>
               </div>
             </div>
-            <span aria-hidden="true" className="shrink-0 text-2xl font-bold text-cyan-400/60">
+            <span aria-hidden="true" className="bp-tool-sep shrink-0 text-2xl font-bold text-cyan-400/60">
               ✦
             </span>
           </Fragment>
@@ -357,11 +480,14 @@ function AiToolsShowcase() {
     <section
       id="ai-solutions"
       aria-label="MindVault AI Solutions"
-      className="w-full space-y-8 overflow-hidden border-y border-slate-800/60 bg-slate-950 py-16"
+      className="bp-tools-section w-full space-y-8 overflow-hidden border-y border-slate-800/60 bg-slate-950 py-16"
     >
       <div className="mb-4 px-4 text-center">
-        <h2 className="bp-tools-heading text-4xl font-extrabold tracking-tight text-white md:text-5xl">
-          MindVault AI Solutions
+        <h2
+          className="bp-tools-heading bp-blob-heading bp-blob-heading--center text-4xl font-extrabold tracking-tight text-white md:text-5xl"
+          style={{ ['--blob' as string]: '#c4b5fd' }}
+        >
+          MindVault <span className="bp-grad-word">AI Solutions</span>
         </h2>
       </div>
       <ToolsMarqueeRow
@@ -389,7 +515,7 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="bp-landing">
+    <div className="bp-landing bp-home">
       <div className="bp-bg" aria-hidden="true">
         <div className="bp-blob bp-blob--blue" />
         <div className="bp-blob bp-blob--purple" />
@@ -444,16 +570,22 @@ export default function Landing() {
             <ThemeToggle />
             <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--nav">
               Get Started For Free
+              <span className="bp-btn-arrow" aria-hidden="true">↗</span>
             </Link>
           </div>
         </div>
       </header>
 
       <main>
-        <section className="w-full space-y-12 px-4 py-8 sm:px-8 md:px-12 md:py-12 lg:px-16">
+        <section className="bp-hero-section w-full space-y-12 px-4 py-8 sm:px-8 md:px-12 md:py-12 lg:px-16">
           <div className="grid w-full grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-16">
             <div className="order-2 flex w-full justify-center lg:col-span-5 lg:order-1 lg:justify-start">
-              <HeroAITutorCard />
+              <div className="bp-dark-only w-full">
+                <HeroAITutorCard />
+              </div>
+              <div className="bp-light-only w-full">
+                <HeroShowcase startHref={startHref} />
+              </div>
             </div>
             <div className="bp-hero-copy order-1 flex w-full flex-col items-start space-y-6 text-left lg:col-span-7 lg:order-2">
               <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl lg:text-6xl">
@@ -468,9 +600,11 @@ export default function Landing() {
               <div className="flex flex-wrap items-center gap-4">
                 <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--lg">
                   Start Free
+                  <span className="bp-btn-arrow" aria-hidden="true">↗</span>
                 </Link>
-                <Link to="/pricing" className="bp-btn bp-btn--outline">
+                <Link to="/pricing" className="bp-btn bp-btn--outline bp-btn--accent">
                   See Pricing
+                  <span className="bp-btn-arrow" aria-hidden="true">↗</span>
                 </Link>
               </div>
             </div>
@@ -481,15 +615,21 @@ export default function Landing() {
           </div>
 
           <div id="subjects" className="w-full space-y-6">
-            <h2 className="text-4xl font-extrabold tracking-tight text-white">Subjects</h2>
+            <h2
+              className="bp-blob-heading text-4xl font-extrabold tracking-tight text-white"
+              style={{ ['--blob' as string]: '#93c5fd' }}
+            >
+              <span className="bp-grad-word">Subjects</span>
+            </h2>
             <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {SUBJECTS.map((s) => (
                 <article
                   key={s.name}
-                  className="group relative flex cursor-pointer flex-col justify-between rounded-2xl border border-slate-800 bg-slate-950/60 p-6 backdrop-blur-md transition-all duration-300 hover:border-cyan-500/40 hover:bg-slate-900 hover:shadow-[0_0_25px_rgba(6,182,212,0.15)]"
+                  data-tone={s.tone}
+                  className="bp-subject-card group relative flex cursor-pointer flex-col justify-between rounded-2xl border border-slate-800 bg-slate-950/60 p-6 backdrop-blur-md transition-all duration-300 hover:border-cyan-500/40 hover:bg-slate-900 hover:shadow-[0_0_25px_rgba(6,182,212,0.15)]"
                 >
                   <div>
-                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-950/60 text-xl font-bold text-cyan-400">
+                    <div className="bp-subject-icon mb-4 flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-950/60 text-xl font-bold text-cyan-400">
                       {s.icon}
                     </div>
                     <h3 className="text-2xl font-bold tracking-tight text-white transition-colors group-hover:text-cyan-300">

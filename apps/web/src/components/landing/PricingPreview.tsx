@@ -20,11 +20,11 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
 
   return (
     <article
-      className={`flex flex-col rounded-2xl border bg-slate-950/70 p-6 ${
-        plan.isPro ? 'border-cyan-500/50 shadow-[0_0_25px_rgba(6,182,212,0.15)]' : 'border-slate-800'
+      className={`bp-plan-card flex flex-col rounded-2xl border bg-slate-950/70 p-6 ${
+        plan.isPro ? 'bp-plan-pro border-cyan-500/50 shadow-[0_0_25px_rgba(6,182,212,0.15)]' : 'border-slate-800'
       }`}
     >
-      <p className="text-xs font-bold uppercase tracking-widest text-cyan-400">{plan.roleCategory}</p>
+      <p className="bp-plan-role text-xs font-bold uppercase tracking-widest text-cyan-400">{plan.roleCategory}</p>
       <h3 className="mt-2 text-xl font-bold text-white">{plan.title}</h3>
       <p className="mt-3 text-3xl font-extrabold text-white">
         {formatInr(plan.priceINR.annualMonthly)}
@@ -44,9 +44,10 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
       </ul>
       <Link
         to={plan.href}
-        className="mt-6 inline-flex items-center justify-center rounded-xl border border-cyan-500/50 bg-cyan-500/10 px-4 py-2.5 text-sm font-bold text-cyan-300 transition-colors hover:bg-cyan-500 hover:text-slate-950"
+        className="bp-plan-btn mt-6 inline-flex items-center justify-center gap-1.5 rounded-xl border border-cyan-500/50 bg-cyan-500/10 px-4 py-2.5 text-sm font-bold text-cyan-300 transition-colors hover:bg-cyan-500 hover:text-slate-950"
       >
         {plan.buttonText}
+        <span className="bp-btn-arrow" aria-hidden="true">↗</span>
       </Link>
     </article>
   );
@@ -58,11 +59,15 @@ export function PricingPreview() {
   );
 
   return (
-    <section id="pricing" aria-labelledby="pricing-preview-title" className="w-full px-4 py-16 sm:px-8 md:px-12 lg:px-16">
+    <section id="pricing" aria-labelledby="pricing-preview-title" className="bp-pricing-section w-full px-4 py-16 sm:px-8 md:px-12 lg:px-16">
       <div className="mx-auto max-w-[1440px]">
         <div className="mb-10 max-w-3xl space-y-3">
-          <h2 id="pricing-preview-title" className="text-4xl font-extrabold tracking-tight text-white">
-            Simple, published pricing
+          <h2
+            id="pricing-preview-title"
+            className="bp-blob-heading text-4xl font-extrabold tracking-tight text-white"
+            style={{ ['--blob' as string]: '#a5b4fc' }}
+          >
+            Simple, published <span className="bp-grad-word">pricing</span>
           </h2>
           <p className="text-xl text-slate-300">
             Ten AI tools are free to start. Upgrade to Pro when you want your own syllabus behind every output.
