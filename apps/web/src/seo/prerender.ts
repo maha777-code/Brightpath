@@ -15,7 +15,7 @@ import {
   type PublicPage,
 } from '../content/marketing';
 import { KHDA_DISCLAIMER, KHDA_PILLARS } from '../../../../packages/shared/src/khdaAlignment';
-import { PRICING_PLANS, type PricingPlan } from '../pages/pricingData';
+import { PRICING_PLANS, formatPlanAmount, planPrice, type PricingPlan } from '../pages/pricingData';
 
 /** Shell served for every non-public route (dashboards, tools) so they don't carry landing-page content. */
 export const SPA_FALLBACK_FILE = 'app.html';
@@ -32,22 +32,23 @@ function pageUrl(page: PublicPage): string {
   return page.path === '/' ? `${SITE_URL}/` : `${SITE_URL}${page.path}`;
 }
 
-function price(value: number | string, symbol: string): string {
-  if (typeof value === 'string') return value;
-  if (value === 0) return 'Free';
-  return symbol === '₹' ? `₹${value.toLocaleString('en-IN')}` : `US$${value}`;
+function aedYearly(planId: string): string {
+  const plan = PRICING_PLANS.find((p) => p.id === planId);
+  return plan ? formatPlanAmount(planPrice(plan, 'AED').annualMonthly, 'AED') : '';
 }
 
 function planHtml(plan: PricingPlan): string {
-  const inr = price(plan.priceINR.annualMonthly, '₹');
-  const usd = price(plan.priceUSD.annualMonthly, '$');
-  const monthly = price(plan.priceINR.monthly, '₹');
+  const aedPrice = planPrice(plan, 'AED');
+  const aed = formatPlanAmount(aedPrice.annualMonthly, 'AED');
+  const usd = formatPlanAmount(plan.priceUSD.annualMonthly, 'USD');
+  const inr = formatPlanAmount(plan.priceINR.annualMonthly, 'INR');
+  const monthly = formatPlanAmount(aedPrice.monthly, 'AED');
   const priceLine =
-    typeof plan.priceINR.annualMonthly === 'string'
+    typeof aedPrice.annualMonthly === 'string'
       ? 'Custom quote'
-      : plan.priceINR.annualMonthly === 0
+      : aedPrice.annualMonthly === 0
         ? 'Free'
-        : `${inr}/month billed yearly (${usd}/month) · ${monthly}/month billed monthly`;
+        : `${aed}/month billed yearly (${usd} · ${inr}/month) · ${monthly}/month billed monthly`;
   return `<article><h3>${esc(plan.title)} — ${esc(plan.roleCategory)}</h3><p><strong>${esc(priceLine)}</strong></p><p>${esc(
     plan.description,
   )}</p><ul>${plan.features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></article>`;
@@ -81,16 +82,16 @@ function bodyFor(page: PublicPage): string {
 <p><a href="/register">Start free</a> · <a href="/pricing">See pricing</a> · <a href="/contact">Book a school walkthrough</a></p>
 <section><h2>11 AI tools for teachers</h2><ul>${TEACHER_TOOL_NAMES.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
 <p>New in beta: upload a PDF and get a gamified video or class activity.</p></section>
-<section id="for-schools"><h2>For schools and academies</h2><p>One platform for teachers, students and parents, aligned to your own textbooks: admin dashboard and analytics, role-based access with invite codes, your school’s name and branding, and a staff walkthrough on rollout. School campus plans start at ₹11,999/month billed yearly.</p><p><a href="/contact">Book a school walkthrough</a></p></section>
-<section id="for-teachers"><h2>For teachers</h2><p>Lesson plans, quizzes and worksheets; questions written from your own PDFs; songs and podcasts with real audio; and Sharada, your AI assistant. Free to start; Teacher Pro is ₹499/month billed yearly.</p><p><a href="/register">Start free as a teacher</a></p></section>
-<section id="for-students"><h2>For students and parents</h2><p>An AI tutor for any subject, videos, quizzes and activities, and progress tracking for parents, in English, Hindi and Arabic. Student Basic and Parent Basic are free; Student Pro is ₹149/month billed yearly.</p><p><a href="/register">Start learning free</a></p></section>
+<section id="for-schools"><h2>For schools and academies</h2><p>One platform for teachers, students and parents, aligned to your own textbooks: admin dashboard and analytics, role-based access with invite codes, your school’s name and branding, and a staff walkthrough on rollout. School campus plans start at ${aedYearly('school')}/month billed yearly.</p><p><a href="/contact">Book a school walkthrough</a></p></section>
+<section id="for-teachers"><h2>For teachers</h2><p>Lesson plans, quizzes and worksheets; questions written from your own PDFs; songs and podcasts with real audio; and Sharada, your AI assistant. Free to start; Teacher Pro is ${aedYearly('teacher-pro')}/month billed yearly.</p><p><a href="/register">Start free as a teacher</a></p></section>
+<section id="for-students"><h2>For students and parents</h2><p>An AI tutor for any subject, videos, quizzes and activities, and progress tracking for parents, in English, Hindi and Arabic. Student Basic and Parent Basic are free; Student Pro is ${aedYearly('student-pro')}/month billed yearly.</p><p><a href="/register">Start learning free</a></p></section>
 <section id="pricing"><h2>Simple, published pricing</h2>${PRICING_PLANS.filter((p) => previewIds.includes(p.id)).map(planHtml).join('')}<p><a href="/pricing">See every plan</a></p></section>
 ${trustHtml()}
 <p><a href="/faq">Frequently asked questions</a></p>`;
     case '/faq':
       return `<h1>Frequently asked questions</h1><p>Straight answers on privacy, accuracy, cheating and cost.</p>${faqHtml()}<p>Still have a question? <a href="/contact">Contact us</a>.</p>`;
     case '/pricing':
-      return `<h1>A plan for every role</h1><p>Every MindVault plan and price, in INR and USD. All AI tools are free to start; only the Curriculum & Textbook Studio needs Pro.</p>${PRICING_PLANS.map(planHtml).join('')}<p>Questions about a school rollout? <a href="/contact">Contact us</a>.</p>`;
+      return `<h1>A plan for every role</h1><p>Every MindVault plan and price, in AED, USD and INR. All AI tools are free to start; only the Curriculum & Textbook Studio needs Pro.</p>${PRICING_PLANS.map(planHtml).join('')}<p>Questions about a school rollout? <a href="/contact">Contact us</a>.</p>`;
     case '/compare':
       return `<h1>MindVault vs generic AI chatbots</h1><p>General-purpose AI chat tools start from a blank prompt every time and know nothing about your class. MindVault is built around the textbook and syllabus you actually teach.</p>${comparisonHtml()}<p><a href="/register">Start free</a> · <a href="/pricing">See pricing</a></p>`;
     case '/contact':
@@ -122,11 +123,11 @@ function structuredData(page: PublicPage): object[] {
     sameAs: [INSTAGRAM_URL],
     address: { '@type': 'PostalAddress', streetAddress: OFFICE_ADDRESS, addressLocality: 'Bangalore', addressCountry: 'IN' },
   };
-  const offers = PRICING_PLANS.filter((p) => typeof p.priceINR.annualMonthly === 'number').map((p) => ({
+  const offers = PRICING_PLANS.filter((p) => typeof p.priceUSD.annualMonthly === 'number').map((p) => ({
     '@type': 'Offer',
     name: p.title,
-    price: String(p.priceINR.annualMonthly),
-    priceCurrency: 'INR',
+    price: String(planPrice(p, 'AED').annualMonthly),
+    priceCurrency: 'AED',
     description: p.description,
   }));
   const app = {

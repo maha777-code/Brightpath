@@ -1,22 +1,14 @@
 import { Link } from 'react-router-dom';
 import { Check } from 'lucide-react';
-import { PRICING_PLANS, type PricingPlan } from '@/pages/pricingData';
+import { DEFAULT_CURRENCY, PRICING_PLANS, formatPlanAmount, planPrice, type PricingPlan } from '@/pages/pricingData';
 
 const PREVIEW_PLAN_IDS = ['teacher-free', 'teacher-pro', 'tutor-center', 'school'] as const;
 
-function formatInr(value: number | string): string {
-  if (typeof value === 'string') return value;
-  return value === 0 ? 'Free' : `₹${value.toLocaleString('en-IN')}`;
-}
-
-function formatUsd(value: number | string): string {
-  if (typeof value === 'string') return value;
-  return value === 0 ? '' : `US$${value}`;
-}
-
 function PlanCard({ plan }: { plan: PricingPlan }) {
-  const free = plan.priceINR.annualMonthly === 0;
-  const usd = formatUsd(plan.priceUSD.annualMonthly);
+  const monthly = planPrice(plan, DEFAULT_CURRENCY).annualMonthly;
+  const free = monthly === 0;
+  const usd = plan.priceUSD.annualMonthly;
+  const usdLabel = typeof usd === 'number' && usd > 0 ? `US$${usd}` : '';
 
   return (
     <article
@@ -27,11 +19,11 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
       <p className="bp-plan-role text-xs font-bold uppercase tracking-widest text-cyan-400">{plan.roleCategory}</p>
       <h3 className="mt-2 text-xl font-bold text-white">{plan.title}</h3>
       <p className="mt-3 text-3xl font-extrabold text-white">
-        {formatInr(plan.priceINR.annualMonthly)}
+        {formatPlanAmount(monthly, DEFAULT_CURRENCY)}
         {free ? null : <span className="text-base font-medium text-slate-400"> / month</span>}
       </p>
       <p className="mt-1 text-sm text-slate-400">
-        {free ? 'No card needed' : `Billed yearly${usd ? ` · ${usd}/month` : ''}`}
+        {free ? 'No card needed' : `Billed yearly${usdLabel ? ` · ${usdLabel}/month` : ''}`}
       </p>
       <p className="mt-4 text-base text-slate-300">{plan.description}</p>
       <ul className="mt-4 flex-1 space-y-2">
@@ -80,7 +72,7 @@ export function PricingPreview() {
           ))}
         </div>
         <p className="mt-8 text-base text-slate-300">
-          Student, parent, district and enterprise plans are on the{' '}
+          Student, parent, district and enterprise plans, and prices in USD and INR, are on the{' '}
           <Link to="/pricing" className="font-bold text-cyan-400 underline-offset-4 hover:underline">
             full pricing page
           </Link>

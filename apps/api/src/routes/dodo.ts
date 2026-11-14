@@ -3,10 +3,12 @@ import { z } from 'zod';
 import type DodoPayments from 'dodopayments';
 import type { Prisma } from '@prisma/client';
 import {
+  CHECKOUT_CURRENCIES,
   CHECKOUT_PLANS,
   CHECKOUT_PLAN_IDS,
   DEFAULT_PLAN_FOR_ROLE,
   dodoProductEnvKey,
+  productCurrencyFor,
   type AppRole,
   type CheckoutPlan,
   type CheckoutPlanId,
@@ -37,7 +39,7 @@ const appUrl = () => (process.env.APP_URL ?? 'http://localhost:5173').replace(/\
 
 const checkoutSchema = z.object({
   planId: z.enum(CHECKOUT_PLAN_IDS),
-  currency: z.enum(['INR', 'USD']),
+  currency: z.enum(CHECKOUT_CURRENCIES),
   interval: z.enum(['monthly', 'annual']),
 });
 
@@ -77,17 +79,18 @@ router.post('/checkout', requireAuth, async (req: AuthRequest, res) => {
     res.status(503).json({ error: 'Online payments are temporarily unavailable. Please try again later.' });
     return;
   }
-  const productId = dodoProductId(planId, currency, interval);
+  const productCurrency = productCurrencyFor(currency);
+  const productId = dodoProductId(planId, productCurrency, interval);
   if (!productId) {
-    console.error(`Dodo checkout unavailable: ${dodoProductEnvKey(planId, currency, interval)} is not set`);
+    console.error(`Dodo checkout unavailable: ${dodoProductEnvKey(planId, productCurrency, interval)} is not set`);
     res.status(503).json({ error: `${plan.title} (${currency}, ${interval}) is not available for purchase yet.` });
     return;
   }
 
   try {
-    const problem = await dodoProductProblem(dodo, productId, currency, interval);
+    const problem = await dodoProductProblem(dodo, productId, productCurrency, interval);
     if (problem) {
-      console.error(`Dodo checkout blocked for ${dodoProductEnvKey(planId, currency, interval)}: ${problem}`);
+      console.error(`Dodo checkout blocked for ${dodoProductEnvKey(planId, productCurrency, interval)}: ${problem}`);
       res.status(503).json({ error: `${plan.title} (${currency}, ${interval}) is not available for purchase yet.` });
       return;
     }

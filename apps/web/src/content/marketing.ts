@@ -1,4 +1,12 @@
 // Plain data only (no '@/' imports): vite.config.ts also reads this file to prerender public pages.
+import { PRICING_PLANS, formatPlanAmount, planPrice } from '../pages/pricingData';
+
+function aedPerMonth(planId: string): string {
+  const plan = PRICING_PLANS.find((p) => p.id === planId);
+  return plan ? formatPlanAmount(planPrice(plan, 'AED').annualMonthly, 'AED') : '';
+}
+
+const TEACHER_PRO_AED = aedPerMonth('teacher-pro');
 
 export const SITE_URL = 'https://mindvault.academy';
 export const SUPPORT_EMAIL = 'customersupport@mindvault.academy';
@@ -65,7 +73,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: 'How much does it cost?',
     answer:
-      'Ten of the 11 AI tools are free to start; the Curriculum & Textbook Studio is part of Teacher Pro, which is ₹499/month billed yearly (US$9.99). Tutoring-center plans start at ₹1,999/month and school plans at ₹11,999/month, billed yearly. See the pricing page for every plan.',
+      `Ten of the 11 AI tools are free to start; the Curriculum & Textbook Studio is part of Teacher Pro, which is ${TEACHER_PRO_AED}/month billed yearly (US$9.99). Tutoring-center plans start at ${aedPerMonth('tutor-center')}/month and school plans at ${aedPerMonth('school')}/month, billed yearly. See the pricing page for every plan, in AED, USD and INR.`,
   },
   {
     question: 'Can we try it before buying for the whole school?',
@@ -99,7 +107,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
   },
   {
     feature: 'Indian and Gulf classrooms',
-    mindvault: 'English, Hindi and Arabic (right-to-left) interface; INR pricing',
+    mindvault: 'English, Hindi and Arabic (right-to-left) interface; AED, USD and INR pricing',
     generic: 'Mostly English-first, USD pricing',
   },
   {
@@ -109,7 +117,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
   },
   {
     feature: 'Price to start',
-    mindvault: 'Free plan with 10 AI tools; Pro from ₹499/month',
+    mindvault: `Free plan with 10 AI tools; Pro from ${TEACHER_PRO_AED}/month`,
     generic: 'Free tiers vary; paid plans priced per user',
   },
 ];
@@ -131,7 +139,7 @@ export const TRUST_FACTS: TrustFact[] = [
   },
   {
     title: 'Transparent pricing',
-    detail: 'Every plan and price is published on our pricing page, in INR and USD.',
+    detail: 'Every plan and price is published on our pricing page, in AED, USD and INR.',
   },
   {
     title: 'Real people to talk to',
@@ -151,19 +159,19 @@ export const PUBLIC_PAGES: PublicPage[] = [
     path: '/',
     title: 'MindVault — AI teaching assistant that follows your syllabus',
     description:
-      'Lesson plans, quizzes, worksheets, slides, songs and podcasts grounded in your own textbooks. 11 AI tools for teachers, students, parents and schools. Free to start; Teacher Pro from ₹499/month.',
+      `Lesson plans, quizzes, worksheets, slides, songs and podcasts grounded in your own textbooks. 11 AI tools for teachers, students, parents and schools. Free to start; Teacher Pro from ${TEACHER_PRO_AED}/month.`,
   },
   {
     path: '/pricing',
     title: 'MindVault pricing — free plans, Teacher Pro, academies and schools',
     description:
-      'Published prices for every MindVault plan in INR and USD: free plans for students, teachers and parents, Teacher Pro from ₹499/month, academy plans from ₹1,999/month and school plans from ₹11,999/month.',
+      `Published prices for every MindVault plan in AED, USD and INR: free plans for students, teachers and parents, Teacher Pro from ${TEACHER_PRO_AED}/month, academy plans from ${aedPerMonth('tutor-center')}/month and school plans from ${aedPerMonth('school')}/month.`,
   },
   {
     path: '/compare',
     title: 'MindVault vs generic AI chatbots for teaching',
     description:
-      'How MindVault differs from general-purpose AI chat tools: syllabus grounding, classroom-ready formats, audio lessons, role-based school workspaces, Hindi and Arabic support, and INR pricing.',
+      'How MindVault differs from general-purpose AI chat tools: syllabus grounding, classroom-ready formats, audio lessons, role-based school workspaces, Hindi and Arabic support, and AED, USD and INR pricing.',
   },
   {
     path: '/faq',

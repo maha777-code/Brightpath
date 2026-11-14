@@ -5,28 +5,36 @@ import { isCheckoutPlanId } from '@brightpath/shared';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { PRICING_FILTERS, PRICING_PLANS, buttonVariantClass, type PricingPlan } from '@/pages/pricingData';
+import {
+  DEFAULT_CURRENCY,
+  PRICING_FILTERS,
+  PRICING_PLANS,
+  buttonVariantClass,
+  formatPlanAmount,
+  planPrice,
+  planYearlyTotal,
+  type PriceCurrency,
+  type PricingPlan,
+} from '@/pages/pricingData';
 
-function formatPrice(plan: PricingPlan, currency: 'INR' | 'USD', isAnnual: boolean) {
-  const priceObj = currency === 'INR' ? plan.priceINR : plan.priceUSD;
-  const rawPrice = isAnnual ? priceObj.annualMonthly : priceObj.monthly;
+const CURRENCY_OPTIONS: { id: PriceCurrency; label: string }[] = [
+  { id: 'AED', label: '🇦🇪 AED (د.إ)' },
+  { id: 'USD', label: '🌐 USD ($)' },
+  { id: 'INR', label: '🇮🇳 INR (₹)' },
+];
 
-  if (typeof rawPrice === 'string') return rawPrice;
-  if (rawPrice === 0) return 'Free';
-
-  return currency === 'INR' ? `₹${rawPrice.toLocaleString('en-IN')}` : `$${rawPrice}`;
+function formatPrice(plan: PricingPlan, currency: PriceCurrency, isAnnual: boolean) {
+  const price = planPrice(plan, currency);
+  return formatPlanAmount(isAnnual ? price.annualMonthly : price.monthly, currency);
 }
 
-function billingCaption(plan: PricingPlan, currency: 'INR' | 'USD', isAnnual: boolean) {
-  const rawPrice = isAnnual
-    ? (currency === 'INR' ? plan.priceINR.annualMonthly : plan.priceUSD.annualMonthly)
-    : (currency === 'INR' ? plan.priceINR.monthly : plan.priceUSD.monthly);
+function billingCaption(plan: PricingPlan, currency: PriceCurrency, isAnnual: boolean) {
+  const price = planPrice(plan, currency);
+  const rawPrice = isAnnual ? price.annualMonthly : price.monthly;
   if (typeof rawPrice === 'string') return 'Tailored quote';
   if (rawPrice === 0) return 'No charge';
   if (!isAnnual) return 'Billed monthly';
-  const yearly = Math.round(rawPrice * 12 * 100) / 100;
-  const yearlyLabel = currency === 'INR' ? `₹${yearly.toLocaleString('en-IN')}` : `$${yearly.toLocaleString('en-US')}`;
-  return `${yearlyLabel} billed yearly`;
+  return `${formatPlanAmount(planYearlyTotal(plan, currency), currency)} billed yearly`;
 }
 
 export default function PricingPage() {
@@ -34,7 +42,7 @@ export default function PricingPage() {
   const focusPlan = PRICING_PLANS.find((plan) => plan.id === searchParams.get('plan')) ?? null;
   const returnPath = focusPlan ? `/pricing?plan=${focusPlan.id}` : '/pricing';
   const [isAnnual, setIsAnnual] = useState(true);
-  const [currency, setCurrency] = useState<'INR' | 'USD'>('INR');
+  const [currency, setCurrency] = useState<PriceCurrency>(DEFAULT_CURRENCY);
   const [activeRole, setActiveRole] = useState<string>(focusPlan?.roleCategory ?? 'All Plans');
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const [planError, setPlanError] = useState<{ planId: string; message: string } | null>(null);
@@ -102,26 +110,19 @@ export default function PricingPage() {
 
       <div className="mb-8 flex flex-wrap items-center justify-center gap-6">
         <div className="flex items-center rounded-xl border border-slate-800 bg-slate-900 p-1" role="group" aria-label="Currency">
-          <button
-            type="button"
-            onClick={() => setCurrency('INR')}
-            aria-pressed={currency === 'INR'}
-            className={`cursor-pointer appearance-none rounded-lg border-0 px-3 py-1.5 text-xs font-bold transition-all ${
-              currency === 'INR' ? 'bg-cyan-500 text-slate-950 shadow' : 'bg-transparent text-slate-400 hover:text-white'
-            }`}
-          >
-            🇮🇳 INR (₹)
-          </button>
-          <button
-            type="button"
-            onClick={() => setCurrency('USD')}
-            aria-pressed={currency === 'USD'}
-            className={`cursor-pointer appearance-none rounded-lg border-0 px-3 py-1.5 text-xs font-bold transition-all ${
-              currency === 'USD' ? 'bg-cyan-500 text-slate-950 shadow' : 'bg-transparent text-slate-400 hover:text-white'
-            }`}
-          >
-            🌐 USD ($)
-          </button>
+          {CURRENCY_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => setCurrency(option.id)}
+              aria-pressed={currency === option.id}
+              className={`cursor-pointer appearance-none rounded-lg border-0 px-3 py-1.5 text-xs font-bold transition-all ${
+                currency === option.id ? 'bg-cyan-500 text-slate-950 shadow' : 'bg-transparent text-slate-400 hover:text-white'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
 
         <div className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2">
@@ -143,6 +144,12 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
+
+      {currency === 'AED' ? (
+        <p className="-mt-4 mb-8 text-center text-[11px] text-slate-500">
+          AED prices are converted from USD at the fixed rate of 3.6725. Your exact total is shown at checkout.
+        </p>
+      ) : null}
 
       <div className="mb-10 flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/80 p-1.5" role="tablist" aria-label="Plan categories">
         {PRICING_FILTERS.map((category) => {

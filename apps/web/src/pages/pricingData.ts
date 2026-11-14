@@ -18,6 +18,44 @@ export interface PricingPlan {
   features: string[];
 }
 
+export type PriceCurrency = 'AED' | 'USD' | 'INR';
+
+export const DEFAULT_CURRENCY: PriceCurrency = 'AED';
+
+/** The dirham is pegged to the dollar; AED checkout bills the USD product in AED. */
+export const AED_PER_USD = 3.6725;
+
+function toAed(value: number | string): number | string {
+  return typeof value === 'number' ? Math.round(value * AED_PER_USD * 100) / 100 : value;
+}
+
+export function planPrice(plan: PricingPlan, currency: PriceCurrency): PlanPrice {
+  if (currency === 'INR') return plan.priceINR;
+  if (currency === 'USD') return plan.priceUSD;
+  return { monthly: toAed(plan.priceUSD.monthly), annualMonthly: toAed(plan.priceUSD.annualMonthly) };
+}
+
+/** Yearly total for annual billing; AED is converted from the USD total so it matches checkout. */
+export function planYearlyTotal(plan: PricingPlan, currency: PriceCurrency): number | string {
+  const base = currency === 'INR' ? plan.priceINR.annualMonthly : plan.priceUSD.annualMonthly;
+  if (typeof base === 'string') return base;
+  const yearly = Math.round(base * 12 * 100) / 100;
+  return currency === 'AED' ? toAed(yearly) : yearly;
+}
+
+export function formatMoney(value: number, currency: PriceCurrency): string {
+  const digits = Number.isInteger(value) ? 0 : 2;
+  if (currency === 'INR') return `₹${value.toLocaleString('en-IN')}`;
+  const amount = value.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return currency === 'USD' ? `$${amount}` : `AED ${amount}`;
+}
+
+/** "Free", "Custom", or a formatted amount. */
+export function formatPlanAmount(value: number | string, currency: PriceCurrency): string {
+  if (typeof value === 'string') return value;
+  return value === 0 ? 'Free' : formatMoney(value, currency);
+}
+
 export const PRICING_FILTERS = ['All Plans', 'Students', 'Teachers', 'Tutor Centers', 'Schools', 'Parents'] as const;
 
 export const PRICING_PLANS: PricingPlan[] = [

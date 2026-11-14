@@ -113,28 +113,9 @@ function FeatureBanner() {
   );
 }
 
-function HeroAITutorCard() {
-  return (
-    <div className="group relative w-full">
-      <div className="absolute -inset-1 -z-10 animate-pulse rounded-2xl bg-cyan-500/10 blur-xl" />
-      <motion.div
-        animate={{ y: [0, -6, 0] }}
-        transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-        className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/80 shadow-[0_0_40px_rgba(6,182,212,0.15)]"
-      >
-        <img
-          src="/ai-tutor.png?v=4"
-          alt="MindVault AI assistant with teaching tools"
-          className="h-auto w-full rounded-2xl object-cover transition-transform duration-700 group-hover:scale-105"
-        />
-      </motion.div>
-    </div>
-  );
-}
-
 const QUIZ_OPTIONS = ['Carbon dioxide', 'Oxygen', 'Nitrogen', 'Hydrogen'];
 
-/** Light theme hero: three overlapping, gently floating cards. */
+/** Hero: three overlapping, gently floating cards. */
 function HeroShowcase({ startHref }: { startHref: string }) {
   return (
     <div className="bp-showcase relative mx-auto aspect-square w-full max-w-[640px]">
@@ -167,8 +148,8 @@ function HeroShowcase({ startHref }: { startHref: string }) {
         transition={{ repeat: Infinity, duration: 7, ease: 'easeInOut', delay: 0.6 }}
       >
         <div className="bp-show-card bp-show-quiz rounded-[20px] bg-white p-4 sm:p-5" style={{ ['--tilt' as string]: '-4deg' }}>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-600">Multiple choice quiz · Class 8</p>
-          <p className="mt-2 text-[14px] font-bold leading-snug text-slate-900 sm:text-[15px]">
+          <p className="bp-quiz-kicker text-[11px] font-bold uppercase tracking-[0.14em] text-blue-600">Multiple choice quiz · Class 8</p>
+          <p className="bp-quiz-question mt-2 text-[14px] font-bold leading-snug text-slate-900 sm:text-[15px]">
             Which gas do plants release during photosynthesis?
           </p>
           <ul className="mt-3 space-y-1.5">
@@ -177,8 +158,10 @@ function HeroShowcase({ startHref }: { startHref: string }) {
               return (
                 <li
                   key={option}
-                  className={`flex items-center justify-between rounded-lg px-3 py-1.5 text-[13px] ${
-                    correct ? 'bg-emerald-50 font-semibold text-emerald-700 ring-1 ring-emerald-300' : 'bg-slate-50 text-slate-600'
+                  className={`bp-quiz-option flex items-center justify-between rounded-lg px-3 py-1.5 text-[13px] ${
+                    correct
+                      ? 'bp-quiz-option--correct bg-emerald-50 font-semibold text-emerald-700 ring-1 ring-emerald-300'
+                      : 'bg-slate-50 text-slate-600'
                   }`}
                 >
                   {option}
@@ -580,12 +563,7 @@ export default function Landing() {
         <section className="bp-hero-section w-full space-y-12 px-4 py-8 sm:px-8 md:px-12 md:py-12 lg:px-16">
           <div className="grid w-full grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-16">
             <div className="order-2 flex w-full justify-center lg:col-span-5 lg:order-1 lg:justify-start">
-              <div className="bp-dark-only w-full">
-                <HeroAITutorCard />
-              </div>
-              <div className="bp-light-only w-full">
-                <HeroShowcase startHref={startHref} />
-              </div>
+              <HeroShowcase startHref={startHref} />
             </div>
             <div className="bp-hero-copy order-1 flex w-full flex-col items-start space-y-6 text-left lg:col-span-7 lg:order-2">
               <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white md:text-5xl lg:text-6xl">

@@ -1,4 +1,10 @@
 import { Link } from 'react-router-dom';
+import { DEFAULT_CURRENCY, PRICING_PLANS, formatPlanAmount, planPrice } from '@/pages/pricingData';
+
+function yearlyMonthlyPrice(planId: string): string {
+  const plan = PRICING_PLANS.find((p) => p.id === planId);
+  return plan ? formatPlanAmount(planPrice(plan, DEFAULT_CURRENCY).annualMonthly, DEFAULT_CURRENCY) : '';
+}
 
 type StackCard = {
   id: string;
@@ -7,14 +13,11 @@ type StackCard = {
   title: string;
   titleLines?: string[];
   features: string[];
-  image: string;
-  imageAlt: string;
-  imageClassName: string;
   imageLeft: boolean;
   eager?: boolean;
   stat?: { value: string; label: string };
   cta: { label: string; href: string; note: string; accent?: boolean };
-  /** Light theme: real photo with a coloured overlay. */
+  /** Real photo with a coloured overlay. */
   light: { image: string; imageAlt: string; label: string; tone: 'blue' | 'amber' | 'green' };
 };
 
@@ -30,17 +33,13 @@ const CARDS: StackCard[] = [
       'Your school’s name and branding',
       'Staff walkthrough on rollout',
     ],
-    image: '/safe-ai-tutor-hd.png?v=1',
-    imageAlt: 'Safe and secure AI tutor in classroom',
-    imageClassName:
-      'bp-hd-img aspect-[16/10] h-full w-full object-cover brightness-[1.02] contrast-[1.05] transition-transform duration-700 group-hover:scale-105 [image-rendering:-webkit-optimize-contrast]',
     imageLeft: false,
     eager: true,
-    stat: { value: 'From ₹11,999', label: 'per month for a school campus, billed yearly' },
+    stat: { value: `From ${yearlyMonthlyPrice('school')}`, label: 'per month for a school campus, billed yearly' },
     cta: { label: 'Book a school walkthrough', href: '/contact', note: 'See every school plan on the pricing page.', accent: true },
     light: {
       image: '/landing/schools.jpg',
-      imageAlt: 'Students in uniform walking across a school courtyard as the principal greets them',
+      imageAlt: 'Students walking across the courtyard of a modern Gulf school campus as the principal looks on',
       label: 'Schools',
       tone: 'blue',
     },
@@ -57,15 +56,12 @@ const CARDS: StackCard[] = [
       'Songs & podcasts with real audio',
       'Sharada, your AI assistant',
     ],
-    image: '/teacher-hologram.png',
-    imageAlt: 'Holographic AI Assistant supporting a teacher in classroom',
-    imageClassName: 'aspect-[4/3] h-full w-full object-cover transition-transform duration-700 group-hover:scale-105',
     imageLeft: true,
     stat: { value: '11 AI tools', label: 'free to start, no card needed' },
-    cta: { label: 'Start free as a teacher', href: '/register', note: 'Teacher Pro is ₹499/month, billed yearly.' },
+    cta: { label: 'Start free as a teacher', href: '/register', note: `Teacher Pro is ${yearlyMonthlyPrice('teacher-pro')}/month, billed yearly.` },
     light: {
       image: '/landing/teachers.jpg',
-      imageAlt: 'A teacher with a tablet explaining a lesson at the whiteboard as students raise their hands',
+      imageAlt: 'A teacher with a tablet beside a smart board quiz as students from many backgrounds raise their hands',
       label: 'Teachers',
       tone: 'amber',
     },
@@ -82,16 +78,12 @@ const CARDS: StackCard[] = [
       'Parents track progress',
       'English, Hindi & Arabic',
     ],
-    image: '/student-hologram.png',
-    imageAlt: 'Holographic AI assisting students with interactive learning',
-    imageClassName:
-      'aspect-[16/10] h-full w-full object-cover transition-transform duration-700 group-hover:scale-105',
     imageLeft: false,
     stat: { value: 'Free', label: 'Student Basic and Parent Basic plans' },
-    cta: { label: 'Start learning free', href: '/register', note: 'Student Pro is ₹149/month, billed yearly.' },
+    cta: { label: 'Start learning free', href: '/register', note: `Student Pro is ${yearlyMonthlyPrice('student-pro')}/month, billed yearly.` },
     light: {
       image: '/landing/students.jpg',
-      imageAlt: 'A student studying with a tablet at home while his mother looks on',
+      imageAlt: 'A mother and her two children playing a learning game on a laptop at home',
       label: 'Students & Parents',
       tone: 'green',
     },
@@ -144,27 +136,18 @@ function CardShowcase({ card }: { card: StackCard }) {
   return (
     <div className="bp-stack-media group relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900/60 shadow-[0_0_30px_rgba(6,182,212,0.15)]">
       <img
-        src={card.image}
-        alt={card.imageAlt}
-        width={1920}
-        height={1080}
-        loading={card.eager ? 'eager' : 'lazy'}
-        decoding="async"
-        className={`bp-dark-only ${card.imageClassName}`}
-      />
-      <img
         src={card.light.image}
         alt={card.light.imageAlt}
         width={1024}
         height={576}
-        loading="lazy"
+        loading={card.eager ? 'eager' : 'lazy'}
         decoding="async"
-        className="bp-light-only aspect-[16/10] h-auto w-full object-cover transition-transform duration-700 group-hover:scale-105"
+        className="block aspect-[16/10] h-auto w-full object-cover transition-transform duration-700 group-hover:scale-105"
       />
-      <div className="bp-stack-overlay bp-light-only" aria-hidden="true" />
+      <div className="bp-stack-overlay" aria-hidden="true" />
       {card.stat ? (
         <div className="bp-stack-stat absolute bottom-4 left-4 right-4 rounded-xl border border-cyan-500/40 bg-slate-950/90 p-4 shadow-xl backdrop-blur-md sm:right-auto sm:max-w-xs">
-          <p className="bp-stack-label bp-light-only">{card.light.label}</p>
+          <p className="bp-stack-label">{card.light.label}</p>
           <p className="text-2xl font-extrabold text-cyan-400">{card.stat.value}</p>
           <p className="text-base font-medium leading-snug text-slate-200">{card.stat.label}</p>
         </div>

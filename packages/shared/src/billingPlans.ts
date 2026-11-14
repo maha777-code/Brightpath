@@ -1,6 +1,14 @@
 import type { AppRole, PlanType } from './rbac.js';
 
 export type BillingCurrency = 'INR' | 'USD';
+
+/** Currencies a customer can check out in. AED bills the USD product through Dodo adaptive currency. */
+export const CHECKOUT_CURRENCIES = ['AED', 'USD', 'INR'] as const;
+export type CheckoutCurrency = (typeof CHECKOUT_CURRENCIES)[number];
+
+export function productCurrencyFor(currency: CheckoutCurrency): BillingCurrency {
+  return currency === 'AED' ? 'USD' : currency;
+}
 export type BillingCycle = 'monthly' | 'annual';
 
 export const CHECKOUT_PLAN_IDS = [

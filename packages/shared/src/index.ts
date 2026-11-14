@@ -668,12 +668,14 @@ export {
 } from './categoryPlans.js';
 export type { AccountCategory, CategoryPlan } from './categoryPlans.js';
 export {
+  CHECKOUT_CURRENCIES,
   CHECKOUT_PLAN_IDS,
   CHECKOUT_PLANS,
   dodoProductEnvKey,
   isCheckoutPlanId,
+  productCurrencyFor,
 } from './billingPlans.js';
-export type { BillingCurrency, BillingCycle, CheckoutPlan, CheckoutPlanId } from './billingPlans.js';
+export type { BillingCurrency, BillingCycle, CheckoutCurrency, CheckoutPlan, CheckoutPlanId } from './billingPlans.js';
 export {
   cleanLessonSource,
   classroomLessonPlanFallback,

@@ -468,7 +468,7 @@ export const api = {
       { method: 'POST', body: JSON.stringify(body) },
     ),
 
-  createDodoCheckout: (body: { planId: string; currency: 'INR' | 'USD'; interval: 'monthly' | 'annual' }) =>
+  createDodoCheckout: (body: { planId: string; currency: 'AED' | 'USD' | 'INR'; interval: 'monthly' | 'annual' }) =>
     request<{ checkoutUrl: string; sessionId: string }>('/payments/dodo/checkout', {
       method: 'POST',
       body: JSON.stringify(body),
