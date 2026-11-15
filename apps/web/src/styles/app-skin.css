@@ -1,0 +1,345 @@
+/* -- App-wide colourful skin --
+   Brings the landing page palette (blue → violet → pink) to every other page.
+   Loaded after color-theme.css so equal-specificity rules here win. The landing page
+   (.bp-landing) has its own styles and is excluded. */
+
+/* Canvas: pastel mesh in light, aurora in dark */
+html[data-theme='light'] body {
+  background:
+    radial-gradient(60rem 42rem at -10% -10%, rgba(255, 190, 160, 0.6), transparent 70%),
+    radial-gradient(60rem 40rem at 50% -25%, rgba(205, 180, 255, 0.62), transparent 70%),
+    radial-gradient(62rem 46rem at 110% 5%, rgba(160, 205, 255, 0.7), transparent 70%),
+    radial-gradient(56rem 42rem at 85% 110%, rgba(255, 196, 228, 0.62), transparent 70%),
+    radial-gradient(46rem 36rem at -5% 105%, rgba(190, 240, 225, 0.5), transparent 70%),
+    #f8f6ff !important;
+  background-attachment: fixed !important;
+}
+
+html[data-theme='dark'] body {
+  background:
+    radial-gradient(58rem 42rem at -10% 0%, rgba(124, 58, 237, 0.45), transparent 70%),
+    radial-gradient(52rem 40rem at 110% 10%, rgba(219, 39, 119, 0.3), transparent 70%),
+    radial-gradient(58rem 42rem at 70% 115%, rgba(37, 99, 235, 0.32), transparent 70%),
+    #070b1a !important;
+  background-attachment: fixed !important;
+}
+
+html[data-theme] #root,
+html[data-theme] .app:has(.td-dash),
+html[data-theme] body:has(.td-dash) .app {
+  background: transparent !important;
+}
+
+html[data-theme] .td-dash {
+  --td-bg: transparent;
+}
+
+/* Full-page wrappers let the canvas show through */
+html[data-theme] :is([class*='min-h-screen'], [class*='min-h-dvh'])[class*='bg-']:not(.bp-landing, .bp-landing *) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Marketing pages that share the landing shell (FAQ, Compare, Contact, policies) */
+html[data-theme] .bp-landing:not(.bp-home) .bp-bg {
+  background: transparent !important;
+}
+
+html[data-theme] .bp-landing:not(.bp-home) .bp-bg::after {
+  display: none;
+}
+
+html[data-theme] :is(.bp-landing:not(.bp-home), .bp-policy) .bp-btn {
+  border-radius: 999px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+html[data-theme] :is(.bp-landing:not(.bp-home), .bp-policy) .bp-btn--primary,
+html[data-theme] :is(.bp-landing:not(.bp-home), .bp-policy) .bp-btn--primary:link,
+html[data-theme] :is(.bp-landing:not(.bp-home), .bp-policy) .bp-btn--primary:visited {
+  background: linear-gradient(100deg, #2563eb 0%, #7c3aed 62%, #c026d3 100%) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 26px -12px rgba(91, 33, 182, 0.75) !important;
+}
+
+html[data-theme='light'] :is(.bp-landing:not(.bp-home), .bp-policy) .bp-btn--outline {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: #c4b5fd !important;
+  color: #5b21b6 !important;
+}
+
+html[data-theme='light'] :is(.bp-landing:not(.bp-home), .bp-policy) .bp-btn--outline:hover {
+  background: #f5f3ff !important;
+  border-color: #8b5cf6 !important;
+}
+
+html[data-theme='dark'] :is(.bp-landing:not(.bp-home), .bp-policy) .bp-btn--outline {
+  background: rgba(139, 92, 246, 0.1) !important;
+  border-color: rgba(167, 139, 250, 0.55) !important;
+  color: #ddd6fe !important;
+}
+
+html[data-theme] :is(.bp-landing:not(.bp-home), .bp-policy) .bp-btn--primary:hover {
+  filter: brightness(1.08);
+}
+
+/* Cards: soft lavender edge and a deeper, coloured shadow */
+html[data-theme='light'] :where(
+  [class*='rounded-lg'],
+  [class*='rounded-xl'],
+  [class*='rounded-2xl'],
+  [class*='rounded-3xl']
+):where(
+  [class*='border-slate-'],
+  [class*='border-white'],
+  [class*='border-cyan-9'],
+  [class*='border-cyan-8']
+) {
+  border-color: #e7e2f8;
+  box-shadow: 0 1px 2px rgba(30, 27, 75, 0.04), 0 14px 32px -20px rgba(76, 29, 149, 0.3);
+}
+
+html[data-theme='light'] .td-header,
+html[data-theme='light'] .td-card {
+  border-color: #e7e2f8;
+  box-shadow: 0 1px 2px rgba(30, 27, 75, 0.04), 0 14px 32px -20px rgba(76, 29, 149, 0.3);
+}
+
+/* Primary actions: blue → violet gradient pill-style button with white text */
+html[data-theme] :is(button, a):is([class~='bg-cyan-400'], [class~='bg-cyan-500'], [class~='bg-cyan-600']):not(.bp-landing *) {
+  background-color: #4f46e5 !important;
+  background-image: linear-gradient(100deg, #2563eb 0%, #7c3aed 62%, #c026d3 100%) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px -12px rgba(91, 33, 182, 0.75) !important;
+}
+
+html[data-theme] :is(button, a):is([class~='bg-cyan-400'], [class~='bg-cyan-500'], [class~='bg-cyan-600']):not(.bp-landing *) * {
+  color: #ffffff !important;
+}
+
+html[data-theme] :is(button, a):is([class~='bg-cyan-400'], [class~='bg-cyan-500'], [class~='bg-cyan-600']):not(.bp-landing *):hover:not(:disabled) {
+  filter: brightness(1.08) saturate(1.05);
+}
+
+html[data-theme] button.bp-auth-submit {
+  background: linear-gradient(100deg, #2563eb 0%, #7c3aed 62%, #c026d3 100%) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  box-shadow: 0 14px 30px -14px rgba(91, 33, 182, 0.8) !important;
+}
+
+html[data-theme] button.bp-auth-submit * {
+  color: #ffffff !important;
+}
+
+html[data-theme] button.bp-auth-submit:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* Muted grey text is too dim on the dark canvas */
+html[data-theme='dark'] :is([class~='text-slate-500'], [class~='text-slate-600'], [class~='text-gray-500'], [class~='text-gray-600']) {
+  color: #9aa8bf !important;
+}
+
+/* Page titles: gradient text (titles with icons keep solid colour so icons stay visible) */
+html[data-theme='light'] h1[class*='font-']:not(:has(svg, img)):not(.bp-landing *, .mv-presentation *, .mv-slide-frame *, .quiz-editor *) {
+  background-image: linear-gradient(90deg, #1e3a8a 0%, #4f46e5 45%, #9333ea 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent;
+}
+
+html[data-theme='dark'] h1[class*='font-']:not(:has(svg, img)):not(.bp-landing *, .mv-presentation *, .mv-slide-frame *, .quiz-editor *) {
+  background-image: linear-gradient(90deg, #bfdbfe 0%, #c4b5fd 50%, #f9a8d4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Accent text and chips move from teal to indigo/violet in light */
+html[data-theme='light'] :where(
+  [class*='text-cyan-200'],
+  [class*='text-cyan-300'],
+  [class*='text-cyan-400']
+) {
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] :where([class*='bg-cyan-950']):not([class*='hover:bg-cyan-950']) {
+  background-color: #eef2ff !important;
+}
+
+html[data-theme='light'] :where([class*='bg-cyan-500/'], [class*='bg-cyan-400/']) {
+  background-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+html[data-theme='light'] :where([class*='border-cyan-500'], [class*='border-cyan-400']) {
+  border-color: #c4b5fd !important;
+}
+
+/* Dark accents follow the landing page: periwinkle text, violet tints */
+html[data-theme='dark'] :where([class~='text-cyan-200'], [class~='text-cyan-300'], [class~='text-cyan-400']):not(.bp-landing *) {
+  color: #a5b4fc !important;
+}
+
+html[data-theme='dark'] :where([class*='bg-cyan-950']):not([class*='hover:bg-cyan-950']):not(.bp-landing *) {
+  background-color: rgba(76, 29, 149, 0.28) !important;
+}
+
+html[data-theme='dark'] :where([class*='bg-cyan-500/'], [class*='bg-cyan-400/']):not(.bp-landing *) {
+  background-color: rgba(139, 92, 246, 0.14) !important;
+}
+
+html[data-theme='dark'] :where([class*='border-cyan-500'], [class*='border-cyan-400']):not(.bp-landing *) {
+  border-color: rgba(167, 139, 250, 0.45) !important;
+}
+
+html[data-theme='dark'] .bp-auth-back,
+html[data-theme='dark'] .bp-auth-back:is(:link, :visited) {
+  color: #c4b5fd !important;
+  background: rgba(139, 92, 246, 0.12) !important;
+  border-color: rgba(167, 139, 250, 0.4) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .bp-auth-back:hover {
+  color: #ede9fe !important;
+  border-color: #a78bfa !important;
+}
+
+html[data-theme='light'] .bp-auth-back,
+html[data-theme='light'] .bp-auth-back:is(:link, :visited) {
+  color: #5b21b6 !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: #c4b5fd !important;
+  box-shadow: 0 6px 16px -10px rgba(91, 33, 182, 0.5) !important;
+}
+
+/* Dark content panels: indigo glass instead of flat navy */
+html[data-theme='dark'] .bp-policy > div:first-child,
+html[data-theme='dark'] [class~='rounded-3xl']:is([class*='bg-slate-900'], [class*='bg-slate-950']):not(.bp-landing *),
+html[data-theme='dark'] .td-card {
+  background: linear-gradient(160deg, rgba(30, 27, 75, 0.72), rgba(15, 20, 42, 0.88)) !important;
+  border-color: rgba(167, 139, 250, 0.28) !important;
+  box-shadow: 0 30px 70px -40px rgba(124, 58, 237, 0.65) !important;
+}
+
+/* Pale -400 status and badge text was written for dark panels; darken it on light surfaces */
+html[data-theme='light'] :where([class*='text-emerald-400'], [class*='text-green-300'], [class*='text-green-400']) {
+  color: #047857 !important;
+}
+
+html[data-theme='light'] :where([class*='text-amber-400'], [class*='text-yellow-300'], [class*='text-yellow-400'], [class*='text-orange-300'], [class*='text-orange-400']) {
+  color: #b45309 !important;
+}
+
+html[data-theme='light'] :where([class*='text-violet-400'], [class*='text-purple-400'], [class*='text-fuchsia-300'], [class*='text-fuchsia-400']) {
+  color: #6d28d9 !important;
+}
+
+html[data-theme='light'] :where([class*='text-sky-300'], [class*='text-sky-400'], [class*='text-blue-300'], [class*='text-blue-400'], [class*='text-indigo-300'], [class*='text-indigo-400']) {
+  color: #1d4ed8 !important;
+}
+
+html[data-theme='light'] :where([class*='text-pink-300'], [class*='text-pink-400']) {
+  color: #be185d !important;
+}
+
+html[data-theme='light'] :where([class*='text-teal-300'], [class*='text-teal-400']) {
+  color: #0f766e !important;
+}
+
+/* Solid saturated buttons keep white text in light */
+html[data-theme='light'] :is(
+  [class~='bg-purple-500'], [class~='bg-purple-600'], [class~='bg-purple-700'],
+  [class~='bg-violet-600'], [class~='bg-violet-700'],
+  [class~='bg-indigo-500'], [class~='bg-indigo-600'], [class~='bg-indigo-700'],
+  [class~='bg-blue-600'], [class~='bg-blue-700'],
+  [class~='bg-fuchsia-600'], [class~='bg-pink-600'],
+  [class~='bg-rose-600'], [class~='bg-red-600'], [class~='bg-emerald-600'], [class~='bg-green-600']
+):is([class*='text-white'], :has(> [class*='text-white'])) {
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] :is(
+  [class~='bg-purple-500'], [class~='bg-purple-600'], [class~='bg-purple-700'],
+  [class~='bg-violet-600'], [class~='bg-violet-700'],
+  [class~='bg-indigo-500'], [class~='bg-indigo-600'], [class~='bg-indigo-700'],
+  [class~='bg-blue-600'], [class~='bg-blue-700'],
+  [class~='bg-fuchsia-600'], [class~='bg-pink-600'],
+  [class~='bg-rose-600'], [class~='bg-red-600'], [class~='bg-emerald-600'], [class~='bg-green-600']
+) [class*='text-white'] {
+  color: #ffffff !important;
+}
+
+/* Sidebar */
+html[data-theme='light'] .mv-side-link--active {
+  border-left-color: #7c3aed !important;
+  background: linear-gradient(90deg, #ede9fe 0%, #fdf4ff 100%) !important;
+  color: #5b21b6 !important;
+  box-shadow: 0 8px 18px rgba(124, 58, 237, 0.14) !important;
+}
+
+html[data-theme='light'] .mv-side-link--active svg,
+html[data-theme='light'] .mv-side-link--active .mv-side-link-detail {
+  color: #6d28d9 !important;
+}
+
+html[data-theme='light'] .mv-side-link:not(.mv-side-link--active):hover {
+  background: #f5f3ff !important;
+  color: #5b21b6 !important;
+}
+
+html[data-theme='dark'] .mv-side-link--active {
+  border-left-color: #a78bfa !important;
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.28) 0%, rgba(124, 58, 237, 0.06) 100%) !important;
+}
+
+html[data-theme='light'] .mv-image-chip {
+  border-color: #c4b5fd !important;
+  background: linear-gradient(90deg, #eef2ff 0%, #fae8ff 100%) !important;
+  color: #5b21b6 !important;
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.14);
+}
+
+html[data-theme='light'] .mv-image-chip:hover {
+  border-color: #7c3aed !important;
+  color: #4c1d95 !important;
+}
+
+/* Form focus */
+html[data-theme='light'] [class*='focus-within:border-cyan']:focus-within,
+html[data-theme='light'] [class*='focus:border-cyan']:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.16);
+}
+
+html[data-theme='light'] :where(textarea, select, input):not([class*='border-0']):not([class*='border-none']):not([class*='bg-transparent']):focus-visible {
+  outline-color: #7c3aed;
+}
+
+/* Pricing page */
+.mv-price-card {
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+
+html[data-theme='light'] .mv-price-card:hover {
+  box-shadow: 0 24px 44px -22px rgba(79, 70, 229, 0.45) !important;
+}
+
+html[data-theme='light'] .mv-price-card.mv-price-pro {
+  background: linear-gradient(160deg, #eef2ff 0%, #faf5ff 55%, #fdf2f8 100%) !important;
+  border-color: #c4b5fd !important;
+  box-shadow: 0 24px 50px -26px rgba(124, 58, 237, 0.5) !important;
+}
+
+html[data-theme='dark'] .mv-price-card.mv-price-pro {
+  background: linear-gradient(160deg, rgba(79, 70, 229, 0.32) 0%, rgba(147, 51, 234, 0.2) 60%, rgba(15, 23, 42, 0.9) 100%) !important;
+  border-color: rgba(167, 139, 250, 0.55) !important;
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.2), 0 24px 50px -24px rgba(124, 58, 237, 0.6) !important;
+}

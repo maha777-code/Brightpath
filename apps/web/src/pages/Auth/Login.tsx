@@ -74,7 +74,7 @@ export default function Login() {
           <BrandLogo
             variant="stacked"
             to="/"
-            imgClassName="h-40 w-auto object-contain"
+            imgClassName="h-28 w-auto"
           />
         </div>
 

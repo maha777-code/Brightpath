@@ -180,7 +180,7 @@ export default function PricingPage() {
           <article
             key={plan.id}
             id={`plan-${plan.id}`}
-            className={`relative flex flex-col justify-between rounded-3xl border bg-slate-900/90 p-6 shadow-xl backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] ${
+            className={`mv-price-card ${plan.isPro ? 'mv-price-pro' : ''} relative flex flex-col justify-between rounded-3xl border bg-slate-900/90 p-6 shadow-xl backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] ${
               focused
                 ? 'border-amber-400 ring-2 ring-amber-400/40 shadow-[0_0_35px_rgba(251,191,36,0.25)]'
                 : plan.isPro

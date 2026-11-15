@@ -12,6 +12,8 @@ import './styles/global.css';
 import './styles/landing.css';
 import './index.css';
 import './styles/color-theme.css';
+import './styles/app-skin.css';
+import './styles/account-menu.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

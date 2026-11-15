@@ -1,15 +1,15 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, CreditCard, Settings, SunMedium, UserRound } from 'lucide-react';
+import { ArrowRight, Building2, ChevronRight, CreditCard, LogOut, Moon, Settings, Sparkles, SunMedium } from 'lucide-react';
 import { useColorTheme, type ColorTheme } from '@/context/ColorTheme';
 import { useAuth } from '@/context/AuthContext';
 import { useDisplayUser } from '@/lib/displayUser';
 import { api } from '@/lib/api';
 import { PRICING_PLANS } from '@/pages/pricingData';
 
-const THEMES: { id: ColorTheme; label: string }[] = [
-  { id: 'light', label: 'Light' },
-  { id: 'dark', label: 'Dark' },
+const THEMES: { id: ColorTheme; label: string; icon: typeof SunMedium }[] = [
+  { id: 'light', label: 'Light', icon: SunMedium },
+  { id: 'dark', label: 'Dark', icon: Moon },
 ];
 
 const BASIC_PLANS = new Set(['free', 'teacher_free', 'student_free', 'parent_free']);
@@ -34,20 +34,24 @@ const ROLE_LABEL: Record<string, string> = {
   center_admin: 'Center admin',
 };
 
+const ADMIN_SETTINGS: Record<string, { label: string; path: string }> = {
+  org_admin: { label: 'School settings', path: '/admin/school-dashboard/settings' },
+  center_admin: { label: 'Center settings', path: '/admin/center-dashboard/settings' },
+};
+
 function isBasicPlan(plan: string | null | undefined) {
   return !plan || BASIC_PLANS.has(plan);
 }
 
-function planCopy(planType: string | null | undefined, interval: string | null | undefined) {
+function planTitle(planType: string | null | undefined) {
   const catalogId = PLAN_CATALOG[planType ?? ''] ?? '';
-  const plan = PRICING_PLANS.find((item) => item.id === catalogId);
-  const yearly = interval === 'yearly' || interval === 'annual';
-  const amount = plan ? (yearly ? plan.priceUSD.annualMonthly : plan.priceUSD.monthly) : 0;
-  const price = typeof amount === 'string' ? amount : amount === 0 ? '$0/mo' : `$${amount}/mo`;
-  return {
-    title: plan?.title ?? 'Current plan',
-    price,
-  };
+  return PRICING_PLANS.find((item) => item.id === catalogId)?.title ?? (isBasicPlan(planType) ? 'Free plan' : 'Current plan');
+}
+
+function intervalCopy(interval: string | null | undefined) {
+  if (interval === 'yearly' || interval === 'annual') return 'Billed yearly';
+  if (interval === 'monthly') return 'Billed monthly';
+  return null;
 }
 
 function resetCopy(iso: string | null | undefined) {
@@ -56,22 +60,56 @@ function resetCopy(iso: string | null | undefined) {
   if (Number.isNaN(date.getTime())) return 'Renewal date appears after the first successful payment.';
   const days = Math.max(0, Math.ceil((date.getTime() - Date.now()) / 86_400_000));
   const formatted = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  return `Resets on ${formatted} (${days} day${days === 1 ? '' : 's'})`;
+  return `Renews on ${formatted} (${days} day${days === 1 ? '' : 's'})`;
+}
+
+function initials(name: string) {
+  const parts = name.replace(/[^\p{L}\p{N}\s]/gu, ' ').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'MV';
+  const first = parts[0][0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] ?? '' : '';
+  return (first + last).toUpperCase();
+}
+
+function MenuRow({
+  icon,
+  tone,
+  label,
+  detail,
+  onClick,
+}: {
+  icon: ReactNode;
+  tone: 'blue' | 'violet' | 'pink' | 'amber';
+  label: string;
+  detail?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" role="menuitem" className="mv-acct-row" onClick={onClick}>
+      <span className="mv-acct-tile" data-tone={tone}>
+        {icon}
+      </span>
+      <span className="mv-acct-row-text">
+        <span className="mv-acct-row-label">{label}</span>
+        {detail ? <span className="mv-acct-row-detail">{detail}</span> : null}
+      </span>
+      <ChevronRight className="mv-acct-chevron h-4 w-4 shrink-0" aria-hidden="true" />
+    </button>
+  );
 }
 
 export function ProfileSettingsMenu({ expand = 'up' }: { expand?: 'up' | 'down' }) {
   const navigate = useNavigate();
   const { theme, setTheme } = useColorTheme();
-  const { user, teacher, parent, organization, role, planType } = useAuth();
+  const { user, teacher, parent, organization, role, planType, logout } = useAuth();
   const { userName, schoolName } = useDisplayUser();
   const [open, setOpen] = useState(false);
-  const [section, setSection] = useState<'plan' | 'profile' | 'appearance' | null>(null);
   const [billing, setBilling] = useState<{ interval: string | null; nextBillingDate: string | null; planType: string | null } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
 
   const activePlan = billing?.planType ?? organization?.planType ?? planType ?? user?.planType ?? null;
-  const showUpgrade = isBasicPlan(activePlan);
+  const basic = isBasicPlan(activePlan);
 
   useEffect(() => {
     if (!role) return;
@@ -95,16 +133,10 @@ export function ProfileSettingsMenu({ expand = 'up' }: { expand?: 'up' | 'down' 
   useEffect(() => {
     if (!open) return;
     const onPointer = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-        setSection(null);
-      }
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false);
-        setSection(null);
-      }
+      if (event.key === 'Escape') setOpen(false);
     };
     document.addEventListener('mousedown', onPointer);
     document.addEventListener('keydown', onKey);
@@ -115,10 +147,15 @@ export function ProfileSettingsMenu({ expand = 'up' }: { expand?: 'up' | 'down' 
   }, [open]);
 
   const goPricing = () => navigate('/pricing');
-  const copy = planCopy(activePlan, billing?.interval);
-  const memberSince = user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—';
-  const email = user?.email || teacher?.email || parent?.email || '—';
+  const title = planTitle(activePlan);
+  const interval = intervalCopy(billing?.interval);
+  const memberSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+    : '—';
+  const email = user?.email || teacher?.email || parent?.email || '';
   const subject = teacher?.subjectFocus?.trim();
+  const school = organization?.name || schoolName;
+  const adminSettings = ADMIN_SETTINGS[role ?? ''];
 
   const manage = async () => {
     try {
@@ -131,8 +168,9 @@ export function ProfileSettingsMenu({ expand = 'up' }: { expand?: 'up' | 'down' 
 
   return (
     <div ref={rootRef} className="mv-settings mb-3 px-3" data-expand={expand}>
-      {showUpgrade ? (
+      {basic ? (
         <button type="button" className="mv-upgrade-btn" onClick={goPricing}>
+          <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
           Upgrade to Pro
         </button>
       ) : null}
@@ -140,94 +178,129 @@ export function ProfileSettingsMenu({ expand = 'up' }: { expand?: 'up' | 'down' 
         type="button"
         className="mv-settings-btn"
         aria-expanded={open}
+        aria-haspopup="menu"
         aria-controls={menuId}
-        onClick={() => {
-          setOpen((value) => !value);
-          setSection(null);
-        }}
+        onClick={() => setOpen((value) => !value)}
       >
         <Settings className="h-4 w-4 shrink-0" />
         <span className="min-w-0 flex-1">Settings</span>
       </button>
 
       {open ? (
-        <div id={menuId} className="mv-settings-panel" role="menu">
-          <div className="mv-settings-row">
-            <button type="button" className="mv-settings-item" aria-expanded={section === 'plan'} onClick={() => setSection((value) => (value === 'plan' ? null : 'plan'))}>
-              <CreditCard className="h-4 w-4 shrink-0" />
-              <span className="min-w-0 flex-1">Plan & Usage</span>
-              <ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
-            </button>
-            {section === 'plan' ? (
-              <div className="mv-settings-flyout">
-                <div className="mv-plan-card">
-                  <p className="mv-plan-kicker">Current plan</p>
-                  <p className="mv-plan-title">
-                    {copy.title} <span>{copy.price}</span>
-                  </p>
-                  <p className="mv-plan-meta">
-                    {isBasicPlan(activePlan) ? 'No renewal charge on this plan.' : resetCopy(billing?.nextBillingDate)}
-                  </p>
-                  <button type="button" className="mv-settings-item" onClick={() => void manage()}>
-                    Manage
-                  </button>
-                </div>
+        <div id={menuId} className="mv-acct" role="menu" aria-label="Account and settings">
+          <div className="mv-acct-head">
+            <span className="mv-acct-avatar" aria-hidden="true">
+              {initials(userName)}
+            </span>
+            <div className="mv-acct-id">
+              <p className="mv-acct-name">{userName}</p>
+              {email ? <p className="mv-acct-email">{email}</p> : null}
+            </div>
+            <span className="mv-acct-badge" data-pro={basic ? undefined : ''}>
+              {basic ? null : <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />}
+              {title}
+            </span>
+          </div>
+
+          <dl className="mv-acct-facts">
+            <div>
+              <dt>Role</dt>
+              <dd>{ROLE_LABEL[role ?? ''] ?? role ?? '—'}</dd>
+            </div>
+            {school ? (
+              <div>
+                <dt>School</dt>
+                <dd>{school}</dd>
               </div>
+            ) : null}
+            {subject ? (
+              <div>
+                <dt>Subject</dt>
+                <dd>{subject}</dd>
+              </div>
+            ) : null}
+            <div>
+              <dt>Member since</dt>
+              <dd>{memberSince}</dd>
+            </div>
+          </dl>
+
+          <div className="mv-acct-plan">
+            <p className="mv-acct-plan-kicker">Plan &amp; billing</p>
+            <p className="mv-acct-plan-title">
+              {title}
+              {interval ? <span>{interval}</span> : null}
+            </p>
+            <p className="mv-acct-plan-meta">
+              {basic ? 'Free plan, no renewal charge.' : resetCopy(billing?.nextBillingDate)}
+            </p>
+            <button type="button" className="mv-acct-plan-link" onClick={basic ? goPricing : () => void manage()}>
+              {basic ? 'Upgrade to Pro' : 'Manage subscription'}
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          </div>
+
+          <p className="mv-acct-label">Account</p>
+          <div className="mv-acct-list">
+            {basic ? null : (
+              <MenuRow
+                icon={<CreditCard className="h-4 w-4" />}
+                tone="violet"
+                label="Billing & invoices"
+                detail="Payment method and receipts"
+                onClick={() => void manage()}
+              />
+            )}
+            <MenuRow
+              icon={<Sparkles className="h-4 w-4" />}
+              tone="blue"
+              label="Plans & pricing"
+              detail="Compare every plan"
+              onClick={goPricing}
+            />
+            {adminSettings ? (
+              <MenuRow
+                icon={<Building2 className="h-4 w-4" />}
+                tone="amber"
+                label={adminSettings.label}
+                onClick={() => navigate(adminSettings.path)}
+              />
             ) : null}
           </div>
 
-          <div className="mv-settings-row">
-            <button type="button" className="mv-settings-item" aria-expanded={section === 'profile'} onClick={() => setSection((value) => (value === 'profile' ? null : 'profile'))}>
-              <UserRound className="h-4 w-4 shrink-0" />
-              <span className="min-w-0 flex-1">User profile</span>
-              <ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
-            </button>
-            {section === 'profile' ? (
-              <div className="mv-settings-flyout">
-                <dl className="mv-profile-card">
-                  <div><dt>Name</dt><dd>{userName}</dd></div>
-                  <div><dt>Email</dt><dd>{email}</dd></div>
-                  <div><dt>Role</dt><dd>{ROLE_LABEL[role ?? ''] ?? role ?? '—'}</dd></div>
-                  <div><dt>School</dt><dd>{organization?.name || schoolName || '—'}</dd></div>
-                  {subject ? <div><dt>Subject</dt><dd>{subject}</dd></div> : null}
-                  <div><dt>Plan</dt><dd>{copy.title}</dd></div>
-                  <div><dt>Member since</dt><dd>{memberSince}</dd></div>
-                </dl>
-              </div>
-            ) : null}
+          <p className="mv-acct-label">Appearance</p>
+          <div className="mv-acct-seg" role="radiogroup" aria-label="Theme">
+            {THEMES.map((option) => {
+              const selected = theme === option.id;
+              const Icon = option.icon;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  className="mv-acct-seg-btn"
+                  onClick={() => setTheme(option.id)}
+                >
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="mv-settings-row">
-            <button type="button" className="mv-settings-item" aria-expanded={section === 'appearance'} onClick={() => setSection((value) => (value === 'appearance' ? null : 'appearance'))}>
-              <SunMedium className="h-4 w-4 shrink-0" />
-              <span className="min-w-0 flex-1">Theme</span>
-              <ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
-            </button>
-            {section === 'appearance' ? (
-              <div className="mv-settings-flyout" role="group" aria-label="Theme">
-                {THEMES.map((option) => {
-                  const selected = theme === option.id;
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      className="mv-settings-item mv-settings-choice"
-                      aria-checked={selected}
-                      role="menuitemradio"
-                      onClick={() => setTheme(option.id)}
-                    >
-                      <span className="min-w-0 flex-1">{option.label}</span>
-                      {selected ? <span aria-hidden="true">●</span> : null}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-
-          <button type="button" className="mv-settings-item" onClick={goPricing}>
-            <CreditCard className="h-4 w-4 shrink-0" />
-            <span className="min-w-0 flex-1">View subscription</span>
+          <button
+            type="button"
+            role="menuitem"
+            className="mv-acct-logout"
+            onClick={() => {
+              setOpen(false);
+              logout();
+              navigate('/login');
+            }}
+          >
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            Log out
           </button>
         </div>
       ) : null}
