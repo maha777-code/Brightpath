@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react';
-import { Check, Copy, Download, ExternalLink, Loader2, Sparkles, X } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { Check, Copy, Download, ExternalLink, Loader2, Sparkles, Star, X } from 'lucide-react';
 import {
   GAMIFIED_ACTIVITY_OPTIONS,
   LESSON_PLAN_GRADE_LEVELS,
@@ -13,6 +14,27 @@ import {
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { AddFileMenu } from '@/components/tools/AddFileMenu';
+import {
+  TOOL_ACCENT_BUTTON,
+  TOOL_BREADCRUMB,
+  TOOL_BREADCRUMB_LINK,
+  TOOL_CARD,
+  TOOL_CHOICE,
+  TOOL_ERROR,
+  TOOL_FIELD,
+  TOOL_GENERATE,
+  TOOL_HINT,
+  TOOL_ICON_BUTTON,
+  TOOL_LABEL,
+  TOOL_MUTED,
+  TOOL_PAGE,
+  TOOL_PANEL,
+  TOOL_SECONDARY,
+  TOOL_SECTION_TITLE,
+  TOOL_SUBTITLE,
+  TOOL_TEXTAREA_SHORT,
+  TOOL_TITLE,
+} from '@/components/tools/toolTheme';
 import {
   documentContext,
   documentImages,
@@ -53,6 +75,25 @@ export function GamifiedActivityGenerator() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GamifiedActivityResponse | null>(null);
   const [copied, setCopied] = useState<'html' | 'markdown' | null>(null);
+  const [favorited, setFavorited] = useState(false);
+
+  useEffect(() => {
+    void api
+      .teacherTools()
+      .then((res) => setFavorited(res.favoriteIds.includes('gamified-activity')))
+      .catch(() => undefined);
+  }, []);
+
+  const toggleFavorite = () => {
+    setFavorited((value) => !value);
+    void api.toggleTeacherToolFavorite('gamified-activity').then((res) => setFavorited(res.favorited)).catch(() => undefined);
+  };
+
+  const showExemplar = () => {
+    setSubject('Science');
+    setGradeLevel('8th grade');
+    setTopic('Photosynthesis & cellular respiration: inputs, outputs, where each happens in the cell, and how the two processes depend on each other.');
+  };
 
   const option = getGamifiedActivityOption(kind);
   const processing = files.some((file) => file.isProcessing);
@@ -124,126 +165,129 @@ export function GamifiedActivityGenerator() {
   };
 
   return (
-    <div className="gamified-activity-tool mv-text-plus-2 space-y-6 p-5 text-slate-100 sm:p-7">
-      <div className="ga-intro border-b border-slate-700/50 pb-5">
-        <p className="text-xs font-bold uppercase tracking-wider text-cyan-300">Starter prompt</p>
-        <h2 className="mt-1 text-2xl font-extrabold text-white">Gamify an activity</h2>
-        <p className="mt-2 text-sm leading-relaxed text-slate-300">
-          Attach a unit PDF, Doc, or slides. MindVault extracts key terms, objectives, and misconceptions,
-          then builds a playable escape room (single-file HTML), a branching quest, or an XP skill tree.
-        </p>
-      </div>
+    <div className={TOOL_PAGE}>
+      <nav className={TOOL_BREADCRUMB}>
+        <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
+        <span className={TOOL_MUTED}>›</span>
+        <span>Gamified Activity</span>
+      </nav>
+      <div className={TOOL_CARD}>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className={TOOL_TITLE}>
+              Gamified Activity
+              <button
+                type="button"
+                className={TOOL_ICON_BUTTON}
+                aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+                aria-pressed={favorited}
+                onClick={toggleFavorite}
+              >
+                <Star className={`h-5 w-5 ${favorited ? 'fill-amber-300 text-amber-300' : TOOL_MUTED}`} />
+              </button>
+            </h1>
+            <p className={TOOL_SUBTITLE}>
+              Attach a unit PDF, Doc, or slides. MindVault extracts key terms, objectives, and misconceptions,
+              then builds a playable escape room (single-file HTML), a branching quest, or an XP skill tree.
+            </p>
+          </div>
+          <button type="button" className={TOOL_ACCENT_BUTTON} onClick={showExemplar}>
+            Show exemplar
+          </button>
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {GAMIFIED_ACTIVITY_OPTIONS.map((item) => {
-          const selected = item.id === kind;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => setKind(item.id)}
-              className={[
-                'ga-option relative rounded-2xl border p-5 text-left transition duration-200',
-                selected
-                  ? 'ga-option-selected border-amber-300/70 bg-amber-500/15 shadow-[0_8px_24px_rgba(245,158,11,0.18)]'
-                  : 'border-slate-700/60 bg-slate-950/50 hover:-translate-y-0.5 hover:border-amber-300/50 hover:shadow-lg',
-              ].join(' ')}
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          {GAMIFIED_ACTIVITY_OPTIONS.map((item) => {
+            const selected = item.id === kind;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={selected}
+                data-active={selected ? 'true' : 'false'}
+                onClick={() => setKind(item.id)}
+                className={TOOL_CHOICE}
+              >
+                <p className="text-sm font-semibold">{item.title}</p>
+                <p className={`${TOOL_MUTED} mt-1 text-xs`}>{item.subtitle}</p>
+                <p className={`${TOOL_MUTED} mt-2 text-xs leading-relaxed`}>{item.description}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className={TOOL_LABEL} htmlFor="gamified-subject">Subject:</label>
+            <input
+              id="gamified-subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Science, Social Studies, Geometry…"
+              className={TOOL_FIELD}
+            />
+          </div>
+          <div>
+            <label className={TOOL_LABEL} htmlFor="gamified-grade">Target grade: *</label>
+            <select
+              id="gamified-grade"
+              value={gradeLevel}
+              onChange={(e) => setGradeLevel(e.target.value)}
+              className={TOOL_FIELD}
             >
-              {selected ? (
-                <span className="absolute right-3 top-3 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-slate-950">
-                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                </span>
-              ) : null}
-              <p className="pr-6 text-sm font-extrabold text-white">{item.title}</p>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-amber-200/80">
-                {item.subtitle}
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">{item.description}</p>
-            </button>
-          );
-        })}
-      </div>
+              {LESSON_PLAN_GRADE_LEVELS.map((grade) => (
+                <option key={grade} value={grade}>
+                  {grade}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
-            Subject
-          </span>
-          <input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Science, Social Studies, Geometry…"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none ring-cyan-500/30 focus:ring-2"
+        {kind === 'skill_tree' ? (
+          <>
+            <label className={TOOL_LABEL} htmlFor="gamified-duration">Duration:</label>
+            <input
+              id="gamified-duration"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              placeholder="1 week review unit"
+              className={TOOL_FIELD}
+            />
+          </>
+        ) : null}
+
+        <label className={TOOL_LABEL} htmlFor="gamified-topic">Topic or unit notes:</label>
+        <div className="relative">
+          <textarea
+            id="gamified-topic"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            rows={5}
+            placeholder="Photosynthesis & cellular respiration, Cold War & Cuban Missile Crisis, trigonometric functions…"
+            className={TOOL_TEXTAREA_SHORT}
           />
-        </label>
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
-            Target grade
-          </span>
-          <select
-            value={gradeLevel}
-            onChange={(e) => setGradeLevel(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none ring-cyan-500/30 focus:ring-2"
-          >
-            {LESSON_PLAN_GRADE_LEVELS.map((grade) => (
-              <option key={grade} value={grade}>
-                {grade}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+        </div>
 
-      {kind === 'skill_tree' ? (
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
-            Duration
-          </span>
-          <input
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            placeholder="1 week review unit"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none ring-cyan-500/30 focus:ring-2"
-          />
-        </label>
-      ) : null}
-
-      <label className="block">
-        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
-          Topic / unit notes
-        </span>
-        <textarea
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          rows={5}
-          placeholder="Photosynthesis & cellular respiration, Cold War & Cuban Missile Crisis, trigonometric functions…"
-          className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none ring-cyan-500/30 focus:ring-2"
-        />
-      </label>
-
-      <div>
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-300">
-            Attach curriculum file
-          </p>
+        <div className="mt-3 flex items-center justify-between gap-3 text-xs">
           <AddFileMenu onFiles={(list) => void attachFiles(list)} accept={FILE_ACCEPT} />
+          <span className={TOOL_HINT}>PDF, Docs, slides text, or images. Optional if you pasted a topic.</span>
         </div>
         {files.length ? (
-          <ul className="space-y-2">
+          <ul className="mt-3 space-y-2">
             {files.map((file) => (
               <li
                 key={file.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-sm"
+                className="mv-pres-field flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm"
               >
-                <span className="truncate text-cyan-100">
+                <span className="truncate">
                   {file.isProcessing ? 'Reading… ' : ''}
                   {file.name}
                 </span>
                 <button
                   type="button"
                   onClick={() => setFiles((prev) => prev.filter((item) => item.id !== file.id))}
-                  className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white"
+                  className={TOOL_ICON_BUTTON}
                   aria-label={`Remove ${file.name}`}
                 >
                   <X className="h-4 w-4" />
@@ -251,60 +295,46 @@ export function GamifiedActivityGenerator() {
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="text-sm text-slate-400">PDF, Docs, slides text, or images. Optional if you pasted a topic.</p>
-        )}
+        ) : null}
+
+        {error ? <p className={TOOL_ERROR}>{error}</p> : null}
+
+        <button
+          type="button"
+          onClick={() => void generate()}
+          disabled={!canGenerate || busy}
+          className={TOOL_GENERATE}
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {busy ? 'Generating game…' : `Generate ${option.title}`}
+        </button>
       </div>
 
-      {error ? (
-        <p className="rounded-xl border border-rose-400/40 bg-rose-950/50 px-4 py-3 text-sm font-semibold text-rose-100">
-          {error}
-        </p>
-      ) : null}
-
-      <button
-        type="button"
-        onClick={() => void generate()}
-        disabled={!canGenerate || busy}
-        className="inline-flex items-center gap-2 rounded-xl border-0 bg-gradient-to-r from-amber-400 to-orange-400 px-6 py-3 text-sm font-extrabold text-slate-950 shadow-[0_8px_20px_rgba(245,158,11,0.3)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-      >
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-        {busy ? 'Generating game…' : `Generate ${option.title}`}
-      </button>
-
       {result ? (
-        <section className="space-y-4 rounded-3xl border border-amber-400/30 bg-[#1e1b4b]/70 p-6">
+        <section className={`${TOOL_CARD} mt-6 space-y-4`}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-amber-200">
+              <p className={TOOL_HINT}>
                 {getGamifiedActivityOption(result.kind).title} · export to {option.exportHint}
               </p>
-              <h3 className="text-xl font-extrabold text-white">{result.document.title}</h3>
+              <h2 className="mt-1 text-lg font-semibold">{result.document.title}</h2>
             </div>
             <div className="flex flex-wrap gap-2">
               {result.html ? (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => openHtmlPreview(result.html!)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/40 px-3 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-400/10"
-                  >
+                  <button type="button" onClick={() => openHtmlPreview(result.html!)} className={TOOL_SECONDARY}>
                     <ExternalLink className="h-4 w-4" />
                     Open game
                   </button>
                   <button
                     type="button"
                     onClick={() => downloadText(result.document.title, result.html!, 'html', 'text/html')}
-                    className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-3 py-2 text-sm font-extrabold text-slate-950"
+                    className={TOOL_SECONDARY}
                   >
                     <Download className="h-4 w-4" />
                     Download HTML
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => void copyText('html')}
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2 text-sm font-medium text-white hover:bg-white/10"
-                  >
+                  <button type="button" onClick={() => void copyText('html')} className={TOOL_SECONDARY}>
                     {copied === 'html' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {copied === 'html' ? 'HTML copied' : 'Copy HTML'}
                   </button>
@@ -313,16 +343,12 @@ export function GamifiedActivityGenerator() {
               <button
                 type="button"
                 onClick={() => downloadText(result.document.title, result.markdown, 'md', 'text/markdown')}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2 text-sm font-medium text-white hover:bg-white/10"
+                className={TOOL_SECONDARY}
               >
                 <Download className="h-4 w-4" />
                 Download Markdown
               </button>
-              <button
-                type="button"
-                onClick={() => void copyText('markdown')}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-3 py-2 text-sm font-medium text-white hover:bg-white/10"
-              >
+              <button type="button" onClick={() => void copyText('markdown')} className={TOOL_SECONDARY}>
                 {copied === 'markdown' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 {copied === 'markdown' ? 'Copied' : 'Copy for Docs / Forms'}
               </button>
@@ -331,14 +357,14 @@ export function GamifiedActivityGenerator() {
 
           {result.html ? (
             <section className="space-y-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-cyan-200">
+              <h3 className={TOOL_SECTION_TITLE}>
                 Playable HTML game · start screen, 30-minute timer, 4 locked rooms
-              </p>
+              </h3>
               <iframe
                 title="Playable digital escape room"
                 srcDoc={result.html}
                 sandbox="allow-scripts"
-                className="h-[780px] w-full rounded-2xl border border-cyan-400/30 bg-slate-950"
+                className="mv-pres-field h-[780px] w-full rounded-2xl"
               />
             </section>
           ) : null}
@@ -355,10 +381,10 @@ export function GamifiedActivityGenerator() {
 
 function Card({ title, eyebrow, children }: { title: string; eyebrow?: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-      {eyebrow ? <p className="text-xs font-bold uppercase tracking-wide text-amber-200/80">{eyebrow}</p> : null}
-      <h4 className="text-base font-extrabold text-white">{title}</h4>
-      <div className="mt-2 space-y-2 text-sm leading-relaxed text-cyan-50/90">{children}</div>
+    <section className={TOOL_PANEL}>
+      {eyebrow ? <p className={TOOL_HINT}>{eyebrow}</p> : null}
+      <h4 className="text-sm font-semibold">{title}</h4>
+      <div className="mt-2 space-y-2 text-sm leading-relaxed">{children}</div>
     </section>
   );
 }
@@ -370,9 +396,9 @@ function Insights({
 }) {
   return (
     <Card eyebrow="Native context" title="Extracted from the source material">
-      <p><span className="font-semibold text-amber-100">Key terms:</span> {insights.keyTerms.join(' · ')}</p>
-      <p><span className="font-semibold text-amber-100">Objectives:</span> {insights.learningObjectives.join(' · ')}</p>
-      <p><span className="font-semibold text-amber-100">Misconceptions:</span> {insights.misconceptions.join(' · ')}</p>
+      <p><span className="font-semibold">Key terms:</span> {insights.keyTerms.join(' · ')}</p>
+      <p><span className="font-semibold">Objectives:</span> {insights.learningObjectives.join(' · ')}</p>
+      <p><span className="font-semibold">Misconceptions:</span> {insights.misconceptions.join(' · ')}</p>
     </Card>
   );
 }
@@ -395,25 +421,25 @@ function EscapeRoomView({ document }: { document: EscapeRoomDocument }) {
       </Card>
       <Card eyebrow="Student game" title={`${playable.missionName} · ${playable.timerMinutes} minute clock`}>
         <p>
-          <span className="font-semibold text-amber-100">Vocabulary:</span>{' '}
+          <span className="font-semibold">Vocabulary:</span>{' '}
           {playable.vocabulary.pairs.map((pair) => pair.term).join(' · ')}
         </p>
         <p>
-          <span className="font-semibold text-amber-100">Sequence:</span> {playable.sequence.correctOrder.join('-')}
+          <span className="font-semibold">Sequence:</span> {playable.sequence.correctOrder.join('-')}
         </p>
         <p>
-          <span className="font-semibold text-amber-100">Data lock:</span>{' '}
+          <span className="font-semibold">Data lock:</span>{' '}
           {playable.data.fields.map((field) => `${field.id}=${field.answer}`).join(' · ')}
         </p>
         <p>
-          <span className="font-semibold text-amber-100">Mastery:</span>{' '}
+          <span className="font-semibold">Mastery:</span>{' '}
           {playable.mastery.options.find((option) => option.correct)?.id ?? 'A'}
         </p>
       </Card>
       {document.stages.map((stage) => (
         <Card key={stage.stage} eyebrow={`Stage ${stage.stage}`} title={stage.title}>
           <p>{stage.puzzle}</p>
-          <p className="font-semibold text-amber-100">Hidden clues</p>
+          <p className="font-semibold">Hidden clues</p>
           <ul className="list-disc space-y-1 pl-5">
             {stage.hiddenClues.map((clue) => (
               <li key={clue}>{clue}</li>
@@ -425,10 +451,10 @@ function EscapeRoomView({ document }: { document: EscapeRoomDocument }) {
         <ul className="space-y-2">
           {document.answerKey.map((row) => (
             <li key={row.stage}>
-              <span className="font-bold text-emerald-200">
+              <span className="mv-pres-accent font-semibold">
                 Stage {row.stage}: {row.code}
               </span>
-              <span className="block text-cyan-100/80">{row.rationale}</span>
+              <span className="block mv-pres-muted">{row.rationale}</span>
             </li>
           ))}
         </ul>
@@ -462,20 +488,14 @@ function QuestView({ document }: { document: BranchingQuestDocument }) {
             {decision.choices.map((choice) => (
               <li
                 key={choice.id}
-                className={[
-                  'rounded-xl px-3 py-2',
-                  choice.points === 100
-                    ? 'bg-emerald-500/15 ring-1 ring-emerald-400/30'
-                    : choice.points === 50
-                      ? 'bg-amber-500/10 ring-1 ring-amber-300/30'
-                      : 'bg-rose-500/10 ring-1 ring-rose-400/30',
-                ].join(' ')}
+                data-active={choice.points === 100 ? 'true' : 'false'}
+                className="mv-tool-choice rounded-xl px-3 py-2"
               >
-                <p className="font-bold text-white">
+                <p className="font-semibold">
                   Choice {choice.id} · {choice.label} · {choice.points} pts
                 </p>
                 <p>{choice.text}</p>
-                <p className="mt-1 text-cyan-100/80">
+                <p className="mt-1 mv-pres-muted">
                   {choice.outcome} — {choice.feedback}
                 </p>
               </li>
@@ -487,7 +507,7 @@ function QuestView({ document }: { document: BranchingQuestDocument }) {
         <ul className="space-y-2">
           {document.scorecard.bands.map((band) => (
             <li key={band.label}>
-              <span className="font-bold text-amber-100">
+              <span className="font-semibold">
                 {band.min}–{band.max} · {band.label}
               </span>
               <span className="block">{band.meaning}</span>
@@ -508,24 +528,24 @@ function SkillTreeView({ document }: { document: SkillTreeDocument }) {
         </p>
         <p>{document.unlockRule}</p>
       </Card>
-      <div className="overflow-x-auto rounded-2xl border border-white/10">
+      <div className="mv-pres-field overflow-x-auto rounded-xl">
         <table className="min-w-full text-left text-sm">
-          <thead className="bg-slate-950/70 text-amber-100">
+          <thead className={TOOL_MUTED}>
             <tr>
-              <th className="px-4 py-3 font-bold">Tier</th>
-              <th className="px-4 py-3 font-bold">Task</th>
-              <th className="px-4 py-3 font-bold">What to do</th>
-              <th className="px-4 py-3 font-bold">XP</th>
+              <th className="px-4 py-3 font-semibold">Tier</th>
+              <th className="px-4 py-3 font-semibold">Task</th>
+              <th className="px-4 py-3 font-semibold">What to do</th>
+              <th className="px-4 py-3 font-semibold">XP</th>
             </tr>
           </thead>
           <tbody>
             {document.tiers.flatMap((tier) =>
               tier.tasks.map((task) => (
-                <tr key={task.id} className="border-t border-white/10 bg-slate-950/30">
-                  <td className="px-4 py-3 font-semibold text-amber-100">{tier.name}</td>
-                  <td className="px-4 py-3 font-semibold text-white">{task.title}</td>
-                  <td className="px-4 py-3 text-cyan-50/90">{task.description}</td>
-                  <td className="px-4 py-3 font-bold text-emerald-200">{task.xp}</td>
+                <tr key={task.id} className="border-t border-slate-500/20">
+                  <td className="px-4 py-3 font-semibold">{tier.name}</td>
+                  <td className="px-4 py-3 font-semibold">{task.title}</td>
+                  <td className="px-4 py-3">{task.description}</td>
+                  <td className="mv-pres-accent px-4 py-3 font-semibold">{task.xp}</td>
                 </tr>
               )),
             )}
@@ -536,9 +556,9 @@ function SkillTreeView({ document }: { document: SkillTreeDocument }) {
         <ul className="space-y-2">
           {document.badges.map((badge) => (
             <li key={badge.name}>
-              <span className="font-bold text-amber-100">{badge.name}</span>
+              <span className="font-semibold">{badge.name}</span>
               <span className="block">{badge.description}</span>
-              <span className="block text-cyan-100/80">Rubric: {badge.rubric}</span>
+              <span className="block mv-pres-muted">Rubric: {badge.rubric}</span>
             </li>
           ))}
         </ul>

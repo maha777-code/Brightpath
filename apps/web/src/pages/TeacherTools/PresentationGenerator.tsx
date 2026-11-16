@@ -163,7 +163,7 @@ function FileRow({
       <div className="mv-pres-muted flex items-center justify-between gap-3 text-xs">
         <button
           type="button"
-          className="mv-pres-field inline-flex items-center gap-2 rounded-lg px-3 py-1.5 font-semibold"
+          className="mv-pres-field inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold"
           onClick={() => inputRef.current?.click()}
         >
           <FileText className="h-3.5 w-3.5" />
@@ -695,7 +695,7 @@ export function PresentationGenerator() {
           <h2 className="text-sm font-semibold">Additional Criteria:</h2>
           <button
             type="button"
-            className="mv-pres-accent inline-flex items-center gap-1 text-xs font-semibold"
+            className="mv-pres-accent inline-flex items-center gap-1 text-sm font-semibold"
             onClick={() => {
               if (topic.trim().length < 3) {
                 setError('Add a topic first, then the prompt assistant can expand it.');

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   ChevronDown,
   FileText,
@@ -40,10 +40,30 @@ import {
 import { api } from '@/lib/api';
 import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { AIToolHeader } from '@/components/tools/AIToolHeader';
-import { KhdaAlignControl } from '@/components/khda/KhdaAlignControl';
+import {
+  TOOL_ACCENT_BUTTON,
+  TOOL_BREADCRUMB,
+  TOOL_BREADCRUMB_LINK,
+  TOOL_CARD,
+  TOOL_ERROR,
+  TOOL_FIELD,
+  TOOL_GENERATE,
+  TOOL_HINT,
+  TOOL_ICON_BUTTON,
+  TOOL_LABEL,
+  TOOL_MIC,
+  TOOL_MUTED,
+  TOOL_PAGE,
+  TOOL_PANEL,
+  TOOL_SECONDARY,
+  TOOL_SECTION_TITLE,
+  TOOL_SUBTITLE,
+  TOOL_TEXTAREA,
+  TOOL_TEXTAREA_SHORT,
+  TOOL_TITLE,
+} from '@/components/tools/toolTheme';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
-import { readKhdaAlign } from '@/lib/khdaAlign';
-import { CYBER_FONT_STYLE } from '@/lib/theme';
+import { readKhdaAlign, subscribeKhdaAlign, writeKhdaAlign } from '@/lib/khdaAlign';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { VoiceListeningIndicator } from '@/components/VoiceListeningIndicator';
 import {
@@ -65,89 +85,10 @@ import {
 const FILE_ACCEPT = '.pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.gif,.webp,application/pdf,image/*';
 
 const WORD_LIMIT = 75_000;
-const FONT: CSSProperties = {
-  fontFamily: CYBER_FONT_STYLE.fontFamily,
-  fontSize: 18,
-};
-const LABEL_FONT: CSSProperties = {
-  ...FONT,
-  fontSize: 20,
-};
-const EDIT_FIELD_STYLE: CSSProperties = {
-  fontFamily: CYBER_FONT_STYLE.fontFamily,
-  color: '#f8fafc',
-  backgroundColor: '#020617',
-  caretColor: '#f8fafc',
-};
-const EDIT_FIELD_CLASS =
-  'lesson-plan-edit-input w-full rounded-xl border border-cyan-500/50 bg-slate-950 p-4 text-base font-normal text-slate-100 placeholder:text-slate-500 placeholder:font-normal placeholder:italic placeholder:opacity-60 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400';
-const MENU_PANEL_CLASS =
-  'lesson-plan-menu z-50 rounded-xl border border-slate-700 bg-slate-900 p-1.5 shadow-2xl';
+const EDIT_FIELD_CLASS = TOOL_FIELD;
+const MENU_PANEL_CLASS = 'mv-pres-card z-50 rounded-xl border p-1.5 shadow-2xl';
 const MENU_ITEM_CLASS =
-  'lesson-plan-menu-item flex w-full appearance-none items-center justify-start gap-2.5 rounded-lg border-0 bg-slate-900 px-3 py-2.5 text-left text-sm font-medium text-slate-100 shadow-none transition-colors hover:bg-cyan-800 hover:text-white';
-const MENU_ITEM_STYLE: CSSProperties = {
-  appearance: 'none',
-  WebkitAppearance: 'none',
-  backgroundColor: '#0f172a',
-  backgroundImage: 'none',
-  color: '#f1f5f9',
-  WebkitTextFillColor: '#f1f5f9',
-  border: 'none',
-  boxShadow: 'none',
-};
-const STUDIO_CONTRAST_CSS = `
-.lesson-plan-studio .lesson-plan-menu {
-  background-color: #0f172a !important;
-  border-color: #334155 !important;
-  color: #f1f5f9 !important;
-}
-.lesson-plan-studio .lesson-plan-menu-item {
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  background-color: #0f172a !important;
-  background-image: none !important;
-  color: #f1f5f9 !important;
-  -webkit-text-fill-color: #f1f5f9 !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-.lesson-plan-studio .lesson-plan-menu-item span {
-  color: #f1f5f9 !important;
-  -webkit-text-fill-color: #f1f5f9 !important;
-  background-color: transparent !important;
-}
-.lesson-plan-studio .lesson-plan-menu-item:hover {
-  background-color: rgb(88 28 135) !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-}
-.lesson-plan-studio .lesson-plan-menu-item:hover span {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  background-color: transparent !important;
-}
-.lesson-plan-studio .lesson-plan-edit-input,
-.lesson-plan-studio textarea,
-.lesson-plan-studio input[type="text"] {
-  color: #f8fafc !important;
-  background-color: #020617 !important;
-  caret-color: #f8fafc !important;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", Inter, system-ui, sans-serif !important;
-}
-.lesson-plan-studio .lesson-plan-edit-input:not(:placeholder-shown),
-.lesson-plan-studio textarea:not(:placeholder-shown),
-.lesson-plan-studio input[type="text"]:not(:placeholder-shown) {
-  -webkit-text-fill-color: #f8fafc !important;
-}
-.lesson-plan-studio textarea::placeholder,
-.lesson-plan-studio input::placeholder {
-  color: #64748b !important;
-  -webkit-text-fill-color: #64748b !important;
-  opacity: 0.65 !important;
-  font-weight: 400 !important;
-  font-style: italic;
-}
-`;
+  'flex w-full appearance-none items-center border-0 bg-transparent [font-family:inherit] justify-start gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-violet-500/15';
 
 function StudioMenuItem({
   onClick,
@@ -163,7 +104,6 @@ function StudioMenuItem({
       role="menuitem"
       tabIndex={0}
       className={`${MENU_ITEM_CLASS} cursor-pointer`}
-      style={MENU_ITEM_STYLE}
       onClick={onClick}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -462,8 +402,7 @@ function exportToDocx(markdown: string, title: string) {
   downloadBlob(new Blob(['\ufeff', doc], { type: 'application/msword' }), `${fileStem(title)}.doc`);
 }
 
-const ICON_BTN =
-  'inline-flex cursor-pointer appearance-none items-center justify-center rounded-lg border-0 bg-transparent p-2 text-slate-400 shadow-none transition-colors hover:bg-slate-800 hover:text-white';
+const ICON_BTN = `${TOOL_ICON_BUTTON} inline-flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-violet-500/10 disabled:opacity-40`;
 
 function HistoryDrawer({
   open,
@@ -487,39 +426,39 @@ function HistoryDrawer({
       key={item.id}
       type="button"
       onClick={() => onSelect(item)}
-      className="w-full cursor-pointer appearance-none rounded-xl border border-slate-800 bg-slate-950/80 p-4 text-left text-slate-200 shadow-none transition-all hover:border-cyan-500/50 hover:bg-slate-900"
+      className="mv-pres-field w-full rounded-xl p-4 text-left"
     >
-      <div className="mb-1 text-xs font-semibold text-cyan-400">{item.gradeLevel}</div>
-      <div className="line-clamp-2 text-sm font-bold">{item.title || item.topicPrompt}</div>
-      <div className="mt-2 text-[11px] text-slate-500">{new Date(item.createdAt).toLocaleString()}</div>
+      <div className={`${TOOL_MUTED} mb-1 text-xs font-semibold`}>{item.gradeLevel}</div>
+      <div className="line-clamp-2 text-sm font-semibold">{item.title || item.topicPrompt}</div>
+      <div className={`${TOOL_HINT} mt-2`}>{new Date(item.createdAt).toLocaleString()}</div>
     </button>
   );
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="h-full w-full max-w-md space-y-6 overflow-y-auto border-l border-slate-800 bg-slate-900 p-6"
+        className="mv-pres-card h-full w-full max-w-md space-y-6 overflow-y-auto border-l p-6"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-          <h2 className="flex items-center gap-2 text-lg font-bold text-white">
-            <History className="h-5 w-5 text-cyan-400" /> Saved Plans
+        <div className="flex items-center justify-between border-b border-slate-500/20 pb-4">
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <History className="mv-pres-accent h-5 w-5" /> Saved Plans
           </h2>
           <button type="button" onClick={onClose} className={ICON_BTN} aria-label="Close history">
             <X className="h-5 w-5" />
           </button>
         </div>
         <section className="space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">My Resources</h3>
+          <h3 className={TOOL_SECTION_TITLE}>My Resources</h3>
           {saved.length === 0 ? (
-            <p className="text-sm text-slate-500">No lesson plans saved to My Resources yet.</p>
+            <p className={`${TOOL_MUTED} text-sm`}>No lesson plans saved to My Resources yet.</p>
           ) : (
             saved.map(renderItem)
           )}
         </section>
         <section className="space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">Recent</h3>
+          <h3 className={TOOL_SECTION_TITLE}>Recent</h3>
           {recent.length === 0 ? (
-            <p className="text-sm text-slate-500">No generated lesson plans yet.</p>
+            <p className={`${TOOL_MUTED} text-sm`}>No generated lesson plans yet.</p>
           ) : (
             recent.map(renderItem)
           )}
@@ -737,56 +676,55 @@ function LessonPlanResult({
   };
 
   const overviewBody = (
-    <div className="space-y-4 text-sm leading-relaxed text-slate-300">
-      <h3 className="text-center text-lg font-bold text-slate-100">{lessonTitle}</h3>
-      <p className="font-semibold text-slate-200">Learning Objective</p>
+    <div className="space-y-4 text-sm leading-relaxed">
+      <h3 className="text-center text-lg font-semibold">{lessonTitle}</h3>
+      <p className="font-semibold">Learning Objective</p>
       {isEditing ? (
-        <textarea className={EDIT_FIELD_CLASS} style={EDIT_FIELD_STYLE} rows={3} value={draft.objective} onChange={(e) => setDraft({ ...draft, objective: e.target.value })} />
+        <textarea className={EDIT_FIELD_CLASS} rows={3} value={draft.objective} onChange={(e) => setDraft({ ...draft, objective: e.target.value })} />
       ) : (
-        <p className="text-slate-400">{draft.objective}</p>
+        <p className={TOOL_MUTED}>{draft.objective}</p>
       )}
-      <p className="font-semibold text-slate-200">Assessments</p>
+      <p className="font-semibold">Assessments</p>
       {isEditing ? (
-        <textarea className={EDIT_FIELD_CLASS} style={EDIT_FIELD_STYLE} rows={3} value={draft.assessment} onChange={(e) => setDraft({ ...draft, assessment: e.target.value })} />
+        <textarea className={EDIT_FIELD_CLASS} rows={3} value={draft.assessment} onChange={(e) => setDraft({ ...draft, assessment: e.target.value })} />
       ) : (
-        <p className="text-slate-400">{draft.assessment}</p>
+        <p className={TOOL_MUTED}>{draft.assessment}</p>
       )}
     </div>
   );
 
   const detailsBody = (
-    <div className="space-y-4 text-sm leading-relaxed text-slate-300">
-      <p className="font-semibold text-slate-200">Standards</p>
+    <div className="space-y-4 text-sm leading-relaxed">
+      <p className="font-semibold">Standards</p>
       {isEditing ? (
-        <textarea className={EDIT_FIELD_CLASS} style={EDIT_FIELD_STYLE} rows={3} value={draft.standards.join('\n')} onChange={(e) => setDraft({ ...draft, standards: e.target.value.split('\n') })} />
+        <textarea className={EDIT_FIELD_CLASS} rows={3} value={draft.standards.join('\n')} onChange={(e) => setDraft({ ...draft, standards: e.target.value.split('\n') })} />
       ) : (
-        <p className="text-slate-400">{nonempty(draft.standards).join('; ') || 'Aligned to the selected grade level.'}</p>
+        <p className={TOOL_MUTED}>{nonempty(draft.standards).join('; ') || 'Aligned to the selected grade level.'}</p>
       )}
-      <p className="font-semibold text-slate-200">Materials</p>
+      <p className="font-semibold">Materials</p>
       {isEditing ? (
-        <textarea className={EDIT_FIELD_CLASS} style={EDIT_FIELD_STYLE} rows={3} value={draft.materials.join('\n')} onChange={(e) => setDraft({ ...draft, materials: e.target.value.split('\n') })} />
+        <textarea className={EDIT_FIELD_CLASS} rows={3} value={draft.materials.join('\n')} onChange={(e) => setDraft({ ...draft, materials: e.target.value.split('\n') })} />
       ) : (
-        <p className="text-slate-400">{nonempty(draft.materials).join(', ')}</p>
+        <p className={TOOL_MUTED}>{nonempty(draft.materials).join(', ')}</p>
       )}
-      <p className="font-semibold text-slate-200">Differentiation</p>
+      <p className="font-semibold">Differentiation</p>
       {isEditing ? (
-        <textarea className={EDIT_FIELD_CLASS} style={EDIT_FIELD_STYLE} rows={3} value={draft.differentiation} onChange={(e) => setDraft({ ...draft, differentiation: e.target.value })} />
+        <textarea className={EDIT_FIELD_CLASS} rows={3} value={draft.differentiation} onChange={(e) => setDraft({ ...draft, differentiation: e.target.value })} />
       ) : (
-        <p className="text-slate-400">{draft.differentiation}</p>
+        <p className={TOOL_MUTED}>{draft.differentiation}</p>
       )}
     </div>
   );
 
   const sectionsBody = (range: number[]) => (
-    <div className="space-y-5 text-sm leading-relaxed text-slate-300">
+    <div className="space-y-5 text-sm leading-relaxed">
       {draft.sections.slice(range[0], range[1]).map((section, offset) => {
         const index = (range[0] ?? 0) + offset;
         return (
           <section key={`${section.heading}-${index}`}>
             {isEditing ? (
               <input
-                className={`${EDIT_FIELD_CLASS} mb-2 p-2 font-semibold text-slate-100`}
-                style={EDIT_FIELD_STYLE}
+                className={`${EDIT_FIELD_CLASS} mb-2 font-semibold`}
                 value={section.heading}
                 onChange={(e) => {
                   const sections = draft.sections.map((item, i) => (i === index ? { ...item, heading: e.target.value } : item));
@@ -794,7 +732,7 @@ function LessonPlanResult({
                 }}
               />
             ) : (
-              <h3 className="font-semibold text-slate-100">
+              <h3 className="font-semibold">
                 {section.heading}
                 {section.minutes ? ` (${section.minutes} min)` : ''}
               </h3>
@@ -802,7 +740,6 @@ function LessonPlanResult({
             {isEditing ? (
               <textarea
                 className={EDIT_FIELD_CLASS}
-                style={EDIT_FIELD_STYLE}
                 rows={4}
                 value={section.activities.join('\n')}
                 onChange={(e) => {
@@ -813,7 +750,7 @@ function LessonPlanResult({
                 }}
               />
             ) : (
-              <ul className="mt-1 list-disc space-y-1 pl-5 text-slate-400">
+              <ul className={`${TOOL_MUTED} mt-1 list-disc space-y-1 pl-5`}>
                 {nonempty(section.activities).map((item) => (
                   <li key={item}>{item}</li>
                 ))}
@@ -833,14 +770,14 @@ function LessonPlanResult({
         : sectionsBody(sectionPages[Number(currentKind.replace('sections-', ''))] ?? [0, draft.sections.length]);
 
   return (
-    <div className="relative mx-auto flex w-[min(82%,100%)] flex-col space-y-6 px-2 py-6 pb-24">
-      <div className="pointer-events-none absolute left-1/2 top-0 h-[280px] w-[min(700px,100%)] -translate-x-1/2 rounded-full bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-teal-500/10 blur-3xl" />
-      <div className="relative z-10 flex items-center justify-between rounded-2xl border border-slate-800/80 bg-slate-900/80 p-4 shadow-lg backdrop-blur-md">
-        <div className="flex min-w-0 items-center gap-2 text-base font-semibold text-slate-200">
-          <FileText className="h-5 w-5 shrink-0 text-cyan-400" />
+    <div className="flex w-full flex-col space-y-6">
+      <div className={TOOL_CARD}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <h1 className={TOOL_TITLE}>
+          <FileText className="mv-pres-accent h-5 w-5 shrink-0" />
           <span>Lesson Plan</span>
           <button type="button" onClick={handleFavorite} className={ICON_BTN} title={isFavorite ? 'Remove favorite' : 'Favorite'} aria-pressed={isFavorite}>
-            <Star className={`h-4 w-4 ${isFavorite ? 'fill-amber-400 text-amber-400' : ''}`} />
+            <Star className={`h-5 w-5 ${isFavorite ? 'fill-amber-300 text-amber-300' : TOOL_MUTED}`} />
           </button>
           <button type="button" onClick={() => void handleShare()} className={ICON_BTN} title="Share">
             <Share2 className="h-4 w-4" />
@@ -848,15 +785,15 @@ function LessonPlanResult({
           <button type="button" onClick={onHistory} className={ICON_BTN} title="History">
             <History className="h-4 w-4" />
           </button>
-        </div>
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={onNew} className="cursor-pointer appearance-none border-0 bg-transparent text-xs font-semibold text-slate-400 hover:text-cyan-300">
+        </h1>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={onNew} className={TOOL_SECONDARY}>
             New
           </button>
           <button
             type="button"
             onClick={() => setShowPrompt((open) => !open)}
-            className="inline-flex cursor-pointer appearance-none items-center gap-1.5 border-0 bg-transparent text-xs font-semibold text-slate-400 transition-colors hover:text-cyan-400"
+            className={TOOL_SECONDARY}
             aria-expanded={showPrompt}
           >
             <span>{showPrompt ? 'Hide prompt' : 'Show prompt'}</span>
@@ -866,45 +803,45 @@ function LessonPlanResult({
       </div>
 
       {showPrompt ? (
-        <div className="relative z-10 grid grid-cols-1 gap-3 rounded-2xl border border-slate-800/80 bg-slate-900/70 p-5 text-sm text-slate-300 shadow-lg backdrop-blur-md md:grid-cols-2">
+        <div className={`${TOOL_PANEL} mt-6 grid grid-cols-1 gap-3 text-sm md:grid-cols-2`}>
           <div>
-            <span className="font-medium text-slate-400">Topic, Standard, or Objective:</span>{' '}
-            <span className="font-semibold text-slate-100">{prompt.topic}</span>
+            <span className={`${TOOL_MUTED} font-medium`}>Topic, Standard, or Objective:</span>{' '}
+            <span className="font-semibold">{prompt.topic}</span>
             {prompt.fileNames.length > 0 ? (
-              <span className="ml-2 inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-950 px-2 py-0.5 text-xs font-medium text-cyan-300">
+              <span className="mv-pres-field ml-2 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
                 <Paperclip className="h-3 w-3" /> {prompt.fileNames.length} file{prompt.fileNames.length === 1 ? '' : 's'}
               </span>
             ) : null}
           </div>
           <div>
-            <span className="font-medium text-slate-400">Grade Level:</span>{' '}
-            <span className="font-semibold text-slate-100">{prompt.gradeLevel}</span>
+            <span className={`${TOOL_MUTED} font-medium`}>Grade Level:</span>{' '}
+            <span className="font-semibold">{prompt.gradeLevel}</span>
           </div>
           {prompt.standards ? (
             <div>
-              <span className="font-medium text-slate-400">Standards Set to Align to:</span>{' '}
-              <span className="font-semibold text-slate-100">{prompt.standards}</span>
+              <span className={`${TOOL_MUTED} font-medium`}>Standards Set to Align to:</span>{' '}
+              <span className="font-semibold">{prompt.standards}</span>
             </div>
           ) : null}
           {prompt.criteria ? (
             <div>
-              <span className="font-medium text-slate-400">Additional Criteria:</span>{' '}
-              <span className="font-semibold text-slate-100">{prompt.criteria}</span>
+              <span className={`${TOOL_MUTED} font-medium`}>Additional Criteria:</span>{' '}
+              <span className="font-semibold">{prompt.criteria}</span>
             </div>
           ) : null}
         </div>
       ) : null}
+      </div>
 
-      <div className="relative z-10 rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 via-slate-900/80 to-slate-950/90 p-6 shadow-2xl backdrop-blur-xl md:p-8">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
-          <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-200">
+      <div className={TOOL_CARD}>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-500/20 pb-4">
+          <div className="flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold">
             <button type="button" className={ICON_BTN} title="Rename" aria-label="Rename lesson plan" onClick={() => setEditingTitle(true)}>
-              <Pencil className="h-4 w-4 text-cyan-400" />
+              <Pencil className="mv-pres-accent h-4 w-4" />
             </button>
             {editingTitle ? (
               <input
-                className={`${EDIT_FIELD_CLASS} min-w-0 flex-1 p-2 text-sm font-semibold`}
-                style={EDIT_FIELD_STYLE}
+                className={`${EDIT_FIELD_CLASS} !mt-0 min-w-0 flex-1 font-semibold`}
                 value={lessonTitle}
                 autoFocus
                 onChange={(e) => setLessonTitle(e.target.value)}
@@ -919,7 +856,7 @@ function LessonPlanResult({
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             <button type="button" onClick={() => void handleBookmark()} className={ICON_BTN} title="Bookmark" aria-pressed={isBookmarked}>
-              <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-amber-400 text-amber-400' : ''}`} />
+              <Bookmark className={`h-4 w-4 ${isBookmarked ? 'mv-pres-accent fill-current' : ''}`} />
             </button>
             <button type="button" onClick={handlePrint} className={ICON_BTN} title="Print">
               <Printer className="h-4 w-4" />
@@ -931,7 +868,7 @@ function LessonPlanResult({
               <button
                 type="button"
                 onClick={() => setIsExportOpen((open) => !open)}
-                className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700"
+                className={TOOL_SECONDARY}
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 <span>Export</span>
@@ -939,14 +876,14 @@ function LessonPlanResult({
               </button>
               {isExportOpen ? (
                 <div className={`${MENU_PANEL_CLASS} absolute right-0 z-20 mt-2 w-52`}>
-                  <StudioMenuItem icon={<FileText className="h-4 w-4 text-cyan-400" />} onClick={() => { exportToPDF(draft, lessonTitle); setIsExportOpen(false); }}>
+                  <StudioMenuItem icon={<FileText className="mv-pres-accent h-4 w-4" />} onClick={() => { exportToPDF(draft, lessonTitle); setIsExportOpen(false); }}>
                     Export as PDF
                   </StudioMenuItem>
-                  <StudioMenuItem icon={<FileCode className="h-4 w-4 text-cyan-400" />} onClick={() => { exportToDocx(markdown, lessonTitle); setIsExportOpen(false); }}>
+                  <StudioMenuItem icon={<FileCode className="mv-pres-accent h-4 w-4" />} onClick={() => { exportToDocx(markdown, lessonTitle); setIsExportOpen(false); }}>
                     Export as Word (.docx)
                   </StudioMenuItem>
                   <StudioMenuItem
-                    icon={<Globe className="h-4 w-4 text-cyan-400" />}
+                    icon={<Globe className="mv-pres-accent h-4 w-4" />}
                     onClick={() => {
                       void navigator.clipboard.writeText(markdown).then(() => {
                         window.open('https://docs.google.com/document/create', '_blank', 'noopener,noreferrer');
@@ -963,11 +900,11 @@ function LessonPlanResult({
             <button
               type="button"
               onClick={() => setIsEditing((value) => !value)}
-              className={`inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+              className={
                 isEditing
-                  ? 'border-cyan-400 bg-cyan-500 text-slate-950'
-                  : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20'
-              }`}
+                  ? 'mv-pres-generate inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold'
+                  : TOOL_SECONDARY
+              }
             >
               <Edit3 className="h-3.5 w-3.5" />
               <span>{isEditing ? 'Done' : 'Edit'}</span>
@@ -975,8 +912,8 @@ function LessonPlanResult({
           </div>
         </div>
 
-        <div className="relative min-h-[380px] rounded-xl border border-slate-800/80 bg-slate-950/80 p-6 md:p-8">
-          <div className="mb-4 flex items-center justify-end gap-2 text-xs text-slate-400">
+        <div className={`${TOOL_PANEL} relative min-h-[380px] md:p-8`}>
+          <div className={`${TOOL_MUTED} mb-4 flex items-center justify-end gap-2 text-xs`}>
             <button type="button" className={ICON_BTN} aria-label="Previous page" disabled={safePage <= 0} onClick={() => setPage((value) => Math.max(0, value - 1))}>
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -986,7 +923,7 @@ function LessonPlanResult({
             </button>
           </div>
           {isTranslating ? (
-            <div className="flex items-center justify-center gap-2 py-16 text-sm font-semibold text-cyan-300">
+            <div className="mv-pres-accent flex items-center justify-center gap-2 py-16 text-sm font-semibold">
               <Loader2 className="h-5 w-5 animate-spin" /> Translating lesson plan...
             </div>
           ) : (
@@ -996,14 +933,14 @@ function LessonPlanResult({
             <button
               type="button"
               onClick={() => setExpanded(true)}
-              className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-200 shadow-xl hover:bg-slate-800"
+              className={TOOL_SECONDARY}
             >
               <Maximize2 className="h-4 w-4" /> Expand preview
             </button>
           </div>
           {busy ? (
-            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-slate-950/70">
-              <span className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm text-white">
+            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40">
+              <span className="mv-pres-card inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin" /> Updating lesson plan…
               </span>
             </div>
@@ -1011,66 +948,67 @@ function LessonPlanResult({
         </div>
       </div>
 
-      <div className="space-y-3 text-sm leading-relaxed text-slate-300">
+      <div className={`${TOOL_CARD} space-y-5`}>
+      <div className="space-y-3 text-sm leading-relaxed">
         <p>{summary.summary}</p>
-        <ol className="list-decimal space-y-1.5 pl-5">
+        <ol className={`${TOOL_MUTED} list-decimal space-y-1.5 pl-5`}>
           {summary.keyPoints.map((point) => (
             <li key={point}>{point}</li>
           ))}
         </ol>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-slate-400">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-2">
           <div className="relative" ref={translateRef}>
             <button
               type="button"
               onClick={() => setTranslateOpen((open) => !open)}
               disabled={isTranslating}
-              className="inline-flex cursor-pointer appearance-none items-center gap-1.5 border-0 bg-transparent text-xs font-semibold text-slate-400 hover:text-cyan-300 disabled:opacity-60"
+              className={`${TOOL_SECONDARY} disabled:opacity-60`}
             >
-              <Languages className="h-4 w-4 text-cyan-400" />
+              <Languages className="mv-pres-accent h-4 w-4" />
               <span>Translate ({selectedLanguage})</span>
               <ChevronDown className="h-3 w-3" />
             </button>
             {translateOpen ? (
-              <div className="absolute bottom-8 left-0 z-30 w-48 space-y-1 rounded-xl border border-slate-800 bg-slate-900 p-2 text-xs shadow-2xl">
-                <div className="mb-1 border-b border-slate-800 px-2 py-1 font-bold text-slate-500">Select Language</div>
+              <div className={`${MENU_PANEL_CLASS} absolute bottom-10 left-0 z-30 w-48 space-y-1 text-xs`}>
+                <div className={`${TOOL_MUTED} mb-1 border-b border-slate-500/20 px-2 py-1 font-semibold`}>Select Language</div>
                 {SUPPORTED_LANGUAGES.map((lang) => (
                   <button
                     key={lang.code}
                     type="button"
                     onClick={() => void handleTranslateContent(lang)}
-                    className="flex w-full cursor-pointer appearance-none items-center justify-between rounded-lg border-0 bg-transparent px-2 py-1.5 text-left text-slate-200 hover:bg-slate-800"
+                    className={`${MENU_ITEM_CLASS} cursor-pointer !justify-between !px-2 !py-1.5 !text-xs`}
                   >
                     <span>{lang.name}</span>
-                    {selectedLanguage === lang.name ? <Check className="h-3.5 w-3.5 text-cyan-400" /> : null}
+                    {selectedLanguage === lang.name ? <Check className="mv-pres-accent h-3.5 w-3.5" /> : null}
                   </button>
                 ))}
               </div>
             ) : null}
           </div>
-          <button type="button" onClick={handleReadAloud} className="inline-flex cursor-pointer appearance-none items-center gap-1 border-0 bg-transparent text-slate-400 hover:text-white">
+          <button type="button" onClick={handleReadAloud} className={TOOL_SECONDARY}>
             <Volume2 className="h-4 w-4" /> {speaking ? 'Stop' : 'Listen'}
           </button>
         </div>
         <div className="flex items-center gap-1">
-          <button type="button" onClick={() => handleFeedback('up')} className={`${ICON_BTN} ${feedback === 'up' ? 'text-emerald-400' : ''}`} title="Helpful">
-            <ThumbsUp className="h-4 w-4" />
+          <button type="button" onClick={() => handleFeedback('up')} className={ICON_BTN} title="Helpful">
+            <ThumbsUp className={`h-4 w-4 ${feedback === 'up' ? 'text-emerald-500' : ''}`} />
           </button>
-          <button type="button" onClick={() => handleFeedback('down')} className={`${ICON_BTN} ${feedback === 'down' ? 'text-rose-400' : ''}`} title="Needs improvement">
-            <ThumbsDown className="h-4 w-4" />
+          <button type="button" onClick={() => handleFeedback('down')} className={ICON_BTN} title="Needs improvement">
+            <ThumbsDown className={`h-4 w-4 ${feedback === 'down' ? 'text-rose-500' : ''}`} />
           </button>
         </div>
       </div>
 
-      {notice ? <p className="rounded-xl border border-cyan-500/30 bg-cyan-950/40 px-4 py-2 text-sm text-cyan-200">{notice}</p> : null}
+      {notice ? <p className={`${TOOL_PANEL} mv-pres-accent py-2 text-sm`}>{notice}</p> : null}
 
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 shadow-xl">
+      <div>
         {followUpFiles.length > 0 ? (
           <div className="mb-2 flex flex-wrap gap-2">
             {followUpFiles.map((file) => (
-              <span key={file.id} className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/30 bg-cyan-950/60 px-2 py-1 text-xs text-cyan-300">
+              <span key={file.id} className="mv-pres-field inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs">
                 {file.isProcessing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Paperclip className="h-3 w-3" />}
                 {file.name}
               </span>
@@ -1084,10 +1022,9 @@ function LessonPlanResult({
             if (e.key === 'Enter') sendFollowUp();
           }}
           placeholder="Continue the conversation..."
-          className="w-full border-0 bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-500"
-          style={{ color: '#e2e8f0', WebkitTextFillColor: '#e2e8f0' }}
+          className={`${TOOL_FIELD} !mt-0`}
         />
-        <div className="mt-2 flex items-center justify-between border-t border-slate-800/60 pt-2">
+        <div className="mt-2 flex items-center justify-between">
           <button type="button" onClick={() => fileRef.current?.click()} className={ICON_BTN} title="Attach a file" aria-label="Attach a file">
             <Plus className="h-4 w-4" />
           </button>
@@ -1104,13 +1041,13 @@ function LessonPlanResult({
           />
           <div className="flex items-center gap-2">
             <button type="button" onClick={toggle} className={ICON_BTN} title={listening ? 'Stop recording' : 'Voice input'} aria-label="Voice input">
-              <Mic className={`h-4 w-4 ${listening ? 'text-cyan-300' : ''}`} />
+              <Mic className={`h-4 w-4 ${listening ? 'text-violet-300' : ''}`} />
             </button>
             <button
               type="button"
               onClick={sendFollowUp}
               disabled={!followUp.trim() || busy}
-              className="inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl bg-cyan-500 p-2 text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
+              className="mv-pres-generate inline-flex items-center justify-center rounded-xl p-2 disabled:opacity-50"
               aria-label="Send"
             >
               <ArrowUp className="h-4 w-4" />
@@ -1118,17 +1055,18 @@ function LessonPlanResult({
           </div>
         </div>
       </div>
+      </div>
 
       {expanded ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setExpanded(false)}>
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950 p-8" onClick={(event) => event.stopPropagation()}>
+          <div className="mv-pres-card max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border p-8" onClick={(event) => event.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-100">{lessonTitle}</h2>
+              <h2 className="text-lg font-semibold">{lessonTitle}</h2>
               <button type="button" onClick={() => setExpanded(false)} className={ICON_BTN} aria-label="Close preview">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="space-y-6 text-sm text-slate-300">
+            <div className="space-y-6 text-sm">
               {overviewBody}
               {detailsBody}
               {sectionsBody([0, draft.sections.length])}
@@ -1141,6 +1079,8 @@ function LessonPlanResult({
 }
 
 function StudioComposer({
+  id,
+  label,
   value,
   onChange,
   placeholder,
@@ -1148,8 +1088,10 @@ function StudioComposer({
   onAddFiles,
   onRemoveFile,
   assistantHint,
-  minHeight = 168,
+  short = false,
 }: {
+  id: string;
+  label: string;
   value: string;
   onChange: (next: string) => void;
   placeholder: string;
@@ -1157,7 +1099,7 @@ function StudioComposer({
   onAddFiles: (list: FileList | null) => void;
   onRemoveFile: (id: string) => void;
   assistantHint?: string;
-  minHeight?: number;
+  short?: boolean;
 }) {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const { listening, toggle } = useDictation((text) => {
@@ -1167,53 +1109,63 @@ function StudioComposer({
   const overLimit = words > WORD_LIMIT;
 
   return (
-    <div
-      className="flex w-full flex-col gap-4 rounded-2xl border border-slate-800/90 bg-slate-900/80 p-5 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:border-cyan-500/80 focus-within:ring-2 focus-within:ring-cyan-500/20"
-      style={FONT}
-    >
-      <div className="flex items-start gap-3.5">
-        <button
-          type="button"
-          title={listening ? 'Listening... Click to stop' : 'Voice Input'}
-          className={`flex shrink-0 cursor-pointer appearance-none items-center justify-center rounded-xl p-2.5 shadow-md transition-all duration-300 ${
-            listening
-              ? 'animate-pulse border border-rose-400/60 bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.45)] ring-2 ring-rose-400/30'
-              : 'border border-cyan-500/30 bg-slate-950/90 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.15)] hover:scale-105 hover:border-cyan-400 hover:bg-cyan-950/60 hover:text-cyan-300'
-          }`}
-          aria-label={listening ? 'Stop recording' : 'Dictate with microphone'}
-          aria-pressed={listening}
-          onClick={toggle}
-        >
-          <Mic className={`h-4 w-4 ${listening ? 'animate-bounce text-white' : 'text-cyan-400'}`} />
-        </button>
+    <>
+      {assistantHint ? (
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <label className={TOOL_SECTION_TITLE} htmlFor={id}>{label}</label>
+          <button
+            type="button"
+            className={TOOL_ACCENT_BUTTON}
+            aria-expanded={assistantOpen}
+            onClick={() => setAssistantOpen((v) => !v)}
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Prompt assistant
+          </button>
+        </div>
+      ) : (
+        <label className={TOOL_LABEL} htmlFor={id}>{label}</label>
+      )}
+      {assistantHint && assistantOpen ? (
+        <div className={`${TOOL_PANEL} mt-2 text-sm`}>
+          <p className={TOOL_MUTED}>{assistantHint}</p>
+        </div>
+      ) : null}
+      <div className="relative">
         <textarea
-          className="w-full flex-1 resize-y bg-transparent pt-0.5 text-sm leading-relaxed text-slate-100 outline-none placeholder:text-slate-500/80 md:text-base"
-          style={{ ...FONT, minHeight }}
+          id={id}
+          className={short ? TOOL_TEXTAREA_SHORT : TOOL_TEXTAREA}
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={5}
           spellCheck
         />
+        <button
+          type="button"
+          title={listening ? 'Listening... Click to stop' : 'Voice Input'}
+          className={TOOL_MIC}
+          aria-label={listening ? 'Stop recording' : 'Dictate with microphone'}
+          aria-pressed={listening}
+          onClick={toggle}
+        >
+          <Mic className={`h-4 w-4 ${listening ? 'text-violet-300' : ''}`} />
+        </button>
       </div>
       {listening ? <VoiceListeningIndicator className="mt-3" isListening onStopListening={toggle} /> : null}
       {files.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-800 pt-3">
+        <div className="mt-3 flex flex-wrap gap-2">
           {files.map((file) => (
-            <div
-              key={file.id}
-              className="flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-950/60 px-3 py-1.5 text-xs text-cyan-300 shadow-sm"
-            >
+            <div key={file.id} className="mv-pres-field flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs">
               {file.isProcessing ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-400" />
+                <Loader2 className="mv-pres-accent h-3.5 w-3.5 animate-spin" />
               ) : (
-                <FileText className="h-3.5 w-3.5 text-cyan-400" />
+                <FileText className="mv-pres-accent h-3.5 w-3.5" />
               )}
               <span className="max-w-[180px] truncate font-medium">{file.name}</span>
               <button
                 type="button"
                 onClick={() => onRemoveFile(file.id)}
-                className="appearance-none p-0.5 text-slate-400 transition-colors hover:text-rose-400"
+                className={TOOL_ICON_BUTTON}
                 title="Remove file"
                 aria-label={`Remove ${file.name}`}
               >
@@ -1223,29 +1175,48 @@ function StudioComposer({
           ))}
         </div>
       ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800/80 pt-3 text-xs text-slate-400">
+      <div className="mt-3 flex items-center justify-between gap-3 text-xs">
         <AddFileMenu accept={FILE_ACCEPT} onFiles={onAddFiles} />
-        <div className="flex flex-wrap items-center gap-4">
-          <span className={overLimit ? 'font-mono text-[11px] font-medium text-rose-300' : 'font-mono text-[11px] text-slate-500'}>
-            Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
-          </span>
-          {assistantHint ? (
-            <button
-              type="button"
-              className="inline-flex cursor-pointer appearance-none items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-950/60 px-4 py-2 text-sm font-semibold text-cyan-300 shadow-sm transition-all hover:border-cyan-400"
-              onClick={() => setAssistantOpen((v) => !v)}
-            >
-              <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
-              <span>Prompt assistant</span>
-            </button>
-          ) : null}
-        </div>
+        <span className={overLimit ? 'text-rose-400' : TOOL_MUTED}>
+          Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
+        </span>
       </div>
-      {assistantHint && assistantOpen ? (
-        <p className="mt-3 rounded-lg border border-cyan-500/30 bg-slate-950 px-3 py-2 text-sm text-slate-200">
-          {assistantHint}
-        </p>
-      ) : null}
+    </>
+  );
+}
+
+function KhdaAlignOption() {
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    setEnabled(readKhdaAlign());
+    return subscribeKhdaAlign(() => setEnabled(readKhdaAlign()));
+  }, []);
+
+  return (
+    <div className="mt-6">
+      <label className="flex items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 accent-violet-500"
+          checked={enabled}
+          onChange={(event) => {
+            writeKhdaAlign(event.target.checked);
+            setEnabled(event.target.checked);
+          }}
+        />
+        <span>
+          <span className="block font-semibold">Align lessons to a Dubai private school (KHDA)</span>
+          <span className={`${TOOL_MUTED} mt-1 block leading-relaxed`}>
+            Lesson plans then keep Arabic, Islamic Education, and social and moral studies on the UAE Ministry of Education curriculum, and keep every other subject on the school’s licensed curriculum. The teacher still reviews the plan. This does not rate or certify the school.
+          </span>
+        </span>
+      </label>
+      <p className="mt-2 pl-7 text-sm">
+        <Link to="/khda" className="mv-pres-link font-semibold">
+          KHDA safety, curriculum, and wellbeing alignment
+        </Link>
+      </p>
     </div>
   );
 }
@@ -1456,10 +1427,13 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
   const studio = (
       <div
         ref={scrollRef}
-        className="lesson-plan-studio custom-scrollbar flex h-full max-h-full min-h-0 w-full flex-1 flex-col overflow-y-auto bg-[#0d131f] text-slate-100"
-        style={FONT}
+        className={`${TOOL_PAGE} lesson-plan-studio custom-scrollbar flex-1 overflow-y-auto`}
       >
-        <style>{STUDIO_CONTRAST_CSS}</style>
+        <nav className={TOOL_BREADCRUMB}>
+          <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
+          <span className={TOOL_MUTED}>›</span>
+          <span>Lesson Plan Generator</span>
+        </nav>
         {plan && lessonId && activePrompt ? (
           <LessonPlanResult
             key={lessonId}
@@ -1475,20 +1449,19 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
             onHistory={() => setHistoryOpen(true)}
           />
         ) : (
-        <div className="mx-auto flex w-[90%] max-w-[1500px] flex-col space-y-8 py-6 pb-24">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex min-w-0 flex-wrap items-center gap-3">
-                <p className="text-[18px] text-slate-300" style={FONT}>
-                  Generate a lesson plan based on a standard, topic, or objective.
-                </p>
+          <div className={TOOL_CARD}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className={TOOL_TITLE}>Lesson Plan Generator</h1>
+                <p className={TOOL_SUBTITLE}>Generate a lesson plan based on a standard, topic, or objective.</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setHistoryOpen(true)}
                   title="Lesson plan history"
                   aria-label="Lesson plan history"
-                  className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm font-medium text-cyan-300 hover:border-cyan-500 hover:text-white"
+                  className={TOOL_SECONDARY}
                 >
                   <History className="h-4 w-4" />
                   History
@@ -1498,110 +1471,85 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
                   onClick={handleReset}
                   title="Reset form"
                   aria-label="Reset form"
-                  className="rounded-lg border border-slate-700 bg-slate-900 p-2 text-cyan-300 transition-colors hover:border-cyan-500 hover:text-white"
+                  className={TOOL_SECONDARY}
                 >
                   <RotateCcw className="h-4 w-4" />
                 </button>
-                <button
-                  type="button"
-                  onClick={handleShowExemplar}
-                  className="rounded-lg border border-slate-700 bg-slate-900 px-3.5 py-1.5 text-sm font-medium text-cyan-300 transition-colors hover:border-cyan-500 hover:text-white"
-                >
+                <button type="button" onClick={handleShowExemplar} className={TOOL_ACCENT_BUTTON}>
                   Show exemplar
                 </button>
               </div>
             </div>
 
-            <label className="mb-6 block">
-              <span className="mb-2 block font-semibold text-slate-100" style={LABEL_FONT}>
-                Grade level: <span className="text-rose-400">*</span>
-              </span>
-              <div className="relative max-w-xl">
-                <select
-                  className="w-full appearance-none rounded-xl border border-white/15 bg-[#151c2b] px-4 py-3 pr-10 text-[18px] text-slate-100 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40"
-                  style={FONT}
-                  value={gradeLevel}
-                  onChange={(e) => {
-                    pushHistory();
-                    setGradeLevel(e.target.value);
-                  }}
-                >
-                  {LESSON_PLAN_GRADE_LEVELS.map((grade) => (
-                    <option key={grade} value={grade}>
-                      {grade}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              </div>
-            </label>
+            <label className={`${TOOL_LABEL} mt-6`} htmlFor="lesson-plan-grade">Grade level: *</label>
+            <select
+              id="lesson-plan-grade"
+              className={TOOL_FIELD}
+              value={gradeLevel}
+              onChange={(e) => {
+                pushHistory();
+                setGradeLevel(e.target.value);
+              }}
+            >
+              {LESSON_PLAN_GRADE_LEVELS.map((grade) => (
+                <option key={grade} value={grade}>
+                  {grade}
+                </option>
+              ))}
+            </select>
 
-            <div className="w-full space-y-2.5">
-              <span className="flex items-center gap-1.5 text-base font-bold text-slate-100">
-                <span>Topic, Standard, or Objective:</span>
-                <span className="font-bold text-rose-500">*</span>
-              </span>
-              <StudioComposer
-                value={topic}
-                onChange={(next) => updateField('topic', next)}
-                placeholder={TOPIC_PLACEHOLDER}
-                files={topicFiles}
-                onAddFiles={(list) => void attachFiles('topic', list)}
-                onRemoveFile={(id) => removeFile('topic', id)}
-                minHeight={200}
-                assistantHint="Name the standard, topic, or learning objective. Paste the full wording if you want alignment to a specific framework (NGSS, CCSS, TEKS, and others). Attached PDFs, Word files, text, and images are read into the lesson."
-              />
-            </div>
+            <StudioComposer
+              id="lesson-plan-topic"
+              label="Topic, Standard, or Objective: *"
+              value={topic}
+              onChange={(next) => updateField('topic', next)}
+              placeholder={TOPIC_PLACEHOLDER}
+              files={topicFiles}
+              onAddFiles={(list) => void attachFiles('topic', list)}
+              onRemoveFile={(id) => removeFile('topic', id)}
+              assistantHint="Name the standard, topic, or learning objective. Paste the full wording if you want alignment to a specific framework (NGSS, CCSS, TEKS, and others). Attached PDFs, Word files, text, and images are read into the lesson."
+            />
 
-            <div className="w-full space-y-2.5">
-              <span className="text-base font-bold text-slate-100">Additional Criteria:</span>
-              <StudioComposer
-                value={criteria}
-                onChange={(next) => updateField('criteria', next)}
-                placeholder={CRITERIA_PLACEHOLDER}
-                files={criteriaFiles}
-                onAddFiles={(list) => void attachFiles('criteria', list)}
-                onRemoveFile={(id) => removeFile('criteria', id)}
-                assistantHint="Add class context: prior lesson, grouping, materials, timing, or instructional must-haves."
-              />
-            </div>
+            <StudioComposer
+              id="lesson-plan-criteria"
+              label="Additional Criteria:"
+              value={criteria}
+              onChange={(next) => updateField('criteria', next)}
+              placeholder={CRITERIA_PLACEHOLDER}
+              files={criteriaFiles}
+              onAddFiles={(list) => void attachFiles('criteria', list)}
+              onRemoveFile={(id) => removeFile('criteria', id)}
+              assistantHint="Add class context: prior lesson, grouping, materials, timing, or instructional must-haves."
+              short
+            />
 
-            <div className="w-full space-y-2.5">
-              <span className="text-base font-bold text-slate-100">Standards Set to Align to:</span>
-              <StudioComposer
-                value={standards}
-                onChange={(next) => updateField('standards', next)}
-                placeholder={STANDARDS_PLACEHOLDER}
-                files={standardsFiles}
-                onAddFiles={(list) => void attachFiles('standards', list)}
-                onRemoveFile={(id) => removeFile('standards', id)}
-                minHeight={140}
-              />
-            </div>
+            <StudioComposer
+              id="lesson-plan-standards"
+              label="Standards Set to Align to:"
+              value={standards}
+              onChange={(next) => updateField('standards', next)}
+              placeholder={STANDARDS_PLACEHOLDER}
+              files={standardsFiles}
+              onAddFiles={(list) => void attachFiles('standards', list)}
+              onRemoveFile={(id) => removeFile('standards', id)}
+              short
+            />
 
-            <KhdaAlignControl />
+            <KhdaAlignOption />
 
-            {fileNotice ? (
-              <p className="rounded-xl border border-cyan-500/30 bg-cyan-950/40 px-4 py-3 text-sm text-cyan-200">
-                {fileNotice}
-              </p>
-            ) : null}
-            {error ? (
-              <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-rose-200">{error}</p>
-            ) : null}
+            {fileNotice ? <p className={`${TOOL_HINT} mt-4`}>{fileNotice}</p> : null}
+            {error ? <p className={TOOL_ERROR}>{error}</p> : null}
 
-            <div className="flex w-full justify-center pt-4">
-              <button
-                ref={generateRef}
-                type="button"
-                disabled={!canGenerate}
-                className="flex w-full cursor-pointer appearance-none items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-400 to-cyan-500 px-6 py-4 text-base font-bold text-slate-950 shadow-[0_0_25px_rgba(6,182,212,0.3)] transition-all duration-300 hover:from-cyan-400 hover:to-teal-300 hover:shadow-[0_0_35px_rgba(6,182,212,0.5)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 md:text-lg"
-                onClick={() => void generate()}
-              >
-                {busy || filesProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5 fill-slate-950" />}
-                <span>{filesProcessing ? 'Reading files...' : busy ? 'Generating Lesson Plan...' : 'Generate Lesson Plan'}</span>
-              </button>
-            </div>
+            <button
+              ref={generateRef}
+              type="button"
+              disabled={!canGenerate}
+              className={TOOL_GENERATE}
+              onClick={() => void generate()}
+            >
+              {busy || filesProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              <span>{filesProcessing ? 'Reading files...' : busy ? 'Generating Lesson Plan...' : 'Generate Lesson Plan'}</span>
+            </button>
           </div>
         )}
         <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} onSelect={openHistoryItem} />

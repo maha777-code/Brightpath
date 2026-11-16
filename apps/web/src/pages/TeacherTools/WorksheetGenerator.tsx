@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bookmark,
   ChevronDown,
@@ -13,7 +13,6 @@ import {
   FileText,
   History,
   Languages,
-  Lightbulb,
   Loader2,
   Maximize2,
   Mic,
@@ -42,9 +41,28 @@ import {
 import { api } from '@/lib/api';
 import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
-import { CYBER_FONT_STYLE } from '@/lib/theme';
 import { WorksheetHistoryDrawer } from '@/components/tools/WorksheetHistoryDrawer';
-import { ToolBreadcrumb } from '@/components/tools/ToolBreadcrumb';
+import {
+  TOOL_ACCENT_BUTTON,
+  TOOL_BREADCRUMB,
+  TOOL_BREADCRUMB_LINK,
+  TOOL_CARD,
+  TOOL_ERROR,
+  TOOL_FIELD,
+  TOOL_GENERATE,
+  TOOL_HINT,
+  TOOL_ICON_BUTTON,
+  TOOL_LABEL,
+  TOOL_MIC,
+  TOOL_MUTED,
+  TOOL_PAGE,
+  TOOL_PANEL,
+  TOOL_SECONDARY,
+  TOOL_SECTION_TITLE,
+  TOOL_SUBTITLE,
+  TOOL_TEXTAREA,
+  TOOL_TITLE,
+} from '@/components/tools/toolTheme';
 import { VoiceListeningIndicator } from '@/components/VoiceListeningIndicator';
 import { readSavedWorksheets, writeSavedWorksheets, type SavedWorksheet } from '@/lib/savedWorksheets';
 import {
@@ -137,11 +155,6 @@ function withWorksheetId(worksheet: WorksheetGeneratorResponse): WorksheetGenera
 const TOPIC_PLACEHOLDER =
   'Mitosis, World War II, paste a block of text or attach a PDF of content to base the worksheet on.';
 
-const TOOL_TEXTAREA_STYLE: CSSProperties = {
-  fontFamily: CYBER_FONT_STYLE.fontFamily,
-  WebkitTextFillColor: '#ffffff',
-};
-
 function countWords(value: string): number {
   return value.trim() ? value.trim().split(/\s+/).length : 0;
 }
@@ -213,26 +226,25 @@ type FormSnapshot = {
 
 function WorksheetTemplateSkeleton() {
   return (
-    <div className="w-full max-w-full space-y-6 rounded-2xl border border-slate-800/90 bg-slate-900/90 p-8 font-sans text-slate-200 shadow-2xl md:p-10" aria-hidden>
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-        <div className="text-sm font-semibold text-slate-300">
-          Name: <span className="ml-2 inline-block w-44 border-b border-slate-700" />
+    <div className="mv-pres-field w-full max-w-full space-y-6 rounded-xl p-6 text-sm md:p-8" aria-hidden>
+      <div className={`${TOOL_MUTED} flex items-center justify-between pb-2 font-semibold`}>
+        <div>
+          Name: <span className="ml-2 inline-block w-44 border-b border-current opacity-50" />
         </div>
-        <div className="text-sm font-semibold text-slate-300">
-          Date: <span className="ml-2 inline-block w-32 border-b border-slate-700" />
+        <div>
+          Date: <span className="ml-2 inline-block w-32 border-b border-current opacity-50" />
         </div>
       </div>
 
       <div className="py-2 text-center">
-        <h2 className="text-2xl font-bold tracking-wide text-white">Worksheet Title</h2>
-        <div className="mx-auto mt-2 h-1 w-24 rounded-full bg-cyan-500/40" />
+        <h2 className="text-2xl font-semibold">Worksheet Title</h2>
       </div>
 
       <div className="space-y-3 pt-2">
-        <h3 className="text-base font-bold uppercase tracking-wider text-cyan-400">Section</h3>
-        <div className="space-y-2 pl-2">
+        <h3 className="mv-pres-accent text-sm font-semibold">Section</h3>
+        <div className={`${TOOL_MUTED} space-y-2 pl-2`}>
           {[1, 2, 3, 4, 5].map((num) => (
-            <div key={`sa-${num}`} className="text-sm text-slate-300">
+            <div key={`sa-${num}`}>
               <p className="font-medium">{num}. ____________________________________________</p>
             </div>
           ))}
@@ -240,12 +252,12 @@ function WorksheetTemplateSkeleton() {
       </div>
 
       <div className="space-y-3 pt-2">
-        <h3 className="text-base font-bold uppercase tracking-wider text-cyan-400">Section</h3>
+        <h3 className="mv-pres-accent text-sm font-semibold">Section</h3>
         <div className="space-y-4 pl-2">
           {[1, 2, 3, 4, 5].map((qNum) => (
-            <div key={`mc-${qNum}`} className="space-y-1 text-sm text-slate-300">
+            <div key={`mc-${qNum}`} className="space-y-1">
               <p className="font-semibold">{qNum}. Question prompt placeholder...</p>
-              <div className="grid grid-cols-2 gap-2 pl-4 text-xs text-slate-400">
+              <div className={`${TOOL_MUTED} grid grid-cols-2 gap-2 pl-4 text-xs`}>
                 <span>A. Option A</span>
                 <span>B. Option B</span>
                 <span>C. Option C</span>
@@ -257,22 +269,22 @@ function WorksheetTemplateSkeleton() {
       </div>
 
       <div className="space-y-3 pt-2">
-        <h3 className="text-base font-bold uppercase tracking-wider text-cyan-400">Section</h3>
+        <h3 className="mv-pres-accent text-sm font-semibold">Section</h3>
         <div className="space-y-2 pl-2">
           {[1, 2, 3].map((num) => (
-            <div key={`ext-${num}`} className="space-y-1 text-sm text-slate-300">
+            <div key={`ext-${num}`} className="space-y-1">
               <p className="font-medium">{num}. Extended answer prompt...</p>
-              <div className="h-6 border-b border-dashed border-slate-800" />
+              <div className={`${TOOL_MUTED} h-6 border-b border-dashed border-current opacity-40`} />
             </div>
           ))}
         </div>
       </div>
 
       <div className="space-y-3 pt-2">
-        <h3 className="text-base font-bold uppercase tracking-wider text-cyan-400">SectionLabel</h3>
-        <div className="grid grid-cols-1 gap-2 pl-2 text-sm text-slate-300 md:grid-cols-2">
+        <h3 className="mv-pres-accent text-sm font-semibold">SectionLabel</h3>
+        <div className="grid grid-cols-1 gap-2 pl-2 md:grid-cols-2">
           {[1, 2, 3, 4, 5].map((num) => (
-            <div key={`sl-${num}`} className="rounded-lg border border-slate-800/60 bg-slate-950/40 p-2">
+            <div key={`sl-${num}`} className="mv-pres-card rounded-lg p-2">
               {num}. Label item description
             </div>
           ))}
@@ -280,10 +292,10 @@ function WorksheetTemplateSkeleton() {
       </div>
 
       <div className="space-y-3 pt-2">
-        <h3 className="text-base font-bold uppercase tracking-wider text-cyan-400">Label</h3>
-        <div className="grid grid-cols-1 gap-2 pl-2 text-sm text-slate-300 md:grid-cols-2">
+        <h3 className="mv-pres-accent text-sm font-semibold">Label</h3>
+        <div className="grid grid-cols-1 gap-2 pl-2 md:grid-cols-2">
           {[6, 7, 8, 9, 10].map((num) => (
-            <div key={`l-${num}`} className="rounded-lg border border-slate-800/60 bg-slate-950/40 p-2">
+            <div key={`l-${num}`} className="mv-pres-card rounded-lg p-2">
               {num}. Label item description
             </div>
           ))}
@@ -291,10 +303,10 @@ function WorksheetTemplateSkeleton() {
       </div>
 
       <div className="space-y-3 pt-2">
-        <h3 className="text-base font-bold uppercase tracking-wider text-cyan-400">Label</h3>
-        <div className="grid grid-cols-1 gap-2 pl-2 text-sm text-slate-300 md:grid-cols-2">
+        <h3 className="mv-pres-accent text-sm font-semibold">Label</h3>
+        <div className="grid grid-cols-1 gap-2 pl-2 md:grid-cols-2">
           {[11, 12, 13].map((num) => (
-            <div key={`l2-${num}`} className="rounded-lg border border-slate-800/60 bg-slate-950/40 p-2">
+            <div key={`l2-${num}`} className="mv-pres-card rounded-lg p-2">
               {num}. Label item description
             </div>
           ))}
@@ -475,27 +487,29 @@ function PrintableWorksheet({
 function AttachedFileBadges({
   files,
   onRemove,
+  className = 'mb-3',
 }: {
   files: AttachedDocument[];
   onRemove: (id: string) => void;
+  className?: string;
 }) {
   if (!files.length) return null;
   return (
-    <div className="mb-3 flex flex-wrap gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2">
+    <div className={`${className} flex flex-wrap gap-2`}>
       {files.map((file) => (
         <div
           key={file.id}
-          className="flex items-center gap-2 rounded-lg border border-slate-700/80 bg-slate-900 px-3 py-1.5 text-xs text-cyan-300"
+          className="mv-pres-field flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs"
         >
-          <FileText className="h-3.5 w-3.5 text-cyan-400" />
+          <FileText className="mv-pres-accent h-3.5 w-3.5" />
           <span className="max-w-[200px] truncate font-medium">{file.name}</span>
           {file.isProcessing ? (
-            <Loader2 className="h-3 w-3 animate-spin text-amber-400" />
+            <Loader2 className={`${TOOL_MUTED} h-3 w-3 animate-spin`} />
           ) : (
             <button
               type="button"
               onClick={() => onRemove(file.id)}
-              className="ml-1 cursor-pointer appearance-none border-0 bg-transparent p-0 text-slate-500 hover:text-rose-400"
+              className={`${TOOL_ICON_BUTTON} ml-1`}
               aria-label={`Remove ${file.name}`}
             >
               <X className="h-3.5 w-3.5" />
@@ -883,11 +897,12 @@ function WorksheetStudio({
     }
   };
 
-  const glassIconButton =
-    'inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-700/60 bg-slate-900/80 p-2 text-slate-300 shadow-md transition-all hover:border-cyan-500/50 hover:text-cyan-400';
+  const iconButton = `${TOOL_SECONDARY} p-2`;
+  const activeIconButton = `${TOOL_SECONDARY} mv-pres-accent p-2`;
+  const menuItem = `${TOOL_MUTED} flex w-full items-center justify-between px-3 py-2 text-left text-sm`;
 
   const statusBar = (
-    <div className="mx-auto mt-2 flex w-full max-w-[896px] shrink-0 flex-wrap items-center justify-between gap-3 px-2 text-xs text-slate-400">
+    <div className={`${TOOL_MUTED} mt-3 flex w-full shrink-0 flex-wrap items-center justify-between gap-3 text-xs`}>
       <span className="font-medium">
         The worksheet Studio document has been created successfully.
       </span>
@@ -895,7 +910,7 @@ function WorksheetStudio({
         <div className="relative">
           <button
             type="button"
-            className={glassIconButton}
+            className={iconButton}
             aria-label="Translate worksheet"
             title="Translate Document"
             onClick={() => setIsTranslateModalOpen((v) => !v)}
@@ -903,19 +918,19 @@ function WorksheetStudio({
             <Languages className="h-4 w-4" />
           </button>
           {isTranslateModalOpen ? (
-            <div className="absolute bottom-full right-0 z-30 mb-2 w-56 overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900 py-1 shadow-xl">
-              <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <div className="mv-pres-card absolute bottom-full right-0 z-30 mb-2 w-56 overflow-hidden rounded-xl py-1 shadow-xl">
+              <p className={`${TOOL_MUTED} px-3 py-2 text-xs font-semibold`}>
                 Translate to
               </p>
               {TRANSLATE_LANGUAGES.map((language) => (
                 <button
                   key={language.id}
                   type="button"
-                  className="flex w-full cursor-pointer appearance-none items-center justify-between bg-transparent px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800 hover:text-cyan-300"
+                  className={menuItem}
                   onClick={() => void handleTranslate(language.id)}
                 >
                   <span>{language.id}</span>
-                  <span className="text-xs text-slate-400">{language.native}</span>
+                  <span className="text-xs">{language.native}</span>
                 </button>
               ))}
             </div>
@@ -923,11 +938,7 @@ function WorksheetStudio({
         </div>
         <button
           type="button"
-          className={
-            isSpeaking
-              ? 'inline-flex cursor-pointer appearance-none items-center justify-center animate-pulse rounded-xl border border-cyan-400 bg-cyan-500/20 p-2 text-cyan-400 transition-all'
-              : glassIconButton
-          }
+          className={isSpeaking ? `${activeIconButton} animate-pulse` : iconButton}
           aria-label={isSpeaking ? 'Stop reading' : 'Read aloud'}
           title={isSpeaking ? 'Stop Reading' : 'Read Aloud'}
           onClick={toggleSpeech}
@@ -936,11 +947,7 @@ function WorksheetStudio({
         </button>
         <button
           type="button"
-          className={
-            feedback === 'positive'
-              ? 'inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-emerald-400 bg-emerald-500/20 p-2 text-emerald-400 transition-all'
-              : 'inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-700/60 bg-slate-900/80 p-2 text-slate-300 shadow-md transition-all hover:border-emerald-500/50 hover:text-emerald-400'
-          }
+          className={feedback === 'positive' ? activeIconButton : iconButton}
           aria-label="Helpful output"
           title="Helpful output"
           aria-pressed={feedback === 'positive'}
@@ -950,11 +957,7 @@ function WorksheetStudio({
         </button>
         <button
           type="button"
-          className={
-            feedback === 'negative'
-              ? 'inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-rose-400 bg-rose-500/20 p-2 text-rose-400 transition-all'
-              : 'inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-700/60 bg-slate-900/80 p-2 text-slate-300 shadow-md transition-all hover:border-rose-500/50 hover:text-rose-400'
-          }
+          className={feedback === 'negative' ? `${TOOL_SECONDARY} p-2 text-rose-300` : iconButton}
           aria-label="Needs improvement"
           title="Needs improvement"
           aria-pressed={feedback === 'negative'}
@@ -964,7 +967,7 @@ function WorksheetStudio({
         </button>
         <button
           type="button"
-          className="inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl bg-cyan-500 p-2.5 font-bold text-slate-950 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all hover:bg-cyan-400"
+          className="mv-pres-generate inline-flex items-center justify-center rounded-lg p-2.5"
           aria-label="Download worksheet"
           title="Download Worksheet PDF / Doc"
           onClick={handleDownloadDoc}
@@ -981,23 +984,24 @@ function WorksheetStudio({
     </div>
   );
 
-  const headerIcon =
-    'inline-flex cursor-pointer appearance-none items-center justify-center rounded-lg border-0 bg-slate-900 p-2 text-slate-300 transition-all hover:bg-slate-800 hover:text-white';
+  const headerIcon = `${TOOL_SECONDARY} p-2`;
 
   return (
     <div
       className={
         pane
-          ? 'ws-studio mx-auto flex w-full max-w-[1024px] flex-col items-center pb-12'
-          : 'ws-studio flex h-full min-h-0 flex-col overflow-hidden p-4'
+          ? 'flex w-full flex-col pb-12'
+          : 'flex h-full min-h-0 flex-col overflow-hidden p-4'
       }
     >
-      <header className="mb-4 flex w-full shrink-0 flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <ToolBreadcrumb toolName="Worksheet Generator" />
-          <span className="text-slate-500">&gt;</span>
-          <span className="truncate font-semibold text-slate-200">{title || crumb}</span>
-        </div>
+      <header className="mb-6 flex w-full shrink-0 flex-wrap items-center justify-between gap-3">
+        <nav className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
+          <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
+          <span className={TOOL_MUTED}>›</span>
+          <span>Worksheet Generator</span>
+          <span className={TOOL_MUTED}>›</span>
+          <span className="truncate font-semibold">{title || crumb}</span>
+        </nav>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -1041,14 +1045,14 @@ function WorksheetStudio({
       </header>
 
       <div className="mb-4 flex w-full justify-end">
-        <div className="ws-studio-badge border border-slate-800 shadow-md">
+        <div className={`${TOOL_PANEL} space-y-1 text-xs`}>
           <p>
-            <span className="text-slate-400">Grade Level:</span>{' '}
-            <span className="font-semibold text-slate-200">{gradeBadge(payload.gradeLevel)}</span>
+            <span className={TOOL_MUTED}>Grade Level:</span>{' '}
+            <span className="font-semibold">{gradeBadge(payload.gradeLevel)}</span>
           </p>
           <p>
-            <span className="text-slate-400">Topic or text:</span>{' '}
-            <span className="font-semibold text-slate-200">{topicShort}</span>
+            <span className={TOOL_MUTED}>Topic or text:</span>{' '}
+            <span className="font-semibold">{topicShort}</span>
           </p>
         </div>
       </div>
@@ -1056,22 +1060,16 @@ function WorksheetStudio({
       <section
         className={
           pane
-            ? 'mb-4 flex w-full max-w-[896px] flex-col rounded-2xl border border-slate-800 bg-slate-900/90 p-6 text-slate-100 shadow-2xl backdrop-blur-md'
-            : 'flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm'
+            ? `${TOOL_CARD} flex flex-col`
+            : `${TOOL_CARD} flex min-h-0 flex-1 flex-col overflow-hidden`
         }
       >
-        <div
-          className={
-            pane
-              ? 'mb-6 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4'
-              : 'flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3'
-          }
-        >
+        <div className="mb-6 flex shrink-0 flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <FileText className="h-4 w-4 shrink-0 text-cyan-400" />
+            <FileText className="mv-pres-accent h-4 w-4 shrink-0" />
             {editingTitle ? (
               <input
-                className="rounded-md border border-cyan-500/40 bg-slate-950 px-2 py-1 text-sm font-semibold text-slate-100 outline-none focus:ring-2 focus:ring-cyan-500/30"
+                className="mv-pres-field rounded-md px-2 py-1 text-sm font-semibold outline-none focus:border-violet-400"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 onBlur={() => setEditingTitle(false)}
@@ -1081,22 +1079,18 @@ function WorksheetStudio({
                 autoFocus
               />
             ) : (
-              <h2 className={`truncate text-sm font-semibold ${pane ? 'text-slate-200' : 'text-slate-900'}`}>{title}</h2>
+              <h2 className="truncate text-sm font-semibold">{title}</h2>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={handleToggleSave}
-              className={`inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border p-2.5 shadow-sm transition-all ${
-                bookmarked
-                  ? 'border-amber-500/50 bg-amber-500/20 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
-                  : 'border-slate-700/60 bg-slate-900/80 text-slate-300 hover:border-amber-500/40 hover:text-amber-400'
-              }`}
+              className={bookmarked ? `${TOOL_SECONDARY} mv-pres-accent p-2` : `${TOOL_SECONDARY} p-2`}
               title={bookmarked ? 'Saved in Library (Click to unsave)' : 'Bookmark Worksheet'}
               aria-pressed={bookmarked}
             >
-              <Bookmark className={`h-4 w-4 ${bookmarked ? 'fill-amber-400' : ''}`} />
+              <Bookmark className={`h-4 w-4 ${bookmarked ? 'fill-current' : ''}`} />
             </button>
             <button
               type="button"
@@ -1104,14 +1098,14 @@ function WorksheetStudio({
                 refreshSaved();
                 setSavedOpen(true);
               }}
-              className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-slate-700/60 bg-slate-900/80 px-3 py-1.5 text-xs font-semibold text-slate-300 transition-all hover:border-cyan-500/40 hover:text-cyan-400"
+              className={TOOL_SECONDARY}
             >
-              <FolderHeart className="h-3.5 w-3.5 text-cyan-400" />
+              <FolderHeart className="mv-pres-accent h-3.5 w-3.5" />
               <span>View Saved</span>
             </button>
             <button
               type="button"
-              className="inline-flex cursor-pointer appearance-none items-center justify-center rounded-lg border-0 bg-transparent p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
+              className={`${TOOL_SECONDARY} p-2`}
               aria-label="Print"
               title="Print"
               onClick={printDoc}
@@ -1120,7 +1114,7 @@ function WorksheetStudio({
             </button>
             <button
               type="button"
-              className="inline-flex cursor-pointer appearance-none items-center justify-center rounded-lg border-0 bg-transparent p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
+              className={`${TOOL_SECONDARY} p-2`}
               aria-label="Copy"
               title="Copy"
               onClick={() => void copyDoc()}
@@ -1130,7 +1124,7 @@ function WorksheetStudio({
             <div className="relative">
               <button
                 type="button"
-                className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700"
+                className={TOOL_SECONDARY}
                 onClick={() => setExportOpen((v) => !v)}
               >
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -1138,10 +1132,10 @@ function WorksheetStudio({
                 <ChevronDown className="h-3.5 w-3.5" />
               </button>
               {exportOpen && (
-                <div className="absolute right-0 z-20 mt-1 w-36 overflow-hidden rounded-lg border border-slate-700 bg-slate-900 py-1 shadow-lg">
+                <div className="mv-pres-card absolute right-0 z-20 mt-1 w-36 overflow-hidden rounded-lg py-1 shadow-lg">
                   <button
                     type="button"
-                    className="block w-full cursor-pointer appearance-none bg-transparent px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800"
+                    className={menuItem}
                     onClick={() => {
                       setExportOpen(false);
                       printDoc();
@@ -1151,7 +1145,7 @@ function WorksheetStudio({
                   </button>
                   <button
                     type="button"
-                    className="block w-full cursor-pointer appearance-none bg-transparent px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800"
+                    className={menuItem}
                     onClick={() => {
                       setExportOpen(false);
                       void copyDoc();
@@ -1164,7 +1158,7 @@ function WorksheetStudio({
             </div>
             <button
               type="button"
-              className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-400 hover:bg-cyan-500/20"
+              className={TOOL_SECONDARY}
               onClick={() => setEditingTitle(true)}
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -1173,11 +1167,11 @@ function WorksheetStudio({
           </div>
         </div>
 
-        <div className="relative min-h-[480px] rounded-xl border border-slate-800/80 bg-slate-950/80 p-4 md:p-8">
-          <div className="mb-4 flex items-center justify-end gap-2 text-xs text-slate-400">
+        <div className={`${TOOL_PANEL} relative min-h-[480px] md:p-8`}>
+          <div className={`${TOOL_MUTED} mb-4 flex items-center justify-end gap-2 text-xs`}>
             <button
               type="button"
-              className="inline-flex cursor-pointer appearance-none items-center justify-center rounded border-0 bg-transparent p-1 text-slate-400 hover:text-white disabled:opacity-40"
+              className={`${TOOL_ICON_BUTTON} inline-flex items-center justify-center p-1 disabled:opacity-40`}
               aria-label="Previous page"
               disabled={currentPage <= 1}
               onClick={() => goToPage(currentPage - 1)}
@@ -1189,14 +1183,14 @@ function WorksheetStudio({
             </span>
             <button
               type="button"
-              className="inline-flex cursor-pointer appearance-none items-center justify-center rounded border-0 bg-transparent p-1 text-slate-400 hover:text-white disabled:opacity-40"
+              className={`${TOOL_ICON_BUTTON} inline-flex items-center justify-center p-1 disabled:opacity-40`}
               aria-label="Next page"
               disabled={currentPage >= totalPages}
               onClick={() => goToPage(currentPage + 1)}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
-            {copied ? <span className="ml-2 font-medium text-emerald-400">Copied</span> : null}
+            {copied ? <span className="mv-pres-accent ml-2 font-medium">Copied</span> : null}
           </div>
           <div
             id="worksheet-document-container"
@@ -1211,8 +1205,8 @@ function WorksheetStudio({
             {documentPaper}
           </div>
           {busy || isTranslating ? (
-            <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-slate-950/70">
-              <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
+            <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-black/40">
+              <div className="mv-pres-card inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium shadow-lg">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 {isTranslating ? 'Translating worksheet…' : 'Updating worksheet…'}
               </div>
@@ -1221,7 +1215,7 @@ function WorksheetStudio({
           <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2">
             <button
               type="button"
-              className="pointer-events-auto inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-200 shadow-xl hover:bg-slate-800"
+              className={`${TOOL_SECONDARY} pointer-events-auto shadow-xl`}
               onClick={() => setExpanded(true)}
             >
               <Maximize2 className="h-4 w-4" /> Expand preview
@@ -1235,7 +1229,7 @@ function WorksheetStudio({
       <div
         id="ws-follow-up"
         ref={chatContainerRef}
-        className="mx-auto mt-4 w-full max-w-[896px] shrink-0"
+        className="mt-4 w-full shrink-0"
       >
         {listeningFollowUp ? (
           <div className="mb-2">
@@ -1248,11 +1242,11 @@ function WorksheetStudio({
             onRemove={(id) => setFollowUpFiles((prev) => prev.filter((file) => file.id !== id))}
           />
         )}
-        <div className="flex w-full items-end gap-2 rounded-2xl border border-slate-800/90 bg-slate-900/90 p-2 shadow-2xl backdrop-blur-xl transition-all focus-within:border-cyan-500/50 focus-within:ring-1 focus-within:ring-cyan-500/30">
+        <div className="mv-pres-card flex w-full items-end gap-2 rounded-2xl p-2 shadow-2xl">
           <button
             type="button"
             onClick={() => followUpFileRef.current?.click()}
-            className="inline-flex shrink-0 cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-800 bg-slate-950/60 p-2.5 text-slate-400 transition-all hover:border-slate-700 hover:bg-slate-800 hover:text-cyan-400"
+            className={`${TOOL_SECONDARY} shrink-0 p-2.5`}
             title="Attach File or Context"
             aria-label="Attach extra context"
           >
@@ -1270,8 +1264,7 @@ function WorksheetStudio({
             }}
           />
           <textarea
-            className="max-h-32 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-2.5 text-sm leading-relaxed text-slate-200 outline-none placeholder:text-slate-500"
-            style={{ color: '#e2e8f0', WebkitTextFillColor: '#e2e8f0' }}
+            className="mv-pres-field max-h-32 min-h-[40px] flex-1 resize-none rounded-xl px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-violet-400"
             placeholder="Continue the conversation or modify worksheet..."
             rows={1}
             value={followUp}
@@ -1287,33 +1280,29 @@ function WorksheetStudio({
             <button
               type="button"
               onClick={toggleFollowUpVoice}
-              className={`inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl p-2 transition-all ${
-                listeningFollowUp
-                  ? 'animate-pulse border border-rose-500/50 bg-rose-500/20 text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.4)]'
-                  : 'border border-slate-800 bg-slate-950/60 text-slate-400 hover:border-cyan-500/40 hover:bg-cyan-500/20 hover:text-cyan-400'
-              }`}
+              className={`${TOOL_ICON_BUTTON} inline-flex items-center justify-center p-2`}
               title={listeningFollowUp ? 'Listening... Speak now' : 'Voice Input'}
               aria-label={listeningFollowUp ? 'Stop recording' : 'Voice input'}
             >
-              <Mic className="h-4 w-4" />
+              <Mic className={`h-4 w-4 ${listeningFollowUp ? 'text-violet-300' : ''}`} />
             </button>
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setPromptMenuOpen((v) => !v)}
-                className="inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl border border-slate-800 bg-slate-950/60 p-2 text-slate-400 transition-all hover:border-amber-500/40 hover:bg-amber-500/20 hover:text-amber-400"
+                className={`${TOOL_ACCENT_BUTTON} p-2`}
                 title="Prompt Assistant Ideas"
                 aria-label="Prompt assistant"
               >
-                <Lightbulb className="h-4 w-4" />
+                <Sparkles className="h-4 w-4" />
               </button>
               {promptMenuOpen && (
-                <div className="absolute bottom-12 right-0 z-20 w-72 overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900 py-1 shadow-xl">
+                <div className="mv-pres-card absolute bottom-12 right-0 z-20 w-72 overflow-hidden rounded-xl py-1 shadow-xl">
                   {PROMPT_SUGGESTIONS.map((suggestion) => (
                     <button
                       key={suggestion}
                       type="button"
-                      className="block w-full cursor-pointer appearance-none bg-transparent px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800 hover:text-cyan-300"
+                      className={menuItem}
                       onClick={() => {
                         setFollowUp(suggestion);
                         setPromptMenuOpen(false);
@@ -1333,11 +1322,7 @@ function WorksheetStudio({
                 followUpFiles.some((file) => file.isProcessing) ||
                 (!followUp.trim() && !documentContext(followUpFiles) && documentImages(followUpFiles).length === 0)
               }
-              className={`inline-flex cursor-pointer appearance-none items-center justify-center rounded-xl p-2.5 font-bold shadow-md transition-all ${
-                !busy && (followUp.trim() || documentContext(followUpFiles) || documentImages(followUpFiles).length)
-                  ? 'bg-cyan-500 text-slate-950 shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:scale-105 hover:bg-cyan-400'
-                  : 'cursor-not-allowed border border-slate-700/50 bg-slate-800 text-slate-600'
-              }`}
+              className="mv-pres-generate inline-flex items-center justify-center rounded-xl p-2.5 disabled:opacity-50"
               title="Send Message"
               aria-label="Send"
             >
@@ -1347,13 +1332,13 @@ function WorksheetStudio({
         </div>
       </div>
       {expanded ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/70 p-4">
-          <div className="mx-auto flex h-full min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
-              <h2 className="truncate text-base font-semibold text-slate-900">{title}</h2>
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/60 p-4">
+          <div className="mv-pres-card mx-auto flex h-full min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-2xl shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between px-4 py-3">
+              <h2 className="truncate text-base font-semibold">{title}</h2>
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+                className={TOOL_SECONDARY}
                 onClick={() => setExpanded(false)}
               >
                 <Minimize2 className="h-4 w-4" /> Collapse preview
@@ -1361,40 +1346,40 @@ function WorksheetStudio({
             </div>
             <div
               ref={expandedScrollRef}
-              className="custom-scrollbar min-h-0 flex-1 overflow-y-auto scroll-smooth bg-slate-100 p-6"
+              className="mv-pres-field custom-scrollbar min-h-0 flex-1 overflow-y-auto scroll-smooth p-6"
             >
               <div className="w-full max-w-full rounded-lg bg-white p-2 shadow-md sm:p-4">
                 <PrintableWorksheet worksheet={worksheet} title={title} />
               </div>
             </div>
-            {statusBar}
+            <div className="px-4 pb-3">{statusBar}</div>
           </div>
         </div>
       ) : null}
       {toast ? (
-        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
+        <div className="mv-pres-card pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full px-4 py-2 text-sm font-medium shadow-lg">
           {toast}
         </div>
       ) : null}
       {savedOpen
         ? createPortal(
             <div
-              className="fixed inset-0 z-[80] flex justify-end bg-slate-950/80 backdrop-blur-md"
+              className="fixed inset-0 z-[80] flex justify-end bg-black/60 backdrop-blur-md"
               onClick={() => setSavedOpen(false)}
             >
               <div
-                className="flex h-full w-full max-w-md flex-col border-l border-slate-800 bg-slate-900 p-6 shadow-2xl"
+                className="mv-presentation mv-tool-skin flex h-full w-full max-w-md flex-col p-6 shadow-2xl"
                 onClick={(event) => event.stopPropagation()}
               >
-                <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                  <div className="flex items-center gap-2 text-lg font-bold text-cyan-400">
-                    <Bookmark className="h-5 w-5 fill-cyan-400" />
+                <div className="flex items-center justify-between pb-4">
+                  <div className="flex items-center gap-2 text-lg font-semibold">
+                    <Bookmark className="mv-pres-accent h-5 w-5 fill-current" />
                     <span>Saved Worksheets</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setSavedOpen(false)}
-                    className="cursor-pointer appearance-none rounded-lg border-0 bg-transparent p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+                    className={`${TOOL_ICON_BUTTON} p-1.5`}
                     aria-label="Close saved worksheets"
                   >
                     <X className="h-5 w-5" />
@@ -1402,21 +1387,21 @@ function WorksheetStudio({
                 </div>
                 <div className="flex-1 space-y-3 overflow-y-auto py-4">
                   {savedItems.length === 0 ? (
-                    <div className="py-12 text-center text-sm text-slate-500">
+                    <div className={`${TOOL_MUTED} py-12 text-center text-sm`}>
                       No saved worksheets found. Bookmark a worksheet to view it here.
                     </div>
                   ) : (
                     savedItems.map((item) => (
                       <div
                         key={item.id}
-                        className="group flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 p-4 transition-all hover:border-cyan-500/40"
+                        className="mv-pres-card flex items-center justify-between rounded-xl p-4"
                       >
                         <div className="min-w-0 flex-1 space-y-1">
-                          <h4 className="truncate text-sm font-bold text-slate-200 group-hover:text-cyan-400">{item.title}</h4>
-                          <p className="truncate text-xs text-slate-500">
+                          <h4 className="truncate text-sm font-semibold">{item.title}</h4>
+                          <p className={`${TOOL_MUTED} truncate text-xs`}>
                             {item.gradeLevel} • {item.topic}
                           </p>
-                          <p className="text-[10px] text-slate-600">
+                          <p className={`${TOOL_MUTED} text-xs`}>
                             Saved on {new Date(item.savedAt).toLocaleDateString()}
                           </p>
                         </div>
@@ -1427,7 +1412,7 @@ function WorksheetStudio({
                               onLoadSaved(item);
                               setSavedOpen(false);
                             }}
-                            className="cursor-pointer appearance-none rounded-lg border-0 bg-cyan-500/10 px-2 py-2 text-xs font-semibold text-cyan-400 transition-all hover:bg-cyan-500 hover:text-slate-950"
+                            className={TOOL_SECONDARY}
                             title="Open Worksheet"
                           >
                             Open
@@ -1435,7 +1420,7 @@ function WorksheetStudio({
                           <button
                             type="button"
                             onClick={() => deleteSavedWorksheet(item.id)}
-                            className="cursor-pointer appearance-none rounded-lg border-0 bg-transparent p-2 text-slate-500 transition-colors hover:text-rose-400"
+                            className={`${TOOL_ICON_BUTTON} p-2`}
                             title="Delete"
                             aria-label={`Delete ${item.title}`}
                           >
@@ -1746,10 +1731,9 @@ export function WorksheetGenerator({
 
   return (
     <>
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-950 font-sans text-slate-100">
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className={TOOL_PAGE}>
         {generated ? (
-          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto bg-slate-950 px-4 py-6 md:px-8">
+          <div>
             <WorksheetStudio
               pane
               worksheet={worksheet!}
@@ -1770,41 +1754,33 @@ export function WorksheetGenerator({
           </div>
         ) : (
         <>
-        <nav className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800/80 bg-slate-900/90 px-6 py-3 text-xs text-slate-400 backdrop-blur-xl">
-          <ToolBreadcrumb toolName="Worksheet Generator" />
-          <button
-            type="button"
-            onClick={handleClose}
-            className="inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-xl border border-slate-700/60 bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-300 transition-all hover:border-rose-500/40 hover:bg-rose-500/20 hover:text-rose-400"
-          >
-            <X className="h-4 w-4" />
-            <span>Close</span>
-          </button>
+        <nav className={TOOL_BREADCRUMB}>
+          <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
+          <span className={TOOL_MUTED}>›</span>
+          <span>Worksheet Generator</span>
         </nav>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-y-auto lg:grid-cols-12 lg:overflow-hidden">
-          <div className="flex min-h-0 flex-col justify-between border-r border-slate-800/80 bg-slate-900/50 p-6 lg:col-span-4 lg:overflow-y-auto">
-            <div className="flex min-h-0 flex-1 flex-col">
-              <header className="flex shrink-0 flex-wrap items-start justify-between gap-3">
+        <div className={TOOL_CARD}>
+              <header className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h2 className="flex items-center gap-2.5 text-2xl font-black tracking-tight text-white">Worksheet Generator</h2>
+                  <h1 className={TOOL_TITLE}>
+                    Worksheet Generator
                     <button
                       type="button"
-                      className={`cursor-pointer appearance-none border-0 bg-transparent p-0 ${favorited ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400'}`}
+                      className={TOOL_ICON_BUTTON}
                       aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
                       aria-pressed={Boolean(favorited)}
                       onClick={toggleFavorite}
                     >
-                      <Star className="h-5 w-5" fill={favorited ? 'currentColor' : 'none'} />
+                      <Star className={`h-5 w-5 ${favorited ? 'fill-amber-300 text-amber-300' : TOOL_MUTED}`} />
                     </button>
-                  </div>
-                  <p className="mt-1 text-xs font-medium leading-relaxed text-slate-400">Generate a worksheet based on any topic or text.</p>
+                  </h1>
+                  <p className={TOOL_SUBTITLE}>Generate a worksheet based on any topic or text.</p>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-3">
                   <button
                     type="button"
-                    className="cursor-pointer appearance-none rounded-xl border border-slate-700/60 bg-slate-800/80 p-2 text-slate-300 transition-all hover:bg-slate-700"
+                    className={TOOL_SECONDARY}
                     aria-label="Undo last change"
                     onClick={undo}
                   >
@@ -1812,7 +1788,15 @@ export function WorksheetGenerator({
                   </button>
                   <button
                     type="button"
-                    className="cursor-pointer appearance-none rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-bold text-cyan-400 transition-all hover:bg-cyan-500/20"
+                    onClick={handleClose}
+                    className={TOOL_SECONDARY}
+                  >
+                    <X className="h-4 w-4" />
+                    <span>Close</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={TOOL_ACCENT_BUTTON}
                     onClick={() => {
                       pushHistory();
                       setShowExemplar(true);
@@ -1825,141 +1809,115 @@ export function WorksheetGenerator({
                 </div>
               </header>
 
-              <div className="mt-6 shrink-0">
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
-                  Grade level <span className="text-rose-400">*</span>
-                </label>
-                <div className="relative">
-                  <select
-                    className="w-full cursor-pointer appearance-none rounded-xl border border-slate-800 bg-[#0b101d] px-4 py-3 pr-9 text-sm text-white outline-none transition-all hover:border-slate-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50"
-                    style={{ backgroundColor: '#0b101d', color: '#fff' }}
-                    value={gradeLevel}
-                    onChange={(e) => setGradeLevel(e.target.value)}
-                  >
-                    {GRADE_LEVELS.map((g) => (
-                      <option key={g} value={g}>
-                        {g}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
+              <label className={`${TOOL_LABEL} mt-6`} htmlFor="worksheet-grade">Grade level: *</label>
+              <select
+                id="worksheet-grade"
+                className={TOOL_FIELD}
+                value={gradeLevel}
+                onChange={(e) => setGradeLevel(e.target.value)}
+              >
+                {GRADE_LEVELS.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
 
-              <div className="my-4 flex min-h-0 flex-1 flex-col">
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
-                  Topic or text <span className="text-rose-400">*</span>
-                </label>
-                <div className="relative flex min-h-[260px] flex-1 flex-col justify-between space-y-3 rounded-xl border border-slate-800 bg-[#0b101d] p-4 transition-all hover:border-slate-700 focus-within:border-cyan-500/60">
-                  <div className="relative flex min-h-0 flex-1 flex-col">
-                    <textarea
-                      className="min-h-[180px] w-full flex-1 resize-none bg-transparent p-0 pr-12 text-sm leading-relaxed text-white placeholder-slate-500 focus:outline-none"
-                      style={TOOL_TEXTAREA_STYLE}
-                      placeholder={TOPIC_PLACEHOLDER}
-                      value={topicOrText}
-                      onChange={(e) => setTopicOrText(sanitizePastedText(e.target.value))}
-                      onPaste={handlePaste}
-                      spellCheck
-                    />
-                    <button
-                      type="button"
-                      onClick={toggle}
-                      className={`absolute right-3 top-3 cursor-pointer appearance-none rounded-xl p-2 shadow-lg backdrop-blur-md transition-all duration-300 ${
-                        listening
-                          ? 'animate-pulse border border-rose-500/50 bg-rose-500/20 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
-                          : 'border border-slate-700/60 bg-slate-800/80 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)] hover:scale-105 hover:border-cyan-500/40 hover:bg-cyan-500/20 hover:text-cyan-300'
-                      }`}
-                      title={listening ? 'Listening...' : 'Click to speak'}
-                      aria-label={listening ? 'Stop recording' : 'Start recording voice prompt'}
-                    >
-                      <Mic className="h-4 w-4" />
-                    </button>
-                  </div>
-                  {listening ? <VoiceListeningIndicator isListening onStopListening={toggle} /> : null}
-                  <AttachedFileBadges
-                    files={attachedFiles}
-                    onRemove={(id) => setAttachedFiles((prev) => prev.filter((file) => file.id !== id))}
-                  />
-                  {fileNotice ? <p className="text-xs font-medium text-cyan-300">{fileNotice}</p> : null}
-                  <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-800/80 pt-2">
-                    <div className="relative">
-                      <AddFileMenu
-                        onFiles={(list) => void addFiles(list)}
-                        accept=".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,application/pdf,image/*"
-                      />
-                    </div>
-                    <p
-                      className={
-                        overLimit
-                          ? 'text-xs font-medium tracking-tight text-rose-400'
-                          : 'text-[11px] font-medium text-slate-500'
-                      }
-                    >
-                      Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-auto shrink-0 pt-4">
-              <div className="mb-3 flex flex-col items-end gap-3">
+              <label className={TOOL_LABEL} htmlFor="worksheet-topic">Topic or text: *</label>
+              <div className="relative">
+                <textarea
+                  id="worksheet-topic"
+                  className={TOOL_TEXTAREA}
+                  placeholder={TOPIC_PLACEHOLDER}
+                  value={topicOrText}
+                  onChange={(e) => setTopicOrText(sanitizePastedText(e.target.value))}
+                  onPaste={handlePaste}
+                  spellCheck
+                />
                 <button
                   type="button"
-                  className="inline-flex cursor-pointer appearance-none items-center gap-1.5 self-end rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-xs font-bold text-cyan-400 transition-all hover:bg-slate-800"
+                  onClick={toggle}
+                  className={TOOL_MIC}
+                  title={listening ? 'Listening...' : 'Click to speak'}
+                  aria-label={listening ? 'Stop recording' : 'Start recording voice prompt'}
+                >
+                  <Mic className={`h-4 w-4 ${listening ? 'text-violet-300' : ''}`} />
+                </button>
+              </div>
+              {listening ? (
+                <div className="mt-3">
+                  <VoiceListeningIndicator isListening onStopListening={toggle} />
+                </div>
+              ) : null}
+              <div className="mt-3 flex items-center justify-between gap-3 text-xs">
+                <div className="relative">
+                  <AddFileMenu
+                    onFiles={(list) => void addFiles(list)}
+                    accept=".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.gif,application/pdf,image/*"
+                  />
+                </div>
+                <span className={overLimit ? 'text-rose-300' : TOOL_MUTED}>
+                  Total word limit: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
+                </span>
+              </div>
+              <AttachedFileBadges
+                className="mt-3"
+                files={attachedFiles}
+                onRemove={(id) => setAttachedFiles((prev) => prev.filter((file) => file.id !== id))}
+              />
+              {fileNotice ? <p className={`${TOOL_HINT} mt-2`}>{fileNotice}</p> : null}
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  type="button"
+                  className={TOOL_ACCENT_BUTTON}
                   onClick={() => setAssistantOpen((v) => !v)}
                 >
-                  <Lightbulb className="h-4 w-4" /> Prompt assistant
+                  <Sparkles className="h-3.5 w-3.5" /> Prompt assistant
                 </button>
-                {assistantOpen && (
-                  <div className="w-full rounded-xl border border-slate-800 bg-[#0b101d] px-4 py-3 text-sm text-slate-300">
+              </div>
+              {assistantOpen && (
+                <div className={`${TOOL_PANEL} mt-3 text-sm`}>
+                  <p className={TOOL_MUTED}>
                     Name a topic, paste source text, or attach a PDF. Say whether you want vocabulary,
                     short answer, or mixed practice.
-                  </div>
-                )}
-              </div>
+                  </p>
+                </div>
+              )}
+
+              {error && <p className={TOOL_ERROR}>{error}</p>}
               <button
                 type="button"
                 disabled={busy || filesProcessing || !hasSource || overLimit}
-                className="inline-flex w-full cursor-pointer appearance-none items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3.5 text-sm font-black uppercase tracking-wider text-slate-950 shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                className={TOOL_GENERATE}
                 onClick={() => void generate()}
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 {busy ? 'Generating Worksheet...' : 'Generate Worksheet'}
               </button>
-              {error && (
-                <p className="mt-4 rounded-xl border border-rose-500/40 bg-rose-950/50 px-4 py-3 text-sm text-rose-200">
-                  {error}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div
-            data-worksheet-scroll
-            className="custom-scrollbar flex min-h-0 w-full flex-col items-stretch bg-slate-950/90 p-6 lg:col-span-8 lg:overflow-y-auto"
-          >
-            <div className="mb-4 flex w-full max-w-full items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Template Preview
-              </span>
-              <span className="text-xs text-slate-500">Live Preview Mode</span>
-            </div>
-            <div className="w-full max-w-full space-y-8 pb-12">
-              {busy ? (
-                <div className="flex min-h-[1000px] w-full flex-col items-center justify-center gap-3 rounded-2xl border border-slate-800/90 bg-slate-900/90 text-slate-400 shadow-2xl">
-                  <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-                  <p className="text-sm">Generating your worksheet…</p>
-                </div>
-              ) : (
-                <WorksheetTemplateSkeleton />
-              )}
-            </div>
-          </div>
         </div>
+
+        <section data-worksheet-scroll className={`${TOOL_CARD} mt-6`}>
+          <div className="mb-4 flex w-full items-center justify-between gap-3">
+            <h2 className={TOOL_SECTION_TITLE}>Template Preview</h2>
+            <span className={TOOL_HINT}>Live Preview Mode</span>
+          </div>
+          {busy ? (
+            <div className={`${TOOL_PANEL} flex min-h-[480px] w-full flex-col items-center justify-center gap-3`}>
+              <Loader2 className="mv-pres-accent h-8 w-8 animate-spin" />
+              <p className={`${TOOL_MUTED} text-sm`}>Generating your worksheet…</p>
+            </div>
+          ) : (
+            <WorksheetTemplateSkeleton />
+          )}
+        </section>
         </>
         )}
-      </div>
+      {historyToast ? (
+        <div className="mv-pres-card pointer-events-none fixed bottom-6 left-1/2 z-[90] -translate-x-1/2 rounded-full px-4 py-2 text-sm font-medium shadow-lg">
+          {historyToast}
+        </div>
+      ) : null}
     </div>
     <WorksheetHistoryDrawer
       open={historyOpen}
@@ -1977,11 +1935,6 @@ export function WorksheetGenerator({
       }}
       onDelete={deleteHistoryItem}
     />
-    {historyToast ? (
-      <div className="pointer-events-none fixed bottom-6 left-1/2 z-[90] -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
-        {historyToast}
-      </div>
-    ) : null}
     </>
   );
 }

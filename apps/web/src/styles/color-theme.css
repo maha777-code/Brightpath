@@ -757,12 +757,12 @@ html[data-theme='light'] .add-file-menu-item {
 
 html[data-theme='light'] .add-file-menu-item:hover,
 html[data-theme='light'] .add-file-menu-item:hover span {
-  color: #0e7490 !important;
-  -webkit-text-fill-color: #0e7490 !important;
+  color: #5b21b6 !important;
+  -webkit-text-fill-color: #5b21b6 !important;
 }
 
 html[data-theme='light'] .add-file-menu-item:hover {
-  background-color: #ecfeff !important;
+  background-color: #f5f3ff !important;
 }
 
 html[data-theme='light'] .quiz-gen-shell,
@@ -846,39 +846,6 @@ html[data-theme='light'] .quiz-editor :where([class*='hover:bg-slate-800']:hover
   background-color: #f1f5f9 !important;
 }
 
-html[data-theme='light'] .gamified-activity-tool {
-  color: #0f172a !important;
-}
-
-html[data-theme='light'] .gamified-activity-tool :where(
-  [class*='text-white'],
-  [class*='text-slate-100'],
-  [class*='text-cyan-50'],
-  [class*='text-cyan-100']
-) {
-  color: #0f172a !important;
-}
-
-html[data-theme='light'] .gamified-activity-tool :where(
-  [class*='bg-slate-950'],
-  [class*='bg-[#1e1b4b]']
-) {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-}
-
-html[data-theme='light'] .gamified-activity-tool input,
-html[data-theme='light'] .gamified-activity-tool textarea,
-html[data-theme='light'] .gamified-activity-tool select {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
-}
-
-html[data-theme='light'] .gamified-activity-tool :where(input, textarea, select):focus {
-  border-color: #22d3ee !important;
-}
-
 .quiz-watermark {
   color: rgb(148 163 184 / 0.5);
 }
@@ -889,15 +856,6 @@ html[data-theme='light'] .gamified-activity-tool :where(input, textarea, select)
 
 html[data-theme='light'] .quiz-watermark {
   color: rgb(100 116 139 / 0.5);
-}
-
-html[data-theme='light'] .gamified-activity-tool .ga-intro {
-  border-color: #e2e8f0;
-}
-
-html[data-theme='light'] .gamified-activity-tool .ga-option-selected {
-  background-color: #fff7ed;
-  border-color: #f59e0b;
 }
 
 /* Light theme: pale status text was written for dark panels. Keep it dark on light surfaces. */
@@ -1094,9 +1052,69 @@ html:not([data-theme='light']) .mv-tool-surface :where(input:not([type='checkbox
 .mv-pres-accent {
   color: #c4b5fd;
 }
+/* Preflight is off: text and icon buttons would otherwise get the browser's grey button fill */
+:where(.mv-presentation) button:where(.mv-pres-muted, .mv-pres-accent, :not([class])) {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+.mv-presentation button:is(.mv-pres-muted, :not([class])):hover {
+  color: #c4b5fd;
+}
+.mv-presentation button.mv-pres-accent:hover {
+  color: #ddd6fe;
+}
+html[data-theme='light'] .mv-presentation button:is(.mv-pres-muted, :not([class])):hover,
+html[data-theme='light'] .mv-presentation button.mv-pres-accent:hover {
+  color: #5b21b6 !important;
+}
+.mv-presentation button:is(.mv-pres-muted, .mv-pres-accent, :not([class])):focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+:where(.mv-presentation) button:where(.mv-pres-field, .mv-pres-generate, .mv-tool-choice) {
+  appearance: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+:where(.mv-presentation) button:where(.mv-pres-generate) {
+  border: 0;
+}
+:where(.mv-presentation) button:where(.mv-pres-generate):disabled {
+  cursor: not-allowed;
+}
+.mv-presentation button.mv-pres-field:not(:disabled):hover {
+  border-color: rgba(167, 139, 250, 0.55);
+}
 .mv-pres-generate {
-  background: #8b5cf6;
+  background: #7c3aed;
   color: #ffffff;
+}
+.mv-presentation .mv-pres-generate:not(:disabled):hover {
+  background: #6d28d9;
+}
+.mv-tool-choice {
+  background: #12141c;
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.mv-tool-choice[data-active='true'] {
+  background: rgba(124, 58, 237, 0.18);
+  border-color: #8b5cf6;
+}
+html[data-theme='light'] .mv-presentation .mv-tool-choice {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+html[data-theme='light'] .mv-presentation .mv-tool-choice[data-active='true'] {
+  background: #f5f3ff !important;
+  border-color: #7c3aed !important;
 }
 .mv-pres-art {
   min-height: 100%;

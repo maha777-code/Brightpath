@@ -1,10 +1,22 @@
 import { useCallback, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Check, Copy, FileDown, HelpCircle, Loader2, RefreshCw } from 'lucide-react';
 import type { QuizGeneratorPayload, QuizGeneratorResponse } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
 import { QuizGeneratorForm } from '@/components/tools/QuizGeneratorForm';
 import { QuizEditor, toEditableQuestions, toQuizResponse } from '@/components/tools/QuizEditor';
+import {
+  TOOL_BREADCRUMB,
+  TOOL_BREADCRUMB_LINK,
+  TOOL_CARD,
+  TOOL_ERROR,
+  TOOL_MUTED,
+  TOOL_PAGE,
+  TOOL_PANEL,
+  TOOL_SECONDARY,
+  TOOL_SECTION_TITLE,
+} from '@/components/tools/toolTheme';
 
 function optionLetterFromIndex(index: number): string {
   return String.fromCharCode(65 + Math.max(0, index));
@@ -155,14 +167,12 @@ function QuizOutputCard({
   onRegenerate: () => void;
   onEdit: () => void;
 }) {
-  const actionClass = quiz && !busy
-    ? 'inline-flex cursor-pointer appearance-none items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-slate-800 px-3 py-1.5 text-xs font-bold text-cyan-400 transition-all hover:bg-slate-700'
-    : 'inline-flex cursor-not-allowed appearance-none items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5 text-xs font-bold text-slate-500';
+  const actionClass = `${TOOL_SECONDARY} disabled:cursor-not-allowed disabled:opacity-50`;
 
   return (
-    <section className="quiz-gen-output flex h-full min-h-0 flex-col overflow-y-auto bg-[#03060d] p-6 custom-scrollbar">
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Generated Output</h3>
+    <section className={`${TOOL_CARD} mt-6`}>
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className={TOOL_SECTION_TITLE}>Generated Output</h2>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" className={actionClass} disabled={!quiz || busy} onClick={onExportPdf}>
             <FileDown className="h-3.5 w-3.5" /> Export to PDF
@@ -181,52 +191,41 @@ function QuizOutputCard({
         </div>
       </header>
 
-      <div className="flex min-h-[400px] flex-1 flex-col justify-center rounded-2xl border border-slate-800/90 bg-[#080d1a] p-6 shadow-xl">
-        {busy && !quiz ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-400">
-            <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-            <p className="text-sm font-semibold">Generating your quiz…</p>
+      {busy && !quiz ? (
+        <div className={`${TOOL_PANEL} ${TOOL_MUTED} flex min-h-[240px] flex-col items-center justify-center gap-3`}>
+          <Loader2 className="mv-pres-accent h-8 w-8 animate-spin" />
+          <p className="text-sm font-semibold">Generating your quiz…</p>
+        </div>
+      ) : !quiz ? (
+        <div className={`${TOOL_PANEL} flex min-h-[240px] flex-col items-center justify-center gap-3 border !border-dashed p-8 text-center`}>
+          <HelpCircle className={`${TOOL_MUTED} h-8 w-8`} />
+          <p className={`${TOOL_MUTED} max-w-xs text-sm leading-relaxed`}>
+            Your generated quiz will appear here after you click <strong className="mv-pres-accent">Generate Quiz</strong>.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {quiz.questions.map((q, i) => (
+            <article key={`${q.id}-${i}`} className={TOOL_PANEL}>
+              <h3 className="text-sm font-semibold">
+                {q.id ?? i + 1}. {q.question.replace(/^\d+\.\s*/, '')}
+              </h3>
+              <ul className="mt-3 space-y-2">
+                {q.options.map((opt, j) => (
+                  <li key={`${opt}-${j}`} className="flex items-start gap-2 text-sm">
+                    <span className="mv-pres-accent min-w-5 font-semibold">{String.fromCharCode(65 + j)}.</span>
+                    <span>{opt.replace(/^[A-G][.)]\s+/i, '')}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+          <div className={TOOL_PANEL}>
+            <p className="text-sm font-semibold">Answer Key</p>
+            <p className={`${TOOL_MUTED} mt-2 font-mono text-sm leading-relaxed`}>{formatAnswerKeyLine(quiz)}</p>
           </div>
-        ) : !quiz ? (
-          <div className="flex h-full flex-col items-center justify-center space-y-3 rounded-xl border-2 border-dashed border-slate-800/80 p-8 text-center">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
-              <HelpCircle className="h-8 w-8 text-slate-600" />
-            </div>
-            <p className="max-w-xs text-sm font-semibold leading-relaxed text-slate-400">
-              Your generated quiz will appear here after you click <strong className="text-cyan-400">Generate Quiz</strong>.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-5 overflow-y-auto">
-            {quiz.questions.map((q, i) => (
-              <article key={`${q.id}-${i}`} className="rounded-xl border border-slate-800 bg-[#0b101d] p-4">
-                <h4 className="text-base font-bold text-white">
-                  {q.id ?? i + 1}. {q.question.replace(/^\d+\.\s*/, '')}
-                </h4>
-                <ul className="mt-3 space-y-2">
-                  {q.options.map((opt, j) => (
-                    <li
-                      key={`${opt}-${j}`}
-                      className="flex items-start gap-2 rounded-lg border border-slate-800 bg-[#060911] px-3 py-2 text-sm text-slate-200"
-                    >
-                      <span className="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-cyan-500/10 text-[11px] font-bold text-cyan-300">
-                        {String.fromCharCode(65 + j)}
-                      </span>
-                      <span>{opt.replace(/^[A-G][.)]\s+/i, '')}</span>
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-4">
-              <p className="text-xs font-black uppercase tracking-wider text-emerald-300">Answer Key</p>
-              <p className="mt-2 font-mono text-sm font-semibold leading-relaxed text-emerald-100">
-                {formatAnswerKeyLine(quiz)}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -305,9 +304,9 @@ export function QuizGenerator({
   };
 
   return (
-    <div className="quiz-gen-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#040711] font-sans text-slate-100">
+    <>
       {quiz ? (
-        <div className={editorOpen ? 'min-h-0 flex-1' : 'hidden'}>
+        <div className={editorOpen ? 'quiz-gen-shell flex h-full min-h-0 flex-col overflow-hidden bg-[#040711] font-sans text-slate-100' : 'hidden'}>
         <QuizEditor
           key={editorSession}
           topic={quizMeta.topic}
@@ -329,24 +328,20 @@ export function QuizGenerator({
         />
         </div>
       ) : null}
-      <div
-        className="quiz-gen-split min-h-0 flex-1 divide-y divide-slate-800/80 lg:divide-x lg:divide-y-0"
-        style={editorOpen ? { display: 'none' } : undefined}
-      >
-        <div className="custom-scrollbar min-h-0 space-y-5 overflow-y-auto bg-[#060911] p-6">
-          <QuizGeneratorForm
-            favorited={favorited}
-            onToggleFavorite={onToggleFavorite}
-            busy={busy}
-            onGenerate={(payload) => void runGenerate(payload)}
-            onPayloadChange={handlePayloadChange}
-          />
-          {error ? (
-            <p className="rounded-xl border border-rose-500/40 bg-rose-950/50 px-4 py-3 text-sm text-rose-200">
-              {error}
-            </p>
-          ) : null}
-        </div>
+      <div className={TOOL_PAGE} style={editorOpen ? { display: 'none' } : undefined}>
+        <nav className={TOOL_BREADCRUMB}>
+          <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
+          <span className={TOOL_MUTED}>›</span>
+          <span>Multiple Choice Quiz / Assessment Generator</span>
+        </nav>
+        <QuizGeneratorForm
+          favorited={favorited}
+          onToggleFavorite={onToggleFavorite}
+          busy={busy}
+          onGenerate={(payload) => void runGenerate(payload)}
+          onPayloadChange={handlePayloadChange}
+        />
+        {error ? <p className={TOOL_ERROR}>{error}</p> : null}
         <QuizOutputCard
           quiz={quiz}
           busy={busy}
@@ -360,7 +355,7 @@ export function QuizGenerator({
           onEdit={() => setEditorOpen(true)}
         />
       </div>
-    </div>
+    </>
   );
 }
 

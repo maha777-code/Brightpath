@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Bookmark, ChevronDown, ChevronRight, Copy, Download, History, Languages, Loader2, Mic, Plus, Printer, Share2, Sparkles, Star, ThumbsDown, ThumbsUp, Volume2, ArrowUp } from 'lucide-react';
+import { Bookmark, ChevronDown, Copy, Download, History, Languages, Loader2, Mic, Plus, Printer, Share2, Sparkles, Star, ThumbsDown, ThumbsUp, Volume2, ArrowUp } from 'lucide-react';
 import { fallbackEmailResponse, type EmailResponderRequest } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -8,6 +8,26 @@ import { useDisplayUser } from '@/lib/displayUser';
 import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { toolBreadcrumbCategory } from '@/components/tools/ToolBreadcrumb';
 import { VoiceListeningIndicator } from '@/components/VoiceListeningIndicator';
+import {
+  TOOL_ACCENT_BUTTON,
+  TOOL_BREADCRUMB,
+  TOOL_BREADCRUMB_LINK,
+  TOOL_CARD,
+  TOOL_FIELD,
+  TOOL_GENERATE,
+  TOOL_ICON_BUTTON,
+  TOOL_LABEL,
+  TOOL_MIC,
+  TOOL_MUTED,
+  TOOL_PAGE,
+  TOOL_PANEL,
+  TOOL_SECONDARY,
+  TOOL_SECTION_TITLE,
+  TOOL_SUBTITLE,
+  TOOL_TEXTAREA,
+  TOOL_TEXTAREA_SHORT,
+  TOOL_TITLE,
+} from '@/components/tools/toolTheme';
 
 const WORD_LIMIT = 75_000;
 const HISTORY_LIMIT = 50;
@@ -143,34 +163,18 @@ function escapeHtml(value: string) {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function prettyIconClass(active = false, tone: 'cyan' | 'amber' | 'emerald' | 'rose' = 'cyan') {
-  const activeTone = {
-    cyan: 'border-cyan-300 bg-cyan-500/15 text-cyan-100',
-    amber: 'border-amber-300 bg-amber-500/15 text-amber-100',
-    emerald: 'border-emerald-300 bg-emerald-500/15 text-emerald-100',
-    rose: 'border-rose-300 bg-rose-500/15 text-rose-100',
-  }[tone];
-  return `inline-flex h-9 w-9 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border-2 bg-[#0b1220] transition-all duration-200 hover:-translate-y-0.5 ${
-    active
-      ? activeTone
-      : 'border-slate-300 text-slate-100 hover:border-cyan-300 hover:text-cyan-50'
-  }`;
-}
-
-function prettyMicClass(listening: boolean) {
-  return listening
-    ? 'inline-flex h-12 w-12 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border border-rose-200/80 bg-gradient-to-br from-rose-400 to-fuchsia-600 text-white shadow-[0_0_24px_rgba(244,63,94,0.6)] ring-4 ring-rose-500/25 animate-pulse'
-    : 'inline-flex h-12 w-12 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border border-cyan-200/70 bg-gradient-to-br from-cyan-300 via-cyan-500 to-blue-600 text-white shadow-[0_0_22px_rgba(34,211,238,0.55)] ring-4 ring-cyan-400/20 transition-transform duration-200 hover:scale-105 hover:shadow-[0_0_28px_rgba(34,211,238,0.7)]';
+function iconClass(active = false) {
+  return active ? 'mv-pres-accent h-4 w-4' : 'h-4 w-4';
 }
 
 function FieldToolbar({ words, onFiles }: { words: number; onFiles: (files: FileList | null) => void }) {
   const over = words > WORD_LIMIT;
   return (
-    <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-800/80 pt-3">
+    <div className="mt-3 flex items-center justify-between gap-3 text-xs">
       <AddFileMenu multiple={false} onFiles={onFiles} />
-      <p className={over ? 'text-xs font-medium text-rose-400' : 'text-xs font-medium text-slate-500'}>
+      <span className={over ? 'text-rose-300' : TOOL_MUTED}>
         Total file word count: {words.toLocaleString()}/{WORD_LIMIT.toLocaleString()}
-      </p>
+      </span>
     </div>
   );
 }
@@ -180,26 +184,22 @@ function EmailBreadcrumb({ detail, onTool }: { detail?: string; onTool?: () => v
   const { pathname } = useLocation();
   const category = toolBreadcrumbCategory(role, pathname);
   return (
-    <nav className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-slate-400" aria-label="Breadcrumb">
-      <Link to={category.href} className="text-slate-300 no-underline hover:text-white">
+    <nav className={`${TOOL_BREADCRUMB} flex-wrap`} aria-label="Breadcrumb">
+      <Link to={category.href} className={TOOL_BREADCRUMB_LINK}>
         {category.label}
       </Link>
-      <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
+      <span className={TOOL_MUTED}>›</span>
       {detail ? (
-        <button
-          type="button"
-          onClick={onTool}
-          className="cursor-pointer appearance-none border-0 bg-transparent p-0 text-slate-300 hover:text-white"
-        >
+        <button type="button" onClick={onTool} className="mv-pres-accent text-sm">
           Email Responder
         </button>
       ) : (
-        <span className="font-medium text-slate-100">Email Responder</span>
+        <span>Email Responder</span>
       )}
       {detail ? (
         <>
-          <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
-          <span className="font-medium text-slate-100">{detail}</span>
+          <span className={TOOL_MUTED}>›</span>
+          <span>{detail}</span>
         </>
       ) : null}
     </nav>
@@ -446,12 +446,12 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
   const star = (
     <button
       type="button"
-      className={prettyIconClass(favorited, 'amber')}
+      className={TOOL_ICON_BUTTON}
       aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
       aria-pressed={favorited}
       onClick={toggleFavorite}
     >
-      <Star className="h-4 w-4" fill={favorited ? 'currentColor' : 'none'} />
+      <Star className={`h-5 w-5 ${favorited ? 'fill-amber-300 text-amber-300' : TOOL_MUTED}`} />
     </button>
   );
 
@@ -461,13 +461,13 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
   })).filter((group) => group.items.length > 0);
 
   const historyPanel = (
-    <aside className="w-full shrink-0 rounded-2xl border border-slate-800 bg-[#0c111c] lg:w-72">
-      <h2 className="border-b border-slate-800 px-4 py-3 text-sm font-bold text-white">Recent History</h2>
-      <div className="max-h-[70vh] overflow-y-auto px-2 py-3">
-        {grouped.length === 0 ? <p className="px-2 text-sm text-slate-500">No emails yet.</p> : null}
+    <aside className={`${TOOL_CARD} mt-6`}>
+      <h2 className={TOOL_SECTION_TITLE}>Recent History</h2>
+      <div className="mt-3 max-h-[70vh] overflow-y-auto">
+        {grouped.length === 0 ? <p className={`${TOOL_MUTED} text-sm`}>No emails yet.</p> : null}
         {grouped.map((group) => (
           <section key={group.bucket} className="mb-4">
-            <h3 className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">{group.bucket}</h3>
+            <h3 className={`${TOOL_MUTED} px-2 pb-1 text-xs font-semibold`}>{group.bucket}</h3>
             <ul>
               {group.items.map((item) => (
                 <li key={item.id}>
@@ -477,8 +477,8 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
                       setActive(item);
                       setShowPrompt(false);
                     }}
-                    className={`w-full cursor-pointer appearance-none rounded-lg border-0 px-2 py-1.5 text-left text-sm ${
-                      item.id === active?.id ? 'bg-violet-500/20 font-semibold text-violet-200' : 'bg-transparent text-slate-300 hover:bg-slate-800'
+                    className={`block w-full rounded-lg px-2 py-1.5 text-left text-sm ${
+                      item.id === active?.id ? 'mv-pres-accent font-semibold' : TOOL_MUTED
                     }`}
                   >
                     {item.title}
@@ -494,50 +494,50 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
 
   const pageTools = (
     <div className="flex items-center gap-2">
-      <button type="button" className={prettyIconClass()} aria-label="Share email" onClick={() => void shareEmail()}>
+      <button type="button" className={TOOL_SECONDARY} aria-label="Share email" onClick={() => void shareEmail()}>
         <Share2 className="h-4 w-4" />
       </button>
-      <button type="button" className={prettyIconClass()} aria-label="New email" onClick={startNew}>
+      <button type="button" className={TOOL_SECONDARY} aria-label="New email" onClick={startNew}>
         <Plus className="h-4 w-4" />
       </button>
       <button
         type="button"
-        className={prettyIconClass(historyOpen, 'cyan')}
+        className={TOOL_SECONDARY}
         aria-label="History"
         aria-pressed={historyOpen}
         onClick={() => setHistoryOpen((open) => !open)}
       >
-        <History className="h-4 w-4" />
+        <History className={iconClass(historyOpen)} />
       </button>
     </div>
   );
 
   const followUpComposer = (
     <form
-      className="w-full rounded-3xl border border-cyan-400/30 bg-[#0b1220] p-3 shadow-[0_0_32px_rgba(34,211,238,0.14)]"
+      className="mt-6 w-full"
       onSubmit={(event) => {
         event.preventDefault();
         if (!followUp.trim() || busy) return;
         void draftEmail(followUp);
       }}
     >
-      <div className="flex items-center gap-3">
-        <button type="button" className={prettyMicClass(followDictation.listening)} aria-label="Dictate a follow-up" aria-pressed={followDictation.listening} onClick={followDictation.toggle}>
-          <Mic className={`h-5 w-5 ${followDictation.listening ? 'animate-bounce' : ''}`} />
-        </button>
+      <div className="relative">
         <textarea
           value={followUp}
           onChange={(event) => setFollowUp(event.target.value)}
           placeholder="Continue the conversation..."
-          className="min-h-14 flex-1 resize-y border-0 bg-transparent px-1 py-2 text-sm text-white outline-none placeholder:text-slate-400"
+          className={`${TOOL_TEXTAREA_SHORT} pr-14`}
         />
+        <button type="button" className={TOOL_MIC} aria-label="Dictate a follow-up" aria-pressed={followDictation.listening} onClick={followDictation.toggle}>
+          <Mic className={`h-4 w-4 ${followDictation.listening ? 'text-violet-300' : ''}`} />
+        </button>
         <button
           type="submit"
           disabled={!followUp.trim() || busy}
-          className="inline-flex h-12 w-12 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border border-cyan-200/40 bg-gradient-to-br from-cyan-300 to-blue-600 text-white shadow-[0_0_18px_rgba(34,211,238,0.4)] transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+          className="mv-pres-generate absolute bottom-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-lg disabled:opacity-50"
           aria-label="Send follow-up"
         >
-          {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
         </button>
       </div>
       {followDictation.listening ? <VoiceListeningIndicator className="mt-3" isListening onStopListening={followDictation.toggle} /> : null}
@@ -546,68 +546,66 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
 
   if (active) {
     return (
-      <div className="flex w-full flex-col gap-5 pb-8 text-slate-100">
-        <div className="flex w-full flex-col gap-6 lg:flex-row lg:items-start">
-        <div className="min-w-0 flex-1">
-          {embedded ? null : <EmailBreadcrumb detail={active.title} onTool={startNew} />}
-          <div className="mx-auto flex w-4/5 min-w-0 flex-col gap-4">
-          <div className="flex justify-end">{pageTools}</div>
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-[#121826] px-4 py-3">
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold text-white">Email Responder</h1>
+      <div className={TOOL_PAGE}>
+        {embedded ? null : <EmailBreadcrumb detail={active.title} onTool={startNew} />}
+        <div className={TOOL_CARD}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <h1 className={TOOL_TITLE}>
+              Email Responder
               {star}
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowPrompt((open) => !open)}
-              className="inline-flex cursor-pointer appearance-none items-center gap-1.5 border-0 bg-transparent text-sm font-semibold text-slate-300 hover:text-white"
-              aria-expanded={showPrompt}
-            >
-              {showPrompt ? 'Hide prompt' : 'Show prompt'}
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-slate-300 text-slate-100">
+            </h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowPrompt((open) => !open)}
+                className={TOOL_ACCENT_BUTTON}
+                aria-expanded={showPrompt}
+              >
+                {showPrompt ? 'Hide prompt' : 'Show prompt'}
                 <ChevronDown className={`h-4 w-4 transition-transform ${showPrompt ? 'rotate-180' : ''}`} />
-              </span>
-            </button>
+              </button>
+              {pageTools}
+            </div>
           </div>
 
           {showPrompt ? (
-            <div className="mb-4 space-y-3 rounded-2xl border border-slate-800 bg-[#121826] p-4 text-sm text-slate-300">
-              <p><span className="text-slate-500">Author Name: </span>{active.authorName || 'Not set'}</p>
-              <p className="whitespace-pre-wrap"><span className="text-slate-500">Email you're responding to: </span>{active.incomingEmail}</p>
-              <p className="whitespace-pre-wrap"><span className="text-slate-500">What you want to communicate in response: </span>{active.responseIntent}</p>
+            <div className={`${TOOL_PANEL} mt-6 space-y-3 text-sm`}>
+              <p><span className={TOOL_MUTED}>Author Name: </span>{active.authorName || 'Not set'}</p>
+              <p className="whitespace-pre-wrap"><span className={TOOL_MUTED}>Email you're responding to: </span>{active.incomingEmail}</p>
+              <p className="whitespace-pre-wrap"><span className={TOOL_MUTED}>What you want to communicate in response: </span>{active.responseIntent}</p>
             </div>
           ) : null}
 
-          <section className="rounded-2xl border border-slate-800 bg-[#121826] p-5">
+          <section className={`${TOOL_PANEL} mt-6 p-5`}>
             {active.exemplar ? (
-              <span className="mb-4 inline-flex items-center gap-1.5 rounded-md bg-violet-500/15 px-2 py-1 text-xs font-bold text-violet-300">
+              <span className="mv-pres-accent mb-4 inline-flex items-center gap-1.5 rounded-md bg-violet-500/15 px-2 py-1 text-xs font-semibold">
                 <Sparkles className="h-3.5 w-3.5" />
                 Exemplar
               </span>
             ) : null}
-            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-100">{active.email}</pre>
-            <div className="mt-5 flex items-center justify-between gap-2 border-t border-slate-800 pt-3">
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">{active.email}</pre>
+            <div className="mt-5 flex items-center justify-between gap-2 border-t border-slate-500/20 pt-3">
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={copyEmail} className={prettyIconClass(copied, 'emerald')} aria-label={copied ? 'Copied' : 'Copy email'}>
-                  <Copy className="h-4 w-4" />
+                <button type="button" onClick={copyEmail} className={TOOL_SECONDARY} aria-label={copied ? 'Copied' : 'Copy email'}>
+                  <Copy className={iconClass(copied)} />
                 </button>
-                <button type="button" onClick={downloadEmail} className={prettyIconClass()} aria-label="Download email as text">
+                <button type="button" onClick={downloadEmail} className={TOOL_SECONDARY} aria-label="Download email as text">
                   <Download className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={printEmail} className={prettyIconClass()} aria-label="Print email">
+                <button type="button" onClick={printEmail} className={TOOL_SECONDARY} aria-label="Print email">
                   <Printer className="h-4 w-4" />
                 </button>
                 <div className="relative">
-                  <button type="button" onClick={() => setTranslateOpen((open) => !open)} className={prettyIconClass(translateOpen, 'cyan')} aria-label="Translate email" aria-expanded={translateOpen}>
-                    <Languages className="h-4 w-4" />
+                  <button type="button" onClick={() => setTranslateOpen((open) => !open)} className={TOOL_SECONDARY} aria-label="Translate email" aria-expanded={translateOpen}>
+                    <Languages className={iconClass(translateOpen)} />
                   </button>
                   {translateOpen ? (
-                    <div className="absolute bottom-10 left-0 z-20 min-w-36 rounded-xl border border-slate-700 bg-slate-900 p-1 shadow-xl">
+                    <div className="mv-pres-card absolute bottom-10 left-0 z-20 min-w-36 rounded-xl border p-1 shadow-xl">
                       {TRANSLATE_LANGUAGES.map((language) => (
                         <button
                           key={language}
                           type="button"
-                          className="block w-full cursor-pointer appearance-none rounded-lg border-0 bg-transparent px-3 py-1.5 text-left text-sm text-slate-200 hover:bg-slate-800"
+                          className={`${TOOL_MUTED} block w-full rounded-lg px-3 py-1.5 text-left text-sm`}
                           onClick={() => {
                             setTranslateOpen(false);
                             void draftEmail(`Translate this entire email into ${language}. Keep the Subject line and a professional tone.`);
@@ -619,20 +617,20 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
                     </div>
                   ) : null}
                 </div>
-                <button type="button" onClick={readAloud} className={prettyIconClass(speaking, 'cyan')} aria-label={speaking ? 'Stop reading' : 'Read email aloud'}>
-                  <Volume2 className="h-4 w-4" />
+                <button type="button" onClick={readAloud} className={TOOL_SECONDARY} aria-label={speaking ? 'Stop reading' : 'Read email aloud'}>
+                  <Volume2 className={iconClass(speaking)} />
                 </button>
-                <button type="button" onClick={saveEmail} className={prettyIconClass(Boolean(active.saved), 'amber')} aria-label="Save email" aria-pressed={Boolean(active.saved)}>
-                  <Bookmark className="h-4 w-4" fill={active.saved ? 'currentColor' : 'none'} />
+                <button type="button" onClick={saveEmail} className={TOOL_SECONDARY} aria-label="Save email" aria-pressed={Boolean(active.saved)}>
+                  <Bookmark className={iconClass(Boolean(active.saved))} fill={active.saved ? 'currentColor' : 'none'} />
                 </button>
-                {copied ? <span className="ml-1 text-xs font-semibold text-emerald-300">Copied</span> : null}
+                {copied ? <span className={`${TOOL_MUTED} ml-1 text-xs font-semibold`}>Copied</span> : null}
               </div>
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => rateEmail('up')} className={prettyIconClass(active.feedback === 'up', 'emerald')} aria-label="Helpful" aria-pressed={active.feedback === 'up'}>
-                  <ThumbsUp className="h-4 w-4" />
+                <button type="button" onClick={() => rateEmail('up')} className={TOOL_SECONDARY} aria-label="Helpful" aria-pressed={active.feedback === 'up'}>
+                  <ThumbsUp className={iconClass(active.feedback === 'up')} />
                 </button>
-                <button type="button" onClick={() => rateEmail('down')} className={prettyIconClass(active.feedback === 'down', 'rose')} aria-label="Needs improvement" aria-pressed={active.feedback === 'down'}>
-                  <ThumbsDown className="h-4 w-4" />
+                <button type="button" onClick={() => rateEmail('down')} className={TOOL_SECONDARY} aria-label="Needs improvement" aria-pressed={active.feedback === 'down'}>
+                  <ThumbsDown className={iconClass(active.feedback === 'down')} />
                 </button>
               </div>
             </div>
@@ -645,7 +643,7 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
                 type="button"
                 disabled={busy}
                 onClick={() => void draftEmail(suggestion)}
-                className="cursor-pointer appearance-none rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-left text-sm font-medium text-slate-200 hover:border-slate-500 disabled:cursor-wait disabled:opacity-60"
+                className="mv-pres-field rounded-xl px-4 py-3 text-left text-sm disabled:cursor-wait disabled:opacity-60"
               >
                 {suggestion}
               </button>
@@ -653,151 +651,129 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
           </div>
 
           {followUpComposer}
-          <p className="text-center text-xs text-slate-500">Review AI output for accuracy. Follow school policies.</p>
-          {notice ? <p className="text-center text-xs font-semibold text-emerald-300">{notice}</p> : null}
-          </div>
+          <p className={`${TOOL_MUTED} mt-3 text-center text-xs`}>Review AI output for accuracy. Follow school policies.</p>
+          {notice ? <p className={`${TOOL_MUTED} mt-2 text-center text-xs font-semibold`}>{notice}</p> : null}
         </div>
 
         {historyOpen ? historyPanel : null}
-        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex w-full flex-col gap-6 pb-10 text-slate-100 lg:flex-row lg:items-start">
-      <div className="min-w-0 flex-1">
+    <div className={TOOL_PAGE}>
       {embedded ? null : <EmailBreadcrumb />}
-      <div className="mb-3 flex justify-end">{pageTools}</div>
-      <div className="mx-auto flex w-4/5 min-w-0 flex-col gap-5">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black tracking-tight text-white">Email Responder</h1>
-            {star}
+      <div className={TOOL_CARD}>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className={TOOL_TITLE}>
+              Email Responder
+              {star}
+            </h1>
+            <p className={TOOL_SUBTITLE}>Generate a custom professional email in response to an email that you received.</p>
           </div>
-          <p className="mt-1 text-sm text-slate-400">Generate a custom professional email in response to an email that you received.</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" className={TOOL_ACCENT_BUTTON} onClick={showExemplar}>
+              {exemplarOn ? 'Exemplar loaded' : 'Show exemplar'}
+            </button>
+            {pageTools}
+          </div>
         </div>
-        <button
-          type="button"
-          className="cursor-pointer appearance-none border-0 bg-transparent px-1 py-1 text-sm font-semibold text-violet-300 hover:text-violet-200"
-          onClick={showExemplar}
-        >
-          {exemplarOn ? 'Exemplar loaded' : 'Show exemplar'}
-        </button>
-      </header>
 
-      <label className="block">
-        <span className="mb-1.5 block text-sm font-semibold text-slate-200">Author Name:</span>
-        <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-[#0b101d] px-3 py-2.5 focus-within:border-cyan-500/60">
+        <label className={`${TOOL_LABEL} mt-6`} htmlFor="email-responder-author">Author Name:</label>
+        <div className="relative">
+          <input
+            id="email-responder-author"
+            value={authorName}
+            onChange={(event) => setAuthorName(event.target.value)}
+            placeholder="Jane Smith"
+            className={`${TOOL_FIELD} pr-10`}
+          />
           <button
             type="button"
-            className={prettyMicClass(authorDictation.listening)}
+            className={`${TOOL_MUTED} absolute bottom-0 right-3 top-2 flex items-center`}
             aria-label={authorDictation.listening ? 'Stop recording' : 'Dictate author name'}
             title={authorDictation.listening ? 'Stop recording' : 'Start voice input'}
             onClick={authorDictation.toggle}
           >
-            <Mic className={`h-5 w-5 ${authorDictation.listening ? 'animate-bounce' : ''}`} />
+            <Mic className={`h-4 w-4 ${authorDictation.listening ? 'text-violet-300' : ''}`} />
           </button>
-          <input
-            value={authorName}
-            onChange={(event) => setAuthorName(event.target.value)}
-            placeholder="Jane Smith"
-            className="w-full border-0 bg-transparent p-0 text-sm text-white outline-none placeholder:text-slate-500"
-          />
         </div>
         {authorDictation.listening ? <VoiceListeningIndicator className="mt-2" isListening onStopListening={authorDictation.toggle} /> : null}
-      </label>
 
-      <div>
-        <label className="mb-1.5 block text-sm font-semibold text-slate-200">
-          Email you're responding to: <span className="text-rose-400">*</span>
-        </label>
-        <div className="rounded-xl border border-slate-800 bg-[#0b101d] p-4 focus-within:border-cyan-500/60">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className={prettyMicClass(incomingDictation.listening)}
-              aria-label={incomingDictation.listening ? 'Stop recording' : 'Dictate the email you received'}
-              onClick={incomingDictation.toggle}
-            >
-              <Mic className={`h-5 w-5 ${incomingDictation.listening ? 'animate-bounce' : ''}`} />
-            </button>
-            <textarea
-              value={incomingEmail}
-              onChange={(event) => {
-                setIncomingEmail(event.target.value);
-                setExemplarOn(false);
-              }}
-              placeholder="Paste the email you're responding to here"
-              className="min-h-40 w-full resize-y border-0 bg-transparent p-0 text-sm leading-relaxed text-white outline-none placeholder:text-slate-500"
-            />
-          </div>
-          {incomingDictation.listening ? <VoiceListeningIndicator className="mt-2" isListening onStopListening={incomingDictation.toggle} /> : null}
-          {incomingFiles.length > 0 ? (
-            <ul className="mt-2 flex flex-wrap gap-1.5">
-              {incomingFiles.map((name) => (
-                <li key={name} className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs text-slate-100">{name}</li>
-              ))}
-            </ul>
-          ) : null}
-          <FieldToolbar
-            words={incomingWords}
-            onFiles={(files) => setIncomingFiles((current) => [...current, ...Array.from(files ?? []).map((file) => file.name)])}
+        <label className={TOOL_LABEL} htmlFor="email-responder-incoming">Email you're responding to: *</label>
+        <div className="relative">
+          <textarea
+            id="email-responder-incoming"
+            value={incomingEmail}
+            onChange={(event) => {
+              setIncomingEmail(event.target.value);
+              setExemplarOn(false);
+            }}
+            placeholder="Paste the email you're responding to here"
+            className={TOOL_TEXTAREA}
           />
+          <button
+            type="button"
+            className={TOOL_MIC}
+            aria-label={incomingDictation.listening ? 'Stop recording' : 'Dictate the email you received'}
+            onClick={incomingDictation.toggle}
+          >
+            <Mic className={`h-4 w-4 ${incomingDictation.listening ? 'text-violet-300' : ''}`} />
+          </button>
         </div>
-      </div>
+        {incomingDictation.listening ? <VoiceListeningIndicator className="mt-2" isListening onStopListening={incomingDictation.toggle} /> : null}
+        {incomingFiles.length > 0 ? (
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {incomingFiles.map((name) => (
+              <li key={name} className="mv-pres-field inline-flex items-center rounded-full px-3 py-1 text-xs">{name}</li>
+            ))}
+          </ul>
+        ) : null}
+        <FieldToolbar
+          words={incomingWords}
+          onFiles={(files) => setIncomingFiles((current) => [...current, ...Array.from(files ?? []).map((file) => file.name)])}
+        />
 
-      <div>
-        <label className="mb-1.5 block text-sm font-semibold text-slate-200">
-          What you want to communicate in response: <span className="text-rose-400">*</span>
-        </label>
-        <div className="rounded-xl border border-slate-800 bg-[#0b101d] p-4 focus-within:border-cyan-500/60">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className={prettyMicClass(intentDictation.listening)}
-              aria-label={intentDictation.listening ? 'Stop recording' : 'Dictate your response'}
-              onClick={intentDictation.toggle}
-            >
-              <Mic className={`h-5 w-5 ${intentDictation.listening ? 'animate-bounce' : ''}`} />
-            </button>
-            <textarea
-              value={responseIntent}
-              onChange={(event) => {
-                setResponseIntent(event.target.value);
-                setExemplarOn(false);
-              }}
-              placeholder={INTENT_PLACEHOLDER}
-              className="min-h-40 w-full resize-y border-0 bg-transparent p-0 text-sm leading-relaxed text-white outline-none placeholder:text-slate-500"
-            />
-          </div>
-          {intentDictation.listening ? <VoiceListeningIndicator className="mt-2" isListening onStopListening={intentDictation.toggle} /> : null}
-          {intentFiles.length > 0 ? (
-            <ul className="mt-2 flex flex-wrap gap-1.5">
-              {intentFiles.map((name) => (
-                <li key={name} className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs text-slate-100">{name}</li>
-              ))}
-            </ul>
-          ) : null}
-          <FieldToolbar
-            words={intentWords}
-            onFiles={(files) => setIntentFiles((current) => [...current, ...Array.from(files ?? []).map((file) => file.name)])}
+        <label className={TOOL_LABEL} htmlFor="email-responder-intent">What you want to communicate in response: *</label>
+        <div className="relative">
+          <textarea
+            id="email-responder-intent"
+            value={responseIntent}
+            onChange={(event) => {
+              setResponseIntent(event.target.value);
+              setExemplarOn(false);
+            }}
+            placeholder={INTENT_PLACEHOLDER}
+            className={TOOL_TEXTAREA}
           />
+          <button
+            type="button"
+            className={TOOL_MIC}
+            aria-label={intentDictation.listening ? 'Stop recording' : 'Dictate your response'}
+            onClick={intentDictation.toggle}
+          >
+            <Mic className={`h-4 w-4 ${intentDictation.listening ? 'text-violet-300' : ''}`} />
+          </button>
         </div>
-      </div>
+        {intentDictation.listening ? <VoiceListeningIndicator className="mt-2" isListening onStopListening={intentDictation.toggle} /> : null}
+        {intentFiles.length > 0 ? (
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {intentFiles.map((name) => (
+              <li key={name} className="mv-pres-field inline-flex items-center rounded-full px-3 py-1 text-xs">{name}</li>
+            ))}
+          </ul>
+        ) : null}
+        <FieldToolbar
+          words={intentWords}
+          onFiles={(files) => setIntentFiles((current) => [...current, ...Array.from(files ?? []).map((file) => file.name)])}
+        />
 
-      <button
-        type="button"
-        disabled={!canGenerate}
-        className="flex w-full cursor-pointer appearance-none items-center justify-center gap-2 rounded-2xl border-0 bg-[#b092f6] py-3.5 font-bold text-slate-950 shadow-lg transition-all hover:bg-[#a080f4] disabled:cursor-not-allowed disabled:opacity-60"
-        onClick={() => void generate()}
-      >
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-        {busy ? 'Generating...' : 'Generate'}
-      </button>
-      {notice ? <p className="text-center text-xs font-semibold text-emerald-300">{notice}</p> : null}
-      </div>
+        <button type="button" disabled={!canGenerate} className={TOOL_GENERATE} onClick={() => void generate()}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {busy ? 'Generating...' : 'Generate'}
+        </button>
+        {notice ? <p className={`${TOOL_MUTED} mt-3 text-center text-xs font-semibold`}>{notice}</p> : null}
       </div>
       {historyOpen ? historyPanel : null}
     </div>
