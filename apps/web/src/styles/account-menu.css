@@ -48,6 +48,15 @@
   }
 }
 
+/* Desktop: the whole panel at 1.5x. Zoom scales max-height too, so divide it back. */
+@media (min-width: 768px) {
+  .mv-acct {
+    zoom: 1.5;
+    max-width: calc((100vw - 1.5rem) / 1.5);
+    max-height: calc((100dvh - 9rem) / 1.5);
+  }
+}
+
 .mv-acct p,
 .mv-acct dl,
 .mv-acct dd {
