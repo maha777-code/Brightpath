@@ -5,56 +5,14 @@
   position: relative;
 }
 
-/* Sidebar trigger buttons */
-.mv-settings .mv-upgrade-btn {
-  gap: 0.45rem;
-  margin-bottom: 0.55rem;
-  border-radius: 0.85rem;
-  background: linear-gradient(100deg, #2563eb 0%, #7c3aed 62%, #c026d3 100%);
-  color: #ffffff;
-  box-shadow: 0 10px 22px -12px rgba(91, 33, 182, 0.8);
-}
-
-.mv-settings .mv-settings-btn {
-  border-radius: 0.85rem;
-  padding: 0.6rem 0.8rem;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-html[data-theme='dark'] .mv-settings .mv-settings-btn {
-  background: rgba(30, 27, 75, 0.55);
-  border-color: rgba(167, 139, 250, 0.3);
-  color: #e0e7ff;
-}
-
-html[data-theme='dark'] .mv-settings .mv-settings-btn:hover,
-html[data-theme='dark'] .mv-settings .mv-settings-btn[aria-expanded='true'] {
-  background: rgba(76, 29, 149, 0.45);
-  border-color: #a78bfa;
-  color: #ffffff;
-}
-
-html[data-theme='light'] .mv-settings .mv-settings-btn {
-  background: #ffffff;
-  border-color: #e4defa;
-  color: #312e81;
-}
-
-html[data-theme='light'] .mv-settings .mv-settings-btn:hover,
-html[data-theme='light'] .mv-settings .mv-settings-btn[aria-expanded='true'] {
-  background: #f5f3ff;
-  border-color: #a78bfa;
-  color: #5b21b6;
-}
-
 /* Panel */
 .mv-acct {
   position: absolute;
   z-index: 60;
-  left: 0.75rem;
+  left: 0;
   width: 26rem;
   max-width: calc(100vw - 1.5rem);
-  max-height: calc(100dvh - 9rem);
+  max-height: calc(100dvh - 14rem);
   overflow-y: auto;
   overscroll-behavior: contain;
   display: flex;

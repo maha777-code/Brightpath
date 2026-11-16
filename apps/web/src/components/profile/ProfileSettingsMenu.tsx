@@ -167,23 +167,29 @@ export function ProfileSettingsMenu({ expand = 'up' }: { expand?: 'up' | 'down' 
   };
 
   return (
-    <div ref={rootRef} className="mv-settings mb-3 px-3" data-expand={expand}>
+    <div ref={rootRef} className="mv-settings" data-expand={expand}>
       {basic ? (
-        <button type="button" className="mv-upgrade-btn" onClick={goPricing}>
-          <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
-          Upgrade to Pro
+        <button type="button" className="mv-sb-upgrade" title="Upgrade to Pro" onClick={goPricing}>
+          <Sparkles className="mv-sb-icon" aria-hidden="true" />
+          <span className="mv-sb-label">
+            <span className="mv-sb-label-main">Upgrade to Pro</span>
+          </span>
         </button>
       ) : null}
       <button
         type="button"
-        className="mv-settings-btn"
+        className="mv-sb-link"
+        data-active={open ? 'true' : undefined}
+        title="Settings"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-controls={menuId}
         onClick={() => setOpen((value) => !value)}
       >
-        <Settings className="h-4 w-4 shrink-0" />
-        <span className="min-w-0 flex-1">Settings</span>
+        <Settings className="mv-sb-icon" aria-hidden="true" />
+        <span className="mv-sb-label">
+          <span className="mv-sb-label-main">Settings</span>
+        </span>
       </button>
 
       {open ? (

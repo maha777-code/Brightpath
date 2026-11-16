@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   BookOpen,
   Home,
   LayoutGrid,
-  LogOut,
-  Menu,
   Settings,
   Upload,
   Users,
-  X,
 } from 'lucide-react';
 import { isSubscriptionActive } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
@@ -21,9 +17,7 @@ import { AiToolsLibrary } from '@/components/tools/AiToolsLibrary';
 import { AcademyHome, type AcademyStats } from '@/components/academy/AcademyHome';
 import { AcademyAnalytics } from '@/components/academy/AcademyAnalytics';
 import { AcademySettingsBilling } from '@/components/academy/AcademySettingsBilling';
-import { BrandLogo } from '@/components/Navigation/BrandLogo';
-import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
-import { ProfileSettingsMenu } from '@/components/profile/ProfileSettingsMenu';
+import { AppSidebar } from '@/components/layout/AppSidebar';
 import { ClassroomLinks } from '@/components/roster/ClassroomLinks';
 
 type Panel = 'home' | 'tools' | 'people' | 'courses' | 'analytics' | 'settings';
@@ -38,10 +32,8 @@ const NAV: { id: Panel; label: string; icon: typeof Home }[] = [
 ];
 
 export default function CenterDashboard() {
-  const { user, organization, logout, planType, role } = useAuth();
-  const navigate = useNavigate();
+  const { user, organization, planType, role } = useAuth();
   const [panel, setPanel] = useState<Panel>('tools');
-  const [menuOpen, setMenuOpen] = useState(false);
   const [stats, setStats] = useState<AcademyStats | null>(null);
   const [csvOpen, setCsvOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
@@ -55,90 +47,29 @@ export default function CenterDashboard() {
       .catch(() => setSubActive(isSubscriptionActive(organization?.subscriptionStatus)));
   }, [organization?.subscriptionStatus]);
 
-  const select = (next: Panel) => {
-    setPanel(next);
-    setMenuOpen(false);
-  };
-
   return (
     <div className="min-h-screen bg-[#0b0f19] text-slate-100">
       <div className="flex min-h-screen">
-        <aside
-          className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-800/80 bg-[#090d16] p-4 transition-transform md:static md:translate-x-0 ${
-            menuOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-        >
-          <div className="space-y-6">
-            <div className="flex items-center justify-between px-3 py-2">
-              <div>
-                <BrandLogo variant="full" to="/" imgClassName="h-9 w-auto object-contain" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-wider text-slate-400">
-                  {organization?.name ?? 'Tutor Center'}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="border-0 bg-transparent text-slate-400 md:hidden"
-                onClick={() => setMenuOpen(false)}
-                aria-label="Close menu"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <nav className="space-y-1.5" aria-label="Academy">
-              {NAV.map((item) => {
-                const Icon = item.icon;
-                const active = panel === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => select(item.id)}
-                    className={`flex w-full cursor-pointer appearance-none items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm font-medium transition-all duration-200 ${
-                      active
-                        ? 'border-cyan-500/30 bg-slate-900/90 text-cyan-400 shadow-sm shadow-cyan-950'
-                        : 'border-transparent bg-transparent text-slate-400 hover:bg-slate-900/80 hover:text-white'
-                    }`}
-                  >
-                    <Icon className={`h-5 w-5 ${active ? 'text-cyan-400' : 'text-slate-400'}`} />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-          <div className="mt-auto border-t border-slate-800/60 pt-4">
-            <FeedbackMenuButton />
-            <ProfileSettingsMenu />
-            <p className="truncate px-3 pb-2 text-sm font-bold text-slate-100">{user?.name || user?.email || 'Center admin'}</p>
-            <button
-              type="button"
-              onClick={() => {
-                logout();
-                navigate('/login');
-              }}
-              className="flex w-full cursor-pointer appearance-none items-center gap-3 rounded-xl border border-transparent bg-transparent px-4 py-3 text-left text-sm font-medium text-slate-400 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400"
-            >
-              <LogOut className="h-5 w-5" />
-              <span>Log out</span>
-            </button>
-          </div>
-        </aside>
+        <AppSidebar
+          title={organization?.name ?? 'Tutoring Center workspace'}
+          brandTo="/"
+          sections={[
+            {
+              items: NAV.map((item) => ({
+                key: item.id,
+                label: item.label,
+                icon: item.icon,
+                active: panel === item.id,
+                onClick: () => setPanel(item.id),
+              })),
+            },
+          ]}
+          userName={user?.name || user?.email || 'Center admin'}
+          userDetail="Tutoring Center"
+        />
 
-        {menuOpen ? (
-          <button
-            type="button"
-            className="fixed inset-0 z-30 bg-black/50 md:hidden"
-            aria-label="Close menu"
-            onClick={() => setMenuOpen(false)}
-          />
-        ) : null}
-
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 pt-16 md:pt-0">
           <header className="flex items-center gap-3 border-b border-slate-800 px-4 py-4 md:px-8">
-            <button type="button" className="text-cyan-300 md:hidden" onClick={() => setMenuOpen(true)} aria-label="Open menu">
-              <Menu className="h-5 w-5" />
-            </button>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-cyan-400">Academy</p>
               <h1 className="text-lg font-extrabold text-white">

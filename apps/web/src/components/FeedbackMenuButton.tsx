@@ -2,10 +2,24 @@ import { useState } from 'react';
 import { MessageSquareHeart } from 'lucide-react';
 import { FeedbackModal } from '@/components/FeedbackModal';
 
-type Variant = 'dark' | 'light' | 'icon';
+type Variant = 'dark' | 'light' | 'icon' | 'menu';
 
 export function FeedbackMenuButton({ variant = 'dark', size = 'md' }: { variant?: Variant; size?: 'md' | 'lg' }) {
   const [open, setOpen] = useState(false);
+
+  if (variant === 'menu') {
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)} className="mv-sb-link" title="Feedback & Rating">
+          <MessageSquareHeart className="mv-sb-icon" aria-hidden="true" />
+          <span className="mv-sb-label">
+            <span className="mv-sb-label-main">Feedback & Rating</span>
+          </span>
+        </button>
+        <FeedbackModal isOpen={open} onClose={() => setOpen(false)} />
+      </>
+    );
+  }
 
   const className =
     variant === 'icon'

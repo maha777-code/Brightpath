@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, LogOut, RefreshCw } from 'lucide-react';
+import { Copy, Home, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { HomeButton } from '@/components/Navigation/HomeButton';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
-import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
-import { ProfileSettingsMenu } from '@/components/profile/ProfileSettingsMenu';
+import { AppSidebar } from '@/components/layout/AppSidebar';
 import { RoleToolsPanel } from '@/components/tools/RoleToolsPanel';
 
 const ACCENT = '#5B46BA';
 
 export default function ParentPortalDashboard() {
-  const { user, logout, planType } = useAuth();
+  const { user, planType } = useAuth();
   const [linkCode, setLinkCode] = useState<string | null>(null);
   const [students, setStudents] = useState<
     { id: string; email: string; name: string | null; planType: string }[]
@@ -55,15 +54,20 @@ export default function ParentPortalDashboard() {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-slate-200 bg-white p-4">
-        <p className="px-2 text-xs font-bold uppercase tracking-wider text-indigo-600">Parent</p>
-        <div className="mt-auto">
-          <FeedbackMenuButton variant="light" />
-          <ProfileSettingsMenu />
-          <p className="truncate px-3 text-sm font-bold text-slate-800">{user?.name || user?.email || 'Parent'}</p>
-        </div>
-      </aside>
-      <div className="min-w-0 flex-1">
+      <AppSidebar
+        title="Parent workspace"
+        brandTo="/parent/dashboard"
+        sections={[
+          {
+            items: [
+              { key: 'portal', to: '/parent/dashboard', label: 'Parent Portal', detail: 'Link code, children & tools', icon: Home, active: true },
+            ],
+          },
+        ]}
+        userName={user?.name || user?.email || 'Parent'}
+        userDetail="Parent"
+      />
+      <div className="min-w-0 flex-1 pt-16 md:pt-0">
       <header className="border-b border-slate-200 bg-white px-4 py-4 sm:px-8">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -74,13 +78,6 @@ export default function ParentPortalDashboard() {
               <p className="text-xs text-slate-500">{user?.email}</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={logout}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600"
-          >
-            <LogOut className="h-4 w-4" /> Log out
-          </button>
         </div>
       </header>
 

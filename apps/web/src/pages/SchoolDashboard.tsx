@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Award, Layers, LogOut, Sparkles, ShieldCheck, Users } from 'lucide-react';
+import { Award, Eye, LayoutDashboard, Layers, Palette, Sparkles, ShieldCheck, Users } from 'lucide-react';
 import { isSubscriptionActive } from '@brightpath/shared';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { PaymentUpgradeModal } from '@/components/billing/PaymentUpgradeModal';
 import { useOrgTheme } from '@/context/OrgThemeProvider';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
-import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
-import { ProfileSettingsMenu } from '@/components/profile/ProfileSettingsMenu';
+import { AppSidebar } from '@/components/layout/AppSidebar';
 import { RoleToolsPanel } from '@/components/tools/RoleToolsPanel';
 import { ClassroomLinks } from '@/components/roster/ClassroomLinks';
 import { CYBER_FONT_STYLE } from '@/lib/theme';
 
 export default function SchoolDashboard() {
-  const { user, organization, logout, planType } = useAuth();
+  const { user, organization, planType } = useAuth();
   const theme = useOrgTheme();
   const [stats, setStats] = useState<{ memberCount: number; batchCount: number; maxLicenses: number } | null>(
     null,
@@ -42,16 +41,34 @@ export default function SchoolDashboard() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#040711] text-slate-100" style={CYBER_FONT_STYLE}>
-      <aside className="flex w-64 shrink-0 flex-col justify-between border-r border-slate-800/80 bg-[#060a14] p-4">
-        <span className="px-2 text-base font-extrabold uppercase tracking-wider text-cyan-400">School</span>
-        <div>
-          <FeedbackMenuButton size="lg" />
-          <ProfileSettingsMenu />
-          <p className="truncate px-3 text-sm font-bold text-slate-100">{user?.name || user?.email || 'School admin'}</p>
-        </div>
-      </aside>
+      <AppSidebar
+        title="School workspace"
+        brandTo="/admin/school-dashboard"
+        sections={[
+          {
+            items: [
+              { key: 'dashboard', to: '/admin/school-dashboard', label: 'Dashboard', detail: 'Members, seats & AI tools', icon: LayoutDashboard, active: true },
+            ],
+          },
+          {
+            label: 'Classroom',
+            items: [
+              { key: 'classes', to: '/classes', label: 'Classes & Students', detail: 'Rosters, join codes, profiles', icon: Users, active: false },
+              { key: 'oversight', to: '/sharada-oversight', label: 'Sharada Oversight', detail: 'Student chats & safety alerts', icon: Eye, active: false },
+            ],
+          },
+          {
+            label: 'School',
+            items: [
+              { key: 'branding', to: '/admin/school-dashboard/settings', label: 'School branding', detail: 'Logo and colours', icon: Palette, active: false },
+            ],
+          },
+        ]}
+        userName={user?.name || user?.email || 'School admin'}
+        userDetail={organization?.name ? `${organization.name} · School Admin` : 'School Admin'}
+      />
 
-      <main className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
+      <main className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden pt-16 md:pt-0">
         <header className="z-20 flex h-20 shrink-0 items-center justify-between border-b border-slate-800/80 bg-[#080d1a]/90 px-8 backdrop-blur-md">
           <div className="flex items-center gap-3">
             {theme.logoUrl ? (
@@ -74,13 +91,6 @@ export default function SchoolDashboard() {
             <span className="rounded-full border border-cyan-500/30 bg-cyan-500/20 px-3 py-1 text-sm font-extrabold uppercase text-cyan-300">
               {plan}
             </span>
-            <button
-              type="button"
-              onClick={logout}
-              className="inline-flex cursor-pointer appearance-none items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2 text-base font-bold text-rose-400 transition-all hover:bg-rose-500/20"
-            >
-              <LogOut className="h-4 w-4" /> Log out
-            </button>
           </div>
         </header>
 

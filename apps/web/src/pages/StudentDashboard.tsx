@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   ArrowUp,
@@ -12,15 +12,12 @@ import {
   Home,
   LayoutGrid,
   ListChecks,
-  LogOut,
-  Menu,
   Mic,
   Music,
   Pencil,
   Plus,
   Sparkles,
   Star,
-  X,
 } from 'lucide-react';
 import { AGE_GROUP_LABELS, getTeacherToolById, streakFlames, TEACHER_TOOLS_CATALOG, type TeacherToolFocusArea } from '@brightpath/shared';
 import { api } from '@/lib/api';
@@ -33,9 +30,7 @@ import { CYBER_FONT_STYLE } from '@/lib/theme';
 import { canUserAccessTool, getRegistryTool, type ToolDefinition } from '@/config/toolsRegistry';
 import { ToolRenderer } from '@/components/tools/ToolRenderer';
 import { AIToolWizardModal } from '@/components/tools/AIToolWizardModal';
-import { BrandLogo } from '@/components/Navigation/BrandLogo';
-import { FeedbackMenuButton } from '@/components/FeedbackMenuButton';
-import { ProfileSettingsMenu } from '@/components/profile/ProfileSettingsMenu';
+import { AppSidebar } from '@/components/layout/AppSidebar';
 import { SharadaPromptFrame } from '@/components/SharadaChatBadge';
 import { ToolsFilterBar, type ToolsLibraryFilter, type ToolsSortKey } from '@/components/tools/ToolsFilterBar';
 import { voicePromptButtonClass } from '@/components/VoiceListeningIndicator';
@@ -114,7 +109,7 @@ function studentTools(tutorHref: string): StudentTool[] {
 
 export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' }) {
   const navigate = useNavigate();
-  const { parent, logout, planType, role, user, teacher } = useAuth();
+  const { parent, planType, role, user, teacher } = useAuth();
   const { profile } = useProfile();
   const activity = useActivityTracker(Boolean(parent));
   const learningPath = useLearningPath(Boolean(parent), parent?.calculatedAgeGroup);
@@ -126,7 +121,6 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
     setPrompt((current) => (current.trim() ? `${current.trim()} ${text}` : text));
     setReply(null);
   });
-  const [openMenu, setOpenMenu] = useState(false);
   const [active, setActive] = useState<ToolDefinition | null>(null);
   const [toolDenied, setToolDenied] = useState('');
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -232,92 +226,20 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
 
   return (
     <div className="flex min-h-screen bg-[#040711] font-sans text-slate-100" style={FONT}>
-      <div className="fixed inset-x-0 top-0 z-40 flex items-center border-b border-slate-800/80 bg-[#030712]/90 px-4 py-3 backdrop-blur-md md:hidden">
-        <button
-          type="button"
-          className="cursor-pointer appearance-none rounded-lg border border-cyan-400/40 bg-transparent p-2.5 text-cyan-300"
-          aria-label={openMenu ? 'Close menu' : 'Open menu'}
-          onClick={() => setOpenMenu((value) => !value)}
-        >
-          {openMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-        <span className="ml-3 text-sm font-semibold text-slate-100">Student workspace</span>
-      </div>
-
-      <aside
-        className={[
-          'z-50 flex w-64 shrink-0 flex-col justify-between border-r border-slate-800/80 bg-[#030712]/90 px-4 py-5 backdrop-blur-md',
-          'fixed inset-y-0 left-0 transition-transform duration-200 md:static md:translate-x-0',
-          openMenu ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
-        ].join(' ')}
-      >
-        <div className="space-y-6">
-          <div className="hidden items-center gap-2 border-b border-cyan-900/50 px-2 pb-4 md:flex">
-            <div className="h-3 w-3 shrink-0 animate-pulse rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]" />
-            <div className="min-w-0">
-              <BrandLogo variant="full" imgClassName="h-8 w-auto object-contain" />
-              <p className="mt-1 text-base font-extrabold tracking-tight text-slate-200">Student workspace</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <p className="px-2 text-base font-extrabold tracking-tight text-slate-400">Student workspace</p>
-            <nav className="space-y-1" aria-label="Student workspace">
-              <NavLink
-                to="/student/dashboard"
-                onClick={() => setOpenMenu(false)}
-                className={({ isActive }) =>
-                  [
-                    'mv-side-link flex items-start gap-3 rounded-none px-3 py-3 no-underline transition',
-                    isActive
-                      ? 'mv-side-link--active border-l-2 border-cyan-400 bg-cyan-950/30 text-cyan-300'
-                      : 'border-l-2 border-transparent text-slate-400 hover:text-cyan-200',
-                  ].join(' ')
-                }
-              >
-                <Home className="mt-0.5 h-5 w-5 shrink-0" />
-                <span>
-                  <span className="block text-base font-bold">Home</span>
-                  <span className="mv-side-link-detail mt-0.5 block text-sm text-slate-400">Sharada & recommended tools</span>
-                </span>
-              </NavLink>
-              <NavLink
-                to="/student/tools"
-                onClick={() => setOpenMenu(false)}
-                className={({ isActive }) =>
-                  [
-                    'flex items-start gap-3 rounded-none px-3 py-3 no-underline transition',
-                    isActive
-                      ? 'border-l-2 border-cyan-400 bg-cyan-950/30 text-cyan-300'
-                      : 'border-l-2 border-transparent text-slate-400 hover:text-cyan-200',
-                  ].join(' ')
-                }
-              >
-                <LayoutGrid className="mt-0.5 h-5 w-5 shrink-0" />
-                <span>
-                  <span className="block text-base font-bold">AI Tools Suite</span>
-                  <span className="mt-0.5 block text-sm text-slate-400">All Student Tools Hub</span>
-                </span>
-              </NavLink>
-            </nav>
-          </div>
-        </div>
-        <div className="border-t border-slate-800 pt-4">
-          <FeedbackMenuButton size="lg" />
-          <ProfileSettingsMenu />
-          <p className="truncate px-3 text-base font-bold text-slate-100">{fullName || 'Student'}</p>
-          <p className="truncate px-3 text-sm text-slate-400">{profileLine}</p>
-          <button
-            type="button"
-            onClick={() => {
-              logout();
-              navigate('/login');
-            }}
-            className="mt-3 inline-flex w-full cursor-pointer appearance-none items-center justify-center gap-2 rounded-lg border border-cyan-400/50 bg-cyan-500/10 px-4 py-2.5 text-base font-bold text-cyan-300 transition-all hover:bg-cyan-500 hover:text-black"
-          >
-            <LogOut className="h-5 w-5" /> Log out
-          </button>
-        </div>
-      </aside>
+      <AppSidebar
+        title="Student workspace"
+        brandTo="/student/dashboard"
+        sections={[
+          {
+            items: [
+              { key: 'home', to: '/student/dashboard', label: 'Home', detail: 'Sharada & recommended tools', icon: Home, active: view === 'home' },
+              { key: 'tools', to: '/student/tools', label: 'AI Tools Suite', detail: 'All Student Tools Hub', icon: LayoutGrid, active: view === 'tools' },
+            ],
+          },
+        ]}
+        userName={fullName || 'Student'}
+        userDetail={profileLine}
+      />
 
       <main className="custom-scrollbar min-h-screen w-full flex-1 overflow-y-auto bg-[#040711] p-8 pt-20 md:pt-8">
         {view === 'home' ? (

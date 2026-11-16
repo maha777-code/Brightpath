@@ -1,0 +1,129 @@
+/* -- Educational Song Generator (SongGeneratorDashboard, SongGeneratorCreate) --
+   The markup carries the light palette; the dark palette below overrides it. */
+
+/* Preflight is off: step headers are bare buttons and would show the browser's grey fill */
+.mv-song section > button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mv-song nav a,
+.mv-song nav a:visited {
+  color: #5b21b6;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+html[data-theme='dark'] .mv-song nav a,
+html[data-theme='dark'] .mv-song nav a:visited {
+  color: #c4b5fd;
+}
+
+/* Primary actions use the brand gradient in both themes */
+.mv-song :is(button, a)[class~='bg-[#6d28d9]'] {
+  background: linear-gradient(100deg, #2563eb 0%, #7c3aed 62%, #c026d3 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px -12px rgba(91, 33, 182, 0.8) !important;
+}
+
+.mv-song :is(button, a)[class~='bg-[#6d28d9]']:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* -- Dark -- */
+html[data-theme='dark'] .mv-song {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+}
+
+html[data-theme='dark'] .mv-song :is(section, [class~='bg-white']) {
+  background: linear-gradient(160deg, rgba(30, 27, 75, 0.6), rgba(15, 20, 42, 0.85)) !important;
+  border-color: rgba(167, 139, 250, 0.22) !important;
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.2), 0 24px 50px -32px rgba(124, 58, 237, 0.7) !important;
+}
+
+html[data-theme='dark'] .mv-song section [class~='bg-white'],
+html[data-theme='dark'] .mv-song :is(input, select, textarea) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(167, 139, 250, 0.28) !important;
+  box-shadow: none !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme='dark'] .mv-song :is(input, textarea)::placeholder {
+  color: #8b97ad !important;
+}
+
+html[data-theme='dark'] .mv-song :is(input, select, textarea):focus {
+  border-color: #a78bfa !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25) !important;
+}
+
+html[data-theme='dark'] .mv-song option {
+  background: #11162e;
+  color: #f1f5f9;
+}
+
+html[data-theme='dark'] .mv-song thead {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #a5b4fc !important;
+}
+
+html[data-theme='dark'] .mv-song :is([class*='border-slate-'], tr) {
+  border-color: rgba(148, 163, 184, 0.16) !important;
+}
+
+html[data-theme='dark'] .mv-song tbody tr:hover {
+  background: rgba(139, 92, 246, 0.08) !important;
+}
+
+html[data-theme='dark'] .mv-song :is([class~='text-slate-900'], [class~='text-slate-800']) {
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] .mv-song [class~='text-slate-600'] {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] .mv-song :is([class~='text-slate-500'], [class~='text-slate-400']) {
+  color: #a3afc4 !important;
+}
+
+html[data-theme='dark'] .mv-song [class~='hover:text-slate-800']:hover {
+  color: #ffffff !important;
+}
+
+html[data-theme='dark'] .mv-song [class~='bg-slate-200'] {
+  background: rgba(139, 92, 246, 0.2) !important;
+  color: #ddd6fe !important;
+}
+
+html[data-theme='dark'] .mv-song [class~='bg-slate-900'] {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+}
+
+html[data-theme='dark'] .mv-song [class~='text-cyan-700'] {
+  color: #a5b4fc !important;
+}
+
+html[data-theme='dark'] .mv-song [class~='text-cyan-500'] {
+  color: #c4b5fd !important;
+}
+
+html[data-theme='dark'] .mv-song [class~='text-rose-600'] {
+  color: #fda4af !important;
+}
+
+html[data-theme='dark'] .mv-song [class~='bg-amber-50'] {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  color: #fde68a !important;
+}
+
+html[data-theme='dark'] .mv-song [class~='border-dashed'] {
+  border-color: rgba(167, 139, 250, 0.35) !important;
+}
