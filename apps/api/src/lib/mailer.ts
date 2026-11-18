@@ -2,9 +2,6 @@ import nodemailer, { type Transporter } from 'nodemailer';
 
 export const CONTACT_INBOX = 'customersupport@mindvault.academy';
 export const FEEDBACK_INBOX = 'founder@mindvault.academy';
-/** Gmail login that GMAIL_APP_PASSWORD belongs to; never shown to users, replies go to CONTACT_INBOX. */
-const GMAIL_ACCOUNT = 'qxicybertech.helpcenter@gmail.com';
-
 export class MailerUnconfiguredError extends Error {
   readonly code = 'MAILER_UNCONFIGURED';
   constructor() {
@@ -46,7 +43,8 @@ function getGmailTransporter() {
   if (gmailTransporter) return gmailTransporter;
   const pass = process.env.GMAIL_APP_PASSWORD?.trim().replace(/\s+/g, '');
   if (!pass) return null;
-  const user = (process.env.GMAIL_USER ?? GMAIL_ACCOUNT).trim();
+  /** Account that owns GMAIL_APP_PASSWORD. Mail is sent "as" CONTACT_INBOX, a verified send-as alias on it. */
+  const user = (process.env.GMAIL_USER ?? CONTACT_INBOX).trim();
   gmailTransporter = nodemailer.createTransport({
     service: 'gmail',
     auth: { user, pass },
@@ -63,7 +61,7 @@ export function isMailConfigured(): boolean {
 }
 
 function senderAddress() {
-  return process.env.GMAIL_USER ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? GMAIL_ACCOUNT;
+  return process.env.SMTP_FROM?.trim() || CONTACT_INBOX;
 }
 
 export async function sendVerificationCodeEmail(input: { to: string; name?: string | null; code: string }): Promise<void> {
