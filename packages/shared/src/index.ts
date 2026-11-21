@@ -515,6 +515,8 @@ export type {
   GamifiedActivityPayload,
   GamifiedActivityResponse,
   GamifiedLessonContext,
+  ArcadeQuestion,
+  GameArcadeDocument,
   EscapeRoomDocument,
   EscapeRoomPlayable,
   BranchingQuestDocument,
@@ -528,6 +530,7 @@ export {
   parseGamifiedActivityResponse,
   gamifiedActivityToMarkdown,
   fallbackGamifiedDocument,
+  fallbackGameArcade,
   fallbackInsights,
   fallbackPlayable,
 } from './gamifiedActivityTool.js';

@@ -39,6 +39,12 @@ function contextFrom(input: GamifiedActivityPayload): GamifiedLessonContext {
 
 function systemPrompt(kind: GamifiedActivityKind): string {
   const option = getGamifiedActivityOption(kind);
+  if (kind === 'game_arcade') {
+    return `Role: Arcade Game Content Designer & Curriculum Specialist.
+Task: Turn the attached learning material into a question pack that powers fast arcade games (an endless runner where students run through the gate with the right answer, and a match-3 candy game where right answers fire boosters).
+First extract key terms, learning objectives, and common misconceptions, then write questions that test those.
+Return JSON only.`;
+  }
   if (kind === 'escape_room') {
     return `Role: Full-Stack Educational Game Designer & Curriculum Specialist.
 Task: Gamify the attached learning material into a 4-Stage playable Digital Escape Room.
@@ -60,6 +66,38 @@ Return JSON only. ${option.title} must be grid-ready for Google Docs or Classroo
 function userPrompt(kind: GamifiedActivityKind, ctx: GamifiedLessonContext, source: string): string {
   const topic = ctx.topic;
   const grade = ctx.gradeLevel;
+  if (kind === 'game_arcade') {
+    return `Context:
+- Subject/Topic: ${ctx.subject} — ${topic}
+- Target Grade: ${grade}
+
+Source material:
+${source}
+
+Return JSON:
+{
+  "insights": { "keyTerms": [], "learningObjectives": [], "misconceptions": [] },
+  "kind": "game_arcade",
+  "title": "",
+  "subject": "${ctx.subject}",
+  "gradeLabel": "${grade}",
+  "missionIntro": "",
+  "questions": [
+    { "prompt": "", "answer": "", "distractors": ["", "", ""], "hint": "", "explanation": "", "misconception": "" }
+  ]
+}
+
+Rules:
+- Exactly 10 questions, ordered from easy recall to harder application.
+- "prompt" is at most 12 words so it fits a game banner.
+- "answer" and every distractor are at most 3 words (they are printed on running gates and candy cards). Never repeat the answer as a distractor.
+- Exactly 3 distractors per question. At least one distractor must come from a real misconception in the source.
+- "hint" is one short nudge that does not give the answer away.
+- "explanation" is one sentence explaining why the answer is right, grounded in the source.
+- "misconception" names the wrong idea the question targets.
+- "title" is a catchy, age-appropriate game name; "missionIntro" is 1–2 energetic sentences.
+- Use only facts supported by the source material.`;
+  }
   if (kind === 'escape_room') {
     return `Context:
 - Subject/Topic: ${ctx.subject} — ${topic}

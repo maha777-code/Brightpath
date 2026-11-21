@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import ToolPreview from './pages/__ToolPreview';
 import { useProfile } from '@/hooks/useProfile';
 import { isLearnerRole, isParentPortalRole } from '@/lib/api';
 import { homePathForRole, isAppRole, type AppRole } from '@brightpath/shared';
@@ -202,7 +201,6 @@ export default function App() {
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/faq" element={<FaqPage />} />
-        <Route path="/__tool" element={<ToolPreview />} />
         <Route path="/join/:code" element={<JoinClass />} />
         <Route path="/invite/:token" element={<AcceptInvite />} />
         <Route

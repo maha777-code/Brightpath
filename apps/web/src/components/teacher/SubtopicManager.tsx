@@ -1,3 +1,4 @@
+import '@/styles/curriculum-studio.css';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Eye, Gamepad2, Loader2, Pencil, PlayCircle, Plus, Settings2 } from 'lucide-react';
@@ -171,8 +172,8 @@ export function SubtopicManager({
         id="td-enrichment"
         className="td-card max-h-[calc(100vh-250px)] w-full overflow-y-auto rounded-3xl p-8"
       >
-        <h2 className="text-2xl font-bold text-white">Lesson & Content Enrichment</h2>
-        <p className="mt-2 text-base text-cyan-200/80">Select a chapter to manage subtopics, videos, and games.</p>
+        <h2 className="cs-h text-2xl font-bold">Lesson & Content Enrichment</h2>
+        <p className="cs-muted mt-2 text-base">Select a chapter to manage subtopics, videos, and games.</p>
       </section>
     );
   }
@@ -326,24 +327,20 @@ export function SubtopicManager({
       id="td-enrichment"
       className="td-card max-h-[calc(100vh-250px)] w-full overflow-y-auto rounded-3xl p-8"
     >
-      <h2 className="text-2xl font-bold text-white">Lesson & Content Enrichment</h2>
-      <p className="mb-6 text-base text-cyan-200/80">{chapter.title}</p>
+      <h2 className="cs-h text-2xl font-bold">Lesson & Content Enrichment</h2>
+      <p className="cs-muted mb-6 text-base">{chapter.title}</p>
 
       {toast && (
         <div
-          className={[
-            'mb-4 rounded-xl px-4 py-3 text-sm font-semibold',
-            toast.kind === 'ok'
-              ? 'border border-emerald-400/40 bg-emerald-950/70 text-emerald-100'
-              : 'border border-rose-400/40 bg-rose-950/70 text-rose-100',
-          ].join(' ')}
+          className="cs-chip cs-chip--block mb-4"
+          data-tone={toast.kind === 'ok' ? 'success' : 'danger'}
           role="status"
         >
           {toast.message}
         </div>
       )}
 
-      <ul className="space-y-4">
+      <ul className="cs-list space-y-4">
         {localSubs.map((sub) => {
           const status = resolveStatus(sub);
           const generating = Boolean(isGenerating[sub.id]);
@@ -352,30 +349,28 @@ export function SubtopicManager({
           const activityTpl = activityTemplateId ? getGenerationTemplate(activityTemplateId) : null;
 
           return (
-            <li key={sub.id} className="rounded-2xl border border-white/10 bg-slate-950/40 p-8">
+            <li key={sub.id} className="cs-item rounded-2xl p-7">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-lg font-extrabold text-white">
-                    <span className="mr-2 rounded-md bg-cyan-500/20 px-2 py-0.5 text-sm text-[#A5F3FC] ring-1 ring-cyan-400/30">
-                      {sub.code}
-                    </span>
+                  <p className="cs-h text-lg font-extrabold">
+                    <span className="cs-code mr-2">{sub.code}</span>
                     {sub.title}
                     {(sub.attachmentCount ?? sub.attachments?.length ?? 0) > 0 ? (
-                      <span className="ml-2 align-middle rounded-full bg-white/10 px-3 py-1 text-sm font-semibold text-cyan-100">
+                      <span className="cs-chip ml-2 align-middle" data-tone="neutral">
                         📎 {sub.attachmentCount ?? sub.attachments?.length}{' '}
                         {(sub.attachmentCount ?? sub.attachments?.length) === 1 ? 'file' : 'files'}{' '}
                         attached
                       </span>
                     ) : null}
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-2 text-base font-medium">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <VideoStatusBadge status={status} error={sub.videoError} progress={sub.videoProgress} />
                     {activityReady ? (
-                      <span className="rounded-full bg-[#FBBF24]/80 px-4 py-1.5 text-[#FEF3C7]">
+                      <span className="cs-chip" data-tone="warning">
                         Activity ready
                       </span>
                     ) : (
-                      <span className="rounded-full bg-slate-700/80 px-4 py-1.5 text-[#A5F3FC]">
+                      <span className="cs-chip" data-tone="neutral">
                         No activity
                       </span>
                     )}
@@ -383,7 +378,8 @@ export function SubtopicManager({
                       <button
                         type="button"
                         onClick={() => setTemplatePick({ generationType: 'activity', sub })}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 px-4 py-1.5 text-amber-100 hover:bg-amber-500/30"
+                        className="cs-chip"
+                        data-tone="info"
                         title="Change activity template"
                       >
                         <span>
@@ -414,7 +410,8 @@ export function SubtopicManager({
                           onAssignActivity(sub);
                           setReviewActivitySub(sub);
                         }}
-                        className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-amber-400/40 bg-amber-500/20 px-6 py-3 text-base font-medium text-[#FEF3C7]"
+                        className="cs-btn"
+                        data-tone="warning"
                       >
                         <Eye className="h-5 w-5 shrink-0" />
                         Review Activity
@@ -422,7 +419,8 @@ export function SubtopicManager({
                       <button
                         type="button"
                         onClick={() => setTemplatePick({ generationType: 'activity', sub })}
-                        className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-white/15 bg-transparent px-4 py-3 text-sm font-medium text-amber-100 hover:bg-white/5"
+                        className="cs-btn"
+                        data-tone="outline"
                       >
                         <Settings2 className="h-4 w-4 shrink-0" />
                         Change Template
@@ -433,7 +431,8 @@ export function SubtopicManager({
                       type="button"
                       onClick={() => setTemplatePick({ generationType: 'activity', sub })}
                       disabled={generating}
-                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-amber-400/40 bg-[#FBBF24]/80 px-6 py-3 text-base font-medium text-white disabled:cursor-wait disabled:opacity-60"
+                      className="cs-btn"
+                      data-tone="warning"
                     >
                       {generating ? (
                         <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
@@ -449,7 +448,8 @@ export function SubtopicManager({
                     onClick={() =>
                       navigate(gamifiedVideoHref({ chapterId: chapter?.id, subtopicId: sub.id }))
                     }
-                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-6 py-3 text-base font-medium text-emerald-100 hover:bg-emerald-500/25"
+                    className="cs-btn"
+                    data-tone="success"
                   >
                     <Gamepad2 className="h-5 w-5 shrink-0" />
                     Gamified Video
@@ -457,7 +457,8 @@ export function SubtopicManager({
                   <button
                     type="button"
                     onClick={() => setAttachSub(sub)}
-                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-white/20 bg-transparent px-6 py-3 text-base font-medium text-cyan-100 hover:bg-white/5"
+                    className="cs-btn"
+                    data-tone="outline"
                   >
                     <Plus className="h-5 w-5 shrink-0" />
                     Attach media
@@ -542,13 +543,13 @@ export function SubtopicManager({
       )}
       {videoCustomize ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 text-slate-100 shadow-2xl">
-            <h3 className="text-lg font-semibold">Customize Video Overview</h3>
-            <p className="mt-1 text-sm text-slate-400">
+          <div className="cs-modal w-full max-w-lg rounded-2xl p-6 shadow-2xl">
+            <h3 className="cs-h text-lg font-semibold">Customize Video Overview</h3>
+            <p className="cs-muted mt-1 text-sm">
               {videoCustomize.sub.code} · {videoCustomize.sub.title}. A complete cinematic
               explainer of this concept — 30, 45, or 60 seconds.
             </p>
-            <label className="mt-5 block text-sm font-medium text-slate-200">Focus</label>
+            <label className="cs-text mt-5 block text-sm font-semibold">Focus</label>
             <textarea
               value={videoCustomize.focus}
               onChange={(e) =>
@@ -557,9 +558,9 @@ export function SubtopicManager({
               rows={3}
               maxLength={800}
               placeholder="Explain for beginners, emphasize the worked example…"
-              className="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none ring-cyan-500/40 focus:ring-2"
+              className="cs-field mt-1.5 w-full rounded-xl px-3 py-2 text-sm"
             />
-            <p className="mt-4 text-sm font-medium text-slate-200">Length</p>
+            <p className="cs-text mt-4 text-sm font-semibold">Length</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {(
                 [
@@ -574,12 +575,9 @@ export function SubtopicManager({
                   onClick={() =>
                     setVideoCustomize((prev) => (prev ? { ...prev, length: id } : prev))
                   }
-                  className={[
-                    'rounded-full px-3 py-1.5 text-sm',
-                    videoCustomize.length === id
-                      ? 'bg-cyan-500/90 text-white'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
-                  ].join(' ')}
+                  className="cs-btn cs-btn--sm rounded-full"
+                  data-tone={videoCustomize.length === id ? 'primary' : 'outline'}
+                  aria-pressed={videoCustomize.length === id}
                 >
                   {label}
                 </button>
@@ -589,7 +587,8 @@ export function SubtopicManager({
               <button
                 type="button"
                 onClick={() => setVideoCustomize(null)}
-                className="rounded-xl px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
+                className="cs-btn cs-btn--sm"
+                data-tone="quiet"
               >
                 Cancel
               </button>
@@ -600,7 +599,8 @@ export function SubtopicManager({
                   setVideoCustomize(null);
                   void startGenerate(next.sub, { prompt: next.focus, length: next.length });
                 }}
-                className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-400"
+                className="cs-btn cs-btn--sm"
+                data-tone="primary"
               >
                 Generate overview
               </button>
@@ -623,34 +623,36 @@ function VideoStatusBadge({
 }) {
   if (status === 'generating') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#06B6D4]/80 px-4 py-1.5 text-[#A5F3FC]">
+      <span className="cs-chip" data-tone="info">
         <Loader2 className="h-4 w-4 animate-spin" /> Generating… {progress ?? 0}%
       </span>
     );
   }
   if (status === 'failed') {
     return (
-      <span className="rounded-full bg-rose-500/80 px-4 py-1.5 text-rose-50" title={error ?? undefined}>
+      <span className="cs-chip" data-tone="danger" title={error ?? undefined}>
         Generation Failed
       </span>
     );
   }
   if (status === 'pending_review') {
     return (
-      <span className="rounded-full bg-[#06B6D4]/80 px-4 py-1.5 text-[#A5F3FC] ring-2 ring-cyan-200/40">
+      <span className="cs-chip" data-tone="info">
         Video ready
       </span>
     );
   }
   if (status === 'published') {
     return (
-      <span className="rounded-full bg-[#10B981]/80 px-4 py-1.5 text-[#A7F3D0]">
+      <span className="cs-chip" data-tone="success">
         Video Published
       </span>
     );
   }
   return (
-    <span className="rounded-full bg-slate-700/80 px-4 py-1.5 text-[#A5F3FC]">No video</span>
+    <span className="cs-chip" data-tone="neutral">
+      No video
+    </span>
   );
 }
 
@@ -686,16 +688,17 @@ function GenerateVideoButton({
       <button
         type="button"
         disabled
-        className="inline-flex min-w-[180px] flex-col items-stretch gap-1.5 whitespace-nowrap rounded-xl border border-cyan-400/40 bg-[#06B6D4]/20 px-6 py-3 text-base font-medium text-[#A5F3FC] disabled:opacity-80"
+        className="cs-btn min-w-[180px] flex-col !items-stretch"
+        data-tone="primary"
         title={stageLabel}
       >
         <span className="inline-flex items-center gap-1.5">
           <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
           Generating Video… {Math.max(0, Math.min(100, sub.videoProgress ?? 0))}%
         </span>
-        <span className="td-progress-track h-1.5 overflow-hidden rounded-full">
+        <span className="cs-btn-track h-1.5 overflow-hidden rounded-full">
           <span
-            className="td-progress-fill block h-full rounded-full"
+            className="cs-btn-fill block h-full rounded-full"
             style={{ width: `${Math.max(0, Math.min(100, sub.videoProgress ?? 0))}%` }}
           />
         </span>
@@ -710,7 +713,8 @@ function GenerateVideoButton({
         onClick={onGenerate}
         disabled={busy}
         title={sub.videoError ?? 'Generation failed'}
-        className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-rose-400/50 bg-rose-500/80 px-6 py-3 text-base font-medium text-white hover:bg-rose-500 disabled:opacity-50"
+        className="cs-btn"
+        data-tone="danger"
       >
         {busy ? (
           <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
@@ -727,12 +731,8 @@ function GenerateVideoButton({
       <button
         type="button"
         onClick={onReview}
-        className={[
-          'inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-6 py-3 text-base font-medium text-white',
-          status === 'pending_review'
-            ? 'td-btn-cta animate-pulse'
-            : 'bg-[#10B981]/80 hover:bg-[#10B981]',
-        ].join(' ')}
+        className="cs-btn"
+        data-tone={status === 'pending_review' ? 'primary' : 'success'}
       >
         {status === 'published' ? (
           <PlayCircle className="h-5 w-5 shrink-0" />
@@ -749,7 +749,8 @@ function GenerateVideoButton({
       type="button"
       onClick={onGenerate}
       disabled={busy}
-      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-cyan-400/40 bg-[#06B6D4]/80 px-6 py-3 text-base font-medium text-white disabled:opacity-50"
+      className="cs-btn"
+      data-tone="primary"
     >
       {busy ? <Loader2 className="h-5 w-5 shrink-0 animate-spin" /> : <span aria-hidden>🎬</span>}
       Generate Animated Video

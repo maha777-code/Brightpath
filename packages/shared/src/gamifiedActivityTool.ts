@@ -1,6 +1,7 @@
 import { escapeRoomToPlayableHtml } from './escapeRoomHtml.js';
 
 export const GAMIFIED_ACTIVITY_KINDS = [
+  'game_arcade',
   'escape_room',
   'branching_quest',
   'skill_tree',
@@ -17,6 +18,14 @@ export interface GamifiedActivityOption {
 }
 
 export const GAMIFIED_ACTIVITY_OPTIONS: GamifiedActivityOption[] = [
+  {
+    id: 'game_arcade',
+    title: 'Game Arcade',
+    subtitle: 'Lane Runner · Sweet Match',
+    description:
+      'A real arcade game students play in the browser: run through answer gates or match candies to fire boosters, with score, lives, combos, and instant feedback.',
+    exportHint: 'live arcade game',
+  },
   {
     id: 'escape_room',
     title: 'Digital Escape Room',
@@ -169,7 +178,27 @@ export interface SkillTreeDocument {
   trackingKey: string[];
 }
 
+export interface ArcadeQuestion {
+  id: string;
+  prompt: string;
+  answer: string;
+  distractors: string[];
+  hint: string;
+  explanation: string;
+  misconception: string;
+}
+
+export interface GameArcadeDocument {
+  kind: 'game_arcade';
+  title: string;
+  subject: string;
+  gradeLabel: string;
+  missionIntro: string;
+  questions: ArcadeQuestion[];
+}
+
 export type GamifiedActivityDocument =
+  | GameArcadeDocument
   | EscapeRoomDocument
   | BranchingQuestDocument
   | SkillTreeDocument;
@@ -194,7 +223,7 @@ export interface GamifiedActivityResponse {
 }
 
 export function isGamifiedActivityKind(value: unknown): value is GamifiedActivityKind {
-  return value === 'escape_room' || value === 'branching_quest' || value === 'skill_tree';
+  return (GAMIFIED_ACTIVITY_KINDS as readonly unknown[]).includes(value);
 }
 
 export function getGamifiedActivityOption(kind: GamifiedActivityKind): GamifiedActivityOption {
@@ -615,10 +644,63 @@ export function fallbackSkillTree(ctx: GamifiedLessonContext): SkillTreeDocument
   };
 }
 
+function arcadeQuestion(
+  id: number,
+  prompt: string,
+  answer: string,
+  distractors: string[],
+  hint: string,
+  explanation: string,
+  misconception: string,
+): ArcadeQuestion {
+  return { id: `q${id}`, prompt, answer, distractors, hint, explanation, misconception };
+}
+
+export function fallbackGameArcade(ctx: GamifiedLessonContext): GameArcadeDocument {
+  const topic = ctx.topic;
+  if (isBioEnergyTopic(topic)) {
+    return {
+      kind: 'game_arcade',
+      title: 'Green Energy Rush',
+      subject: ctx.subject,
+      gradeLabel: ctx.gradeLevel,
+      missionIntro: 'Power the bio-dome! Every right answer charges the energy grid. Pick wisely — misconceptions drain your lives.',
+      questions: [
+        arcadeQuestion(1, 'Which pigment captures sunlight?', 'Chlorophyll', ['Glucose', 'Oxygen', 'Hemoglobin'], 'It makes leaves look green.', 'Chlorophyll absorbs red and blue light to power photosynthesis.', 'Plants get energy from the soil.'),
+        arcadeQuestion(2, 'Where does photosynthesis happen?', 'Chloroplast', ['Mitochondria', 'Nucleus', 'Cell wall'], 'Look for the green organelle.', 'Chloroplasts hold chlorophyll and run photosynthesis.', 'Mitochondria make food from light.'),
+        arcadeQuestion(3, 'Which gas do plants take in for photosynthesis?', 'Carbon dioxide', ['Oxygen', 'Nitrogen', 'Hydrogen'], 'Animals breathe it out.', 'Plants combine CO₂ and water to build glucose.', 'Plants breathe in oxygen to make food.'),
+        arcadeQuestion(4, 'What sugar does photosynthesis produce?', 'Glucose', ['Sucrose', 'Starch', 'ATP'], 'C₆H₁₂O₆', 'Glucose stores the captured light energy as chemical energy.', 'Plants absorb ready-made sugar from soil.'),
+        arcadeQuestion(5, 'Where does most of a plant’s mass come from?', 'Air (CO₂)', ['Soil', 'Fertilizer', 'Sunlight'], 'Van Helmont’s soil barely changed.', 'Carbon atoms from CO₂ in the air become the plant’s body.', 'Plants eat soil to grow.'),
+        arcadeQuestion(6, 'Which organelle releases ATP in respiration?', 'Mitochondria', ['Chloroplast', 'Ribosome', 'Vacuole'], 'The cell’s powerhouse.', 'Mitochondria break glucose down with oxygen to release ATP.', 'Only animals do cellular respiration.'),
+        arcadeQuestion(7, 'Do plants respire at night?', 'Yes, always', ['No, never', 'Only in winter', 'Only in sunlight'], 'Cells need ATP all the time.', 'Plants respire day and night; photosynthesis stops in darkness.', 'Plants only photosynthesize and never respire.'),
+        arcadeQuestion(8, 'What gas is released by photosynthesis?', 'Oxygen', ['Carbon dioxide', 'Methane', 'Nitrogen'], 'You breathe it in.', 'Splitting water releases oxygen as a by-product.', 'Oxygen comes from the soil.'),
+        arcadeQuestion(9, 'What energy source drives photosynthesis?', 'Light', ['Heat', 'Soil minerals', 'Wind'], 'Leaves face it.', 'Light energy is converted into chemical energy in glucose.', 'Warmth alone can power photosynthesis.'),
+        arcadeQuestion(10, 'Products of cellular respiration?', 'CO₂, water, ATP', ['Glucose, O₂', 'Light, water', 'Starch, O₂'], 'It is roughly photosynthesis in reverse.', 'Respiration turns glucose and O₂ into CO₂, water, and ATP.', 'Respiration is just breathing.'),
+      ],
+    };
+  }
+  return {
+    kind: 'game_arcade',
+    title: `${topic} Arcade`,
+    subject: ctx.subject,
+    gradeLabel: ctx.gradeLevel,
+    missionIntro: `Answer fast, stay alive, and climb the leaderboard. Every question checks a key idea from ${topic}.`,
+    questions: [
+      arcadeQuestion(1, `What is the central idea of ${topic}?`, 'Core mechanism', ['Random event', 'Side detail', 'Opinion'], 'Think about what makes it work.', `The core mechanism explains why ${topic} happens.`, `${topic} is optional flavor.`),
+      arcadeQuestion(2, `What must be true before ${topic} starts?`, 'Required condition', ['Final result', 'A guess', 'Nothing'], 'Every process has a starting condition.', `${topic} only starts once its required condition is met.`, 'Steps can happen in any order.'),
+      arcadeQuestion(3, `How do you know ${topic} occurred?`, 'Observable evidence', ['A feeling', 'A rumor', 'Popularity'], 'Scientists look for proof.', 'Evidence is the observable result you can check.', 'If it sounds right, it is right.'),
+      arcadeQuestion(4, 'One surprising example appears. What now?', 'Test the model', ['Ignore it', 'Discard the model', 'Guess'], 'Check it against the rules.', 'A surprising example must still satisfy the required conditions.', 'One example overwrites the whole model.'),
+      arcadeQuestion(5, `Which step of ${topic} comes last?`, 'The result', ['The condition', 'The cause', 'The setup'], 'Results come after causes.', 'The observable result is the final step, not the first cause.', 'The result causes the process.'),
+      arcadeQuestion(6, `Best way to explain ${topic}?`, 'Claim + evidence', ['Slogan only', 'Opinion only', 'Copy a friend'], 'A skeptic needs proof.', 'A strong explanation states the claim and the evidence behind it.', 'Catchy wording is enough.'),
+    ],
+  };
+}
+
 export function fallbackGamifiedDocument(
   kind: GamifiedActivityKind,
   ctx: GamifiedLessonContext,
 ): GamifiedActivityDocument {
+  if (kind === 'game_arcade') return fallbackGameArcade(ctx);
   if (kind === 'branching_quest') return fallbackBranchingQuest(ctx);
   if (kind === 'skill_tree') return fallbackSkillTree(ctx);
   return fallbackEscapeRoom(ctx);
@@ -856,6 +938,45 @@ function parseSkillTree(raw: Record<string, unknown>, ctx: GamifiedLessonContext
   };
 }
 
+function parseGameArcade(raw: Record<string, unknown>, ctx: GamifiedLessonContext): GameArcadeDocument {
+  const defaults = fallbackGameArcade(ctx);
+  const questionsRaw = Array.isArray(raw.questions) ? raw.questions : [];
+  const questions: ArcadeQuestion[] = [];
+  for (const item of questionsRaw) {
+    const rec = asRecord(item);
+    if (!rec) continue;
+    const prompt = asString(rec.prompt);
+    const answer = asString(rec.answer);
+    if (!prompt || !answer) continue;
+    const seen = new Set([answer.toLowerCase()]);
+    const distractors = asStringList(rec.distractors, []).filter((text) => {
+      const key = text.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (distractors.length < 2) continue;
+    questions.push({
+      id: `q${questions.length + 1}`,
+      prompt,
+      answer,
+      distractors: distractors.slice(0, 3),
+      hint: asString(rec.hint),
+      explanation: asString(rec.explanation, `The correct answer is ${answer}.`),
+      misconception: asString(rec.misconception),
+    });
+    if (questions.length >= 12) break;
+  }
+  return {
+    kind: 'game_arcade',
+    title: asString(raw.title, defaults.title),
+    subject: asString(raw.subject, ctx.subject),
+    gradeLabel: asString(raw.gradeLabel, ctx.gradeLevel),
+    missionIntro: asString(raw.missionIntro, defaults.missionIntro),
+    questions: questions.length >= 4 ? questions : defaults.questions,
+  };
+}
+
 export function parseGamifiedActivityResponse(
   kind: GamifiedActivityKind,
   raw: unknown,
@@ -864,7 +985,9 @@ export function parseGamifiedActivityResponse(
   const rec = asRecord(raw) ?? {};
   const nested = asRecord(rec.document) ?? rec;
   const document =
-    kind === 'branching_quest'
+    kind === 'game_arcade'
+      ? parseGameArcade(nested, ctx)
+      : kind === 'branching_quest'
       ? parseBranchingQuest(nested, ctx)
       : kind === 'skill_tree'
         ? parseSkillTree(nested, ctx)
@@ -891,6 +1014,30 @@ export function gamifiedActivityToMarkdown(
     `**Common misconceptions:** ${insights.misconceptions.join('; ')}`,
     ``,
   ];
+
+  if (document.kind === 'game_arcade') {
+    return [
+      `# ${document.title}`,
+      ``,
+      `Subject: ${document.subject} · ${document.gradeLabel}`,
+      ``,
+      document.missionIntro,
+      ``,
+      ...insightBlock,
+      `## Question pack`,
+      ``,
+      ...document.questions.flatMap((question, index) => [
+        `### ${index + 1}. ${question.prompt}`,
+        ``,
+        `- **Answer:** ${question.answer}`,
+        `- Distractors: ${question.distractors.join('; ')}`,
+        ...(question.hint ? [`- Hint: ${question.hint}`] : []),
+        `- Why: ${question.explanation}`,
+        ...(question.misconception ? [`- Misconception targeted: ${question.misconception}`] : []),
+        ``,
+      ]),
+    ].join('\n');
+  }
 
   if (document.kind === 'escape_room') {
     return [

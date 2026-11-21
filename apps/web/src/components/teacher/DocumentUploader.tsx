@@ -1,3 +1,4 @@
+import '@/styles/curriculum-studio.css';
 import { useEffect, useRef, useState } from 'react';
 import { FileUp, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import type { TeacherChapter, Textbook } from '@brightpath/shared';
@@ -142,25 +143,25 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
     <section className="td-card w-full rounded-3xl p-8">
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-white">Textbook / Curriculum</h2>
-          <p className="mt-1 text-base text-cyan-200/80">Upload a state textbook PDF, then verify for RAG indexing.</p>
-          <p className="mt-1 text-base font-semibold text-cyan-200/80">
+          <h2 className="cs-h text-2xl font-bold">Textbook / Curriculum</h2>
+          <p className="cs-muted mt-1 text-base">Upload a state textbook PDF, then verify for RAG indexing.</p>
+          <p className="cs-text mt-1 text-base font-semibold">
             Plan limit: {maxMb} MB · {maxCountLabel} PDF{limits.pdfUploadCount === 1 ? '' : 's'}
             {limits.pdfUploadCount === 1 ? ' · New upload replaces the current book' : ''}
           </p>
         </div>
         {busy === 'verify' ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/80 px-4 py-1.5 text-base font-medium text-white">
+          <span className="cs-chip" data-tone="warning">
             <Loader2 className="h-4 w-4 animate-spin" /> Indexing
           </span>
         ) : textbook?.status === 'INDEXED' ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/80 px-4 py-1.5 text-base font-medium text-white shadow-[0_0_14px_rgba(6,182,212,0.35)]">
+          <span className="cs-chip" data-tone="success">
             <CheckCircle2 className="h-4 w-4" /> Indexed
           </span>
         ) : null}
       </div>
 
-      <label className="mb-4 block text-sm font-semibold uppercase tracking-wider text-[#A5F3FC]">
+      <label className="cs-eyebrow mb-4 block">
         Textbook title
         <input
           value={title}
@@ -178,16 +179,12 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
         onClick={() => inputRef.current?.click()}
-        className={[
-          'flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-8 py-12 transition',
-          dragOver
-            ? 'border-[#22D3EE] bg-cyan-400/10'
-            : 'border-cyan-400/45 bg-slate-950/30 hover:border-[#22D3EE] hover:bg-cyan-400/5',
-        ].join(' ')}
+        data-over={dragOver ? 'true' : 'false'}
+        className="cs-drop flex cursor-pointer flex-col items-center justify-center rounded-2xl px-8 py-12"
       >
-        <FileUp className="mb-3 h-10 w-10 text-[#22D3EE]" />
-        <p className="text-xl font-bold text-white">Upload State Textbook (PDF)</p>
-        <p className="mt-1 text-sm text-[#A5F3FC]">Drag & drop or click · Max {maxMb} MB</p>
+        <FileUp className="cs-icon mb-3 h-10 w-10" />
+        <p className="cs-h text-xl font-bold">Upload State Textbook (PDF)</p>
+        <p className="cs-muted mt-1 text-base">Drag & drop or click · Max {maxMb} MB</p>
         <input
           ref={inputRef}
           type="file"
@@ -202,11 +199,11 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
       </div>
 
       {textbook && (
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-400/20 bg-slate-950/40 p-6">
+        <div className="cs-inset mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl p-6">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wider text-cyan-200/70">Textbook title</p>
-            <p className="truncate text-lg font-bold text-white">{textbook.title}</p>
-            <p className="text-base text-cyan-200/80">
+            <p className="cs-eyebrow">Textbook title</p>
+            <p className="cs-h truncate text-lg font-bold">{textbook.title}</p>
+            <p className="cs-muted text-base">
               {textbook.fileUrl || textbook.fileName} · {(textbook.fileSizeBytes / 1024).toFixed(0)} KB ·{' '}
               {busy === 'verify' || textbook.status === 'VERIFYING' ? 'PROCESSING' : textbook.status}
             </p>
@@ -219,7 +216,8 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
               textbook.status === 'PROCESSING'
             }
             onClick={() => void verify()}
-            className="td-btn-cta inline-flex items-center gap-2 rounded-xl px-6 py-3 text-base font-medium disabled:opacity-60"
+            className="cs-btn"
+            data-tone="primary"
           >
             {busy === 'verify' ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
             Verify Document
@@ -228,16 +226,20 @@ export function DocumentUploader({ textbook, onUploaded, onVerified }: DocumentU
       )}
 
       {busy === 'upload' && (
-        <p className="mt-4 flex items-center gap-2 text-base font-semibold text-cyan-200/80">
+        <p className="cs-text mt-4 flex items-center gap-2 text-base font-semibold">
           <Loader2 className="h-5 w-5 animate-spin" /> Uploading PDF…
         </p>
       )}
       {busy === 'verify' && (
-        <p className="mt-4 flex items-center gap-2 text-base font-semibold text-amber-100">
+        <p className="cs-text mt-4 flex items-center gap-2 text-base font-semibold">
           <Loader2 className="h-5 w-5 animate-spin" /> Indexing in background… extracting chapters and building the RAG index.
         </p>
       )}
-      {error && <p className="mt-4 text-base font-semibold text-rose-300">{error}</p>}
+      {error && (
+        <p className="cs-chip cs-chip--block mt-4" data-tone="danger">
+          {error}
+        </p>
+      )}
     </section>
   );
 }

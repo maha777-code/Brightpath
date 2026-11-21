@@ -14,6 +14,7 @@ import {
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { AddFileMenu } from '@/components/tools/AddFileMenu';
+import { GameArcade } from '@/components/games/arcade/GameArcade';
 import {
   TOOL_ACCENT_BUTTON,
   TOOL_BREADCRUMB,
@@ -65,7 +66,7 @@ function openHtmlPreview(html: string) {
 }
 
 export function GamifiedActivityGenerator() {
-  const [kind, setKind] = useState<GamifiedActivityKind>('escape_room');
+  const [kind, setKind] = useState<GamifiedActivityKind>('game_arcade');
   const [subject, setSubject] = useState('');
   const [topic, setTopic] = useState('');
   const [gradeLevel, setGradeLevel] = useState('8th grade');
@@ -188,7 +189,8 @@ export function GamifiedActivityGenerator() {
             </h1>
             <p className={TOOL_SUBTITLE}>
               Attach a unit PDF, Doc, or slides. MindVault extracts key terms, objectives, and misconceptions,
-              then builds a playable escape room (single-file HTML), a branching quest, or an XP skill tree.
+              then builds a real arcade game, a playable escape room (single-file HTML), a branching quest, or an XP
+              skill tree.
             </p>
           </div>
           <button type="button" className={TOOL_ACCENT_BUTTON} onClick={showExemplar}>
@@ -196,7 +198,7 @@ export function GamifiedActivityGenerator() {
           </button>
         </div>
 
-        <div className="mt-6 grid gap-3 md:grid-cols-3">
+        <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {GAMIFIED_ACTIVITY_OPTIONS.map((item) => {
             const selected = item.id === kind;
             return (
@@ -315,7 +317,7 @@ export function GamifiedActivityGenerator() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className={TOOL_HINT}>
-                {getGamifiedActivityOption(result.kind).title} · export to {option.exportHint}
+                {getGamifiedActivityOption(result.kind).title} · {getGamifiedActivityOption(result.kind).exportHint}
               </p>
               <h2 className="mt-1 text-lg font-semibold">{result.document.title}</h2>
             </div>
@@ -369,7 +371,11 @@ export function GamifiedActivityGenerator() {
             </section>
           ) : null}
 
-          <Insights insights={result.insights} />
+          {result.document.kind === 'game_arcade' ? (
+            <GameArcade document={result.document} insights={result.insights} />
+          ) : (
+            <Insights insights={result.insights} />
+          )}
           {result.document.kind === 'escape_room' ? <EscapeRoomView document={result.document} /> : null}
           {result.document.kind === 'branching_quest' ? <QuestView document={result.document} /> : null}
           {result.document.kind === 'skill_tree' ? <SkillTreeView document={result.document} /> : null}

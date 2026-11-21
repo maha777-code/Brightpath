@@ -120,7 +120,7 @@ export default function CurriculumTextbookStudio() {
 
   return (
     <TeacherWorkspaceLayout>
-      <main className="mv-tool-surface mv-text-plus-2 w-full max-w-full space-y-8 px-5 py-6 sm:px-8 lg:px-12 lg:py-8">
+      <main className="cs-studio mv-tool-surface mv-text-plus-2 w-full max-w-full space-y-8 px-5 py-6 sm:px-8 lg:px-12 lg:py-8">
         <AIToolHeader
           toolName="Curriculum & Textbook Studio"
           description="Upload textbooks, enrich lessons, and approve AI answers before class."
@@ -130,8 +130,8 @@ export default function CurriculumTextbookStudio() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="text-4xl tracking-tight">
-                <span className="font-bold text-slate-100">Curriculum & Textbook Studio. </span>
-                <span className="font-normal text-slate-400">
+                <span className="cs-h font-bold">Curriculum & Textbook Studio. </span>
+                <span className="cs-muted font-normal">
                   Upload textbooks, enrich lessons, and approve AI answers before class.
                 </span>
               </div>
@@ -147,7 +147,8 @@ export default function CurriculumTextbookStudio() {
                     }),
                   )
                 }
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-sm font-semibold text-emerald-100 hover:bg-emerald-500/25"
+                className="cs-btn"
+                data-tone="success"
               >
                 <Gamepad2 className="h-4 w-4" />
                 Gamified Video
@@ -155,7 +156,8 @@ export default function CurriculumTextbookStudio() {
               <button
                 type="button"
                 onClick={() => void load()}
-                className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC] hover:bg-cyan-400/10"
+                className="cs-btn cs-btn--icon"
+                data-tone="outline"
                 aria-label="Sync"
                 title="Sync"
               >
@@ -163,7 +165,8 @@ export default function CurriculumTextbookStudio() {
               </button>
               <a
                 href="#td-chapters"
-                className="rounded-xl border border-cyan-400/30 p-2.5 text-[#A5F3FC] hover:bg-cyan-400/10"
+                className="cs-btn cs-btn--icon"
+                data-tone="outline"
                 aria-label="Explore"
                 title="Explore"
               >
@@ -174,7 +177,7 @@ export default function CurriculumTextbookStudio() {
         </div>
 
         {loading && (
-          <p className="td-card rounded-2xl p-8 text-center text-base text-cyan-200/80">
+          <p className="td-card cs-muted rounded-2xl p-8 text-center text-base">
             Loading curriculum…
           </p>
         )}

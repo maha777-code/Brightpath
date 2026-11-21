@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   TEACHER_TOOL_FOCUS_LABELS,
   TEACHER_TOOLS_CATALOG,
+  GAMIFIED_ACTIVITY_KINDS,
   getTeacherToolById,
   isPlatformOwner,
   type ClassroomAction,
@@ -269,7 +270,7 @@ router.post('/tools/quiz-generator', async (req: AuthRequest, res: Response) => 
 
 const gamifiedActivityBody = z
   .object({
-    kind: z.enum(['escape_room', 'branching_quest', 'skill_tree']),
+    kind: z.enum(GAMIFIED_ACTIVITY_KINDS),
     topic: z.string().max(400_000),
     gradeLevel: z.string().min(1).max(80),
     subject: z.string().max(120).optional(),

@@ -1,3 +1,4 @@
+import '@/styles/curriculum-studio.css';
 import { useState } from 'react';
 import { Check, PencilLine, X, Sparkles } from 'lucide-react';
 import type { StudentDoubt, TeacherSubtopic } from '@brightpath/shared';
@@ -46,17 +47,17 @@ export function TeacherDoubtAssistant({
 
   return (
     <section className="td-card w-full rounded-3xl p-8">
-      <h2 className="mb-1 text-2xl font-bold text-white">AI & Student Doubt Monitor</h2>
-      <p className="mb-6 text-base text-cyan-200/80">
+      <h2 className="cs-h mb-1 text-2xl font-bold">AI & Student Doubt Monitor</h2>
+      <p className="cs-muted mb-6 text-base">
         Review AI answers grounded in textbook sources before they reach students.
       </p>
 
       <div className="grid w-full grid-cols-1 gap-8 lg:grid-cols-2">
         {/* Lesson media preview */}
-        <div className="overflow-hidden rounded-2xl border border-cyan-400/20 bg-slate-950">
+        <div className="cs-media overflow-hidden rounded-2xl">
           {previewSubtopic && isActivityPlayable(previewSubtopic.activity) && previewSubtopic.activity ? (
-            <div className="min-h-[240px] bg-slate-950 px-6 py-5">
-              <p className="mb-3 text-sm font-bold text-white">Activity script preview</p>
+            <div className="min-h-[240px] px-6 py-5">
+              <p className="cs-h mb-3 text-sm font-bold">Activity script preview</p>
               <CinematicScriptPreview activity={previewSubtopic.activity} compact />
             </div>
           ) : previewSubtopic?.videoUrl && !/commondatastorage|ForBigger/i.test(previewSubtopic.videoUrl) ? (
@@ -68,52 +69,40 @@ export function TeacherDoubtAssistant({
               className="aspect-video w-full bg-black"
             />
           ) : (
-            <div className="flex aspect-video flex-col items-center justify-center px-8 text-center text-[#A5F3FC]">
-              <Sparkles className="mb-3 h-10 w-10 text-[#22D3EE]" />
-              <p className="text-xl font-bold text-white">Lesson media preview</p>
-              <p className="mt-2 text-base text-cyan-200/80">
+            <div className="flex aspect-video flex-col items-center justify-center px-8 text-center">
+              <Sparkles className="cs-icon mb-3 h-10 w-10" />
+              <p className="cs-h text-xl font-bold">Lesson media preview</p>
+              <p className="cs-muted mt-2 text-base">
                 Attach a Video Explainer or generate a Cinematic Tom & Jerry activity to preview it here.
               </p>
             </div>
           )}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-[#1E293B] px-6 py-4">
-            <p className="text-base font-semibold text-white">
+          <div className="cs-media-bar flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+            <p className="cs-h text-base font-semibold">
               {previewSubtopic
                 ? `${previewSubtopic.code} · ${previewSubtopic.title}`
                 : 'No subtopic selected'}
             </p>
             <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={onContinue}
-                className="rounded-xl bg-[#10B981]/80 px-6 py-3 text-base font-medium text-white"
-              >
+              <button type="button" onClick={onContinue} className="cs-btn" data-tone="success">
                 Continue
               </button>
-              <button
-                type="button"
-                onClick={onAssignActivity}
-                className="rounded-xl bg-[#FBBF24]/80 px-6 py-3 text-base font-medium text-white"
-              >
+              <button type="button" onClick={onAssignActivity} className="cs-btn" data-tone="warning">
                 Assign Activity
               </button>
             </div>
           </div>
-          {engagementNote && (
-            <p className="bg-[#312E81] px-6 py-3 text-base font-semibold text-[#A5F3FC]">{engagementNote}</p>
-          )}
+          {engagementNote && <p className="cs-note px-6 py-3 text-base font-semibold">{engagementNote}</p>}
         </div>
 
         {/* Doubts sidebar */}
-        <div className="flex min-h-[320px] flex-col rounded-2xl border border-cyan-400/20 bg-slate-950/50">
-          <div className="border-b border-cyan-400/20 px-6 py-4">
-            <p className="text-sm font-semibold uppercase tracking-wider text-[#A5F3FC]">
-              Teacher&apos;s Doubt Queue ({doubts.length})
-            </p>
+        <div className="cs-inset flex min-h-[320px] flex-col rounded-2xl">
+          <div className="cs-divider border-b px-6 py-4">
+            <p className="cs-eyebrow">Teacher&apos;s Doubt Queue ({doubts.length})</p>
           </div>
-          <div className="max-h-48 space-y-2 overflow-y-auto border-b border-cyan-400/20 p-4">
+          <div className="cs-divider max-h-48 space-y-2 overflow-y-auto border-b p-4">
             {doubts.length === 0 && (
-              <p className="px-2 py-4 text-center text-base text-cyan-200/80">No student doubts yet.</p>
+              <p className="cs-muted px-2 py-4 text-center text-base">No student doubts yet.</p>
             )}
             {doubts.map((d) => (
               <button
@@ -123,16 +112,12 @@ export function TeacherDoubtAssistant({
                   setSelectedId(d.id);
                   setOverrideText(d.teacherOverrideText || d.aiResponse?.answerText || '');
                 }}
-                className={[
-                  'w-full rounded-xl px-4 py-3 text-left text-base transition',
-                  selected?.id === d.id
-                    ? 'bg-gradient-to-r from-cyan-500 to-indigo-500 text-white'
-                    : 'bg-slate-900/70 text-[#A5F3FC] hover:bg-cyan-400/10',
-                ].join(' ')}
+                className="cs-doubt w-full rounded-xl px-4 py-3 text-left text-base transition"
+                data-active={selected?.id === d.id ? 'true' : 'false'}
               >
                 <span className="font-bold">{d.studentName}</span>
                 <span className="mt-0.5 block line-clamp-2 opacity-90">{d.question}</span>
-                <span className="mt-1 inline-block rounded-full bg-black/10 px-3 py-0.5 text-sm font-medium">
+                <span className="mt-1 inline-block rounded-full bg-black/10 px-3 py-0.5 text-sm font-semibold">
                   {d.status}
                 </span>
               </button>
@@ -141,18 +126,18 @@ export function TeacherDoubtAssistant({
 
           {selected ? (
             <div className="flex flex-1 flex-col gap-3 p-6">
-              <p className="text-base font-bold text-white">Q: {selected.question}</p>
-              <div className="rounded-xl border border-cyan-400/20 bg-[#312E81]/70 p-4 text-base text-[#A5F3FC]">
-                <p className="mb-2 font-extrabold text-white">AI draft (textbook-grounded)</p>
+              <p className="cs-h text-base font-bold">Q: {selected.question}</p>
+              <div className="cs-note rounded-xl p-4 text-base">
+                <p className="mb-2 font-extrabold">AI draft (textbook-grounded)</p>
                 <p>{selected.aiResponse?.answerText ?? 'No AI answer yet.'}</p>
                 {selected.aiResponse && (
-                  <p className="mt-2 text-sm font-semibold text-cyan-200">
+                  <p className="mt-2 text-sm font-semibold opacity-90">
                     Sources: {selected.aiResponse.groundedSources.join(' · ')} · confidence{' '}
                     {Math.round(selected.aiResponse.confidence * 100)}%
                   </p>
                 )}
               </div>
-              <label className="text-sm font-semibold tracking-wider text-[#A5F3FC]">
+              <label className="cs-text text-sm font-semibold">
                 Teacher override / notes
                 <textarea
                   value={overrideText}
@@ -161,7 +146,7 @@ export function TeacherDoubtAssistant({
                   className="td-input mt-2 w-full rounded-xl p-4 text-lg outline-none"
                 />
               </label>
-              <label className="flex items-center justify-between text-base font-semibold text-[#A5F3FC]">
+              <label className="cs-text flex items-center justify-between text-base font-semibold">
                 Gamification points
                 <input
                   type="number"
@@ -177,7 +162,8 @@ export function TeacherDoubtAssistant({
                   type="button"
                   disabled={busy}
                   onClick={() => void review('approve')}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#10B981]/80 px-6 py-3 text-base font-medium text-white"
+                  className="cs-btn flex-1"
+                  data-tone="success"
                 >
                   <Check className="h-5 w-5" /> Approve AI
                 </button>
@@ -185,7 +171,8 @@ export function TeacherDoubtAssistant({
                   type="button"
                   disabled={busy}
                   onClick={() => void review('override')}
-                  className="td-btn-cta inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3 text-base font-medium"
+                  className="cs-btn flex-1"
+                  data-tone="primary"
                 >
                   <PencilLine className="h-5 w-5" /> Override
                 </button>
@@ -193,14 +180,15 @@ export function TeacherDoubtAssistant({
                   type="button"
                   disabled={busy}
                   onClick={() => void review('reject')}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/80 px-6 py-3 text-base font-medium text-white"
+                  className="cs-btn"
+                  data-tone="danger"
                 >
                   <X className="h-5 w-5" /> Reject
                 </button>
               </div>
             </div>
           ) : (
-            <p className="p-8 text-center text-base text-cyan-200/80">Select a doubt to review.</p>
+            <p className="cs-muted p-8 text-center text-base">Select a doubt to review.</p>
           )}
         </div>
       </div>
