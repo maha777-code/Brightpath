@@ -7,6 +7,7 @@ import {
   getGamifiedActivityOption,
   type BranchingQuestDocument,
   type EscapeRoomDocument,
+  type GameArcadeDocument,
   type GamifiedActivityKind,
   type GamifiedActivityPayload,
   type GamifiedActivityResponse,
@@ -15,6 +16,7 @@ import {
 import { api } from '@/lib/api';
 import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { GameArcade } from '@/components/games/arcade/GameArcade';
+import { ArcadeShareBar } from '@/components/games/arcade/ArcadeShareBar';
 import {
   TOOL_ACCENT_BUTTON,
   TOOL_BREADCRUMB,
@@ -372,7 +374,13 @@ export function GamifiedActivityGenerator() {
           ) : null}
 
           {result.document.kind === 'game_arcade' ? (
-            <GameArcade document={result.document} insights={result.insights} />
+            <GameArcade
+              document={result.document}
+              insights={result.insights}
+              renderTeacherPanel={(game) => (
+                <ArcadeShareBar document={result.document as GameArcadeDocument} game={game} />
+              )}
+            />
           ) : (
             <Insights insights={result.insights} />
           )}

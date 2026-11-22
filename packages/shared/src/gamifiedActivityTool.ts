@@ -938,6 +938,19 @@ function parseSkillTree(raw: Record<string, unknown>, ctx: GamifiedLessonContext
   };
 }
 
+/** Options are printed on runner gates, candy cards and asteroids, so they must stay short. */
+export const ARCADE_OPTION_MAX_WORDS = 3;
+export const ARCADE_OPTION_MAX_CHARS = 22;
+
+export function fitsArcadeOption(text: string): boolean {
+  const trimmed = text.trim();
+  return (
+    trimmed.length > 0 &&
+    trimmed.length <= ARCADE_OPTION_MAX_CHARS &&
+    trimmed.split(/\s+/).length <= ARCADE_OPTION_MAX_WORDS
+  );
+}
+
 function parseGameArcade(raw: Record<string, unknown>, ctx: GamifiedLessonContext): GameArcadeDocument {
   const defaults = fallbackGameArcade(ctx);
   const questionsRaw = Array.isArray(raw.questions) ? raw.questions : [];
@@ -946,10 +959,11 @@ function parseGameArcade(raw: Record<string, unknown>, ctx: GamifiedLessonContex
     const rec = asRecord(item);
     if (!rec) continue;
     const prompt = asString(rec.prompt);
-    const answer = asString(rec.answer);
-    if (!prompt || !answer) continue;
+    const answer = asString(rec.answer).trim();
+    if (!prompt || !fitsArcadeOption(answer)) continue;
     const seen = new Set([answer.toLowerCase()]);
-    const distractors = asStringList(rec.distractors, []).filter((text) => {
+    const distractors = asStringList(rec.distractors, []).map((text) => text.trim()).filter((text) => {
+      if (!fitsArcadeOption(text)) return false;
       const key = text.toLowerCase();
       if (seen.has(key)) return false;
       seen.add(key);

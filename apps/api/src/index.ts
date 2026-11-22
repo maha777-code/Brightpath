@@ -28,6 +28,7 @@ import subscribeRoutes from './routes/subscribe.js';
 import rosterRoutes from './routes/roster.js';
 import sharadaTutorRoutes from './routes/sharadaTutor.js';
 import inviteRoutes from './routes/invites.js';
+import arcadeRoutes from './routes/arcade.js';
 import { ensureDatabaseSchema } from './lib/ensureDatabaseSchema.js';
 import { anthropicWorkspaceId, LESSON_VIDEO_MODEL } from './lib/llm/provider.js';
 import { ensureDemoTeacher } from './lib/ensureDemoTeacher.js';
@@ -185,7 +186,7 @@ app.use('/auth', (req, res, next) => {
 app.use('/ai', rateLimit({ windowMs: 5 * 60_000, max: 120, key: 'ai' }));
 
 app.use(
-  ['/teacher', '/ai', '/tutor', '/topics', '/chapters', '/curriculum', '/roster', '/admin', '/org', '/sharada'],
+  ['/teacher', '/ai', '/tutor', '/topics', '/chapters', '/curriculum', '/roster', '/admin', '/org', '/sharada', '/arcade'],
   (req, res, next) => void requirePaidOrganization(req as AuthRequest, res, next),
 );
 
@@ -208,6 +209,7 @@ app.use('/subscribe', subscribeRoutes);
 app.use('/roster', rosterRoutes);
 app.use('/sharada', sharadaTutorRoutes);
 app.use('/invites', inviteRoutes);
+app.use('/arcade', arcadeRoutes);
 
 app.use(
   (

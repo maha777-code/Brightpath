@@ -30,6 +30,22 @@
   width: min(100vw, 177.78vh);
 }
 
+/* The stage is always dark: undo the light theme's pale-text remaps (color-theme.css) inside it. */
+html[data-theme='light'] .arc-stage .text-amber-300 { color: #fcd34d !important; }
+html[data-theme='light'] .arc-stage .text-yellow-300 { color: #fde047 !important; }
+html[data-theme='light'] .arc-stage .text-cyan-300 { color: #67e8f9 !important; }
+html[data-theme='light'] .arc-stage .text-emerald-300 { color: #6ee7b7 !important; }
+html[data-theme='light'] .arc-stage .text-pink-300 { color: #f9a8d4 !important; }
+html[data-theme='light'] .arc-stage .text-rose-300 { color: #fda4af !important; }
+html[data-theme='light'] .arc-stage .text-rose-500 { color: #f43f5e !important; }
+html[data-theme='light'] .arc-stage .text-violet-200 { color: #ddd6fe !important; }
+html[data-theme='light'] .arc-stage .text-violet-300 { color: #c4b5fd !important; }
+html[data-theme='light'] .arc-stage .text-slate-100 { color: #f1f5f9 !important; }
+html[data-theme='light'] .arc-stage .text-slate-200 { color: #e2e8f0 !important; }
+html[data-theme='light'] .arc-stage .text-slate-400 { color: #94a3b8 !important; }
+html[data-theme='light'] .arc-stage .text-slate-500 { color: #64748b !important; }
+html[data-theme='light'] .arc-stage .text-slate-600 { color: #475569 !important; }
+
 :where(.arc-stage) button,
 :where(.arc-pick) {
   appearance: none;

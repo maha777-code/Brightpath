@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* The arcade was tuned inside the app shell: 12px root, preflight off, dark tool theme. */
+html {
+  font-size: 12px;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #0e1016;
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.arcade-export {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px 16px 32px;
+}
+.arcade-export__head {
+  margin-bottom: 16px;
+}
+.arcade-export__title {
+  margin: 4px 0 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.arcade-export__foot {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 11px;
+}
+.arcade-export__empty {
+  margin-top: 30vh;
+  text-align: center;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+/* Dark-theme subset of color-theme.css used by the arcade controls and side panel. */
+.mv-pres-field {
+  background: #12141c;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.mv-pres-muted {
+  color: #94a3b8;
+}
+.mv-pres-accent {
+  color: #c4b5fd;
+}
+.mv-pres-generate {
+  background: #7c3aed;
+  color: #ffffff;
+}
+.mv-presentation button:where(.mv-pres-field, .mv-pres-generate) {
+  appearance: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+.mv-presentation button:where(.mv-pres-generate) {
+  border: 0;
+}
+.mv-presentation button.mv-pres-field:not(:disabled):hover {
+  border-color: rgba(167, 139, 250, 0.55);
+}
+.mv-presentation .mv-pres-generate:not(:disabled):hover {
+  background: #6d28d9;
+}

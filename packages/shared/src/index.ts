@@ -535,6 +535,19 @@ export {
   fallbackPlayable,
 } from './gamifiedActivityTool.js';
 export { escapeRoomToPlayableHtml } from './escapeRoomHtml.js';
+export type {
+  ArcadeAssignmentSummary,
+  ArcadeAssignmentDetail,
+  StudentArcadeAssignment,
+  ArcadeAttemptInput,
+  ArcadeAttempt,
+  ArcadeLeaderboardEntry,
+  ArcadeLeaderboardResponse,
+  ArcadeAttemptResponse,
+  ArcadeRemovedAssignment,
+  ArcadeAssignmentLookup,
+} from './arcadeAssignments.js';
+export { arcadeAccuracy, arcadeAttemptXp, arcadePlayPath } from './arcadeAssignments.js';
 
 export type {
   ClassroomBannerTheme,

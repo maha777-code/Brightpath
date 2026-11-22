@@ -28,7 +28,21 @@ export function answerOptions(question: ArcadeQuestion, count: number): string[]
   return shuffle([question.answer, ...shuffle(question.distractors).slice(0, count - 1)]);
 }
 
-type SoundName = 'correct' | 'wrong' | 'coin' | 'pop' | 'boost' | 'bump' | 'win' | 'tick';
+type SoundName =
+  | 'correct'
+  | 'wrong'
+  | 'coin'
+  | 'pop'
+  | 'boost'
+  | 'bump'
+  | 'win'
+  | 'tick'
+  | 'laser'
+  | 'boom'
+  | 'shield'
+  | 'unlock'
+  | 'storm'
+  | 'paper';
 
 let audioCtx: AudioContext | null = null;
 
@@ -90,7 +104,48 @@ export function playSound(name: SoundName, muted: boolean) {
     case 'tick':
       tone(880, 0.06, 'sine', 0.05);
       break;
+    case 'laser':
+      tone(1400, 0.09, 'square', 0.025, 0, 380);
+      break;
+    case 'boom':
+      noise(0.45, 0.12, 900);
+      tone(140, 0.4, 'sine', 0.09, 0, 40);
+      break;
+    case 'shield':
+      tone(440, 0.25, 'sine', 0.06, 0, 880);
+      tone(660, 0.3, 'triangle', 0.05, 0.12, 1320);
+      break;
+    case 'unlock':
+      tone(980, 0.05, 'square', 0.03);
+      tone(740, 0.08, 'triangle', 0.06, 0.06);
+      tone(1180, 0.18, 'triangle', 0.06, 0.14);
+      break;
+    case 'storm':
+      noise(0.35, 0.03, 500);
+      break;
+    case 'paper':
+      noise(0.12, 0.05, 3000);
+      break;
   }
+}
+
+/** Short filtered white-noise burst (explosions, wind, paper). */
+function noise(duration: number, volume: number, cutoff: number) {
+  const ctx = audio();
+  if (!ctx) return;
+  const length = Math.floor(ctx.sampleRate * duration);
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < length; i += 1) data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = cutoff;
+  const gain = ctx.createGain();
+  gain.gain.value = volume;
+  source.connect(filter).connect(gain).connect(ctx.destination);
+  source.start();
 }
 
 export function isTypingTarget(target: EventTarget | null): boolean {

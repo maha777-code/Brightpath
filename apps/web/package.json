@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && npm run build:arcade && vite build",
+    "build:arcade": "vite build --config vite.arcade.config.ts",
     "preview": "vite preview"
   },
   "dependencies": {

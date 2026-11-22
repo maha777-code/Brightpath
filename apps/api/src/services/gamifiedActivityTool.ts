@@ -41,7 +41,7 @@ function systemPrompt(kind: GamifiedActivityKind): string {
   const option = getGamifiedActivityOption(kind);
   if (kind === 'game_arcade') {
     return `Role: Arcade Game Content Designer & Curriculum Specialist.
-Task: Turn the attached learning material into a question pack that powers fast arcade games (an endless runner where students run through the gate with the right answer, and a match-3 candy game where right answers fire boosters).
+Task: Turn the attached learning material into a question pack that powers fast arcade games (an endless runner with answer gates, a match-3 candy game, a survival island with loot crates, a space shooter with labeled asteroids, and a detective case where answers unlock clues).
 First extract key terms, learning objectives, and common misconceptions, then write questions that test those.
 Return JSON only.`;
   }
@@ -89,9 +89,10 @@ Return JSON:
 
 Rules:
 - Exactly 10 questions, ordered from easy recall to harder application.
-- "prompt" is at most 12 words so it fits a game banner.
-- "answer" and every distractor are at most 3 words (they are printed on running gates and candy cards). Never repeat the answer as a distractor.
-- Exactly 3 distractors per question. At least one distractor must come from a real misconception in the source.
+- "prompt" is at most 12 words so it fits a game banner, and is a grammatical question a student could answer without seeing the options.
+- "answer" and every distractor are at most 3 words AND at most 20 characters, because they are printed on running gates, candy cards and falling asteroids. Options over that limit are thrown away, so shorten them (e.g. "Opposite processes", not "Opposite chemical cycles"; "ATP", not "ATP energy").
+- Distractors match the answer's form and length (a number for a number, an organelle for an organelle) so the answer does not stand out. Never repeat the answer as a distractor; all four options must be different.
+- Exactly 3 distractors per question, each clearly wrong to an expert. At least one distractor must come from a real misconception in the source.
 - "hint" is one short nudge that does not give the answer away.
 - "explanation" is one sentence explaining why the answer is right, grounded in the source.
 - "misconception" names the wrong idea the question targets.

@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import type { GameArcadeDocument, GamifiedActivityInsights } from '@brightpath/shared';
 import { Maximize2, Minimize2, RotateCcw, Star, Trophy, Volume2, VolumeX } from 'lucide-react';
 import { TOOL_CHOICE, TOOL_HINT, TOOL_MUTED, TOOL_PANEL, TOOL_SECONDARY, TOOL_SECTION_TITLE } from '@/components/tools/toolTheme';
 import LaneRunnerGame from './LaneRunnerGame';
 import SweetMatchGame from './SweetMatchGame';
-import type { ArcadeResult } from './arcadeKit';
+import SurvivalIslandGame from './SurvivalIslandGame';
+import SpaceDefenderGame from './SpaceDefenderGame';
+import MysteryDetectiveGame from './MysteryDetectiveGame';
+import type { ArcadeGameProps, ArcadeResult } from './arcadeKit';
 import './arcade.css';
 
 type GameId = 'runner' | 'match' | 'survival' | 'space' | 'detective';
@@ -12,10 +15,18 @@ type GameId = 'runner' | 'match' | 'survival' | 'space' | 'detective';
 const GAMES: { id: GameId; title: string; tag: string; ready: boolean }[] = [
   { id: 'runner', title: 'Lane Runner', tag: 'Endless runner', ready: true },
   { id: 'match', title: 'Sweet Match', tag: 'Match-3 boosters', ready: true },
-  { id: 'survival', title: 'Survival Island', tag: 'Battle royale · no weapons', ready: false },
-  { id: 'space', title: 'Space Defender', tag: 'Space shooter', ready: false },
-  { id: 'detective', title: 'Mystery Detective', tag: 'Clue puzzle', ready: false },
+  { id: 'survival', title: 'Survival Island', tag: 'Battle royale · no weapons', ready: true },
+  { id: 'space', title: 'Space Defender', tag: 'Space shooter', ready: true },
+  { id: 'detective', title: 'Mystery Detective', tag: 'Clue puzzle', ready: true },
 ];
+
+const GAME_COMPONENTS: Record<GameId, ComponentType<ArcadeGameProps>> = {
+  runner: LaneRunnerGame,
+  match: SweetMatchGame,
+  survival: SurvivalIslandGame,
+  space: SpaceDefenderGame,
+  detective: MysteryDetectiveGame,
+};
 
 const BEST_KEY = 'mindvault.arcade.best';
 
@@ -27,8 +38,33 @@ function readBest(): Record<string, number> {
   }
 }
 
-export function GameArcade({ document: doc, insights }: { document: GameArcadeDocument; insights: GamifiedActivityInsights }) {
-  const [gameId, setGameId] = useState<GameId>('runner');
+export interface GameArcadeProps {
+  document: GameArcadeDocument;
+  insights: GamifiedActivityInsights;
+  /** Game to open first, e.g. the one a teacher assigned or exported. */
+  initialGameId?: string;
+  /** Hides the game picker and the "Try another game" button. */
+  lockGame?: boolean;
+  /** Hides the teacher-only learning content and answer key. */
+  studentMode?: boolean;
+  onRunComplete?: (run: ArcadeResult, gameId: string) => void;
+  renderTeacherPanel?: (game: { id: string; title: string }) => ReactNode;
+  renderResultsExtra?: (run: ArcadeResult) => ReactNode;
+}
+
+export function GameArcade({
+  document: doc,
+  insights,
+  initialGameId,
+  lockGame = false,
+  studentMode = false,
+  onRunComplete,
+  renderTeacherPanel,
+  renderResultsExtra,
+}: GameArcadeProps) {
+  const [gameId, setGameId] = useState<GameId>(() =>
+    GAMES.some((game) => game.id === initialGameId) ? (initialGameId as GameId) : 'runner',
+  );
   const [runKey, setRunKey] = useState(0);
   const [result, setResult] = useState<ArcadeResult | null>(null);
   const [muted, setMuted] = useState(false);
@@ -56,6 +92,7 @@ export function GameArcade({ document: doc, insights }: { document: GameArcadeDo
   const onFinish = useCallback(
     (run: ArcadeResult) => {
       window.setTimeout(() => setResult(run), 700);
+      onRunComplete?.(run, gameId);
       setBest((prev) => {
         if ((prev[gameId] ?? 0) >= run.score) return prev;
         const next = { ...prev, [gameId]: run.score };
@@ -63,7 +100,7 @@ export function GameArcade({ document: doc, insights }: { document: GameArcadeDo
         return next;
       });
     },
-    [gameId],
+    [gameId, onRunComplete],
   );
 
   const answered = result ? result.correct + result.missed.length : 0;
@@ -73,7 +110,7 @@ export function GameArcade({ document: doc, insights }: { document: GameArcadeDo
 
   return (
     <section className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 ${lockGame ? 'hidden' : ''}`}>
         {GAMES.map((game) => (
           <button
             key={game.id}
@@ -98,11 +135,10 @@ export function GameArcade({ document: doc, insights }: { document: GameArcadeDo
         <div className="space-y-3">
           <div ref={stageRef} className="arc-stage" data-fullscreen={fullscreen ? 'true' : 'false'}>
             <div className="arc-stage__inner">
-              {gameId === 'runner' ? (
-                <LaneRunnerGame key={`runner-${runKey}`} questions={doc.questions} muted={muted} onFinish={onFinish} />
-              ) : (
-                <SweetMatchGame key={`match-${runKey}`} questions={doc.questions} muted={muted} onFinish={onFinish} />
-              )}
+              {(() => {
+                const Game = GAME_COMPONENTS[gameId];
+                return <Game key={`${gameId}-${runKey}`} questions={doc.questions} muted={muted} onFinish={onFinish} />;
+              })()}
               {result ? (
                 <div className="arc-overlay arc-overlay--results">
                   <div className="arc-modal arc-modal--results">
@@ -135,11 +171,12 @@ export function GameArcade({ document: doc, insights }: { document: GameArcadeDo
                     ) : (
                       <p className="arc-modal__text">Perfect run! Every answer was correct.</p>
                     )}
+                    {renderResultsExtra?.(result)}
                     <div className="arc-actions">
                       <button type="button" className="arc-cta" onClick={() => restart()}>
                         <RotateCcw className="h-5 w-5" /> Play again
                       </button>
-                      {otherGame ? (
+                      {otherGame && !lockGame ? (
                         <button type="button" className="arc-cta arc-cta--ghost" onClick={() => restart(otherGame.id)}>
                           Try {otherGame.title}
                         </button>
@@ -172,11 +209,12 @@ export function GameArcade({ document: doc, insights }: { document: GameArcadeDo
         </div>
 
         <aside className="space-y-3">
+          {renderTeacherPanel?.(GAMES.find((game) => game.id === gameId) ?? GAMES[0])}
           <div className={TOOL_PANEL}>
             <p className={TOOL_HINT}>Mission</p>
             <p className="mt-1 text-sm leading-relaxed">{doc.missionIntro}</p>
           </div>
-          <div className={TOOL_PANEL}>
+          <div className={`${TOOL_PANEL} ${studentMode ? 'hidden' : ''}`}>
             <p className={TOOL_SECTION_TITLE}>Learning content</p>
             <p className={`${TOOL_HINT} mt-2`}>Key terms</p>
             <div className="mt-1 flex flex-wrap gap-1.5">
@@ -191,7 +229,7 @@ export function GameArcade({ document: doc, insights }: { document: GameArcadeDo
               ))}
             </div>
           </div>
-          <details className={TOOL_PANEL}>
+          <details className={`${TOOL_PANEL} ${studentMode ? 'hidden' : ''}`}>
             <summary className={`${TOOL_SECTION_TITLE} cursor-pointer`}>
               Question pack · {doc.questions.length} questions (teacher view)
             </summary>

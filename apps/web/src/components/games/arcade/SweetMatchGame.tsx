@@ -523,6 +523,7 @@ export default function SweetMatchGame({ questions, muted, onFinish }: ArcadeGam
             ) : null}
             {quiz.picked && quiz.picked !== quiz.question.answer ? (
               <>
+                <p className="arc-answer arc-answer--good">Correct answer: {quiz.question.answer}</p>
                 <p className="arc-modal__text">{quiz.question.explanation}</p>
                 {quiz.question.misconception ? (
                   <p className="arc-modal__note">Common mix-up: {quiz.question.misconception}</p>

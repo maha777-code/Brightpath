@@ -36,6 +36,7 @@ import { ToolsFilterBar, type ToolsLibraryFilter, type ToolsSortKey } from '@/co
 import { voicePromptButtonClass } from '@/components/VoiceListeningIndicator';
 import { useDictation } from '@/hooks/useDictation';
 import { readSavedWorksheets } from '@/lib/savedWorksheets';
+import { StudentArcadeAssignments } from '@/components/games/arcade/StudentArcadeAssignments';
 
 const FONT = CYBER_FONT_STYLE;
 
@@ -501,6 +502,7 @@ export function StudentWorkspace({ view = 'home' }: { view?: 'home' | 'tools' })
                   ))
                 )}
               </div>
+              <StudentArcadeAssignments />
               <form
                 className="space-y-2 rounded-2xl border border-slate-800/80 bg-[#080d1a] p-4"
                 onSubmit={(event) => {

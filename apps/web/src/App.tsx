@@ -55,6 +55,7 @@ import SharadaOversight from '@/pages/SharadaOversight';
 import StudentSharada from '@/pages/StudentSharada';
 import JoinClass from '@/pages/JoinClass';
 import AcceptInvite from '@/pages/AcceptInvite';
+import ArcadePlayPage from '@/pages/ArcadePlayPage';
 import { ToolAccessGate } from '@/components/tools/ToolAccessGate';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
@@ -216,6 +217,14 @@ export default function App() {
           element={
             <RequireRole roles={['teacher', 'org_admin', 'center_admin']}>
               <SharadaOversight />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/play/:id"
+          element={
+            <RequireRole roles={['student', 'teacher', 'org_admin', 'center_admin']}>
+              <ArcadePlayPage />
             </RequireRole>
           }
         />

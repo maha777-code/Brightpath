@@ -1,0 +1,294 @@
+/* Leaderboard + share panel. Preflight is off, so buttons reset their own chrome. */
+.arc-lb__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.arc-lb__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+.arc-lb__title svg {
+  color: #fbbf24;
+}
+.arc-lb__count {
+  margin-left: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+.arc-lb__refresh {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+}
+.arc-lb__refresh:hover:not(:disabled) {
+  color: #e2e8f0;
+  border-color: rgba(167, 139, 250, 0.6);
+}
+.arc-lb__refresh:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.arc-lb__table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.arc-lb__table th {
+  padding: 4px 6px;
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+.arc-lb__table td {
+  padding: 6px 4px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  white-space: nowrap;
+}
+.arc-lb__table th {
+  white-space: nowrap;
+}
+.arc-lb__table th:nth-child(n + 3),
+.arc-lb__table td:nth-child(n + 3) {
+  text-align: right;
+}
+.arc-lb__table tr[data-me='true'] td {
+  background: rgba(124, 58, 237, 0.18);
+}
+.arc-lb__rank {
+  width: 24px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+.arc-lb__rank svg {
+  color: #fbbf24;
+}
+.arc-lb__name {
+  font-weight: 600;
+}
+.arc-lb__nm {
+  display: inline-block;
+  max-width: 76px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+.arc-lb[data-variant='results'] .arc-lb__nm {
+  max-width: 220px;
+}
+.arc-lb__you {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #7c3aed;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+.arc-lb__xp {
+  color: #fcd34d;
+  font-weight: 700;
+}
+.arc-lb__gap td {
+  padding: 2px;
+  text-align: center;
+  color: #64748b;
+}
+.arc-lb__empty,
+.arc-lb__error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+.arc-lb__error {
+  color: #fda4af;
+}
+
+html[data-theme='light'] .arc-lb[data-variant='panel'] .arc-lb__xp {
+  color: #b45309;
+}
+html[data-theme='light'] .arc-lb[data-variant='panel'] .arc-lb__rank {
+  color: #475569;
+}
+
+/* Inside the dark in-game results card. */
+.arc-lb[data-variant='results'] {
+  margin-top: 1.6cqw;
+  padding: 1cqw 1.2cqw;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  text-align: left;
+  color: #e2e8f0;
+}
+.arc-lb[data-variant='results'] .arc-lb__title {
+  font-size: clamp(12px, 1.5cqw, 18px);
+}
+.arc-lb[data-variant='results'] .arc-lb__table {
+  font-size: clamp(11px, 1.3cqw, 15px);
+}
+
+.arc-save {
+  margin: 1cqw 0 0;
+  font-size: clamp(11px, 1.3cqw, 15px);
+  font-weight: 600;
+  color: #a7f3d0;
+}
+.arc-save[data-tone='error'] {
+  color: #fda4af;
+}
+.arc-save[data-tone='muted'] {
+  color: #94a3b8;
+}
+
+.arc-share__select {
+  margin-top: 0;
+  padding: 8px 10px;
+  min-width: 0;
+}
+.arc-share__assign {
+  appearance: none;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.arc-share__assign:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.arc-share__link {
+  margin-top: 12px;
+}
+.arc-share__url {
+  margin-top: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  min-width: 0;
+}
+.arc-share__msg {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+.arc-share__unassign,
+.arc-share__confirm-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  border-radius: 8px;
+  background: transparent;
+  color: #fca5a5;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.arc-share__unassign {
+  margin-top: 8px;
+}
+.arc-share__unassign:hover:not(:disabled),
+.arc-share__confirm-btn[data-kind='danger']:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.12);
+}
+.arc-share__confirm-btn[data-kind='danger'] {
+  border-color: transparent;
+  background: #dc2626;
+  color: #fff;
+}
+.arc-share__confirm-btn[data-kind='danger']:hover:not(:disabled) {
+  background: #b91c1c;
+}
+.arc-share__confirm-btn[data-kind='cancel'] {
+  border-color: rgba(148, 163, 184, 0.35);
+  color: inherit;
+}
+.arc-share__unassign:disabled,
+.arc-share__confirm-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.arc-share__confirm {
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: 10px;
+  background: rgba(127, 29, 29, 0.18);
+}
+.arc-share__confirm p {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+html[data-theme='light'] .arc-share__unassign {
+  color: #b91c1c;
+  border-color: rgba(220, 38, 38, 0.4);
+}
+html[data-theme='light'] .arc-share__confirm {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #7f1d1d;
+}
+
+.arc-unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 460px;
+  margin: 24px auto;
+  text-align: center;
+}
+.arc-unavailable__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(124, 58, 237, 0.18);
+  color: #c4b5fd;
+}
+html[data-theme='light'] .arc-unavailable__icon {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+.arc-unavailable__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}

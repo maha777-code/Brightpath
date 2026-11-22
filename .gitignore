@@ -9,6 +9,7 @@ apps/api/public/presentations/
 apps/api/public/teacher-songs/*.mp3
 apps/api/public/teacher-songs/*.wav
 apps/web/dist
+apps/web/public/arcade-player/
 packages/*/dist
 
 .vercel
