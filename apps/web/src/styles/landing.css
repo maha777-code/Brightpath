@@ -202,6 +202,20 @@ body:has(.bp-landing) {
   pointer-events: auto;
 }
 
+.bp-mega.bp-mega--dismissed .bp-mega-panel {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.bp-mega.bp-mega--dismissed .bp-mega-chevron {
+  transform: none;
+}
+
+html[data-theme='light'] .bp-landing .bp-mega-feature {
+  background-image: linear-gradient(135deg, #eef2ff 0%, #ffffff 100%);
+}
+
 .bp-landing .bp-nav-center .bp-mega-panel a {
   font-size: 0.875rem;
   line-height: 1.25rem;
@@ -1275,8 +1289,18 @@ html[data-theme] .bp-home {
 }
 
 html[data-theme] .bp-home > header {
-  box-shadow: 0 0 0 100vmax rgba(255, 255, 255, 0.88) !important;
+  box-shadow: none !important;
+}
+
+/* Bleed lives on ::before: a clip-path on the header itself would cut off the AI Solutions mega panel */
+html[data-theme] .bp-home > header::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  box-shadow: 0 0 0 100vmax var(--bp-header-bleed, rgba(255, 255, 255, 0.88));
   clip-path: inset(0 -100vmax);
+  pointer-events: none;
 }
 
 html[data-theme] .bp-home .bp-hero-section {
@@ -1703,7 +1727,7 @@ html[data-theme='dark'] .bp-home .bp-bg {
 }
 
 html[data-theme='dark'] .bp-home > header {
-  box-shadow: 0 0 0 100vmax rgba(10, 14, 31, 0.86) !important;
+  --bp-header-bleed: rgba(10, 14, 31, 0.86);
 }
 
 html[data-theme='dark'] .bp-home .bp-hero-section::before {

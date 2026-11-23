@@ -1,4 +1,4 @@
-import { Fragment, useEffect } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BookOpen, ChevronDown, Languages, Sparkles, type LucideIcon } from 'lucide-react';
@@ -361,15 +361,35 @@ function ToolsMarqueeRow({
 }
 
 function AiSolutionsMenu() {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [dismissed, setDismissed] = useState(false);
+
   return (
-    <div className="bp-mega group relative">
-      <button type="button" className="bp-mega-trigger" aria-haspopup="true">
+    <div
+      className={`bp-mega group relative${dismissed ? ' bp-mega--dismissed' : ''}`}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') return;
+        setDismissed(true);
+        triggerRef.current?.focus();
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDismissed(false);
+      }}
+      onMouseEnter={() => setDismissed(false)}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        className="bp-mega-trigger"
+        aria-haspopup="true"
+        onClick={() => setDismissed(false)}
+      >
         AI Solutions
         <ChevronDown className="bp-mega-chevron h-4 w-4" aria-hidden="true" />
       </button>
 
       <div className="bp-mega-panel">
-        <div className="w-[min(880px,calc(100vw_-_200px))] rounded-2xl border border-cyan-500/30 bg-slate-950/95 p-8 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl">
+        <div className="w-[min(880px,calc(100vw_-_240px))] rounded-2xl border border-solid border-cyan-500/30 bg-slate-950 p-8 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl">
           <div className="mb-8 grid grid-cols-12 gap-8">
             <div className="col-span-8 grid grid-cols-2 gap-6">
               <div className="space-y-1.5">
@@ -401,7 +421,7 @@ function AiSolutionsMenu() {
               </div>
             </div>
 
-            <div className="col-span-4 flex flex-col justify-between rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/60 to-slate-900 p-4">
+            <div className="bp-mega-feature col-span-4 flex flex-col justify-between rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/60 to-slate-900 p-4">
               <div>
                 <span className="rounded-full border border-cyan-500/30 bg-cyan-950/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-cyan-400">
                   NEW · BETA
