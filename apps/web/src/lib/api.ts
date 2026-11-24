@@ -13,10 +13,11 @@ const rawBaseUrl =
 export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, '');
 
 const REQUEST_TIMEOUT_MS = 45_000;
-const COLD_START_MESSAGE =
-  'Server is waking up from a cold start. Please try again in a few seconds.';
-const WAKE_MESSAGE =
-  'Unable to reach server. If the server is spinning up, please wait 30 seconds and try again.';
+const WAKE_POLL_INTERVAL_MS = 3_000;
+const WAKE_MAX_WAIT_MS = 75_000;
+const HEALTH_TIMEOUT_MS = 5_000;
+const UNREACHABLE_MESSAGE =
+  'Unable to reach the server. Check your internet connection and try again in a minute.';
 
 function apiUrl(endpoint: string): string {
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
@@ -32,39 +33,90 @@ function isLocalHost(): boolean {
   return host === 'localhost' || host === '127.0.0.1';
 }
 
-function networkMessage(err: unknown): string {
+function networkMessage(_err: unknown): string {
   if (isLocalHost()) {
     return 'Cannot reach the API server. From the project root run: npm run dev (starts web + api). Check http://localhost:3001/health';
   }
-  if (isAbortError(err)) return COLD_START_MESSAGE;
-  return WAKE_MESSAGE;
+  return UNREACHABLE_MESSAGE;
 }
 
-/** Fetch with a 45s timeout and one retry so a sleeping Render service can finish booting. */
+function timeoutMessage(timeoutMs: number): string {
+  return `The server is online but this request took longer than ${Math.round(timeoutMs / 1000)} seconds and was stopped. Try a shorter file or fewer questions, then try again.`;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Gateway responses from Render or the edge while the service is asleep, deploying, or restarting. */
+function isGatewayUnavailable(res: Response): boolean {
+  if (![502, 503, 504].includes(res.status)) return false;
+  return !(res.headers.get('content-type') ?? '').includes('application/json');
+}
+
+async function isServerHealthy(): Promise<boolean> {
+  try {
+    const res = await fetch(apiUrl('/health'), {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Polls /health until a sleeping or restarting service answers. */
+async function waitForServer(signal?: AbortSignal | null): Promise<boolean> {
+  const deadline = Date.now() + WAKE_MAX_WAIT_MS;
+  while (Date.now() < deadline) {
+    if (signal?.aborted) return false;
+    if (await isServerHealthy()) return true;
+    await sleep(WAKE_POLL_INTERVAL_MS);
+  }
+  return false;
+}
+
+/**
+ * Fetch with a timeout. When the server is unreachable or a gateway reports it unavailable
+ * (Render cold start or redeploy), waits for /health and retries once. A timeout on a healthy
+ * server is reported as such and not retried, so slow generations are not run twice.
+ */
 export async function apiFetch(endpoint: string, options: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
   const url = apiUrl(endpoint);
   const { timeoutMs: timeoutOverride, ...fetchOptions } = options;
   const timeoutMs = timeoutOverride ?? REQUEST_TIMEOUT_MS;
-  let lastError: unknown;
+  const callerSignal = options.signal;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const onCallerAbort = () => controller.abort();
+    callerSignal?.addEventListener('abort', onCallerAbort, { once: true });
+    let res: Response;
     try {
-      return await fetch(url, {
-        ...fetchOptions,
-        signal: controller.signal,
-      });
+      res = await fetch(url, { ...fetchOptions, signal: controller.signal });
     } catch (err) {
-      lastError = err;
-      const retryable = !options.signal?.aborted && (isAbortError(err) || err instanceof TypeError);
-      if (attempt === 0 && retryable) continue;
+      if (callerSignal?.aborted) throw err;
       console.error('API request failed', url, err);
+      if (isLocalHost()) throw new Error(networkMessage(err));
+      if (isAbortError(err)) {
+        if (await isServerHealthy()) throw new Error(timeoutMessage(timeoutMs));
+      } else if (!(err instanceof TypeError)) {
+        throw new Error(networkMessage(err));
+      }
+      if (attempt === 0 && (await waitForServer(callerSignal))) continue;
       throw new Error(networkMessage(err));
     } finally {
       clearTimeout(timeoutId);
+      callerSignal?.removeEventListener('abort', onCallerAbort);
     }
+    if (attempt === 0 && isGatewayUnavailable(res) && !isLocalHost()) {
+      console.warn('API gateway unavailable, waiting for server', { status: res.status, url });
+      if (await waitForServer(callerSignal)) continue;
+    }
+    return res;
   }
-  throw new Error(networkMessage(lastError));
+  throw new Error(networkMessage(null));
 }
 
 function authHeaders(json = true): HeadersInit {
@@ -102,7 +154,15 @@ async function parseError(res: Response): Promise<string> {
   const message = errorText(payload.error) || errorText(payload.message);
   if (message) return message;
   if (res.status === 413) {
-    return 'File size exceeds the 80 MB limit. Please select a smaller PDF.';
+    return 'This request is too large for the server. Use a smaller file or fewer pages and try again.';
+  }
+  if (isGatewayUnavailable(res)) {
+    console.error('API gateway unavailable', { status: res.status, url: res.url, contentType });
+    return `The server is restarting or temporarily unavailable (HTTP ${res.status}). Please try again in a minute.`;
+  }
+  if (res.status >= 500) {
+    console.error('API server error', { status: res.status, url: res.url, body: raw.slice(0, 300) });
+    return `The server hit an error (HTTP ${res.status}). Please try again.`;
   }
   if (
     contentType.includes('text/html') ||
@@ -686,6 +746,7 @@ export const api = {
     request<QuizGeneratorResponse>('/teacher/tools/quiz-generator', {
       method: 'POST',
       body: JSON.stringify(body),
+      timeoutMs: 120_000,
     }),
 
   generateGamifiedActivity: (body: GamifiedActivityPayload) =>

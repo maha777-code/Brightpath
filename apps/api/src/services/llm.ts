@@ -131,6 +131,9 @@ Rules:
 - A standards file controls alignment. Treat it as the reading only when no assessment file was attached.
 - No markdown fences, no extra commentary.`;
 
+/** Must stay below the web client's quiz timeout so the browser gets an answer instead of aborting. */
+const QUIZ_LLM_TIMEOUT_MS = 90_000;
+
 export async function generateMultipleChoiceQuiz(
   input: QuizGeneratorPayload,
 ): Promise<QuizGeneratorResponse> {
@@ -165,6 +168,7 @@ export async function generateMultipleChoiceQuiz(
         .filter(Boolean)
         .join('\n\n'),
       images: imagePartsFromDataUrls(input.imageFiles),
+      timeoutMs: QUIZ_LLM_TIMEOUT_MS,
     });
 
     return normalizeQuizResponse(raw, input, fallback);

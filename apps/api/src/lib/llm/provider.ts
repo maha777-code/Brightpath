@@ -11,6 +11,8 @@ export interface LlmJsonRequest {
   images?: LlmImagePart[];
   /** Defaults to 0.5. Lesson plans use a lower value for a stable structure. */
   temperature?: number;
+  /** Total time budget across every model and retry. No new attempt starts once it is spent. */
+  timeoutMs?: number;
 }
 
 export function imagePartsFromDataUrls(dataUrls: string[] | undefined): LlmImagePart[] {
@@ -183,6 +185,8 @@ function createGeminiProvider(apiKey: string, preferredModel?: string): LlmProvi
     async completeJson<T>(req: LlmJsonRequest): Promise<T> {
       const tried: string[] = [];
       const errors: string[] = [];
+      const deadline = req.timeoutMs ? Date.now() + req.timeoutMs : null;
+      const remainingMs = () => (deadline === null ? undefined : deadline - Date.now());
 
       const candidates = [...geminiModels()];
       if (preferredModel) {
@@ -200,12 +204,18 @@ function createGeminiProvider(apiKey: string, preferredModel?: string): LlmProvi
       );
 
       for (const model of candidates) {
+        if ((remainingMs() ?? 1) <= 0) {
+          errors.push(`time budget of ${req.timeoutMs}ms spent`);
+          break;
+        }
         tried.push(model);
         const maxAttempts = 3;
         let skipModel = false;
         for (let attempt = 1; attempt <= maxAttempts && !skipModel; attempt++) {
+          const budget = remainingMs();
+          if (budget !== undefined && budget <= 0) break;
           try {
-            const result = await callGemini<T>(apiKey, model, req);
+            const result = await callGemini<T>(apiKey, model, req, budget);
             console.log(`[LLM] Using Gemini model: ${model}`);
             return result;
           } catch (err) {
@@ -243,9 +253,15 @@ function createGeminiProvider(apiKey: string, preferredModel?: string): LlmProvi
   };
 }
 
-async function callGemini<T>(apiKey: string, model: string, req: LlmJsonRequest): Promise<T> {
+async function callGemini<T>(
+  apiKey: string,
+  model: string,
+  req: LlmJsonRequest,
+  timeoutMs?: number,
+): Promise<T> {
+  const deadline = timeoutMs === undefined ? null : Date.now() + timeoutMs;
   try {
-    return await callGeminiOnce<T>(apiKey, model, req, true);
+    return await callGeminiOnce<T>(apiKey, model, req, true, timeoutMs);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     // Retired / unknown model IDs must skip — do not retry jsonMode on HTTP 404.
@@ -253,7 +269,9 @@ async function callGemini<T>(apiKey: string, model: string, req: LlmJsonRequest)
       throw err;
     }
     if (/responseMimeType/i.test(msg)) {
-      return callGeminiOnce<T>(apiKey, model, req, false);
+      const left = deadline === null ? undefined : deadline - Date.now();
+      if (left !== undefined && left <= 0) throw err;
+      return callGeminiOnce<T>(apiKey, model, req, false, left);
     }
     throw err;
   }
@@ -264,6 +282,7 @@ async function callGeminiOnce<T>(
   model: string,
   req: LlmJsonRequest,
   jsonMode: boolean,
+  timeoutMs?: number,
 ): Promise<T> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
@@ -289,6 +308,7 @@ async function callGeminiOnce<T>(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    signal: timeoutMs === undefined ? undefined : AbortSignal.timeout(Math.max(1, timeoutMs)),
   });
 
   if (!res.ok) {
@@ -329,6 +349,7 @@ function createOpenAiProvider(apiKey: string): LlmProvider {
     async completeJson<T>(req: LlmJsonRequest): Promise<T> {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
+        signal: req.timeoutMs ? AbortSignal.timeout(req.timeoutMs) : undefined,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`,
