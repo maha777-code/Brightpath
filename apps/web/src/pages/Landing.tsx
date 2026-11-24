@@ -11,6 +11,13 @@ import { Footer } from '@/components/Footer';
 import { PricingPreview } from '@/components/landing/PricingPreview';
 import { TrustSection } from '@/components/landing/TrustSection';
 import { HeroRotatingWord } from '@/components/landing/HeroRotatingWord';
+import { MobileNav } from '@/components/landing/MobileNav';
+import {
+  AI_SOLUTION_AUDIENCES,
+  AI_SOLUTION_FEATURE,
+  AI_SOLUTION_WHY,
+  LANDING_NAV_LINKS,
+} from '@/components/landing/landingNav';
 
 const HERO_AUDIENCES = ['teachers', 'schools', 'students', 'parents'] as const;
 
@@ -360,6 +367,9 @@ function ToolsMarqueeRow({
   );
 }
 
+const NAV_LINK_CLASS =
+  'text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400';
+
 function AiSolutionsMenu() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -392,57 +402,48 @@ function AiSolutionsMenu() {
         <div className="w-[min(880px,calc(100vw_-_240px))] rounded-2xl border border-solid border-cyan-500/30 bg-slate-950 p-8 shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl">
           <div className="mb-8 grid grid-cols-12 gap-8">
             <div className="col-span-8 grid grid-cols-2 gap-6">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-lg font-bold text-cyan-400">
-                  <span className="text-xl">🏛️</span> For Schools
-                </div>
-                <p className="bp-mega-desc pl-7 text-base leading-relaxed text-slate-300">
-                  Empower entire districts with administrative AI, enterprise security, and seamless
-                  integration.
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-lg font-bold text-cyan-400">
-                  <span className="text-xl">📖</span> For Teachers
-                </div>
-                <p className="bp-mega-desc pl-7 text-base leading-relaxed text-slate-300">
-                  Save time, spark creativity, and support every learner.
-                </p>
-              </div>
-
-              <div className="col-span-2 mt-2 space-y-1.5">
-                <div className="flex items-center gap-2 text-lg font-bold text-cyan-400">
-                  <span className="text-xl">🎓</span> For Students
-                </div>
-                <p className="bp-mega-desc pl-7 text-base leading-relaxed text-slate-300">
-                  Give students the tools to explore, create, and grow with AI.
-                </p>
-              </div>
+              {AI_SOLUTION_AUDIENCES.map((item, index) => (
+                <a
+                  key={item.title}
+                  href={item.href}
+                  onClick={() => {
+                    setDismissed(true);
+                    (document.activeElement as HTMLElement | null)?.blur();
+                  }}
+                  className={`bp-mega-audience -m-2 block rounded-xl p-2 no-underline transition-colors hover:bg-cyan-500/10 ${
+                    index === 2 ? 'col-span-2 mt-2 space-y-1.5' : 'space-y-1.5'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 text-lg font-bold text-cyan-400">
+                    <span className="text-xl">{item.icon}</span> {item.title}
+                  </div>
+                  <p className="bp-mega-desc pl-7 text-base leading-relaxed text-slate-300">
+                    {item.description}
+                  </p>
+                </a>
+              ))}
             </div>
 
             <div className="bp-mega-feature col-span-4 flex flex-col justify-between rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/60 to-slate-900 p-4">
               <div>
                 <span className="rounded-full border border-cyan-500/30 bg-cyan-950/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-cyan-400">
-                  NEW · BETA
+                  {AI_SOLUTION_FEATURE.badge}
                 </span>
                 <div className="mt-3 aspect-video overflow-hidden rounded-lg border border-cyan-500/20 bg-cyan-900/30">
                   <img
-                    src="/gamified-video.jpg"
-                    alt="A textbook PDF turning into a game-style video lesson with stars and quiz coins"
+                    src={AI_SOLUTION_FEATURE.image}
+                    alt={AI_SOLUTION_FEATURE.imageAlt}
                     className="h-full w-full object-cover"
                     loading="lazy"
                   />
                 </div>
-                <p className="mt-3 text-sm text-slate-300">
-                  Turn a PDF into a gamified video or class activity.
-                </p>
+                <p className="mt-3 text-sm text-slate-300">{AI_SOLUTION_FEATURE.text}</p>
               </div>
               <a
-                href="#ai-solutions"
+                href={AI_SOLUTION_FEATURE.href}
                 className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-cyan-300 hover:text-white"
               >
-                Explore the tools →
+                {AI_SOLUTION_FEATURE.linkLabel} →
               </a>
             </div>
           </div>
@@ -452,24 +453,11 @@ function AiSolutionsMenu() {
               WHY MINDVAULT
             </p>
             <div className="grid grid-cols-3 gap-x-6 gap-y-3.5">
-              <div className="flex items-center gap-2 text-base font-medium text-slate-100">
-                <span>🛡️</span> Protect Privacy & Security
-              </div>
-              <div className="flex items-center gap-2 text-base font-medium text-slate-100">
-                <span>💡</span> Build AI Literacy
-              </div>
-              <div className="flex items-center gap-2 text-base font-medium text-slate-100">
-                <span>📈</span> Develop AI Readiness
-              </div>
-              <div className="flex items-center gap-2 text-base font-medium text-slate-100">
-                <span>🎯</span> Support Student Success
-              </div>
-              <div className="flex items-center gap-2 text-base font-medium text-slate-100">
-                <span>⚙️</span> Integrate Quickly
-              </div>
-              <div className="flex items-center gap-2 text-base font-medium text-slate-100">
-                <span>🔗</span> Connect AI Workflows
-              </div>
+              {AI_SOLUTION_WHY.map((item) => (
+                <div key={item.label} className="flex items-center gap-2 text-base font-medium text-slate-100">
+                  <span>{item.icon}</span> {item.label}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -531,36 +519,17 @@ export default function Landing() {
 
           <nav className="bp-nav-center flex items-center space-x-8" aria-label="Main">
             <AiSolutionsMenu />
-            <Link
-              to="/pricing"
-              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
-            >
-              Pricing
-            </Link>
-            <a
-              href="#for-schools"
-              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
-            >
-              For Schools
-            </a>
-            <Link
-              to="/compare"
-              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
-            >
-              Compare
-            </Link>
-            <Link
-              to="/faq"
-              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
-            >
-              FAQs
-            </Link>
-            <Link
-              to="/contact"
-              className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
-            >
-              Contact Us
-            </Link>
+            {LANDING_NAV_LINKS.map((link) =>
+              link.href.startsWith('#') ? (
+                <a key={link.href} href={link.href} className={NAV_LINK_CLASS}>
+                  {link.label}
+                </a>
+              ) : (
+                <Link key={link.href} to={link.href} className={NAV_LINK_CLASS}>
+                  {link.label}
+                </Link>
+              ),
+            )}
             <Link
               to={loginHref}
               className="text-xl font-semibold tracking-normal text-white transition-colors duration-200 hover:text-cyan-400"
@@ -571,10 +540,11 @@ export default function Landing() {
 
           <div className="flex items-center justify-self-end gap-3">
             <ThemeToggle />
-            <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--nav">
+            <Link to={startHref} className="bp-btn bp-btn--primary bp-btn--nav bp-nav-start">
               Get Started For Free
               <span className="bp-btn-arrow" aria-hidden="true">↗</span>
             </Link>
+            <MobileNav loginHref={loginHref} startHref={startHref} />
           </div>
         </div>
       </header>

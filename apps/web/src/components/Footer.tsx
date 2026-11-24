@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { NewsletterSection } from '@/components/NewsletterSection';
+import { useColorTheme } from '@/context/ColorTheme';
 
 const SOLUTION_LINKS = [
   { label: 'For Schools & Academies', href: '/#for-schools' },
@@ -59,6 +60,7 @@ function FooterColumn({ title, links }: { title: string; links: { label: string;
 
 export function Footer() {
   const year = new Date().getFullYear();
+  const { theme } = useColorTheme();
 
   return (
     <footer className="bp-site-footer w-full border-t border-slate-800/80 bg-slate-950 pb-8 pt-16 text-slate-400">
@@ -70,6 +72,23 @@ export function Footer() {
               The AI teaching assistant that follows your syllabus, for teachers, students, parents
               and schools. Made in Bangalore.
             </p>
+            <a
+              href="https://launchbuff.com/products/mindvault-u2gki3"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Featured on LaunchBuff"
+              className="bp-footer-badge inline-block rounded-xl pt-2 transition-opacity hover:opacity-90"
+            >
+              <img
+                src={`https://launchbuff.com/badge-featured-${theme === 'dark' ? 'dark' : 'light'}.svg`}
+                alt="Featured on LaunchBuff"
+                width="256"
+                height="80"
+                loading="lazy"
+                decoding="async"
+                className="block h-auto w-[256px] max-w-full"
+              />
+            </a>
           </div>
 
           <div className="lg:col-span-6 lg:pl-8">
