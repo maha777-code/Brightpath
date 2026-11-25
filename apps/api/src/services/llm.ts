@@ -17,7 +17,7 @@ import type {
   EmailResponderResponse,
 } from '@brightpath/shared';
 import { applyWorksheetFollowUp, applyWorksheetTranslation, assignSlideLayouts, classroomLessonPlanFallback, classifyUserIntent, cleanLessonSource, emailResponderPrompt, fallbackEmailResponse, fallbackPresentation, fallbackSharadaChat, KHDA_LESSON_RULES, lessonSubjectLabel, PRESENTATION_LAYOUTS, presentationSlideTarget, revisePresentation } from '@brightpath/shared';
-import { getActiveProvider, imagePartsFromDataUrls } from '../lib/llm/provider.js';
+import { getActiveProvider, imagePartsFromDataUrls, LlmTimeoutError } from '../lib/llm/provider.js';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
 
@@ -41,64 +41,6 @@ export function letterToIndex(letter: string): number {
 
 function topicFrom(input: QuizGeneratorPayload): string {
   return (input.topicDescription ?? input.assessmentDescription ?? '').trim();
-}
-
-function clipFact(value: string, max = 160): string {
-  const clean = value.replace(/\s+/g, ' ').trim();
-  if (clean.length <= max) return clean;
-  return `${clean.slice(0, max - 1).trim()}…`;
-}
-
-/** Sentences pulled from an uploaded file so fallback items stay grounded in that source. */
-function sourceFacts(context: string | undefined): string[] {
-  if (!context?.trim()) return [];
-  const prose = context
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith('===') && !/^(ASSESSMENT SOURCE|STANDARDS FILE)\b/i.test(line))
-    .join(' ');
-  return prose
-    .split(/(?<=[.!?])\s+/)
-    .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence.length > 30)
-    .slice(0, 24);
-}
-
-export function fallbackQuiz(input: QuizGeneratorPayload): QuizGeneratorResponse {
-  const facts = sourceFacts(input.attachedDocumentContext);
-  const topic = topicFrom(input) || input.attachments?.[0] || (facts.length ? 'the attached source' : 'this topic');
-  const n = input.numberOfQuestions;
-  const k = input.optionsPerQuestion;
-  const questions = Array.from({ length: n }, (_, i) => {
-    const fact = facts.length ? facts[i % facts.length] : '';
-    const clipped = fact ? clipFact(fact) : '';
-    const options = Array.from({ length: k }, (__, j) => {
-      if (clipped && j === 0) return withOptionPrefix(clipped, j);
-      if (clipped && j === 1) return withOptionPrefix(`A claim that is not stated in the attached source`, j);
-      if (clipped && j === 2) return withOptionPrefix(`The opposite of what the attached source says`, j);
-      if (j === 0) return withOptionPrefix(`A core idea of ${topic}`, j);
-      if (j === 1) return withOptionPrefix(`A common misconception about ${topic}`, j);
-      return withOptionPrefix(
-        clipped
-          ? `A detail that does not appear in the attached file (${optionLetter(j)})`
-          : `An unrelated distractor for ${topic} (${optionLetter(j)})`,
-        j,
-      );
-    });
-    const correctIndex = 0;
-    return {
-      id: i + 1,
-      question: clipped
-        ? `Which statement is supported by the attached source${topicFrom(input) ? ` about ${topic}` : ''}?`
-        : `Which statement best describes ${topic} for ${input.gradeLevel} (item ${i + 1})?`,
-      options,
-      correctOption: optionLetter(correctIndex),
-    };
-  });
-  return {
-    questions,
-    answerKey: questions.map((q) => q.correctOption),
-  };
 }
 
 const QUIZ_SYSTEM = `You are an expert K–12 assessment writer. Generate a clean, curriculum-aligned multiple-choice quiz.
@@ -134,17 +76,36 @@ Rules:
 /** Must stay below the web client's quiz timeout so the browser gets an answer instead of aborting. */
 const QUIZ_LLM_TIMEOUT_MS = 90_000;
 
+/** A quiz could not be generated. `status` is the HTTP status the route should send. */
+export class QuizGenerationError extends Error {
+  readonly status: 502 | 503 | 504;
+  constructor(status: 502 | 503 | 504, message: string) {
+    super(message);
+    this.name = 'QuizGenerationError';
+    this.status = status;
+  }
+}
+
+function isTimeoutError(err: unknown): boolean {
+  return err instanceof LlmTimeoutError || (err instanceof Error && err.name === 'TimeoutError');
+}
+
 export async function generateMultipleChoiceQuiz(
   input: QuizGeneratorPayload,
 ): Promise<QuizGeneratorResponse> {
-  const fallback = fallbackQuiz(input);
   const llm = getActiveProvider();
-  if (!llm) return fallback;
+  if (!llm) {
+    throw new QuizGenerationError(
+      503,
+      'AI quiz generation is not set up on the server yet. Please contact support.',
+    );
+  }
 
+  let raw: { questions?: unknown; answerKey?: unknown };
   try {
     const topic = topicFrom(input);
     const documentContext = input.attachedDocumentContext?.trim().slice(0, 150_000) ?? '';
-    const raw = await llm.completeJson<{
+    raw = await llm.completeJson<{
       questions?: unknown;
       answerKey?: unknown;
     }>({
@@ -170,58 +131,75 @@ export async function generateMultipleChoiceQuiz(
       images: imagePartsFromDataUrls(input.imageFiles),
       timeoutMs: QUIZ_LLM_TIMEOUT_MS,
     });
-
-    return normalizeQuizResponse(raw, input, fallback);
   } catch (err) {
     console.error('[llm] quiz generation failed', err);
-    return fallback;
+    if (isTimeoutError(err)) {
+      throw new QuizGenerationError(
+        504,
+        'The AI took too long to write this quiz. Try again, or use a shorter file or fewer questions.',
+      );
+    }
+    throw new QuizGenerationError(
+      502,
+      'The AI service could not generate this quiz right now. Please try again in a moment.',
+    );
   }
+
+  const quiz = normalizeQuizResponse(raw, input);
+  if (!quiz) {
+    console.error('[llm] quiz generation returned unusable output');
+    throw new QuizGenerationError(
+      502,
+      'The AI returned a quiz we could not use. Try again, or use a shorter file.',
+    );
+  }
+  return quiz;
 }
 
+/**
+ * Keeps only complete model questions (text plus every requested option).
+ * Returns null when none are usable. May return fewer questions than requested.
+ */
 export function normalizeQuizResponse(
   raw: { questions?: unknown; answerKey?: unknown },
   input: QuizGeneratorPayload,
-  fallback: QuizGeneratorResponse,
-): QuizGeneratorResponse {
-  if (!Array.isArray(raw.questions) || raw.questions.length === 0) return fallback;
+): QuizGeneratorResponse | null {
+  if (!Array.isArray(raw.questions)) return null;
+  const fromModel = Array.isArray(raw.answerKey)
+    ? raw.answerKey.map((k) => String(k).trim().toUpperCase().replace(/[^A-G]/g, ''))
+    : [];
 
-  const questions = raw.questions.slice(0, input.numberOfQuestions).map((item, i) => {
-    const q = item as {
-      id?: number;
+  const questions: QuizGeneratorResponse['questions'] = [];
+  const answerKey: string[] = [];
+  raw.questions.forEach((item, i) => {
+    if (questions.length >= input.numberOfQuestions) return;
+    const q = (item ?? {}) as {
       question?: string;
       options?: unknown;
       correctOption?: string;
       correctIndex?: number;
     };
-    const rawOptions = Array.isArray(q.options) ? q.options.map((o) => String(o)) : [];
-    const options = Array.from({ length: input.optionsPerQuestion }, (_, j) =>
-      withOptionPrefix(rawOptions[j] ?? `Option ${optionLetter(j)}`, j),
-    );
+    const question = String(q.question ?? '').trim();
+    const rawOptions = Array.isArray(q.options)
+      ? q.options.map((o) => String(o).trim()).filter(Boolean)
+      : [];
+    if (!question || rawOptions.length < input.optionsPerQuestion) return;
+    const options = rawOptions
+      .slice(0, input.optionsPerQuestion)
+      .map((opt, j) => withOptionPrefix(opt, j));
+
     let correctOption = String(q.correctOption ?? '').trim().toUpperCase().replace(/[^A-G]/g, '');
     if (!correctOption && typeof q.correctIndex === 'number') {
       correctOption = optionLetter(q.correctIndex);
     }
-    if (!correctOption || letterToIndex(correctOption) >= options.length) {
-      correctOption = 'A';
-    }
-    return {
-      id: typeof q.id === 'number' ? q.id : i + 1,
-      question: String(q.question ?? '').trim() || `Question ${i + 1}`,
-      options,
-      correctOption,
-    };
+    if (!correctOption) correctOption = fromModel[i] ?? '';
+    if (!correctOption || letterToIndex(correctOption) >= options.length) return;
+
+    questions.push({ id: questions.length + 1, question, options, correctOption });
+    answerKey.push(correctOption);
   });
 
-  while (questions.length < input.numberOfQuestions) {
-    questions.push(fallback.questions[questions.length] ?? fallback.questions[0]);
-  }
-
-  const fromModel = Array.isArray(raw.answerKey)
-    ? raw.answerKey.map((k) => String(k).trim().toUpperCase().replace(/[^A-G]/g, '') || 'A')
-    : [];
-  const answerKey = questions.map((q, i) => fromModel[i] || q.correctOption);
-
-  return { questions, answerKey };
+  return questions.length ? { questions, answerKey } : null;
 }
 
 const WORKSHEET_SYSTEM = `You are an expert K–12 worksheet designer. Generate a clean, printable classroom worksheet.

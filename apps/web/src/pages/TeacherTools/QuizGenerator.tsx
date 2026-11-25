@@ -243,6 +243,7 @@ export function QuizGenerator({
   }, []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failedPayload, setFailedPayload] = useState<QuizGeneratorPayload | null>(null);
   const [quiz, setQuiz] = useState<QuizGeneratorResponse | null>(null);
   const [copied, setCopied] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -259,6 +260,7 @@ export function QuizGenerator({
     payloadRef.current = payload;
     setBusy(true);
     setError(null);
+    setFailedPayload(null);
     setCopied(false);
     try {
       const next = coerceQuizResponse(await api.generateQuiz(payload));
@@ -270,6 +272,10 @@ export function QuizGenerator({
       setEditorSession((n) => n + 1);
       setEditorOpen(true);
     } catch (e) {
+      setQuiz(null);
+      setEditorOpen(false);
+      setQuizMeta({ topic: '', grade: '' });
+      setFailedPayload(payload);
       setError(e instanceof Error ? e.message : 'Failed to generate quiz');
     } finally {
       setBusy(false);
@@ -341,7 +347,21 @@ export function QuizGenerator({
           onGenerate={(payload) => void runGenerate(payload)}
           onPayloadChange={handlePayloadChange}
         />
-        {error ? <p className={TOOL_ERROR}>{error}</p> : null}
+        {error ? (
+          <div role="alert" className="flex flex-wrap items-center gap-3">
+            <p className={TOOL_ERROR}>{error}</p>
+            {failedPayload ? (
+              <button
+                type="button"
+                className={`${TOOL_SECONDARY} mt-4 disabled:cursor-not-allowed disabled:opacity-50`}
+                disabled={busy}
+                onClick={() => void runGenerate(failedPayload)}
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Try again
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         <QuizOutputCard
           quiz={quiz}
           busy={busy}

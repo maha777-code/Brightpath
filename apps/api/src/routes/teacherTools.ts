@@ -18,7 +18,7 @@ import {
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import type { AuthRequest } from '../middleware/auth.js';
-import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, translateLessonPlan, generatePresentation, generateSharadaChat, generateEmailResponse } from '../services/llm.js';
+import { generateMultipleChoiceQuiz, QuizGenerationError, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, translateLessonPlan, generatePresentation, generateSharadaChat, generateEmailResponse } from '../services/llm.js';
 import { attachPresentationImages } from '../lib/presentationImages.js';
 import { generateGamifiedActivityTool } from '../services/gamifiedActivityTool.js';
 import { generateGamifiedVideo } from '../services/gamifiedVideo.js';
@@ -264,7 +264,11 @@ router.post('/tools/quiz-generator', async (req: AuthRequest, res: Response) => 
     res.json(quiz);
   } catch (err) {
     console.error('[teacher/tools/quiz-generator] failed', err);
-    res.status(500).json({ error: 'Failed to generate quiz' });
+    if (err instanceof QuizGenerationError) {
+      res.status(err.status).json({ error: err.message });
+      return;
+    }
+    res.status(500).json({ error: 'Something went wrong while generating the quiz. Please try again.' });
   }
 });
 

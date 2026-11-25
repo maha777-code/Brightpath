@@ -26,6 +26,16 @@ export function imagePartsFromDataUrls(dataUrls: string[] | undefined): LlmImage
   return parts;
 }
 
+/** The request's timeoutMs budget ran out before any provider returned a result. */
+export class LlmTimeoutError extends Error {
+  readonly timeoutMs: number;
+  constructor(timeoutMs: number, detail?: string) {
+    super(`LLM time budget of ${timeoutMs}ms spent${detail ? `. ${detail}` : ''}`);
+    this.name = 'LlmTimeoutError';
+    this.timeoutMs = timeoutMs;
+  }
+}
+
 export interface LlmProvider {
   name: LlmProviderName;
   completeJson<T>(req: LlmJsonRequest): Promise<T>;
@@ -244,6 +254,11 @@ function createGeminiProvider(apiKey: string, preferredModel?: string): LlmProvi
         }
       }
 
+      const summary =
+        `Tried: ${tried.slice(0, 8).join(', ')}${tried.length > 8 ? '...' : ''}. Last: ${errors.at(-1) ?? 'unknown'}`;
+      if (deadline !== null && Date.now() >= deadline) {
+        throw new LlmTimeoutError(req.timeoutMs ?? 0, summary);
+      }
       throw new Error(
         `All Gemini models failed (incl. 503/404 fallbacks: ${GEMINI_FALLBACK_SEQUENCE.join(', ')}). ` +
           `Tried: ${tried.slice(0, 8).join(', ')}${tried.length > 8 ? '...' : ''}. ` +
