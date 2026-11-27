@@ -28,6 +28,7 @@ import { api } from '@/lib/api';
 import { BirthDatePicker } from '@/components/age/BirthDatePicker';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
 import { PasswordRequirements } from '@/components/auth/PasswordRequirements';
+import { FREE_TOOL_COUNT } from '@/pages/pricingData';
 
 const SEGMENTS: {
   role: SignupRole;
@@ -437,8 +438,8 @@ export default function Register() {
                     value={planType}
                     onChange={(e) => setPlanType(e.target.value as PlanType)}
                   >
-                    <option value="teacher_free">Teacher Free (1 PDF · 20 MB)</option>
-                    <option value="teacher_pro">Teacher Pro (unlimited · 80 MB)</option>
+                    <option value="teacher_free">Teacher Free ({FREE_TOOL_COUNT} AI tools)</option>
+                    <option value="teacher_pro">Teacher Pro (adds Curriculum &amp; Textbook Studio · 80 MB PDFs)</option>
                   </select>
                 </div>
               </div>

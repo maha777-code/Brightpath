@@ -1,3 +1,27 @@
+import {
+  FREE_SONGS_PER_WEEK,
+  PLUS_SONGS_PER_WEEK,
+  TEACHER_TOOLS_CATALOG,
+} from '../../../../packages/shared/src/teacherTools';
+
+/** Classroom only opens for school and academy admins (toolsRegistry allowedRoles and the API both check). */
+const ORG_ADMIN_TOOL_IDS = new Set(['classroom']);
+
+export const AI_TOOL_COUNT = TEACHER_TOOLS_CATALOG.length;
+
+/** Tools a Teacher, Student or Parent Basic account can open. */
+export const FREE_TOOL_COUNT = TEACHER_TOOLS_CATALOG.filter(
+  (tool) => tool.requiredPlan === 'free' && !ORG_ADMIN_TOOL_IDS.has(tool.id),
+).length;
+
+const TEACHER_PRO_TOOL_COUNT = TEACHER_TOOLS_CATALOG.filter(
+  (tool) => tool.requiredPlan !== 'center_pro' && !ORG_ADMIN_TOOL_IDS.has(tool.id),
+).length;
+
+export function songsPerWeek(count: number): string {
+  return `${count} educational song${count === 1 ? '' : 's'} per week`;
+}
+
 export interface PlanPrice {
   monthly: number | string;
   annualMonthly: number | string;
@@ -73,7 +97,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     features: [
       'Sharada chatbot (Basic tier)',
       'Quizzes & Homework helper',
-      '5 AI generations / day',
+      `${FREE_TOOL_COUNT} AI tools`,
       'Standard response speed',
     ],
   },
@@ -108,8 +132,9 @@ export const PRICING_PLANS: PricingPlan[] = [
     buttonVariant: 'purple',
     href: '/register',
     features: [
-      '10 AI teacher tools',
+      `${FREE_TOOL_COUNT} AI teacher tools (all except Curriculum & Textbook Studio and Classroom)`,
       'Lesson plans, quizzes, worksheets & slides',
+      songsPerWeek(FREE_SONGS_PER_WEEK),
       'Sharada assistant (Standard speed)',
       'No training on your or your students’ data',
     ],
@@ -128,8 +153,9 @@ export const PRICING_PLANS: PricingPlan[] = [
     href: '/register',
     features: [
       'Unlimited AI lesson plan & quiz generation',
-      'All 11 AI tools, including Curriculum & Textbook Studio',
-      'Unlimited document & PDF uploads',
+      `${TEACHER_PRO_TOOL_COUNT} AI tools, including Curriculum & Textbook Studio`,
+      'Textbook & syllabus PDFs up to 80 MB',
+      songsPerWeek(PLUS_SONGS_PER_WEEK),
       'Class writing feedback & rubric generator',
       'Print-ready PDF export',
     ],
@@ -147,7 +173,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     href: '/register',
     features: [
       'Basic child progress overview',
-      '5 Practice quiz generations / month',
+      `${FREE_TOOL_COUNT} AI tools, including the quiz generator`,
       'Sharada parent assistant',
       'Safe learning environment',
     ],
@@ -184,11 +210,11 @@ export const PRICING_PLANS: PricingPlan[] = [
     buttonVariant: 'emerald',
     href: '/register',
     features: [
-      'Up to 5 Tutor accounts included',
+      'Up to 50 tutor and student accounts',
       'Centralized student analytics',
       'Batch quiz & test generation',
       'Custom center branding on exported sheets',
-      'All 11 AI tools for every tutor',
+      `All ${AI_TOOL_COUNT} AI tools, with Classroom on the academy admin account`,
     ],
   },
   {
@@ -204,7 +230,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     buttonVariant: 'emerald',
     href: '/register',
     features: [
-      'Up to 20 Tutor accounts included',
+      'Up to 50 tutor and student accounts',
       'Unlimited student performance insights',
       'White-labeled student portal & exports',
       'Dedicated account onboarding',
@@ -223,7 +249,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     buttonVariant: 'cyan',
     href: '/contact',
     features: [
-      'Up to 30 Teacher licenses',
+      'Up to 200 teacher and student accounts',
       'Admin dashboard & analytics',
       'Class and parent invite codes',
       'No training on student data',

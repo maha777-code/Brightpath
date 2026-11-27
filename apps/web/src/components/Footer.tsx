@@ -11,11 +11,11 @@ const SOLUTION_LINKS = [
 ];
 
 const TOOL_LINKS = [
-  { label: 'Lesson Plan Generator', href: '/#ai-solutions' },
-  { label: 'Multiple Choice Quiz Generator', href: '/#ai-solutions' },
-  { label: 'Worksheet Generator', href: '/#ai-solutions' },
-  { label: 'Presentation Generator', href: '/#ai-solutions' },
-  { label: 'Curriculum & Textbook Studio', href: '/#ai-solutions' },
+  { label: 'All AI tools', href: '/ai-tools' },
+  { label: 'Lesson Plan Generator', href: '/ai-tools' },
+  { label: 'Multiple Choice Quiz Generator', href: '/ai-tools' },
+  { label: 'Worksheet Generator', href: '/ai-tools' },
+  { label: 'Curriculum & Textbook Studio', href: '/ai-tools' },
 ];
 
 const RESOURCE_LINKS = [

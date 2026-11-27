@@ -4,14 +4,20 @@
   "outputDirectory": "apps/web/dist",
   "rewrites": [
     { "source": "/pricing", "destination": "/pricing.html" },
+    { "source": "/ai-tools", "destination": "/ai-tools.html" },
     { "source": "/compare", "destination": "/compare.html" },
     { "source": "/faq", "destination": "/faq.html" },
     { "source": "/contact", "destination": "/contact.html" },
+    { "source": "/khda", "destination": "/khda.html" },
     { "source": "/security", "destination": "/security.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/terms", "destination": "/terms.html" },
     {
-      "source": "/((?!api/).*)",
+      "source": "/:route(home|login|forgot-password|reset-password|register|signup|cookie-preferences|classes|sharada-oversight|tutor-center|academy|parent|onboarding|dashboard|progress)",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/:section(chat|join|invite|play|student|admin|billing|parent|dashboard|chapter|lesson|learn|tools|teacher)/:rest*",
       "destination": "/app.html"
     }
   ],

@@ -67,7 +67,7 @@ export const CATEGORY_PLANS_DATA: CategoryPlan[] = [
     yearlyPrice: 24990,
     description: 'For coaching institutes and learning centers managing multi-tutor classrooms.',
     features: [
-      'Up to 10 tutor seats',
+      'Up to 50 tutor and student accounts',
       'Multi-student performance tracking',
       'Custom center branding and logo',
       'Bulk student enrollment',

@@ -1,6 +1,14 @@
 import { Link } from 'react-router-dom';
 import { Check } from 'lucide-react';
-import { DEFAULT_CURRENCY, PRICING_PLANS, formatPlanAmount, planPrice, type PricingPlan } from '@/pages/pricingData';
+import {
+  AI_TOOL_COUNT,
+  DEFAULT_CURRENCY,
+  FREE_TOOL_COUNT,
+  PRICING_PLANS,
+  formatPlanAmount,
+  planPrice,
+  type PricingPlan,
+} from '@/pages/pricingData';
 
 const PREVIEW_PLAN_IDS = ['teacher-free', 'teacher-pro', 'tutor-center', 'school'] as const;
 
@@ -62,7 +70,8 @@ export function PricingPreview() {
             Simple, published <span className="bp-grad-word">pricing</span>
           </h2>
           <p className="text-xl text-slate-300">
-            Ten AI tools are free to start. Upgrade to Pro when you want your own syllabus behind every output.
+            {FREE_TOOL_COUNT} of our {AI_TOOL_COUNT} AI tools are free to start. Upgrade to Pro when you want your own
+            syllabus behind every output.
             Prices shown are per month, billed yearly.
           </p>
         </div>

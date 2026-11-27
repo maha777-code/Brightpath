@@ -32,7 +32,11 @@ export interface CheckoutPlan {
   roles: AppRole[];
   /** Organization plans are billed to the admin's school or center. */
   scope: 'user' | 'organization';
-  /** Seats included; null means unlimited. Only used for organization plans. */
+  /**
+   * Minimum seats on activation; null means unlimited (stored as 100,000). The org keeps the larger of this and
+   * its signup allotment (200 for schools, 50 for academies), so the advertised limits are 200 and 50.
+   * Seats count every account in the org, plus pending invites. Only used for organization plans.
+   */
   seats?: number | null;
 }
 

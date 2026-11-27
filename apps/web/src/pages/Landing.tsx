@@ -18,6 +18,7 @@ import {
   AI_SOLUTION_WHY,
   LANDING_NAV_LINKS,
 } from '@/components/landing/landingNav';
+import { AI_TOOL_COUNT, FREE_TOOL_COUNT } from '@/pages/pricingData';
 
 const HERO_AUDIENCES = ['teachers', 'schools', 'students', 'parents'] as const;
 
@@ -85,7 +86,7 @@ const FEATURES: { icon: LucideIcon; title: string; description: string; tone: To
   },
   {
     icon: Sparkles,
-    title: '11 AI tools, free to start',
+    title: `${AI_TOOL_COUNT} AI tools, ${FREE_TOOL_COUNT} free to start`,
     description: 'Lesson plans, quizzes, worksheets, slides, songs and more',
     tone: 'purple',
   },

@@ -1,5 +1,19 @@
 // Plain data only (no '@/' imports): vite.config.ts also reads this file to prerender public pages.
-import { PRICING_PLANS, formatPlanAmount, planPrice } from '../pages/pricingData';
+import {
+  FREE_SONGS_PER_WEEK,
+  TEACHER_TOOLS_CATALOG,
+  TEACHER_TOOL_FOCUS_LABELS,
+} from '../../../../packages/shared/src/teacherTools';
+import {
+  AI_TOOL_COUNT,
+  FREE_TOOL_COUNT,
+  PRICING_PLANS,
+  formatPlanAmount,
+  planPrice,
+  songsPerWeek,
+} from '../pages/pricingData';
+
+export { AI_TOOL_COUNT, FREE_TOOL_COUNT };
 
 function aedPerMonth(planId: string): string {
   const plan = PRICING_PLANS.find((p) => p.id === planId);
@@ -14,19 +28,22 @@ export const FOUNDER_EMAIL = 'founder@mindvault.academy';
 export const OFFICE_ADDRESS = '130, 1st 7th cross Teachers layout, Nagarabhavi, Bangalore, 560072';
 export const INSTAGRAM_URL = 'https://www.instagram.com/mindvault.academy?dlrf=MWdlaGdoNTM2aWNsNg==';
 
-export const TEACHER_TOOL_NAMES = [
-  'Lesson Plan Generator',
-  'Multiple Choice Quiz / Assessment Generator',
-  'Worksheet Generator',
-  'Presentation Generator',
-  'Writing Feedback Tool',
-  'YouTube Video Questions Generator',
-  'Text Rewriter',
-  'Email Responder / Family Email Generator',
-  'Educational Song Generator',
-  'Educational Podcast Generator',
-  'Curriculum & Textbook Studio',
-];
+export const TEACHER_TOOL_NAMES = TEACHER_TOOLS_CATALOG.map((tool) => tool.title);
+
+export type AiToolSummary = { id: string; title: string; description: string; focus: string; availability: string };
+
+export const AI_TOOLS: AiToolSummary[] = TEACHER_TOOLS_CATALOG.map((tool) => ({
+  id: tool.id,
+  title: tool.title,
+  description: tool.description,
+  focus: TEACHER_TOOL_FOCUS_LABELS[tool.focusArea],
+  availability:
+    tool.id === 'classroom'
+      ? 'School and academy accounts'
+      : tool.requiredPlan === 'free'
+        ? 'Free'
+        : 'Teacher Pro, academy and school plans',
+}));
 
 export type FaqItem = { question: string; answer: string };
 
@@ -73,7 +90,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: 'How much does it cost?',
     answer:
-      `Ten of the 11 AI tools are free to start; the Curriculum & Textbook Studio is part of Teacher Pro, which is ${TEACHER_PRO_AED}/month billed yearly (US$9.99). Tutoring-center plans start at ${aedPerMonth('tutor-center')}/month and school plans at ${aedPerMonth('school')}/month, billed yearly. See the pricing page for every plan, in AED, USD and INR.`,
+      `${FREE_TOOL_COUNT} of the ${AI_TOOL_COUNT} AI tools are free to start, including ${songsPerWeek(FREE_SONGS_PER_WEEK)}. The Curriculum & Textbook Studio is part of Teacher Pro, which is ${TEACHER_PRO_AED}/month billed yearly (US$9.99), and Classroom comes with school and academy accounts. Tutoring-center plans start at ${aedPerMonth('tutor-center')}/month and school plans at ${aedPerMonth('school')}/month, billed yearly. See the pricing page for every plan, in AED, USD and INR.`,
   },
   {
     question: 'Can we try it before buying for the whole school?',
@@ -117,7 +134,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
   },
   {
     feature: 'Price to start',
-    mindvault: `Free plan with 10 AI tools; Pro from ${TEACHER_PRO_AED}/month`,
+    mindvault: `Free plan with ${FREE_TOOL_COUNT} AI tools; Pro from ${TEACHER_PRO_AED}/month`,
     generic: 'Free tiers vary; paid plans priced per user',
   },
 ];
@@ -159,13 +176,18 @@ export const PUBLIC_PAGES: PublicPage[] = [
     path: '/',
     title: 'MindVault — AI teaching assistant that follows your syllabus',
     description:
-      `Lesson plans, quizzes, worksheets, slides, songs and podcasts grounded in your own textbooks. 11 AI tools for teachers, students, parents and schools. Free to start; Teacher Pro from ${TEACHER_PRO_AED}/month.`,
+      `Lesson plans, quizzes, worksheets, slides, songs and podcasts grounded in your own textbooks. ${AI_TOOL_COUNT} AI tools for teachers, students, parents and schools, ${FREE_TOOL_COUNT} free to start; Teacher Pro from ${TEACHER_PRO_AED}/month.`,
   },
   {
     path: '/pricing',
     title: 'MindVault pricing — free plans, Teacher Pro, academies and schools',
     description:
       `Published prices for every MindVault plan in AED, USD and INR: free plans for students, teachers and parents, Teacher Pro from ${TEACHER_PRO_AED}/month, academy plans from ${aedPerMonth('tutor-center')}/month and school plans from ${aedPerMonth('school')}/month.`,
+  },
+  {
+    path: '/ai-tools',
+    title: `MindVault AI tools for teachers — ${AI_TOOL_COUNT} tools, ${FREE_TOOL_COUNT} free`,
+    description: `All ${AI_TOOL_COUNT} MindVault AI tools: lesson plans, quizzes, worksheets, presentations, writing feedback, songs, podcasts, gamified activities, Classroom and the Curriculum & Textbook Studio. ${FREE_TOOL_COUNT} are free to start.`,
   },
   {
     path: '/compare',

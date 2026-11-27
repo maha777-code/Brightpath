@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { isCheckoutPlanId } from '@brightpath/shared';
 import { BrandLogo } from '@/components/Navigation/BrandLogo';
+import { Footer } from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import {
@@ -270,6 +271,9 @@ export default function PricingPage() {
           </article>
           );
         })}
+      </div>
+      <div className="mt-16 w-full">
+        <Footer />
       </div>
     </div>
   );

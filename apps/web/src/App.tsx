@@ -50,6 +50,7 @@ import CookiePreferences from '@/pages/CookiePreferences';
 import ContactUs from '@/pages/ContactUs';
 import ComparePage from '@/pages/ComparePage';
 import FaqPage from '@/pages/FaqPage';
+import AiToolsPage from '@/pages/AiToolsPage';
 import ClassesRoster from '@/pages/ClassesRoster';
 import SharadaOversight from '@/pages/SharadaOversight';
 import StudentSharada from '@/pages/StudentSharada';
@@ -202,6 +203,7 @@ export default function App() {
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/faq" element={<FaqPage />} />
+        <Route path="/ai-tools" element={<AiToolsPage />} />
         <Route path="/join/:code" element={<JoinClass />} />
         <Route path="/invite/:token" element={<AcceptInvite />} />
         <Route

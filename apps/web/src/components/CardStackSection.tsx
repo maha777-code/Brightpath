@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { DEFAULT_CURRENCY, PRICING_PLANS, formatPlanAmount, planPrice } from '@/pages/pricingData';
+import { DEFAULT_CURRENCY, FREE_TOOL_COUNT, PRICING_PLANS, formatPlanAmount, planPrice } from '@/pages/pricingData';
 
 function yearlyMonthlyPrice(planId: string): string {
   const plan = PRICING_PLANS.find((p) => p.id === planId);
@@ -57,7 +57,7 @@ const CARDS: StackCard[] = [
       'Sharada, your AI assistant',
     ],
     imageLeft: true,
-    stat: { value: '11 AI tools', label: 'free to start, no card needed' },
+    stat: { value: `${FREE_TOOL_COUNT} AI tools`, label: 'free to start, no card needed' },
     cta: { label: 'Start free as a teacher', href: '/register', note: `Teacher Pro is ${yearlyMonthlyPrice('teacher-pro')}/month, billed yearly.` },
     light: {
       image: '/landing/teachers.jpg',

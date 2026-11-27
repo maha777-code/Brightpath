@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Instagram, Mail, MapPin } from 'lucide-react';
 import { api } from '@/lib/api';
 import { FOUNDER_EMAIL, INSTAGRAM_URL } from '@/content/marketing';
+import { Footer } from '@/components/Footer';
 
 const CONTACT_EMAIL = 'customersupport@mindvault.academy';
 const BACK_CLASS =
@@ -37,6 +38,7 @@ export default function ContactUs() {
   };
 
   return (
+    <>
     <div className="bp-contact flex min-h-screen items-center justify-center bg-[#070a12] p-6 text-slate-200 sm:p-10">
       <div className="mx-auto w-full space-y-8 rounded-3xl border border-slate-800/80 bg-[#0d1322] p-8 shadow-2xl backdrop-blur-xl sm:p-10 lg:w-[75%] lg:max-w-[75%] lg:p-12">
         <div>
@@ -199,5 +201,7 @@ export default function ContactUs() {
         </div>
       </div>
     </div>
+    <Footer />
+    </>
   );
 }
