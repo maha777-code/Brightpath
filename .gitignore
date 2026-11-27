@@ -17,3 +17,6 @@ packages/*/dist
 
 # Local motion videos exceed GitHub's file size limit
 video/*.mp4
+
+# Scratch files from local scripts can hold tokens or passwords
+tmp-*
