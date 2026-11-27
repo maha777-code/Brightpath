@@ -32,13 +32,12 @@ import {
   X,
 } from 'lucide-react';
 import {
-  applyWorksheetFollowUp,
-  applyWorksheetTranslation,
   type WorksheetGeneratorPayload,
   type WorksheetGeneratorResponse,
   type WorksheetHistoryItem,
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { ToolErrorRetry } from '@/components/tools/ToolErrorRetry';
 import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
 import { WorksheetHistoryDrawer } from '@/components/tools/WorksheetHistoryDrawer';
@@ -47,7 +46,6 @@ import {
   TOOL_BREADCRUMB,
   TOOL_BREADCRUMB_LINK,
   TOOL_CARD,
-  TOOL_ERROR,
   TOOL_FIELD,
   TOOL_GENERATE,
   TOOL_HINT,
@@ -353,66 +351,6 @@ function formatWorksheetPlainText(worksheet: WorksheetGeneratorResponse): string
   return parts.filter(Boolean).join('\n\n');
 }
 
-function clientFallbackWorksheet(input: WorksheetGeneratorPayload): WorksheetGeneratorResponse {
-  const topic = input.topicOrText.trim() || 'this topic';
-  const war = /world\s*war|ww\s*2|wwii/i.test(topic);
-  if (war) {
-    return {
-      title: 'World War II Worksheet',
-      gradeLevel: input.gradeLevel,
-      instructions: 'Read the passage, then answer the questions in complete sentences.',
-      passage:
-        'World War II was a global conflict that lasted from 1939 to 1945. It involved most of the world’s nations and reshaped borders, governments, and daily life. Causes included unresolved tensions from World War I, economic hardship, and the rise of aggressive dictatorships. The conflict spread across Europe, Asia, Africa, and the Pacific. Its consequences included enormous loss of life, the founding of the United Nations, and a new balance of power that defined the second half of the twentieth century.',
-      sections: [
-        {
-          heading: 'Comprehension',
-          items: [
-            { id: 1, prompt: 'When did World War II begin and end?' },
-            { id: 2, prompt: 'Name two causes of the war mentioned in the passage.' },
-            { id: 3, prompt: 'What international organization was founded after the war?' },
-          ],
-        },
-        {
-          heading: 'Vocabulary',
-          items: [
-            { id: 4, prompt: 'Define “dictatorship” in your own words.' },
-            { id: 5, prompt: 'What does “consequences” mean in the last sentence?' },
-          ],
-        },
-        {
-          heading: 'Apply',
-          items: [
-            { id: 6, prompt: 'Why might unresolved tensions from an earlier war lead to a new conflict?' },
-            { id: 7, prompt: 'Give one way World War II still influences the world today.' },
-          ],
-        },
-      ],
-    };
-  }
-  return {
-    title: `${topic} Worksheet`,
-    gradeLevel: input.gradeLevel,
-    instructions: `Complete every section. Use complete sentences where asked.`,
-    passage: `${topic} is an important idea for ${input.gradeLevel} students to understand. Read carefully, then answer the questions that follow using evidence from the text and your own reasoning.`,
-    sections: [
-      {
-        heading: 'Comprehension',
-        items: [
-          { id: 1, prompt: `In your own words, what is ${topic}?` },
-          { id: 2, prompt: `Name one real-world example of ${topic}.` },
-        ],
-      },
-      {
-        heading: 'Practice',
-        items: [
-          { id: 3, prompt: `List two key terms related to ${topic} and define each.` },
-          { id: 4, prompt: `Apply ${topic} to a short classroom scenario.` },
-        ],
-      },
-    ],
-  };
-}
-
 const PASSAGE_HEADINGS: Record<string, string> = {
   Spanish: 'Pasaje de lectura',
   French: 'Texte de lecture',
@@ -532,6 +470,8 @@ function WorksheetStudio({
   onEnsureWorksheetId,
   onClose,
   busy,
+  actionError,
+  onRetryAction,
   pane = false,
 }: {
   worksheet: WorksheetGeneratorResponse;
@@ -549,6 +489,8 @@ function WorksheetStudio({
   onEnsureWorksheetId: (id: string) => void;
   onClose?: () => void;
   busy: boolean;
+  actionError?: string | null;
+  onRetryAction?: (() => void) | null;
   pane?: boolean;
 }) {
   const [title, setTitle] = useState(worksheet.title);
@@ -1236,6 +1178,12 @@ function WorksheetStudio({
             <VoiceListeningIndicator isListening onStopListening={toggleFollowUpVoice} />
           </div>
         ) : null}
+        <ToolErrorRetry
+          message={actionError}
+          busy={busy || isTranslating}
+          onRetry={onRetryAction}
+          className="mb-3"
+        />
         {followUpFiles.length > 0 && (
           <AttachedFileBadges
             files={followUpFiles}
@@ -1455,6 +1403,8 @@ export function WorksheetGenerator({
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failedRequest, setFailedRequest] = useState<WorksheetGeneratorPayload | null>(null);
+  const [studioError, setStudioError] = useState<{ message: string; retry: () => void } | null>(null);
   const [worksheet, setWorksheet] = useState<WorksheetGeneratorResponse | null>(null);
   const [submitted, setSubmitted] = useState<WorksheetGeneratorPayload | null>(null);
   const [localFavorited, setLocalFavorited] = useState(false);
@@ -1518,6 +1468,8 @@ export function WorksheetGenerator({
     setShowExemplar(false);
     setAssistantOpen(false);
     setError(null);
+    setFailedRequest(null);
+    setStudioError(null);
     setWorksheet(null);
     setSubmitted(null);
     setHistory([]);
@@ -1608,6 +1560,7 @@ export function WorksheetGenerator({
       } catch (err) {
         setAttachedFiles((prev) => prev.filter((item) => item.id !== id));
         setFileNotice(null);
+        setFailedRequest(null);
         setError(err instanceof Error ? err.message : `Could not extract text from ${file.name}`);
       }
     }
@@ -1620,14 +1573,16 @@ export function WorksheetGenerator({
     if (!override) pushHistory();
     setBusy(true);
     setError(null);
+    setFailedRequest(null);
     try {
       const next = rememberVersion(request, await api.generateWorksheet(request));
       setSubmitted(request);
       setWorksheet(next);
-    } catch {
-      const next = rememberVersion(request, clientFallbackWorksheet(request));
-      setSubmitted(request);
-      setWorksheet(next);
+    } catch (err) {
+      setWorksheet(null);
+      setSubmitted(null);
+      setFailedRequest(request);
+      setError(err instanceof Error ? err.message : 'Could not generate the worksheet.');
     } finally {
       setBusy(false);
     }
@@ -1641,7 +1596,7 @@ export function WorksheetGenerator({
   ) => {
     if (!submitted || !worksheet) return;
     setBusy(true);
-    setError(null);
+    setStudioError(null);
     const request: WorksheetGeneratorPayload = {
       ...submitted,
       topicOrText: `${submitted.topicOrText}\n\nTeacher follow-up: ${message}`,
@@ -1665,10 +1620,11 @@ export function WorksheetGenerator({
       );
       setSubmitted(request);
       setWorksheet(next);
-    } catch {
-      const next = rememberVersion(request, applyWorksheetFollowUp(worksheet, message));
-      setSubmitted(request);
-      setWorksheet(next);
+    } catch (err) {
+      setStudioError({
+        message: err instanceof Error ? err.message : 'Could not change the worksheet.',
+        retry: () => void refineCurrent(message, attachments, followUpContext, imageFiles),
+      });
     } finally {
       setBusy(false);
     }
@@ -1676,6 +1632,8 @@ export function WorksheetGenerator({
 
   const translateCurrent = async (language: string) => {
     if (!worksheet || !submitted) throw new Error('No worksheet to translate');
+    setBusy(true);
+    setStudioError(null);
     try {
       const next = rememberVersion(
         submitted,
@@ -1686,8 +1644,13 @@ export function WorksheetGenerator({
         }),
       );
       setWorksheet(next);
-    } catch {
-      setWorksheet(rememberVersion(submitted, applyWorksheetTranslation(worksheet, language)));
+    } catch (err) {
+      setStudioError({
+        message: err instanceof Error ? err.message : 'Could not translate the worksheet.',
+        retry: () => void translateCurrent(language),
+      });
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -1739,6 +1702,8 @@ export function WorksheetGenerator({
               worksheet={worksheet!}
               payload={submitted!}
               busy={busy}
+              actionError={studioError?.message}
+              onRetryAction={studioError?.retry}
               onReset={resetAll}
               onClose={handleClose}
               onOpenHistory={() => setHistoryOpen(true)}
@@ -1885,7 +1850,11 @@ export function WorksheetGenerator({
                 </div>
               )}
 
-              {error && <p className={TOOL_ERROR}>{error}</p>}
+              <ToolErrorRetry
+                message={error}
+                busy={busy}
+                onRetry={failedRequest ? () => void generate(failedRequest) : null}
+              />
               <button
                 type="button"
                 disabled={busy || filesProcessing || !hasSource || overLimit}

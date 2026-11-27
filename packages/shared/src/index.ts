@@ -459,12 +459,8 @@ export {
   getTeacherToolById,
   teacherToolBadges,
   sharadaTitleFromPrompt,
-  fallbackSharadaChat,
   classifyUserIntent,
   emailResponderPrompt,
-  fallbackEmailResponse,
-  applyWorksheetFollowUp,
-  applyWorksheetTranslation,
   LESSON_PLAN_GRADE_LEVELS,
   SONG_GRADE_LEVELS,
   SONG_STYLES,
@@ -492,8 +488,6 @@ export {
   presentationSlideTarget,
   assignSlideLayouts,
   slideLayout,
-  fallbackPresentation,
-  revisePresentation,
 } from './presentation.js';
 
 export {
@@ -529,9 +523,9 @@ export {
   getGamifiedActivityOption,
   parseGamifiedActivityResponse,
   gamifiedActivityToMarkdown,
-  fallbackGamifiedDocument,
+  gamifiedActivityProblem,
+  ARCADE_MIN_QUESTIONS,
   fallbackGameArcade,
-  fallbackInsights,
   fallbackPlayable,
 } from './gamifiedActivityTool.js';
 export { escapeRoomToPlayableHtml } from './escapeRoomHtml.js';
@@ -592,6 +586,7 @@ export type {
 export {
   GAMIFIED_VIDEO_STORAGE_KEY,
   fallbackGamifiedVideoSpec,
+  gamifiedVideoSpecProblem,
   parseGamifiedVideoSpec,
 } from './gamifiedVideo.js';
 
@@ -694,7 +689,6 @@ export {
 export type { BillingCurrency, BillingCycle, CheckoutCurrency, CheckoutPlan, CheckoutPlanId } from './billingPlans.js';
 export {
   cleanLessonSource,
-  classroomLessonPlanFallback,
   lessonSubjectLabel,
 } from './lessonDocument.js';
 export type { LessonSourceBrief } from './lessonDocument.js';

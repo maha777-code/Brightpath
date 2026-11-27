@@ -17,8 +17,9 @@ import {
   type EmailResponderResponse,
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
+import { AiGenerationError, sendAiError } from '../lib/llm/errors.js';
 import type { AuthRequest } from '../middleware/auth.js';
-import { generateMultipleChoiceQuiz, QuizGenerationError, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, translateLessonPlan, generatePresentation, generateSharadaChat, generateEmailResponse } from '../services/llm.js';
+import { generateMultipleChoiceQuiz, generateWorksheet, refineWorksheet, translateWorksheet, generateLessonPlan, translateLessonPlan, generatePresentation, generateSharadaChat, generateEmailResponse } from '../services/llm.js';
 import { attachPresentationImages } from '../lib/presentationImages.js';
 import { generateGamifiedActivityTool } from '../services/gamifiedActivityTool.js';
 import { generateGamifiedVideo } from '../services/gamifiedVideo.js';
@@ -264,11 +265,7 @@ router.post('/tools/quiz-generator', async (req: AuthRequest, res: Response) => 
     res.json(quiz);
   } catch (err) {
     console.error('[teacher/tools/quiz-generator] failed', err);
-    if (err instanceof QuizGenerationError) {
-      res.status(err.status).json({ error: err.message });
-      return;
-    }
-    res.status(500).json({ error: 'Something went wrong while generating the quiz. Please try again.' });
+    sendAiError(res, err, 'Something went wrong while generating the quiz. Please try again.');
   }
 });
 
@@ -310,7 +307,7 @@ router.post('/tools/gamified-activity', async (req: AuthRequest, res: Response) 
     res.json(activity);
   } catch (err) {
     console.error('[teacher/tools/gamified-activity] failed', err);
-    res.status(500).json({ error: 'Failed to generate gamified activity' });
+    sendAiError(res, err, 'Something went wrong while generating the activity. Please try again.');
   }
 });
 
@@ -342,6 +339,10 @@ router.post('/tools/gamified-video', async (req: AuthRequest, res: Response) => 
     res.json(result);
   } catch (err) {
     console.error('[teacher/tools/gamified-video] failed', err);
+    if (err instanceof AiGenerationError) {
+      sendAiError(res, err, '');
+      return;
+    }
     res.status(500).json({
       error: err instanceof Error ? err.message : 'Failed to generate gamified video from the textbook',
     });
@@ -414,6 +415,10 @@ router.post('/tools/classroom', async (req: AuthRequest, res: Response) => {
     res.json(result);
   } catch (err) {
     console.error('[teacher/tools/classroom] action failed', err);
+    if (err instanceof AiGenerationError) {
+      sendAiError(res, err, '');
+      return;
+    }
     res.status(400).json({ error: err instanceof Error ? err.message : 'Classroom action failed.' });
   }
 });
@@ -589,7 +594,7 @@ router.post('/tools/worksheet-generator', async (req: AuthRequest, res: Response
     res.json({ ...worksheet, id });
   } catch (err) {
     console.error('[teacher/tools/worksheet-generator] failed', err);
-    res.status(500).json({ error: 'Failed to generate worksheet' });
+    sendAiError(res, err, 'Something went wrong while generating the worksheet. Please try again.');
   }
 });
 
@@ -628,7 +633,7 @@ router.post('/tools/lesson-plan-generator/translate', async (req: AuthRequest, r
     res.json(plan);
   } catch (err) {
     console.error('[teacher/tools/lesson-plan-generator/translate] failed', err);
-    res.status(500).json({ error: 'Failed to translate lesson plan' });
+    sendAiError(res, err, 'Something went wrong while translating the lesson plan. Please try again.');
   }
 });
 
@@ -652,11 +657,11 @@ router.post('/tools/lesson-plan-generator', async (req: AuthRequest, res: Respon
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to generate lesson plan';
     console.error('[teacher/tools/lesson-plan-generator] failed', err);
-    if (/readable chapter content/i.test(message)) {
+    if (/readable chapter content|could not read the attached file/i.test(message)) {
       res.status(422).json({ error: message });
       return;
     }
-    res.status(500).json({ error: 'Failed to generate lesson plan' });
+    sendAiError(res, err, 'Something went wrong while generating the lesson plan. Please try again.');
   }
 });
 
@@ -692,6 +697,9 @@ const presentationBody = z.object({
     .optional(),
 });
 
+/** Text and pictures together must finish inside the web client's 180s presentation timeout. */
+const PRESENTATION_ROUTE_BUDGET_MS = 165_000;
+
 /** POST /teacher/tools/presentation-generator */
 router.post('/tools/presentation-generator', async (req: AuthRequest, res: Response) => {
   if (!favoriteOwnerId(req)) {
@@ -703,12 +711,13 @@ router.post('/tools/presentation-generator', async (req: AuthRequest, res: Respo
     res.status(400).json({ error: 'Grade level, slide count, and a topic or objective are required' });
     return;
   }
+  const imageDeadline = Date.now() + PRESENTATION_ROUTE_BUDGET_MS;
   try {
-    const deck = await attachPresentationImages(await generatePresentation(parsed.data), parsed.data);
+    const deck = await attachPresentationImages(await generatePresentation(parsed.data), parsed.data, imageDeadline);
     res.json(deck);
   } catch (err) {
     console.error('[teacher/tools/presentation-generator] failed', err);
-    res.status(500).json({ error: 'Failed to generate the presentation' });
+    sendAiError(res, err, 'Something went wrong while generating the presentation. Please try again.');
   }
 });
 
@@ -845,7 +854,7 @@ router.post('/tools/worksheet-generator/refine', async (req: AuthRequest, res: R
     res.json({ ...worksheet, id });
   } catch (err) {
     console.error('[teacher/tools/worksheet-generator/refine] failed', err);
-    res.status(500).json({ error: 'Failed to refine worksheet' });
+    sendAiError(res, err, 'Something went wrong while changing the worksheet. Please try again.');
   }
 });
 
@@ -902,7 +911,7 @@ router.post('/tools/worksheet-generator/translate', async (req: AuthRequest, res
     res.json({ ...worksheet, id });
   } catch (err) {
     console.error('[teacher/tools/worksheet-generator/translate] failed', err);
-    res.status(500).json({ error: 'Failed to translate worksheet' });
+    sendAiError(res, err, 'Something went wrong while translating the worksheet. Please try again.');
   }
 });
 
@@ -977,7 +986,7 @@ async function handleSharadaChat(req: AuthRequest, res: Response) {
     res.json(payload);
   } catch (err) {
     console.error('[teacher/sharada/chat] failed', err);
-    res.status(500).json({ error: 'Failed to generate Sharada response' });
+    sendAiError(res, err, 'Something went wrong while Sharada was replying. Please try again.');
   }
 }
 
@@ -1009,7 +1018,7 @@ router.post('/tools/email-responder', async (req: AuthRequest, res: Response) =>
     res.json(payload);
   } catch (err) {
     console.error('[teacher/tools/email-responder] failed', err);
-    res.status(500).json({ error: 'Failed to draft the email' });
+    sendAiError(res, err, 'Something went wrong while drafting the email. Please try again.');
   }
 });
 

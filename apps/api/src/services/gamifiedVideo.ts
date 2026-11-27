@@ -1,5 +1,6 @@
 import {
   fallbackGamifiedVideoSpec,
+  gamifiedVideoSpecProblem,
   parseGamifiedVideoSpec,
   type GamifiedVideoGeneratePayload,
   type GamifiedVideoGenerateResponse,
@@ -7,9 +8,10 @@ import {
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
 import { retrieveTextbookContext } from '../lib/videoPipeline/retrieveContext.js';
-import { getActiveProvider } from '../lib/llm/provider.js';
+import { aiUnusable, requireAiProvider, runAi } from '../lib/llm/errors.js';
 
-const TIMEOUT_MS = 70_000;
+/** Must stay below the web client's 120s gamified-video timeout, after textbook retrieval. */
+const GAMIFIED_VIDEO_LLM_TIMEOUT_MS = 80_000;
 const IMPRINT_RE =
   /textbook society|published by|all rights reserved|isbn|malleshwaram|price\s*:|government press|copyright|first edition|reprint 20/i;
 
@@ -30,22 +32,6 @@ function lessonExcerpts(excerpts: string[], topic: string, chapterTitle: string)
       const score = (chunk: string) => keys.filter((key) => chunk.toLowerCase().includes(key)).length;
       return score(b) - score(a);
     });
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(label)), ms);
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (err) => {
-        clearTimeout(timer);
-        reject(err);
-      },
-    );
-  });
 }
 
 function resolveVideoSrc(raw: string | null | undefined): { type: 'html5' | 'youtube'; src: string } {
@@ -93,7 +79,7 @@ export async function generateGamifiedVideo(
     packet.title,
     packet.chapterTitle,
   );
-  const fallbackSpec = fallbackGamifiedVideoSpec({
+  const base = fallbackGamifiedVideoSpec({
     topic: packet.title || packet.chapterTitle,
     chapterTitle: packet.chapterTitle,
     subject: packet.subject || 'Science',
@@ -103,21 +89,24 @@ export async function generateGamifiedVideo(
     videoSrc: media.src,
     videoType: media.type,
   });
-  const fallbackInsights = {
-    keyTerms: [packet.title, packet.chapterTitle].filter(Boolean),
-    learningObjectives: [`Explain ${packet.title} using the uploaded textbook.`],
-    misconceptions: [`${packet.title} can be treated as optional flavor instead of the textbook model.`],
+  /** Keeps the checkpoint ids, timing and XP; every student-facing line comes from the model. */
+  const template = {
+    ...base,
+    nodes: base.nodes.map((node) => ({
+      ...node,
+      prompt: '',
+      hint: '',
+      options: [],
+      code: '',
+      feedbackCorrect: '',
+      feedbackWrong: '',
+    })),
   };
 
-  const provider = getActiveProvider();
-  if (!provider) {
-    return { spec: fallbackSpec, insights: fallbackInsights };
-  }
-
+  const provider = requireAiProvider('interactive video');
   const source = (excerpts.length ? excerpts : packet.ragExcerpts).join('\n---\n').slice(0, 16_000);
-  try {
-    const raw = await withTimeout(
-      provider.completeJson<unknown>({
+  const raw = await runAi('interactive video', () =>
+    provider.completeJson<unknown>({
         temperature: 0.3,
         system: `Role: Educational Game Designer.
 Task: Turn THIS uploaded textbook LESSON into a 4-checkpoint gamified video about the named topic.
@@ -149,38 +138,38 @@ Return JSON:
 }
 
 Rules: exactly 4 nodes in order quiz, skill, escape, branch. Every prompt, option, hint, and lock code must be answerable from the excerpts. Escape code is 3-4 letters/digits from a key term in the source.`,
-      }),
-      TIMEOUT_MS,
-      'Gamified video generation timed out',
-    );
-    const rec = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-    const spec = parseGamifiedVideoSpec(
-      {
-        ...rec,
-        subject: [packet.subject, packet.gradeLabel].filter(Boolean).join(' · ') || fallbackSpec.subject,
-        textbookTitle: packet.textbookTitle,
-        chapterTitle: packet.chapterTitle,
-        topicTitle: packet.title,
-        video: media,
-      },
-      fallbackSpec,
-    );
-    const insightsRec =
-      rec.insights && typeof rec.insights === 'object' ? (rec.insights as Record<string, unknown>) : {};
-    const list = (value: unknown, fallback: string[]) =>
-      Array.isArray(value) ? value.map((item) => String(item).trim()).filter(Boolean) : fallback;
-    return {
-      spec,
-      insights: {
-        keyTerms: list(insightsRec.keyTerms, fallbackInsights.keyTerms),
-        learningObjectives: list(insightsRec.learningObjectives, fallbackInsights.learningObjectives),
-        misconceptions: list(insightsRec.misconceptions, fallbackInsights.misconceptions),
-      },
-    };
-  } catch (err) {
-    console.error('[gamifiedVideo] generation failed', err);
-    return { spec: fallbackSpec, insights: fallbackInsights };
+      timeoutMs: GAMIFIED_VIDEO_LLM_TIMEOUT_MS,
+    }),
+  );
+  const problem = gamifiedVideoSpecProblem(raw);
+  if (problem) {
+    console.error(`[gamifiedVideo] unusable output: ${problem}`);
+    throw aiUnusable('interactive video', 'Please try again.');
   }
+  const rec = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const spec = parseGamifiedVideoSpec(
+    {
+      ...rec,
+      subject: [packet.subject, packet.gradeLabel].filter(Boolean).join(' · ') || base.subject,
+      textbookTitle: packet.textbookTitle,
+      chapterTitle: packet.chapterTitle,
+      topicTitle: packet.title,
+      video: media,
+    },
+    template,
+  );
+  const insightsRec =
+    rec.insights && typeof rec.insights === 'object' ? (rec.insights as Record<string, unknown>) : {};
+  const list = (value: unknown) =>
+    Array.isArray(value) ? value.map((item) => String(item).trim()).filter(Boolean) : [];
+  return {
+    spec,
+    insights: {
+      keyTerms: list(insightsRec.keyTerms),
+      learningObjectives: list(insightsRec.learningObjectives),
+      misconceptions: list(insightsRec.misconceptions),
+    },
+  };
 }
 
 export type { GamifiedVideoSpec };

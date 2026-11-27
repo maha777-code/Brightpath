@@ -5,12 +5,12 @@ import type { QuizGeneratorPayload, QuizGeneratorResponse } from '@brightpath/sh
 import { api } from '@/lib/api';
 import { watermarkFooterHtml } from '@/lib/exportWatermark';
 import { QuizGeneratorForm } from '@/components/tools/QuizGeneratorForm';
+import { ToolErrorRetry } from '@/components/tools/ToolErrorRetry';
 import { QuizEditor, toEditableQuestions, toQuizResponse } from '@/components/tools/QuizEditor';
 import {
   TOOL_BREADCRUMB,
   TOOL_BREADCRUMB_LINK,
   TOOL_CARD,
-  TOOL_ERROR,
   TOOL_MUTED,
   TOOL_PAGE,
   TOOL_PANEL,
@@ -347,21 +347,11 @@ export function QuizGenerator({
           onGenerate={(payload) => void runGenerate(payload)}
           onPayloadChange={handlePayloadChange}
         />
-        {error ? (
-          <div role="alert" className="flex flex-wrap items-center gap-3">
-            <p className={TOOL_ERROR}>{error}</p>
-            {failedPayload ? (
-              <button
-                type="button"
-                className={`${TOOL_SECONDARY} mt-4 disabled:cursor-not-allowed disabled:opacity-50`}
-                disabled={busy}
-                onClick={() => void runGenerate(failedPayload)}
-              >
-                <RefreshCw className="h-3.5 w-3.5" /> Try again
-              </button>
-            ) : null}
-          </div>
-        ) : null}
+        <ToolErrorRetry
+          message={error}
+          busy={busy}
+          onRetry={failedPayload ? () => void runGenerate(failedPayload) : null}
+        />
         <QuizOutputCard
           quiz={quiz}
           busy={busy}

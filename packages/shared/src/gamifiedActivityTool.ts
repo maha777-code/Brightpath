@@ -262,21 +262,6 @@ function clampCode(value: string, fallback: string, max = 12): string {
   return cleaned || fallback;
 }
 
-export function fallbackInsights(ctx: GamifiedLessonContext): GamifiedActivityInsights {
-  return {
-    keyTerms: [`${ctx.topic} core idea`, 'Required condition', 'Observable result'],
-    learningObjectives: [
-      `Define the central idea of ${ctx.topic}`,
-      `Apply ${ctx.topic} to a classroom or real-world case`,
-      `Spot a common misconception about ${ctx.topic}`,
-    ],
-    misconceptions: [
-      `${ctx.topic} is optional flavor instead of the mechanism`,
-      'One surprising example overwrites the unit model',
-    ],
-  };
-}
-
 function isBioEnergyTopic(topic: string): boolean {
   return /photo\s*synth|cellular\s*resp|chloro|mitochond/i.test(topic);
 }
@@ -696,23 +681,12 @@ export function fallbackGameArcade(ctx: GamifiedLessonContext): GameArcadeDocume
   };
 }
 
-export function fallbackGamifiedDocument(
-  kind: GamifiedActivityKind,
-  ctx: GamifiedLessonContext,
-): GamifiedActivityDocument {
-  if (kind === 'game_arcade') return fallbackGameArcade(ctx);
-  if (kind === 'branching_quest') return fallbackBranchingQuest(ctx);
-  if (kind === 'skill_tree') return fallbackSkillTree(ctx);
-  return fallbackEscapeRoom(ctx);
-}
-
-function parseInsights(raw: unknown, ctx: GamifiedLessonContext): GamifiedActivityInsights {
+function parseInsights(raw: unknown): GamifiedActivityInsights {
   const rec = asRecord(raw) ?? {};
-  const fallback = fallbackInsights(ctx);
   return {
-    keyTerms: asStringList(rec.keyTerms, fallback.keyTerms),
-    learningObjectives: asStringList(rec.learningObjectives, fallback.learningObjectives),
-    misconceptions: asStringList(rec.misconceptions, fallback.misconceptions),
+    keyTerms: asStringList(rec.keyTerms, []),
+    learningObjectives: asStringList(rec.learningObjectives, []),
+    misconceptions: asStringList(rec.misconceptions, []),
   };
 }
 
@@ -951,9 +925,12 @@ export function fitsArcadeOption(text: string): boolean {
   );
 }
 
-function parseGameArcade(raw: Record<string, unknown>, ctx: GamifiedLessonContext): GameArcadeDocument {
-  const defaults = fallbackGameArcade(ctx);
-  const questionsRaw = Array.isArray(raw.questions) ? raw.questions : [];
+/** A pack needs at least this many usable questions; the parser swaps in the built-in pack below it. */
+export const ARCADE_MIN_QUESTIONS = 4;
+
+/** Questions that fit the arcade games: a prompt, a short answer, and at least two distinct short distractors. */
+function arcadeQuestionsFrom(value: unknown): ArcadeQuestion[] {
+  const questionsRaw = Array.isArray(value) ? value : [];
   const questions: ArcadeQuestion[] = [];
   for (const item of questionsRaw) {
     const rec = asRecord(item);
@@ -981,14 +958,89 @@ function parseGameArcade(raw: Record<string, unknown>, ctx: GamifiedLessonContex
     });
     if (questions.length >= 12) break;
   }
+  return questions;
+}
+
+function parseGameArcade(raw: Record<string, unknown>, ctx: GamifiedLessonContext): GameArcadeDocument {
+  const defaults = fallbackGameArcade(ctx);
+  const questions = arcadeQuestionsFrom(raw.questions);
   return {
     kind: 'game_arcade',
     title: asString(raw.title, defaults.title),
     subject: asString(raw.subject, ctx.subject),
     gradeLabel: asString(raw.gradeLabel, ctx.gradeLevel),
     missionIntro: asString(raw.missionIntro, defaults.missionIntro),
-    questions: questions.length >= 4 ? questions : defaults.questions,
+    questions: questions.length >= ARCADE_MIN_QUESTIONS ? questions : defaults.questions,
   };
+}
+
+function records(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value.map(asRecord).filter((item): item is Record<string, unknown> => Boolean(item))
+    : [];
+}
+
+function hasText(rec: Record<string, unknown>, ...keys: string[]): boolean {
+  return keys.every((key) => Boolean(asString(rec[key])));
+}
+
+/**
+ * Says what core student-facing content is missing from model output for `kind`, or null when complete.
+ * The parsers fill missing fields with built-in example content, so run this on AI output first.
+ */
+export function gamifiedActivityProblem(kind: GamifiedActivityKind, raw: unknown): string | null {
+  const rec = asRecord(raw) ?? {};
+  const doc = asRecord(rec.document) ?? rec;
+
+  if (kind === 'game_arcade') {
+    const count = arcadeQuestionsFrom(doc.questions).length;
+    return count >= ARCADE_MIN_QUESTIONS ? null : `only ${count} usable arcade questions`;
+  }
+
+  if (kind === 'escape_room') {
+    const playable = asRecord(doc.playable) ?? doc;
+    const vocab = asRecord(playable.vocabulary) ?? {};
+    const sequence = asRecord(playable.sequence) ?? {};
+    const data = asRecord(playable.data) ?? {};
+    const table = asRecord(data.table) ?? {};
+    const mastery = asRecord(playable.mastery) ?? {};
+    const order = Array.isArray(sequence.correctOrder)
+      ? sequence.correctOrder.map((letter) => String(letter).trim().toUpperCase()).filter((letter) => /^[A-D]$/.test(letter))
+      : [];
+    const options = records(mastery.options).filter((option) => hasText(option, 'text'));
+    if (!hasText(doc, 'storyIntro')) return 'missing story intro';
+    if (records(vocab.pairs).filter((pair) => hasText(pair, 'term', 'definition')).length < 4) return 'missing vocabulary pairs';
+    if (records(sequence.cards).filter((card) => hasText(card, 'text')).length < 4) return 'missing sequence cards';
+    if (new Set(order).size < 4) return 'missing sequence order';
+    if (!Array.isArray(table.headers) || !table.headers.length || !Array.isArray(table.rows) || !table.rows.length) {
+      return 'missing data table';
+    }
+    if (records(data.fields).filter((field) => hasText(field, 'label', 'answer')).length < 3) return 'missing data fields';
+    if (!hasText(mastery, 'flawedClaim')) return 'missing mastery claim';
+    if (options.length < 4 || options.filter((option) => option.correct === true).length !== 1) {
+      return 'mastery options need four choices with exactly one correct';
+    }
+    return null;
+  }
+
+  if (kind === 'branching_quest') {
+    if (!hasText(doc, 'persona')) return 'missing persona';
+    const decisions = records(doc.decisions).slice(0, 3);
+    if (decisions.length < 3) return `only ${decisions.length} decision points`;
+    const complete = decisions.every(
+      (decision) =>
+        hasText(decision, 'scene') &&
+        records(decision.choices).filter((choice) => hasText(choice, 'text', 'feedback')).length >= 3,
+    );
+    return complete ? null : 'a decision point is missing its scene or choices';
+  }
+
+  const tiers = records(doc.tiers).slice(0, 3);
+  if (tiers.length < 3) return `only ${tiers.length} skill tiers`;
+  const complete = tiers.every(
+    (tier) => records(tier.tasks).filter((task) => hasText(task, 'title', 'description')).length >= 3,
+  );
+  return complete ? null : 'a skill tier is missing tasks';
 }
 
 export function parseGamifiedActivityResponse(
@@ -1006,7 +1058,7 @@ export function parseGamifiedActivityResponse(
       : kind === 'skill_tree'
         ? parseSkillTree(nested, ctx)
         : parseEscapeRoom(nested, ctx);
-  const insights = parseInsights(rec.insights, ctx);
+  const insights = parseInsights(rec.insights);
   return {
     kind,
     insights,

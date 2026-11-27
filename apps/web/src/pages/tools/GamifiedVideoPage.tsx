@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { GAMIFIED_VIDEO_STORAGE_KEY, type GamifiedVideoSpec } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { CURRICULUM_STUDIO_PATH } from '@/pages/tools/CurriculumTextbookStudio';
@@ -21,6 +21,7 @@ export default function GamifiedVideoPage() {
   const [spec, setSpec] = useState<GamifiedVideoSpec | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,6 +42,7 @@ export default function GamifiedVideoPage() {
       })
       .catch((err) => {
         if (cancelled) return;
+        sessionStorage.removeItem(GAMIFIED_VIDEO_STORAGE_KEY);
         setError(err instanceof Error ? err.message : 'Could not build a gamified video from the textbook.');
       })
       .finally(() => {
@@ -49,7 +51,7 @@ export default function GamifiedVideoPage() {
     return () => {
       cancelled = true;
     };
-  }, [chapterId, subtopicId]);
+  }, [chapterId, subtopicId, attempt]);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -83,10 +85,21 @@ export default function GamifiedVideoPage() {
       ) : error ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
           <h1 className="text-xl font-medium">Could not open Gamified Video</h1>
-          <p className="max-w-md text-sm text-[#5f6368]">{error}</p>
-          <Link to={studioHref(params)} className="rounded-full bg-[#1a73e8] px-4 py-2 text-sm text-white">
-            Back to Curriculum Studio
-          </Link>
+          <p role="alert" className="max-w-md text-sm text-[#5f6368]">{error}</p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {chapterId || subtopicId ? (
+              <button
+                type="button"
+                onClick={() => setAttempt((n) => n + 1)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#1a73e8] px-4 py-2 text-sm text-white"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Try again
+              </button>
+            ) : null}
+            <Link to={studioHref(params)} className="rounded-full border border-[#dadce0] bg-white px-4 py-2 text-sm text-[#1a73e8]">
+              Back to Curriculum Studio
+            </Link>
+          </div>
         </div>
       ) : (
         <iframe

@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronRight, Loader2, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import {
   SONG_GRADE_LEVELS,
   SONG_STYLES,
   SONG_VOICES,
   lyricsPreview,
-  type SongLyricsDraft,
   type TeacherSong,
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
@@ -14,28 +13,6 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AIToolHeader } from '@/components/tools/AIToolHeader';
 import '@/styles/song-studio.css';
 import { albumArtDataUrl, upsertLocalSong } from '@/lib/teacherSongs';
-
-function fallbackDraft(topic: string, gradeLevel: string, songStyle: string, customInstructions?: string): SongLyricsDraft {
-  const clean = topic.trim() || 'this topic';
-  return {
-    title: `${clean} Song`,
-    lyrics: [
-      `Verse 1`,
-      `Let's explore ${clean} today,`,
-      `${gradeLevel} learners leading the way.`,
-      ``,
-      `Chorus`,
-      `${clean}, ${clean}, sing it true,`,
-      `learn the steps and follow through.`,
-      `In the style of ${songStyle},`,
-      `we remember what we do.`,
-    ].join('\n'),
-    topic: clean,
-    gradeLevel,
-    songStyle,
-    customInstructions,
-  };
-}
 
 export default function SongGeneratorCreate() {
   const navigate = useNavigate();
@@ -50,6 +27,7 @@ export default function SongGeneratorCreate() {
   const [lyricsBusy, setLyricsBusy] = useState(false);
   const [renderBusy, setRenderBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lyricsFailed, setLyricsFailed] = useState(false);
   const [generated, setGenerated] = useState<TeacherSong | null>(null);
 
   const step1Ready = topic.trim().length > 1 && Boolean(gradeLevel) && Boolean(songStyle);
@@ -63,6 +41,7 @@ export default function SongGeneratorCreate() {
     if (!step1Ready || lyricsBusy) return;
     setLyricsBusy(true);
     setError(null);
+    setLyricsFailed(false);
     try {
       const draft = await api.generateSongLyrics({
         topic: topic.trim(),
@@ -73,11 +52,12 @@ export default function SongGeneratorCreate() {
       setTitle(draft.title);
       setLyrics(draft.lyrics);
       setStep(2);
-    } catch {
-      const draft = fallbackDraft(topic, gradeLevel, songStyle, customInstructions);
-      setTitle(draft.title);
-      setLyrics(draft.lyrics);
-      setStep(2);
+    } catch (err) {
+      setTitle('');
+      setLyrics('');
+      setStep(1);
+      setLyricsFailed(true);
+      setError(err instanceof Error ? err.message : 'Could not write the lyrics. Please try again.');
     } finally {
       setLyricsBusy(false);
     }
@@ -87,6 +67,7 @@ export default function SongGeneratorCreate() {
     if (!step2Ready || renderBusy) return;
     setRenderBusy(true);
     setError(null);
+    setLyricsFailed(false);
     const payload = {
       topic: topic.trim(),
       gradeLevel,
@@ -144,9 +125,19 @@ export default function SongGeneratorCreate() {
           </nav>
 
           {error ? (
-            <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
-              {error}
-            </p>
+            <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+              <p>{error}</p>
+              {lyricsFailed ? (
+                <button
+                  type="button"
+                  disabled={lyricsBusy}
+                  onClick={() => void openStep2()}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 py-1 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Try again
+                </button>
+              ) : null}
+            </div>
           ) : null}
 
           <section className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">

@@ -15,8 +15,9 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { classifyUserIntent, fallbackSharadaChat, sharadaTitleFromPrompt, type SharadaChatMessage, type SharadaChatResponse } from '@brightpath/shared';
+import { classifyUserIntent, sharadaTitleFromPrompt, type SharadaChatMessage, type SharadaChatResponse } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { ToolErrorRetry } from '@/components/tools/ToolErrorRetry';
 import { TeacherWorkspaceLayout } from '@/components/teacher/TeacherWorkspaceLayout';
 import { MarkdownContent } from '@/components/teacher/MarkdownContent';
 import { VoiceListeningIndicator, voiceMicButtonClass } from '@/components/VoiceListeningIndicator';
@@ -42,6 +43,8 @@ type ThreadMessage =
       confirmation: string;
       markdown: string;
       pending?: boolean;
+      /** Set when the reply failed; the message then shows this error and a retry instead of a reply. */
+      error?: string;
     };
 
 function pendingStatus(prompt: string): string {
@@ -112,6 +115,8 @@ function historyFromThread(messages: ThreadMessage[]): SharadaChatMessage[] {
   for (const msg of messages) {
     if (msg.role === 'user') {
       history.push({ role: 'user', content: msg.text });
+    } else if (msg.error) {
+      if (history.at(-1)?.role === 'user') history.pop();
     } else if (!msg.pending) {
       history.push({
         role: 'assistant',
@@ -181,8 +186,16 @@ export function SharadaChat() {
           prompt,
           history: historyFromThread(prior),
         });
-      } catch {
-        reply = fallbackSharadaChat(prompt);
+      } catch (err) {
+        const error = err instanceof Error && err.message ? err.message : 'Sharada could not reply right now.';
+        setMessages((current) =>
+          current.map((msg) =>
+            msg.id === pending.id ? { ...msg, statusLine: '', pending: false, error } : msg,
+          ),
+        );
+        setBusy(false);
+        scrollToEnd();
+        return;
       }
 
       setTitle(reply.title || sharadaTitleFromPrompt(prompt));
@@ -354,7 +367,7 @@ export function SharadaChat() {
             {messages.map((msg) =>
               msg.role === 'user' ? (
                 <div key={msg.id} className="flex w-full flex-col items-end space-y-1">
-                  <div className="inline-block max-w-[80%] rounded-2xl rounded-tr-sm bg-[#282a2c] px-5 py-3.5 text-base font-normal leading-relaxed text-slate-100 shadow-sm hover:bg-[#313335] sm:text-lg">
+                  <div className="inline-block max-w-[80%] sharada-raised rounded-2xl rounded-tr-sm px-5 py-3.5 text-base font-normal leading-relaxed shadow-sm sm:text-lg">
                     {msg.text}
                   </div>
                   <button
@@ -369,10 +382,14 @@ export function SharadaChat() {
                 </div>
               ) : (
                 <article key={msg.id} className="w-full space-y-4 pt-2">
-                  <p className="text-base font-normal leading-[1.7] tracking-wide text-slate-200 sm:text-[17px]">
-                    {msg.statusLine}
-                  </p>
-                  {msg.pending ? (
+                  {msg.statusLine ? (
+                    <p className="text-base font-normal leading-[1.7] tracking-wide text-slate-200 sm:text-[17px]">
+                      {msg.statusLine}
+                    </p>
+                  ) : null}
+                  {msg.error ? (
+                    <ToolErrorRetry message={msg.error} busy={busy} onRetry={() => regenerate(msg.id)} />
+                  ) : msg.pending ? (
                     <p className="animate-pulse text-base text-slate-400">Working on it…</p>
                   ) : (
                     <>
@@ -548,7 +565,7 @@ export function SharadaChat() {
             <div className="mb-4 flex items-center">
               <button
                 type="button"
-                className="flex w-full cursor-pointer appearance-none items-center justify-center gap-2 rounded-full border border-slate-700/40 bg-[#282a2c] px-4 py-2.5 text-sm font-medium text-slate-100 shadow-sm transition-all hover:bg-[#313335]"
+                className="flex w-full cursor-pointer appearance-none items-center justify-center gap-2 sharada-raised rounded-full border border-slate-700/40 px-4 py-2.5 text-sm font-medium shadow-sm transition-all"
                 onClick={startNewChat}
               >
                 <Plus className="h-4 w-4 text-cyan-400" />
@@ -584,8 +601,8 @@ export function SharadaChat() {
                       }}
                       className={`group flex cursor-pointer items-center justify-between rounded-xl px-3.5 py-2.5 text-sm transition-all ${
                         active
-                          ? 'border border-slate-700/50 bg-[#282a2c] font-medium text-white'
-                          : 'border border-transparent text-slate-300 hover:bg-[#282a2c]/60'
+                          ? 'sharada-raised border border-slate-700/50 font-medium'
+                          : 'sharada-history-item border border-transparent text-slate-300'
                       }`}
                     >
                       <div className="flex min-w-0 items-center gap-2.5">

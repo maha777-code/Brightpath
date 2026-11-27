@@ -953,6 +953,26 @@ function CreateWorkModal({
     rubric: [] as ClassroomRubricCriterion[],
   });
   const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const generateRubric = async () => {
+    const topic = form.aiTopic.trim();
+    if (!topic || aiBusy) return;
+    setAiBusy(true);
+    setAiError(null);
+    try {
+      const res = await api.classroomAction({ type: 'generate_rubric', topic });
+      setForm((prev) => ({
+        ...prev,
+        title: prev.title || topic,
+        body: res.generated?.instructions || prev.body,
+        rubric: res.generated?.rubric || prev.rubric,
+      }));
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'Could not generate a rubric. Please try again.');
+    } finally {
+      setAiBusy(false);
+    }
+  };
   return (
     <Modal title="Create classwork" onClose={onClose} wide>
       <form
@@ -1014,26 +1034,20 @@ function CreateWorkModal({
             <button
               type="button"
               disabled={aiBusy}
-              onClick={async () => {
-                if (!form.aiTopic.trim()) return;
-                setAiBusy(true);
-                try {
-                  const res = await api.classroomAction({ type: 'generate_rubric', topic: form.aiTopic });
-                  setForm((prev) => ({
-                    ...prev,
-                    title: prev.title || form.aiTopic,
-                    body: res.generated?.instructions || prev.body,
-                    rubric: res.generated?.rubric || prev.rubric,
-                  }));
-                } finally {
-                  setAiBusy(false);
-                }
-              }}
+              onClick={() => void generateRubric()}
               className="cr-btn primary"
             >
               {aiBusy ? 'Generating…' : 'Generate'}
             </button>
           </div>
+          {aiError ? (
+            <div role="alert" className="cr-inline" style={{ marginTop: '0.55rem' }}>
+              <p className="cr-alert" style={{ flex: 1, margin: 0 }}>{aiError}</p>
+              <button type="button" disabled={aiBusy} onClick={() => void generateRubric()} className="cr-btn">
+                Try again
+              </button>
+            </div>
+          ) : null}
           {form.rubric.length ? (
             <ul className="mt-2 text-sm">
               {form.rubric.map((item) => (

@@ -16,8 +16,9 @@ import type {
   EmailResponderRequest,
   EmailResponderResponse,
 } from '@brightpath/shared';
-import { applyWorksheetFollowUp, applyWorksheetTranslation, assignSlideLayouts, classroomLessonPlanFallback, classifyUserIntent, cleanLessonSource, emailResponderPrompt, fallbackEmailResponse, fallbackPresentation, fallbackSharadaChat, KHDA_LESSON_RULES, lessonSubjectLabel, PRESENTATION_LAYOUTS, presentationSlideTarget, revisePresentation } from '@brightpath/shared';
-import { getActiveProvider, imagePartsFromDataUrls, LlmTimeoutError } from '../lib/llm/provider.js';
+import { assignSlideLayouts, classifyUserIntent, cleanLessonSource, emailResponderPrompt, KHDA_LESSON_RULES, lessonSubjectLabel, PRESENTATION_LAYOUTS, presentationSlideTarget, sharadaTitleFromPrompt } from '@brightpath/shared';
+import { imagePartsFromDataUrls } from '../lib/llm/provider.js';
+import { AiGenerationError, aiUnusable, requireAiProvider, runAi } from '../lib/llm/errors.js';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
 
@@ -73,39 +74,28 @@ Rules:
 - A standards file controls alignment. Treat it as the reading only when no assessment file was attached.
 - No markdown fences, no extra commentary.`;
 
-/** Must stay below the web client's quiz timeout so the browser gets an answer instead of aborting. */
+/**
+ * AI time budgets. Each must stay below that call's timeout in the web client (apps/web/src/lib/api.ts)
+ * so the browser gets an error message instead of aborting.
+ */
 const QUIZ_LLM_TIMEOUT_MS = 90_000;
-
-/** A quiz could not be generated. `status` is the HTTP status the route should send. */
-export class QuizGenerationError extends Error {
-  readonly status: 502 | 503 | 504;
-  constructor(status: 502 | 503 | 504, message: string) {
-    super(message);
-    this.name = 'QuizGenerationError';
-    this.status = status;
-  }
-}
-
-function isTimeoutError(err: unknown): boolean {
-  return err instanceof LlmTimeoutError || (err instanceof Error && err.name === 'TimeoutError');
-}
+const WORKSHEET_LLM_TIMEOUT_MS = 90_000;
+const LESSON_PLAN_LLM_TIMEOUT_MS = 90_000;
+/** The route also draws slide pictures after this, inside the 180s client timeout. */
+const PRESENTATION_LLM_TIMEOUT_MS = 100_000;
+const SONG_LYRICS_LLM_TIMEOUT_MS = 70_000;
+const SHARADA_LLM_TIMEOUT_MS = 70_000;
+const EMAIL_LLM_TIMEOUT_MS = 70_000;
 
 export async function generateMultipleChoiceQuiz(
   input: QuizGeneratorPayload,
 ): Promise<QuizGeneratorResponse> {
-  const llm = getActiveProvider();
-  if (!llm) {
-    throw new QuizGenerationError(
-      503,
-      'AI quiz generation is not set up on the server yet. Please contact support.',
-    );
-  }
-
-  let raw: { questions?: unknown; answerKey?: unknown };
-  try {
-    const topic = topicFrom(input);
-    const documentContext = input.attachedDocumentContext?.trim().slice(0, 150_000) ?? '';
-    raw = await llm.completeJson<{
+  const llm = requireAiProvider('quiz');
+  const topic = topicFrom(input);
+  const documentContext = input.attachedDocumentContext?.trim().slice(0, 150_000) ?? '';
+  const raw = await runAi(
+    'quiz',
+    () => llm.completeJson<{
       questions?: unknown;
       answerKey?: unknown;
     }>({
@@ -130,28 +120,14 @@ export async function generateMultipleChoiceQuiz(
         .join('\n\n'),
       images: imagePartsFromDataUrls(input.imageFiles),
       timeoutMs: QUIZ_LLM_TIMEOUT_MS,
-    });
-  } catch (err) {
-    console.error('[llm] quiz generation failed', err);
-    if (isTimeoutError(err)) {
-      throw new QuizGenerationError(
-        504,
-        'The AI took too long to write this quiz. Try again, or use a shorter file or fewer questions.',
-      );
-    }
-    throw new QuizGenerationError(
-      502,
-      'The AI service could not generate this quiz right now. Please try again in a moment.',
-    );
-  }
+    }),
+    { timeoutHint: 'Try again, or use a shorter file or fewer questions.' },
+  );
 
   const quiz = normalizeQuizResponse(raw, input);
   if (!quiz) {
     console.error('[llm] quiz generation returned unusable output');
-    throw new QuizGenerationError(
-      502,
-      'The AI returned a quiz we could not use. Try again, or use a shorter file.',
-    );
+    throw aiUnusable('quiz');
   }
   return quiz;
 }
@@ -233,139 +209,61 @@ Rules:
 - Include comprehension items, multiple-choice options labeled A–D when a choice question fits, short-answer items, and practice tasks based on the source.
 - Use the user instruction only to choose the focus, chapter, or question types.`;
 
-export function fallbackWorksheet(input: WorksheetGeneratorPayload): WorksheetGeneratorResponse {
-  const documentText = input.attachedDocumentContext?.replace(/\s+/g, ' ').trim();
-  if (documentText) {
-    const topic = input.topicOrText.trim() || input.attachments?.[0] || 'the attached document';
-    const sentences = documentText
-      .split(/(?<=[.!?])\s+/)
-      .map((sentence) => sentence.trim())
-      .filter((sentence) => sentence.length > 40)
-      .slice(0, 6);
-    const passage = (sentences.slice(0, 4).join(' ') || documentText).slice(0, 1200);
-    const prompts = (sentences.length ? sentences : [passage]).slice(0, 6).map((sentence, index) => ({
-      id: index + 1,
-      prompt:
-        index % 2 === 0
-          ? `Using the source, explain this statement: "${sentence.slice(0, 180)}"`
-          : `What does the document say about: "${sentence.slice(0, 160)}"?`,
-    }));
-    return {
-      title: `${topic} Worksheet`,
-      gradeLevel: input.gradeLevel,
-      instructions: 'Read the passage taken from the attached document, then answer the questions.',
-      passage,
-      sections: [
-        { heading: 'Comprehension', items: prompts.slice(0, 3) },
-        { heading: 'Practice', items: prompts.slice(3).length ? prompts.slice(3) : prompts.slice(0, 1) },
-      ],
-    };
-  }
-  const topic = input.topicOrText.trim() || 'this topic';
-  const grade = input.gradeLevel;
-  const war = /world\s*war|ww\s*2|wwii/i.test(topic);
-  if (war) {
-    return {
-      title: 'World War II Worksheet',
-      gradeLevel: grade,
-      instructions: 'Read the passage, then answer the questions in complete sentences.',
-      passage:
-        'World War II was a global conflict that lasted from 1939 to 1945. It involved most of the world’s nations and reshaped borders, governments, and daily life. Causes included unresolved tensions from World War I, economic hardship, and the rise of aggressive dictatorships. The conflict spread across Europe, Asia, Africa, and the Pacific. Its consequences included enormous loss of life, the founding of the United Nations, and a new balance of power that defined the second half of the twentieth century.',
-      sections: [
-        {
-          heading: 'Comprehension',
-          items: [
-            { id: 1, prompt: 'When did World War II begin and end?' },
-            { id: 2, prompt: 'Name two causes of the war mentioned in the passage.' },
-            { id: 3, prompt: 'What international organization was founded after the war?' },
-          ],
-        },
-        {
-          heading: 'Vocabulary',
-          items: [
-            { id: 4, prompt: 'Define “dictatorship” in your own words.' },
-            { id: 5, prompt: 'What does “consequences” mean in the last sentence?' },
-          ],
-        },
-        {
-          heading: 'Apply',
-          items: [
-            { id: 6, prompt: 'Why might unresolved tensions from an earlier war lead to a new conflict?' },
-            { id: 7, prompt: 'Give one way World War II still influences the world today.' },
-          ],
-        },
-      ],
-    };
-  }
+type WorksheetRaw = {
+  title?: unknown;
+  gradeLevel?: unknown;
+  instructions?: unknown;
+  passage?: unknown;
+  sections?: unknown;
+};
+
+type WorksheetLabels = Pick<WorksheetGeneratorResponse, 'title' | 'gradeLevel' | 'instructions' | 'passage'>;
+
+/** Labels for fields the model left out. Never invents prompts or passage text. */
+function worksheetLabels(input: { gradeLevel: string; topicOrText: string; attachments?: string[] }): WorksheetLabels {
+  const label = input.topicOrText.trim().split('\n')[0]?.slice(0, 80).trim() || input.attachments?.[0] || '';
   return {
-    title: `${topic} Worksheet`,
-    gradeLevel: grade,
-    instructions: `Complete every section. Use complete sentences where asked. Grade: ${grade}.`,
-    passage: `${topic} is an important idea for ${grade} students to understand. Read carefully, then answer the questions that follow using evidence from the text and your own reasoning.`,
-    sections: [
-      {
-        heading: 'Comprehension',
-        items: [
-          { id: 1, prompt: `In your own words, what is ${topic}?` },
-          { id: 2, prompt: `Name one real-world example of ${topic}.` },
-        ],
-      },
-      {
-        heading: 'Vocabulary & ideas',
-        items: [
-          { id: 3, prompt: `List two key terms related to ${topic} and define each.` },
-          { id: 4, prompt: `What is a common misconception about ${topic}?` },
-          { id: 5, prompt: `How would you explain ${topic} to a classmate who missed class?` },
-        ],
-      },
-      {
-        heading: 'Practice',
-        items: [
-          { id: 6, prompt: `Apply ${topic} to a short ${grade} classroom scenario.` },
-          { id: 7, prompt: `What evidence would you use to show that a student understands ${topic}?` },
-          { id: 8, prompt: `Write one follow-up question a teacher could ask about ${topic}.` },
-        ],
-      },
-    ],
+    title: label ? `${label} Worksheet` : 'Worksheet',
+    gradeLevel: input.gradeLevel,
+    instructions: 'Answer each question.',
+    passage: '',
   };
 }
 
+/** Keeps only model items with a real prompt. Returns null when no section has one. */
 export function normalizeWorksheetResponse(
-  raw: {
-    title?: unknown;
-    gradeLevel?: unknown;
-    instructions?: unknown;
-    passage?: unknown;
-    sections?: unknown;
-  },
-  input: WorksheetGeneratorPayload,
-  fallback: WorksheetGeneratorResponse,
-): WorksheetGeneratorResponse {
-  if (!Array.isArray(raw.sections) || raw.sections.length === 0) return fallback;
+  raw: WorksheetRaw,
+  labels: WorksheetLabels,
+): WorksheetGeneratorResponse | null {
+  if (!Array.isArray(raw.sections)) return null;
 
   let nextId = 1;
-  const sections = raw.sections.slice(0, 6).map((section) => {
-    const s = (section ?? {}) as { heading?: unknown; items?: unknown };
-    const rawItems = Array.isArray(s.items) ? s.items : [];
-    const items = rawItems.slice(0, 12).map((item) => {
-      const it = (item ?? {}) as { id?: unknown; prompt?: unknown; question?: unknown };
-      const rawPrompt = String(it.prompt ?? it.question ?? '').trim();
-      const prompt = rawPrompt.replace(/^(\d+[\.\)]\s*)+/g, '').trim() || rawPrompt || `Practice item ${nextId}`;
-      const id = typeof it.id === 'number' ? it.id : nextId;
-      nextId += 1;
-      return { id, prompt };
-    });
-    return {
-      heading: String(s.heading ?? '').trim() || 'Section',
-      items: items.length ? items : [{ id: nextId++, prompt: `Respond to a question about this topic.` }],
-    };
-  });
+  const sections = raw.sections
+    .slice(0, 6)
+    .map((section) => {
+      const s = (section ?? {}) as { heading?: unknown; items?: unknown };
+      const rawItems = Array.isArray(s.items) ? s.items : [];
+      const items = rawItems.slice(0, 12).flatMap((item) => {
+        const it = (item ?? {}) as { id?: unknown; prompt?: unknown; question?: unknown };
+        const prompt = String(it.prompt ?? it.question ?? '')
+          .trim()
+          .replace(/^(\d+[\.\)]\s*)+/g, '')
+          .trim();
+        if (!prompt) return [];
+        const id = typeof it.id === 'number' ? it.id : nextId;
+        nextId += 1;
+        return [{ id, prompt }];
+      });
+      return { heading: String(s.heading ?? '').trim() || 'Section', items };
+    })
+    .filter((section) => section.items.length > 0);
+  if (!sections.length) return null;
 
   return {
-    title: String(raw.title ?? '').trim() || fallback.title,
-    gradeLevel: String(raw.gradeLevel ?? '').trim() || input.gradeLevel,
-    instructions: String(raw.instructions ?? '').trim() || fallback.instructions,
-    passage: String(raw.passage ?? '').trim() || fallback.passage,
+    title: String(raw.title ?? '').trim() || labels.title,
+    gradeLevel: String(raw.gradeLevel ?? '').trim() || labels.gradeLevel,
+    instructions: String(raw.instructions ?? '').trim() || labels.instructions,
+    passage: String(raw.passage ?? '').trim() || labels.passage,
     sections,
   };
 }
@@ -391,27 +289,18 @@ function worksheetSourcePrompt(input: WorksheetGeneratorPayload): string {
 export async function generateWorksheet(
   input: WorksheetGeneratorPayload,
 ): Promise<WorksheetGeneratorResponse> {
-  const fallback = fallbackWorksheet(input);
-  const llm = getActiveProvider();
-  if (!llm) return fallback;
-
-  try {
-    const raw = await llm.completeJson<{
-      title?: unknown;
-      gradeLevel?: unknown;
-      instructions?: unknown;
-      passage?: unknown;
-      sections?: unknown;
-    }>({
+  const llm = requireAiProvider('worksheet');
+  const raw = await runAi('worksheet', () =>
+    llm.completeJson<WorksheetRaw>({
       system: WORKSHEET_SYSTEM,
       user: worksheetSourcePrompt(input),
       images: imagePartsFromDataUrls(input.imageFiles),
-    });
-    return normalizeWorksheetResponse(raw, input, fallback);
-  } catch (err) {
-    console.error('[llm] worksheet generation failed', err);
-    return fallback;
-  }
+      timeoutMs: WORKSHEET_LLM_TIMEOUT_MS,
+    }),
+  );
+  const worksheet = normalizeWorksheetResponse(raw, worksheetLabels(input));
+  if (!worksheet) throw aiUnusable('worksheet');
+  return worksheet;
 }
 
 export async function refineWorksheet(input: {
@@ -423,19 +312,9 @@ export async function refineWorksheet(input: {
   imageFiles?: string[];
   current?: WorksheetGeneratorResponse;
 }): Promise<WorksheetGeneratorResponse> {
-  const base = input.current ?? fallbackWorksheet(input);
-  const heuristic = applyWorksheetFollowUp(base, input.instruction);
-  const llm = getActiveProvider();
-  if (!llm) return heuristic;
-
-  try {
-    const raw = await llm.completeJson<{
-      title?: unknown;
-      gradeLevel?: unknown;
-      instructions?: unknown;
-      passage?: unknown;
-      sections?: unknown;
-    }>({
+  const llm = requireAiProvider('worksheet');
+  const raw = await runAi('revised worksheet', () =>
+    llm.completeJson<WorksheetRaw>({
       system: `${WORKSHEET_SYSTEM}\nRevise the existing worksheet to satisfy the teacher instruction. Return the complete updated worksheet JSON.`,
       user: [
         `Grade level: ${input.gradeLevel}`,
@@ -448,17 +327,17 @@ export async function refineWorksheet(input: {
         input.imageFiles?.length
           ? `Attached images: ${input.imageFiles.length}. Use the visible text and diagrams as source material.`
           : '',
-        `Current worksheet JSON:\n${JSON.stringify(base)}`,
+        input.current ? `Current worksheet JSON:\n${JSON.stringify(input.current)}` : '',
       ]
         .filter(Boolean)
         .join('\n\n'),
       images: imagePartsFromDataUrls(input.imageFiles),
-    });
-    return normalizeWorksheetResponse(raw, input, heuristic);
-  } catch (err) {
-    console.error('[llm] worksheet refine failed', err);
-    return heuristic;
-  }
+      timeoutMs: WORKSHEET_LLM_TIMEOUT_MS,
+    }),
+  );
+  const worksheet = normalizeWorksheetResponse(raw, input.current ?? worksheetLabels(input));
+  if (!worksheet) throw aiUnusable('revised worksheet', 'Try again, or reword the change.');
+  return worksheet;
 }
 
 export async function translateWorksheet(input: {
@@ -466,18 +345,9 @@ export async function translateWorksheet(input: {
   current: WorksheetGeneratorResponse;
   gradeLevel?: string;
 }): Promise<WorksheetGeneratorResponse> {
-  const heuristic = applyWorksheetTranslation(input.current, input.targetLanguage);
-  const llm = getActiveProvider();
-  if (!llm) return heuristic;
-
-  try {
-    const raw = await llm.completeJson<{
-      title?: unknown;
-      gradeLevel?: unknown;
-      instructions?: unknown;
-      passage?: unknown;
-      sections?: unknown;
-    }>({
+  const llm = requireAiProvider('worksheet');
+  const raw = await runAi('translation', () =>
+    llm.completeJson<WorksheetRaw>({
       system: `${WORKSHEET_SYSTEM}\nTranslate the entire worksheet into ${input.targetLanguage}. Keep the same JSON shape, item ids, and section count. Translate title, instructions, passage, headings, and prompts. Do not add extra commentary.`,
       user: [
         input.gradeLevel ? `Grade level: ${input.gradeLevel}` : '',
@@ -486,16 +356,13 @@ export async function translateWorksheet(input: {
       ]
         .filter(Boolean)
         .join('\n\n'),
-    });
-    return normalizeWorksheetResponse(
-      raw,
-      { gradeLevel: input.current.gradeLevel, topicOrText: input.current.title },
-      heuristic,
-    );
-  } catch (err) {
-    console.error('[llm] worksheet translate failed', err);
-    return heuristic;
-  }
+      timeoutMs: WORKSHEET_LLM_TIMEOUT_MS,
+    }),
+  );
+  const missingPassage = Boolean(input.current.passage?.trim()) && !String(raw.passage ?? '').trim();
+  const worksheet = missingPassage ? null : normalizeWorksheetResponse(raw, input.current);
+  if (!worksheet) throw aiUnusable('translation', 'Please try again.');
+  return worksheet;
 }
 
 const SONG_LYRICS_SYSTEM = `You write original, classroom-safe educational songs for K-12 students.
@@ -504,71 +371,38 @@ Lyrics must include labeled sections such as Verse 1, Chorus, Verse 2, and Bridg
 Keep language grade-appropriate, scientifically/historically accurate, catchy, and singable.
 Do not include markdown or extra commentary.`;
 
-export function fallbackSongLyrics(input: SongLyricsPayload): SongLyricsDraft {
-  const topic = input.topic.trim() || 'this topic';
-  const title = `${topic} Song`;
-  const lyrics = [
-    `Verse 1`,
-    `Let's explore ${topic} today,`,
-    `${input.gradeLevel} learners leading the way.`,
-    `Ask a question, look around —`,
-    `clues and evidence can be found.`,
-    ``,
-    `Chorus`,
-    `${topic}, ${topic}, sing it true,`,
-    `learn the steps and follow through.`,
-    `In the style of ${input.songStyle},`,
-    `we remember what we do.`,
-    ``,
-    `Verse 2`,
-    `Break it down and say it slow,`,
-    `that's the way the big ideas grow.`,
-    `Try an example, check your claim,`,
-    `then we sing the facts by name.`,
-  ].join('\n');
+export async function generateSongLyrics(input: SongLyricsPayload): Promise<SongLyricsDraft> {
+  const llm = requireAiProvider('song');
+  const topic = input.topic.trim();
+  const raw = await runAi(
+    'song',
+    () =>
+      llm.completeJson<{ title?: unknown; lyrics?: unknown }>({
+        system: SONG_LYRICS_SYSTEM,
+        user: [
+          `Song topic: ${topic}`,
+          `Grade level: ${input.gradeLevel}`,
+          `Song style: ${input.songStyle}`,
+          input.customInstructions?.trim()
+            ? `Custom instructions: ${input.customInstructions.trim()}`
+            : '',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+        timeoutMs: SONG_LYRICS_LLM_TIMEOUT_MS,
+      }),
+    { timeoutHint: 'Please try again.' },
+  );
+  const lyrics = String(raw.lyrics ?? '').trim();
+  if (!lyrics) throw aiUnusable('song', 'Please try again.');
   return {
-    title,
+    title: String(raw.title ?? '').trim() || `${topic || 'Class'} Song`,
     lyrics,
     topic,
     gradeLevel: input.gradeLevel,
     songStyle: input.songStyle,
     customInstructions: input.customInstructions,
   };
-}
-
-export async function generateSongLyrics(input: SongLyricsPayload): Promise<SongLyricsDraft> {
-  const fallback = fallbackSongLyrics(input);
-  const llm = getActiveProvider();
-  if (!llm) return fallback;
-
-  try {
-    const raw = await llm.completeJson<{ title?: unknown; lyrics?: unknown }>({
-      system: SONG_LYRICS_SYSTEM,
-      user: [
-        `Song topic: ${input.topic.trim()}`,
-        `Grade level: ${input.gradeLevel}`,
-        `Song style: ${input.songStyle}`,
-        input.customInstructions?.trim()
-          ? `Custom instructions: ${input.customInstructions.trim()}`
-          : '',
-      ]
-        .filter(Boolean)
-        .join('\n'),
-    });
-    const title = String(raw.title ?? '').trim() || fallback.title;
-    const lyrics = String(raw.lyrics ?? '').trim() || fallback.lyrics;
-    return {
-      title,
-      lyrics,
-      topic: input.topic.trim(),
-      gradeLevel: input.gradeLevel,
-      songStyle: input.songStyle,
-      customInstructions: input.customInstructions,
-    };
-  } catch (err) {
-    console.error('[llm] song lyrics generation failed', err);
-    return fallback;
-  }
 }
 
 const LESSON_PLAN_SYSTEM = `You are an expert AI curriculum designer. Write an in-depth lesson plan that does what the teacher asked.
@@ -640,46 +474,51 @@ function lessonPlanUserPrompt(input: LessonPlanPayload, source = cleanLessonSour
     .join('\n');
 }
 
-export function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse {
-  return classroomLessonPlanFallback(input);
-}
-
 function asStringList(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
   if (typeof value === 'string' && value.trim()) return [value.trim()];
   return [];
 }
 
+/**
+ * Keeps only real model content. Returns null without an objective or a section with activities.
+ * `base` is the plan being translated; its values fill fields the model left out.
+ */
 function normalizeLessonPlan(
   raw: Record<string, unknown>,
-  input: LessonPlanPayload,
-  fallback: LessonPlanResponse,
-): LessonPlanResponse {
+  labels: { title: string; gradeLevel: string },
+  base?: LessonPlanResponse,
+): LessonPlanResponse | null {
   const sectionsRaw = Array.isArray(raw.sections) ? raw.sections : [];
-  const sections = sectionsRaw.map((item) => {
-    const rec = (item ?? {}) as Record<string, unknown>;
-    const activities = asStringList(rec.activities).map(scrubLessonText).filter(Boolean);
-    return {
-      heading: scrubLessonText(String(rec.heading ?? '')) || 'Section',
-      minutes: typeof rec.minutes === 'number' ? rec.minutes : undefined,
-      activities: activities.length ? activities : ['Complete the planned classroom task.'],
-    };
-  });
+  const sections = sectionsRaw
+    .map((item) => {
+      const rec = (item ?? {}) as Record<string, unknown>;
+      return {
+        heading: scrubLessonText(String(rec.heading ?? '')) || 'Section',
+        minutes: typeof rec.minutes === 'number' ? rec.minutes : undefined,
+        activities: asStringList(rec.activities).map(scrubLessonText).filter(Boolean),
+      };
+    })
+    .filter((section) => section.activities.length > 0);
+  const objective = scrubLessonText(String(raw.objective ?? ''));
+  if (!sections.length || !objective) return null;
+
   const standards = asStringList(raw.standards).map(scrubLessonText).filter(Boolean);
   const materials = asStringList(raw.materials).map(scrubLessonText).filter((item) => item && !/attached file content/i.test(item));
   const title = scrubLessonText(String(raw.title ?? ''));
   const genericTitle = !title || /generate lesson plan|explain the idea/i.test(title);
+  const minutes = sections.reduce((sum, section) => sum + (section.minutes ?? 0), 0);
   return {
-    title: genericTitle ? fallback.title : title,
-    gradeLevel: String(raw.gradeLevel ?? '').trim() || input.gradeLevel,
-    objective: scrubLessonText(String(raw.objective ?? '')) || fallback.objective,
-    standards: standards.length ? standards : fallback.standards,
+    title: genericTitle ? base?.title ?? labels.title : title,
+    gradeLevel: String(raw.gradeLevel ?? '').trim() || base?.gradeLevel || labels.gradeLevel,
+    objective,
+    standards: standards.length ? standards : base?.standards ?? [],
     durationMinutes:
-      typeof raw.durationMinutes === 'number' ? raw.durationMinutes : fallback.durationMinutes,
-    materials: materials.length ? materials : fallback.materials,
-    sections: sections.length ? sections : fallback.sections,
-    assessment: scrubLessonText(String(raw.assessment ?? '')) || fallback.assessment,
-    differentiation: scrubLessonText(String(raw.differentiation ?? '')) || fallback.differentiation,
+      typeof raw.durationMinutes === 'number' ? raw.durationMinutes : base?.durationMinutes ?? (minutes || 50),
+    materials: materials.length ? materials : base?.materials ?? [],
+    sections,
+    assessment: scrubLessonText(String(raw.assessment ?? '')) || base?.assessment || '',
+    differentiation: scrubLessonText(String(raw.differentiation ?? '')) || base?.differentiation || '',
   };
 }
 
@@ -687,20 +526,23 @@ export async function translateLessonPlan(input: {
   targetLanguage: string;
   plan: LessonPlanResponse;
 }): Promise<LessonPlanResponse> {
-  const llm = getActiveProvider();
-  if (!llm) throw new Error('Translation model is not configured');
-  const raw = await llm.completeJson<Record<string, unknown>>({
-    system: `${LESSON_PLAN_SYSTEM}
+  const llm = requireAiProvider('lesson plan');
+  const raw = await runAi(
+    'translation',
+    () =>
+      llm.completeJson<Record<string, unknown>>({
+        system: `${LESSON_PLAN_SYSTEM}
 Translate every user-facing string into ${input.targetLanguage}.
 Keep the same JSON keys, numeric minutes, section count, and activity count.
 Do not add commentary or change the lesson's meaning.`,
-    user: `Target language: ${input.targetLanguage}\n\nLesson plan JSON:\n${JSON.stringify(input.plan)}`,
-  });
-  return normalizeLessonPlan(
-    raw,
-    { gradeLevel: input.plan.gradeLevel, topic: input.plan.title },
-    input.plan,
+        user: `Target language: ${input.targetLanguage}\n\nLesson plan JSON:\n${JSON.stringify(input.plan)}`,
+        timeoutMs: LESSON_PLAN_LLM_TIMEOUT_MS,
+      }),
+    { timeoutHint: 'Please try again.' },
   );
+  const plan = normalizeLessonPlan(raw, input.plan, input.plan);
+  if (!plan) throw aiUnusable('translation', 'Please try again.');
+  return plan;
 }
 
 export async function generateLessonPlan(input: LessonPlanPayload): Promise<LessonPlanResponse> {
@@ -715,23 +557,22 @@ export async function generateLessonPlan(input: LessonPlanPayload): Promise<Less
     throw new Error('Could not read the attached file. Upload a PDF, Word, or text file with selectable text.');
   }
 
-  const fallback = fallbackLessonPlan(input);
-  const llm = getActiveProvider();
-  if (!llm) return fallback;
-
-  try {
-    const raw = await llm.completeJson<Record<string, unknown>>({
+  const llm = requireAiProvider('lesson plan');
+  const raw = await runAi('lesson plan', () =>
+    llm.completeJson<Record<string, unknown>>({
       system: input.khdaAlign ? `${LESSON_PLAN_SYSTEM}\n\n${KHDA_LESSON_RULES}` : LESSON_PLAN_SYSTEM,
       user: lessonPlanUserPrompt(input, sourceForPrompt),
       images: imagePartsFromDataUrls(input.imageFiles),
       temperature: 0.2,
-    });
-    return normalizeLessonPlan(raw, input, fallback);
-  } catch (err) {
-    if (err instanceof Error && /readable chapter content|could not read the attached file/i.test(err.message)) throw err;
-    console.error('[llm] lesson plan generation failed', err);
-    return fallback;
-  }
+      timeoutMs: LESSON_PLAN_LLM_TIMEOUT_MS,
+    }),
+  );
+  const plan = normalizeLessonPlan(raw, {
+    title: `${lessonSubjectLabel(input.topic, source)} — ${input.gradeLevel}`,
+    gradeLevel: input.gradeLevel,
+  });
+  if (!plan) throw aiUnusable('lesson plan');
+  return plan;
 }
 
 const PRESENTATION_SYSTEM = `You are an expert instructional designer creating an advanced classroom slide deck.
@@ -765,12 +606,12 @@ Rules:
 - Example: "An Elodea sprig underwater in a glass tube, bright light from above, oxygen bubbles rising from the cut stem."
 - Name the real mechanism for the grade. Do not write generic welcome lines.`;
 
+/** Keeps only model slides that have a title. Returns null when there are none. May return fewer slides than asked. */
 function normalizePresentation(
   raw: Record<string, unknown>,
   input: PresentationPayload,
-  fallback: PresentationResponse,
   options?: { revising?: boolean },
-): PresentationResponse {
+): PresentationResponse | null {
   const wanted = presentationSlideTarget(input.slideCount);
   const parsed = Array.isArray(raw.slides) ? raw.slides : [];
   const slides: PresentationSlide[] = [];
@@ -786,7 +627,7 @@ function normalizePresentation(
       subtitle: subtitle || undefined,
       bullets: asStringList(slide.bullets).slice(0, 5),
       question: question || undefined,
-      speakerNotes: String(slide.speakerNotes ?? '').trim() || 'Pause and ask students to restate the idea.',
+      speakerNotes: String(slide.speakerNotes ?? '').trim(),
       imagePrompt: String(slide.imagePrompt ?? '').trim(),
       layout: PRESENTATION_LAYOUTS.includes(layout as (typeof PRESENTATION_LAYOUTS)[number])
         ? (layout as (typeof PRESENTATION_LAYOUTS)[number])
@@ -794,38 +635,13 @@ function normalizePresentation(
     });
   }
 
-  if (options?.revising) {
-    const kept = slides.slice(0, 20);
-    const title = String(raw.title ?? '').trim();
-    if (!kept.length) {
-      return revisePresentation(
-        { ...fallback, slides: input.currentSlides?.length ? input.currentSlides : fallback.slides },
-        input.revision ?? '',
-      );
-    }
-    return {
-      title: title || fallback.title,
-      gradeLevel: input.gradeLevel,
-      objective: String(raw.objective ?? '').trim() || fallback.objective,
-      slides: assignSlideLayouts(kept),
-    };
-  }
-
-  const filled = slides.slice(0, wanted);
-  if (filled.length < wanted) {
-    for (const extra of fallback.slides) {
-      if (filled.length >= wanted) break;
-      if (!filled.some((slide) => slide.title === extra.title)) filled.push(extra);
-    }
-  }
-  while (filled.length < wanted) filled.push(fallback.slides[filled.length % fallback.slides.length]);
-
-  const title = String(raw.title ?? '').trim();
+  const kept = slides.slice(0, options?.revising ? 20 : wanted);
+  if (!kept.length) return null;
   return {
-    title: title || fallback.title,
+    title: String(raw.title ?? '').trim() || input.topic.trim().split('\n')[0].slice(0, 80) || 'Presentation',
     gradeLevel: input.gradeLevel,
-    objective: String(raw.objective ?? '').trim() || fallback.objective,
-    slides: assignSlideLayouts(filled.slice(0, wanted)),
+    objective: String(raw.objective ?? '').trim(),
+    slides: assignSlideLayouts(kept),
   };
 }
 
@@ -855,17 +671,14 @@ Rules:
 - imagePrompt stays empty unless the slide layout is split or focus and a picture of a phenomenon, structure, process, or comparison would teach it. At most 5 slides in the deck may have a picture. A new picture prompt names the exact objects and the action, with no words in the picture.`;
 
 export async function generatePresentation(input: PresentationPayload): Promise<PresentationResponse> {
-  const fallback = fallbackPresentation(input);
   const source = (input.attachedDocumentContext ?? '').replace(/\s+/g, ' ').trim().slice(0, 12_000);
   const revision = input.revision?.trim() ?? '';
   const current = input.currentSlides ?? [];
-  const llm = getActiveProvider();
-  if (!llm) {
-    return revision && current.length ? revisePresentation({ ...fallback, slides: current, title: fallback.title }, revision) : fallback;
-  }
-  try {
-    const revising = Boolean(revision && current.length);
-    const raw = await llm.completeJson<Record<string, unknown>>({
+  const revising = Boolean(revision && current.length);
+  const what = revising ? 'slide change' : 'presentation';
+  const llm = requireAiProvider('presentation');
+  const raw = await runAi(what, () =>
+    llm.completeJson<Record<string, unknown>>({
       system: revising ? PRESENTATION_REVISION_SYSTEM : PRESENTATION_SYSTEM,
       user: revising
         ? [
@@ -888,17 +701,18 @@ export async function generatePresentation(input: PresentationPayload): Promise<
             .join('\n\n'),
       images: revising ? undefined : imagePartsFromDataUrls(input.imageFiles),
       temperature: revising ? 0.3 : 0.4,
-    });
-    const deck = normalizePresentation(raw, input, fallback, { revising });
-    if (!revising) return deck;
-    const same =
-      deck.slides.length === current.length &&
-      deck.slides.every((slide, index) => slide.title === current[index]?.title && slide.bullets.join('|') === (current[index]?.bullets ?? []).join('|'));
-    return same ? revisePresentation({ ...deck, slides: current }, revision) : deck;
-  } catch (err) {
-    console.error('[llm] presentation generation failed', err);
-    return revision && current.length ? revisePresentation({ ...fallback, slides: current }, revision) : fallback;
-  }
+      timeoutMs: PRESENTATION_LLM_TIMEOUT_MS,
+    }),
+  );
+  const changeHint = 'Try again, or reword the change.';
+  const deck = normalizePresentation(raw, input, { revising });
+  if (!deck) throw aiUnusable(what, revising ? changeHint : undefined);
+  if (!revising) return deck;
+  const same =
+    deck.slides.length === current.length &&
+    deck.slides.every((slide, index) => slide.title === current[index]?.title && slide.bullets.join('|') === (current[index]?.bullets ?? []).join('|'));
+  if (same) throw new AiGenerationError(502, `The AI did not apply that change to the slides. ${changeHint}`);
+  return deck;
 }
 
 function looksLikeWorksheet(markdown: string): boolean {
@@ -958,47 +772,42 @@ ${shape}`;
 ${shape}`;
 }
 
-function normalizeSharadaChat(raw: Record<string, unknown>, fallback: SharadaChatResponse): SharadaChatResponse {
-  const markdown = String(raw.markdown ?? '').trim();
-  return {
-    title: String(raw.title ?? '').trim() || fallback.title,
-    statusLine: String(raw.statusLine ?? '').trim() || fallback.statusLine,
-    confirmation: String(raw.confirmation ?? '').trim() || fallback.confirmation,
-    markdown: markdown || fallback.markdown,
-  };
-}
-
 export async function generateSharadaChat(input: SharadaChatRequest): Promise<SharadaChatResponse> {
   const intent = classifyUserIntent(input.prompt);
-  const fallback = fallbackSharadaChat(input.prompt);
-  const llm = getActiveProvider();
-  if (!llm) return fallback;
+  const llm = requireAiProvider('reply');
 
   const historyBlock = (input.history ?? [])
     .slice(-12)
     .map((msg) => `${msg.role === 'user' ? 'Teacher' : 'Sharada'}: ${msg.content}`)
     .join('\n\n');
 
-  try {
-    const raw = await llm.completeJson<Record<string, unknown>>({
-      system: sharadaSystemFor(intent),
-      user: [
-        `Intent: ${intent.type}${intent.gradeLevel ? ` (${intent.gradeLevel})` : ''}`,
-        historyBlock ? `Conversation so far:\n${historyBlock}` : '',
-        `New request:\n${input.prompt.trim()}`,
-      ]
-        .filter(Boolean)
-        .join('\n\n'),
-    });
-    const reply = normalizeSharadaChat(raw, fallback);
-    if ((intent.type === 'EXPLANATION' || intent.type === 'GENERAL_CHAT') && looksLikeWorksheet(reply.markdown)) {
-      return fallback;
-    }
-    return reply;
-  } catch (err) {
-    console.error('[llm] sharada chat generation failed', err);
-    return fallback;
+  const raw = await runAi(
+    'reply',
+    () =>
+      llm.completeJson<Record<string, unknown>>({
+        system: sharadaSystemFor(intent),
+        user: [
+          `Intent: ${intent.type}${intent.gradeLevel ? ` (${intent.gradeLevel})` : ''}`,
+          historyBlock ? `Conversation so far:\n${historyBlock}` : '',
+          `New request:\n${input.prompt.trim()}`,
+        ]
+          .filter(Boolean)
+          .join('\n\n'),
+        timeoutMs: SHARADA_LLM_TIMEOUT_MS,
+      }),
+    { timeoutHint: 'Please try again.' },
+  );
+  const markdown = String(raw.markdown ?? '').trim();
+  const offTask = (intent.type === 'EXPLANATION' || intent.type === 'GENERAL_CHAT') && looksLikeWorksheet(markdown);
+  if (!markdown || offTask) {
+    throw aiUnusable('reply', offTask ? 'Please try again, or rephrase your request.' : 'Please try again.');
   }
+  return {
+    title: String(raw.title ?? '').trim() || sharadaTitleFromPrompt(input.prompt),
+    statusLine: String(raw.statusLine ?? '').trim(),
+    confirmation: String(raw.confirmation ?? '').trim(),
+    markdown,
+  };
 }
 
 /** Drops a paragraph that invents a calendar link or a fill-in placeholder the user never provided. */
@@ -1011,26 +820,24 @@ function dropInventedScheduling(email: string): string {
 }
 
 export async function generateEmailResponse(input: EmailResponderRequest): Promise<EmailResponderResponse> {
-  const fallback = fallbackEmailResponse(input);
-  const llm = getActiveProvider();
-  if (!llm) return fallback;
-
-  try {
-    const raw = await llm.completeJson<{ email?: string; suggestions?: string[] }>({
-      system: 'You write the exact email a teacher or school leader will send. Ground every sentence in the incoming message and the user\'s notes. Never add a scheduling link, URL, or [placeholder]. Return JSON only: {"email":"Subject: ...\\n\\nfull email body","suggestions":["short follow-up the user might ask","another follow-up"]}. suggestions must be exactly two plain sentences. Do not wrap the email in code fences.',
-      user: emailResponderPrompt(input),
-    });
-    const email = dropInventedScheduling(String(raw.email ?? '').trim());
-    if (!email) return fallback;
-    const suggestions = Array.isArray(raw.suggestions)
-      ? raw.suggestions.map((item) => String(item).trim()).filter(Boolean).slice(0, 2)
-      : [];
-    return {
-      email: /^subject:/i.test(email) ? email : `Subject: Following up on your email\n\n${email}`,
-      suggestions: suggestions.length === 2 ? suggestions : fallback.suggestions,
-    };
-  } catch (err) {
-    console.error('[llm] email responder failed', err);
-    return fallback;
-  }
+  const llm = requireAiProvider('email');
+  const raw = await runAi(
+    'email',
+    () =>
+      llm.completeJson<{ email?: string; suggestions?: string[] }>({
+        system: 'You write the exact email a teacher or school leader will send. Ground every sentence in the incoming message and the user\'s notes. Never add a scheduling link, URL, or [placeholder]. Return JSON only: {"email":"Subject: ...\\n\\nfull email body","suggestions":["short follow-up the user might ask","another follow-up"]}. suggestions must be exactly two plain sentences. Do not wrap the email in code fences.',
+        user: emailResponderPrompt(input),
+        timeoutMs: EMAIL_LLM_TIMEOUT_MS,
+      }),
+    { timeoutHint: 'Try again, or shorten the email you pasted.' },
+  );
+  const email = dropInventedScheduling(String(raw.email ?? '').trim());
+  if (!email) throw aiUnusable('email', 'Please try again.');
+  const suggestions = Array.isArray(raw.suggestions)
+    ? raw.suggestions.map((item) => String(item).trim()).filter(Boolean).slice(0, 2)
+    : [];
+  return {
+    email: /^subject:/i.test(email) ? email : `Subject: Following up on your email\n\n${email}`,
+    suggestions,
+  };
 }

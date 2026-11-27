@@ -1,5 +1,5 @@
 import {
-  fallbackInsights,
+  gamifiedActivityProblem,
   gamifiedActivityToMarkdown,
   getGamifiedActivityOption,
   parseGamifiedActivityResponse,
@@ -8,25 +8,11 @@ import {
   type GamifiedActivityResponse,
   type GamifiedLessonContext,
 } from '@brightpath/shared';
-import { getActiveProvider, imagePartsFromDataUrls } from '../lib/llm/provider.js';
+import { imagePartsFromDataUrls } from '../lib/llm/provider.js';
+import { aiUnusable, requireAiProvider, runAi } from '../lib/llm/errors.js';
 
-const TIMEOUT_MS = 70_000;
-
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(label)), ms);
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (err) => {
-        clearTimeout(timer);
-        reject(err);
-      },
-    );
-  });
-}
+/** Must stay below the web client's 120s gamified-activity timeout. */
+const GAMIFIED_ACTIVITY_LLM_TIMEOUT_MS = 90_000;
 
 function contextFrom(input: GamifiedActivityPayload): GamifiedLessonContext {
   return {
@@ -223,9 +209,8 @@ export async function generateGamifiedActivityTool(
   input: GamifiedActivityPayload,
 ): Promise<GamifiedActivityResponse> {
   const ctx = contextFrom(input);
-  const fallback = parseGamifiedActivityResponse(input.kind, {}, ctx);
-  const provider = getActiveProvider();
-  if (!provider) return fallback;
+  const what = input.kind === 'game_arcade' ? 'question pack' : 'activity';
+  const provider = requireAiProvider('activity');
 
   const source = [
     input.topic.trim() ? `Teacher topic notes:\n${input.topic.trim()}` : '',
@@ -238,24 +223,19 @@ export async function generateGamifiedActivityTool(
     .join('\n\n')
     .slice(0, 22_000) || `${ctx.subject} — ${ctx.topic}`;
 
-  try {
-    const raw = await withTimeout(
-      provider.completeJson<unknown>({
-        system: systemPrompt(input.kind),
-        user: userPrompt(input.kind, ctx, source),
-        images: imagePartsFromDataUrls(input.imageFiles),
-      }),
-      TIMEOUT_MS,
-      'Gamified activity generation timed out',
-    );
-    const parsed = parseGamifiedActivityResponse(input.kind, raw, ctx);
-    return {
-      ...parsed,
-      insights: parsed.insights.keyTerms.length ? parsed.insights : fallbackInsights(ctx),
-      markdown: gamifiedActivityToMarkdown(parsed.insights, parsed.document),
-    };
-  } catch (err) {
-    console.error('[gamifiedActivityTool] generation failed', err);
-    return fallback;
+  const raw = await runAi(what, () =>
+    provider.completeJson<unknown>({
+      system: systemPrompt(input.kind),
+      user: userPrompt(input.kind, ctx, source),
+      images: imagePartsFromDataUrls(input.imageFiles),
+      timeoutMs: GAMIFIED_ACTIVITY_LLM_TIMEOUT_MS,
+    }),
+  );
+  const problem = gamifiedActivityProblem(input.kind, raw);
+  if (problem) {
+    console.error(`[gamifiedActivityTool] unusable ${input.kind} output: ${problem}`);
+    throw aiUnusable(what);
   }
+  const parsed = parseGamifiedActivityResponse(input.kind, raw, ctx);
+  return { ...parsed, markdown: gamifiedActivityToMarkdown(parsed.insights, parsed.document) };
 }

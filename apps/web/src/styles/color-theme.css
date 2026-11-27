@@ -1243,3 +1243,26 @@ html[data-theme='light'] .mv-pres-loading {
   background: #ffffff !important;
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
 }
+
+/* Sharada chat: raised surfaces (teacher bubble, New chat, active thread) carry their own text colour. */
+.sharada-raised {
+  background-color: #282a2c;
+  color: #f1f5f9;
+}
+.sharada-raised:hover {
+  background-color: #313335;
+}
+.sharada-history-item:hover {
+  background-color: rgba(40, 42, 44, 0.6);
+}
+html[data-theme='light'] .sharada-raised {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+html[data-theme='light'] .sharada-raised:hover {
+  background-color: #cbd5e1 !important;
+}
+html[data-theme='light'] .sharada-history-item:hover {
+  background-color: #f1f5f9 !important;
+}

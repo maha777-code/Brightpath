@@ -776,6 +776,7 @@ export const api = {
     request<WorksheetGeneratorResponse>('/teacher/tools/worksheet-generator', {
       method: 'POST',
       body: JSON.stringify(body),
+      timeoutMs: 120_000,
     }),
 
   generateLessonPlan: (body: LessonPlanPayload) =>
@@ -796,18 +797,21 @@ export const api = {
     request<LessonPlanResponse>('/teacher/tools/lesson-plan-generator/translate', {
       method: 'POST',
       body: JSON.stringify(body),
+      timeoutMs: 120_000,
     }),
 
   sharadaChat: (body: SharadaChatRequest) =>
     request<SharadaChatResponse>('/teacher/sharada/chat', {
       method: 'POST',
       body: JSON.stringify(body),
+      timeoutMs: 90_000,
     }),
 
   generateEmailResponse: (body: EmailResponderRequest) =>
     request<EmailResponderResponse>('/teacher/tools/email-responder', {
       method: 'POST',
       body: JSON.stringify(body),
+      timeoutMs: 90_000,
     }),
 
   bookmarkLessonPlan: (id: string, bookmarked: boolean, title?: string) =>
@@ -828,12 +832,14 @@ export const api = {
     request<WorksheetGeneratorResponse>('/teacher/tools/worksheet-generator/refine', {
       method: 'POST',
       body: JSON.stringify(body),
+      timeoutMs: 120_000,
     }),
 
   translateWorksheet: (body: WorksheetTranslatePayload) =>
     request<WorksheetGeneratorResponse>('/teacher/tools/worksheet-generator/translate', {
       method: 'POST',
       body: JSON.stringify(body),
+      timeoutMs: 120_000,
     }),
 
   submitTeacherToolFeedback: (body: TeacherToolFeedbackPayload) =>
@@ -849,6 +855,7 @@ export const api = {
     request<SongLyricsDraft>('/teacher/songs/generate-lyrics', {
       method: 'POST',
       body: JSON.stringify(body),
+      timeoutMs: 90_000,
     }),
 
   renderSongAudio: (body: SongRenderPayload) =>

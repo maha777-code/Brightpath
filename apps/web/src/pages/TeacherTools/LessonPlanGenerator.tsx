@@ -33,11 +33,11 @@ import {
 } from 'lucide-react';
 import {
   LESSON_PLAN_GRADE_LEVELS,
-  classroomLessonPlanFallback,
   type LessonPlanPayload,
   type LessonPlanResponse,
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { ToolErrorRetry } from '@/components/tools/ToolErrorRetry';
 import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { AIToolHeader } from '@/components/tools/AIToolHeader';
 import {
@@ -45,7 +45,6 @@ import {
   TOOL_BREADCRUMB,
   TOOL_BREADCRUMB_LINK,
   TOOL_CARD,
-  TOOL_ERROR,
   TOOL_FIELD,
   TOOL_GENERATE,
   TOOL_HINT,
@@ -194,10 +193,6 @@ function useDictation(onAppend: (text: string) => void) {
 
   useEffect(() => () => recRef.current?.stop(), []);
   return { listening, toggle };
-}
-
-function fallbackLessonPlan(input: LessonPlanPayload): LessonPlanResponse {
-  return classroomLessonPlanFallback(input);
 }
 
 const BOOKMARK_KEY = 'brightpath_lesson_plan_bookmarks';
@@ -499,6 +494,10 @@ function LessonPlanResult({
   const [page, setPage] = useState(0);
   const [draft, setDraft] = useState(plan);
   const [notice, setNotice] = useState<string | null>(null);
+  const [translateFailure, setTranslateFailure] = useState<{
+    message: string;
+    lang: { code: string; name: string };
+  } | null>(null);
   const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const [followUp, setFollowUp] = useState('');
@@ -594,6 +593,7 @@ function LessonPlanResult({
   const handleTranslateContent = async (lang: { code: string; name: string }) => {
     setTranslateOpen(false);
     setIsTranslating(true);
+    setTranslateFailure(null);
     try {
       const translated = await api.translateLessonPlan({
         targetLanguage: lang.name,
@@ -604,8 +604,11 @@ function LessonPlanResult({
       setSelectedLanguage(lang.name);
       setPage(0);
       showNotice(`Translated lesson plan to ${lang.name}.`);
-    } catch {
-      showNotice('Failed to translate the lesson plan.');
+    } catch (err) {
+      setTranslateFailure({
+        message: err instanceof Error ? err.message : 'Could not translate the lesson plan.',
+        lang,
+      });
     } finally {
       setIsTranslating(false);
     }
@@ -1003,6 +1006,12 @@ function LessonPlanResult({
       </div>
 
       {notice ? <p className={`${TOOL_PANEL} mv-pres-accent py-2 text-sm`}>{notice}</p> : null}
+      <ToolErrorRetry
+        message={translateFailure?.message}
+        busy={isTranslating}
+        onRetry={translateFailure ? () => void handleTranslateContent(translateFailure.lang) : null}
+        className="mb-3"
+      />
 
       <div>
         {followUpFiles.length > 0 ? (
@@ -1221,6 +1230,13 @@ function KhdaAlignOption() {
   );
 }
 
+type FailedPlanRequest = {
+  payload: LessonPlanPayload;
+  fileNames: string[];
+  criteriaText: string;
+  followUp: boolean;
+};
+
 export default function LessonPlanGenerator({ embedded = false }: { embedded?: boolean }) {
   const location = useLocation();
   const [gradeLevel, setGradeLevel] = useState('9th grade');
@@ -1235,6 +1251,7 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
   const [, setHistory] = useState<FormState[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failedPlan, setFailedPlan] = useState<FailedPlanRequest | null>(null);
   const [plan, setPlan] = useState<LessonPlanResponse | null>(null);
   const [lessonId, setLessonId] = useState<string | null>(null);
   const [activePrompt, setActivePrompt] = useState<PromptMeta | null>(null);
@@ -1285,6 +1302,7 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
     setPlan(null);
     setLessonId(null);
     setError(null);
+    setFailedPlan(null);
   };
 
   const handleShowExemplar = () => {
@@ -1293,6 +1311,7 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
     setPlan(null);
     setLessonId(null);
     setError(null);
+    setFailedPlan(null);
   };
 
   const fileSetters = {
@@ -1368,11 +1387,28 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
     });
   };
 
+  const submitPlan = async (request: FailedPlanRequest) => {
+    setBusy(true);
+    setError(null);
+    setFailedPlan(null);
+    try {
+      publishPlan(await api.generateLessonPlan(request.payload), request.payload, request.fileNames, request.criteriaText);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to generate the lesson plan.';
+      if (!request.followUp) {
+        setPlan(null);
+        setLessonId(null);
+      }
+      setError(message);
+      if (!/readable chapter content|could not read the attached file/i.test(message)) setFailedPlan(request);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const generate = async (extra?: { instruction?: string; files?: AttachedDocument[] }) => {
     if (!extra && !canGenerate) return;
     if (extra && (topic.trim().length < 3 || busy)) return;
-    setBusy(true);
-    setError(null);
     const files = [...attachedFiles, ...(extra?.files ?? [])];
     const criteriaText = [criteria.trim(), extra?.instruction?.trim()].filter(Boolean).join('\n\n');
     const images = documentImages(files);
@@ -1387,16 +1423,17 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
       imageFiles: images.length ? images : undefined,
       khdaAlign: readKhdaAlign(),
     };
-    try {
-      publishPlan(await api.generateLessonPlan(payload), payload, files.map((file) => file.name), criteriaText);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to generate the lesson plan.';
-      if (/readable chapter content|could not read the attached file/i.test(message)) setError(message);
-      else publishPlan(fallbackLessonPlan(payload), payload, files.map((file) => file.name), criteriaText);
-    } finally {
-      setBusy(false);
-    }
+    await submitPlan({ payload, fileNames: files.map((file) => file.name), criteriaText, followUp: Boolean(extra) });
   };
+
+  const errorNotice = (
+    <ToolErrorRetry
+      message={error}
+      busy={busy}
+      onRetry={failedPlan ? () => void submitPlan(failedPlan) : null}
+      className={plan ? 'mb-4' : ''}
+    />
+  );
 
   const openHistoryItem = (item: LessonPlanHistoryItem) => {
     setPlan(item.plan);
@@ -1434,6 +1471,7 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
           <span className={TOOL_MUTED}>›</span>
           <span>Lesson Plan Generator</span>
         </nav>
+        {plan && lessonId && activePrompt ? errorNotice : null}
         {plan && lessonId && activePrompt ? (
           <LessonPlanResult
             key={lessonId}
@@ -1445,6 +1483,8 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
             onNew={() => {
               setPlan(null);
               setLessonId(null);
+              setError(null);
+              setFailedPlan(null);
             }}
             onHistory={() => setHistoryOpen(true)}
           />
@@ -1538,7 +1578,7 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
             <KhdaAlignOption />
 
             {fileNotice ? <p className={`${TOOL_HINT} mt-4`}>{fileNotice}</p> : null}
-            {error ? <p className={TOOL_ERROR}>{error}</p> : null}
+            {errorNotice}
 
             <button
               ref={generateRef}

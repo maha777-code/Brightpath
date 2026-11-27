@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Bookmark, ChevronDown, Copy, Download, History, Languages, Loader2, Mic, Plus, Printer, Share2, Sparkles, Star, ThumbsDown, ThumbsUp, Volume2, ArrowUp } from 'lucide-react';
-import { fallbackEmailResponse, type EmailResponderRequest } from '@brightpath/shared';
+import type { EmailResponderRequest } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useDisplayUser } from '@/lib/displayUser';
 import { AddFileMenu } from '@/components/tools/AddFileMenu';
+import { ToolErrorRetry } from '@/components/tools/ToolErrorRetry';
 import { toolBreadcrumbCategory } from '@/components/tools/ToolBreadcrumb';
 import { VoiceListeningIndicator } from '@/components/VoiceListeningIndicator';
 import {
@@ -228,6 +229,7 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
   const [notice, setNotice] = useState('');
   const [history, setHistory] = useState<SavedGeneration[]>([]);
   const [active, setActive] = useState<SavedGeneration | null>(null);
+  const [failed, setFailed] = useState<{ message: string; instruction?: string } | null>(null);
 
   useEffect(() => {
     void api
@@ -263,6 +265,7 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
 
   const startNew = () => {
     setActive(null);
+    setFailed(null);
     setShowPrompt(false);
     setAuthorName(signedInName);
     setIncomingEmail('');
@@ -313,15 +316,19 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
       currentEmail: revising ? source?.email : undefined,
     };
     setBusy(true);
+    setFailed(null);
     let emailText = '';
     let suggestions = DEFAULT_SUGGESTIONS;
     try {
       const result = await api.generateEmailResponse(body);
       emailText = result.email;
       if (result.suggestions?.length) suggestions = result.suggestions.slice(0, 2);
-    } catch {
-      emailText = fallbackEmailResponse(body).email;
-      suggestions = fallbackEmailResponse(body).suggestions;
+    } catch (e) {
+      setFailed({
+        message: e instanceof Error ? e.message : 'Could not write this email. Please try again.',
+        instruction: revising ? followInstruction : undefined,
+      });
+      return;
     } finally {
       setBusy(false);
     }
@@ -475,6 +482,7 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
                     type="button"
                     onClick={() => {
                       setActive(item);
+                      setFailed(null);
                       setShowPrompt(false);
                     }}
                     className={`block w-full rounded-lg px-2 py-1.5 text-left text-sm ${
@@ -650,6 +658,7 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
             ))}
           </div>
 
+          {failed ? <ToolErrorRetry className="mt-6" message={failed.message} busy={busy} onRetry={() => void draftEmail(failed.instruction)} /> : null}
           {followUpComposer}
           <p className={`${TOOL_MUTED} mt-3 text-center text-xs`}>Review AI output for accuracy. Follow school policies.</p>
           {notice ? <p className={`${TOOL_MUTED} mt-2 text-center text-xs font-semibold`}>{notice}</p> : null}
@@ -773,6 +782,7 @@ export function EmailResponder({ embedded = false }: { embedded?: boolean }) {
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {busy ? 'Generating...' : 'Generate'}
         </button>
+        {failed ? <ToolErrorRetry className="mt-6" message={failed.message} busy={busy} onRetry={() => void draftEmail()} /> : null}
         {notice ? <p className={`${TOOL_MUTED} mt-3 text-center text-xs font-semibold`}>{notice}</p> : null}
       </div>
       {historyOpen ? historyPanel : null}

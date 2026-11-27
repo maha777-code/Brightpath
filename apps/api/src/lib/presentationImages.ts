@@ -78,19 +78,21 @@ function sanitizeSvg(raw: string): string | null {
   return svg;
 }
 
-async function drawTeachingSvg(prompt: string): Promise<string | null> {
+async function drawTeachingSvg(prompt: string, deadline: number): Promise<string | null> {
   const key = process.env.GEMINI_API_KEY?.trim();
   if (!key) return null;
   for (const model of drawModels()) {
     if (failedModels.has(model)) continue;
     for (let attempt = 0; attempt < 2; attempt += 1) {
+      const remaining = deadline - Date.now();
+      if (remaining < 1_000) return null;
       try {
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(35_000),
+            signal: AbortSignal.timeout(Math.min(35_000, remaining)),
             body: JSON.stringify({
               contents: [
                 {
@@ -138,10 +140,14 @@ async function drawTeachingSvg(prompt: string): Promise<string | null> {
   return null;
 }
 
-/** Draws a picture only on slides whose prompt names a concept a student should see. */
+/**
+ * Draws a picture only on slides whose prompt names a concept a student should see.
+ * Stops drawing at `deadline` (epoch ms); later slides keep no picture.
+ */
 export async function attachPresentationImages(
   deck: PresentationResponse,
   input: PresentationPayload,
+  deadline = Number.POSITIVE_INFINITY,
 ): Promise<PresentationResponse> {
   const seeded = reuseImages(deck.slides, input.currentSlides ?? []);
   let budget = MAX_PICTURES - seeded.filter((slide) => slide.imageUrl).length;
@@ -153,7 +159,7 @@ export async function attachPresentationImages(
       slides.push(slide.imageUrl ? slide : { ...slide, imageUrl: undefined });
       continue;
     }
-    const imageUrl = await drawTeachingSvg(prompt);
+    const imageUrl = await drawTeachingSvg(prompt, deadline);
     if (!imageUrl) {
       slides.push({ ...slide, imageUrl: undefined });
       continue;

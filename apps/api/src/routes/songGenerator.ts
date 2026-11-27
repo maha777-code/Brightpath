@@ -17,6 +17,7 @@ function signedInId(req: AuthRequest): string | null {
   return req.teacherId ?? req.platformUserId ?? req.parentId ?? null;
 }
 import { generateSongLyrics } from '../services/llm.js';
+import { sendAiError } from '../lib/llm/errors.js';
 import { albumArtDataUrl, renderSongAudio } from '../lib/songAudio.js';
 
 const lyricsBody = z.object({
@@ -184,7 +185,7 @@ router.post('/songs/generate-lyrics', async (req: AuthRequest, res: Response) =>
     res.json(draft);
   } catch (err) {
     console.error('[teacher/songs/generate-lyrics] failed', err);
-    res.status(500).json({ error: 'Failed to generate lyrics' });
+    sendAiError(res, err, 'Something went wrong while writing the lyrics. Please try again.');
   }
 });
 

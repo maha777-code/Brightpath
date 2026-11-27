@@ -5,9 +5,7 @@ import {
   LESSON_PLAN_GRADE_LEVELS,
   PRESENTATION_SLIDE_OPTIONS,
   PRESENTATION_THEMES,
-  fallbackPresentation,
   presentationSlideTarget,
-  revisePresentation,
   slideLayout,
   type PresentationPayload,
   type PresentationResponse,
@@ -16,6 +14,7 @@ import {
   type PresentationTheme,
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
+import { ToolErrorRetry } from '@/components/tools/ToolErrorRetry';
 import {
   documentContext,
   documentImages,
@@ -318,6 +317,12 @@ export function PresentationGenerator() {
   const [criteriaFiles, setCriteriaFiles] = useState<AttachedDocument[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [failed, setFailed] = useState<{
+    body: PresentationPayload;
+    instruction: string;
+    isRevision: boolean;
+    message: string;
+  } | null>(null);
   const [deck, setDeck] = useState<PresentationResponse | null>(null);
   const [shown, setShown] = useState(0);
   const [phase, setPhase] = useState<'form' | 'studio'>('form');
@@ -371,14 +376,11 @@ export function PresentationGenerator() {
     };
   };
 
-  const run = async (extra?: string) => {
-    const instruction = extra?.trim() ?? '';
-    const isRevision = Boolean(instruction && deck);
-    if (!isRevision && !canGenerate) return;
-    if (topic.trim().length < 3) return;
+  const send = async (body: PresentationPayload, instruction: string, isRevision: boolean) => {
     setBusy(true);
     setRevising(isRevision);
     setError('');
+    setFailed(null);
     setPhase('studio');
     if (!isRevision) {
       seenDeck.current = false;
@@ -386,39 +388,42 @@ export function PresentationGenerator() {
       setShown(0);
       setThread([]);
     }
+    try {
+      const next = await api.generatePresentation(body);
+      setDeck(next);
+      if (isRevision) setThread((prev) => [...prev, instruction]);
+      setFollowUp('');
+    } catch (err) {
+      const message = err instanceof Error && err.message ? err.message : 'Could not generate the presentation.';
+      setError(message);
+      setFailed({ body, instruction, isRevision, message });
+      if (!isRevision) {
+        setDeck(null);
+        setPhase('form');
+      }
+    } finally {
+      setBusy(false);
+      setRevising(false);
+    }
+  };
+
+  const run = async (extra?: string) => {
+    const instruction = extra?.trim() ?? '';
+    const isRevision = Boolean(instruction && deck);
+    if (!isRevision && !canGenerate) return;
+    if (topic.trim().length < 3) return;
     const body = payload();
     if (isRevision && deck) {
       body.revision = instruction;
       body.currentSlides = deck.slides;
     }
-    try {
-      const next = await api.generatePresentation(body);
-      if (isRevision && deck) {
-        const unchanged =
-          next.slides.length === deck.slides.length &&
-          next.slides.every((slide, index) => slide.title === deck.slides[index]?.title && slide.bullets.join('|') === deck.slides[index]?.bullets.join('|'));
-        setDeck(unchanged ? revisePresentation(deck, instruction) : next);
-        setThread((prev) => [...prev, instruction]);
-      } else {
-        setDeck(next);
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : '';
-      if (!isRevision && /unauthorized|grade level/i.test(message)) {
-        setPhase('form');
-        setError(message || 'Could not generate the presentation.');
-      } else if (isRevision && deck) {
-        setDeck(revisePresentation(deck, instruction));
-        setThread((prev) => [...prev, instruction]);
-      } else {
-        setDeck(fallbackPresentation(body));
-      }
-    } finally {
-      setBusy(false);
-      setRevising(false);
-      setFollowUp('');
-    }
+    await send(body, instruction, isRevision);
   };
+
+  const retryFailed = (revision: boolean) =>
+    failed && failed.isRevision === revision && failed.message === error
+      ? () => void send(failed.body, failed.instruction, failed.isRevision)
+      : null;
 
   useEffect(() => {
     if (!deck) return;
@@ -550,6 +555,7 @@ export function PresentationGenerator() {
             >
               {revising ? 'Updating…' : 'Update slides'}
             </button>
+            <ToolErrorRetry message={error} busy={busy} onRetry={retryFailed(true)} />
             <button type="button" className="mv-pres-muted mt-2 w-full text-xs" onClick={() => setPhase('form')}>
               Edit the form
             </button>
@@ -727,7 +733,7 @@ export function PresentationGenerator() {
         <FileRow files={criteriaFiles} words={fileWords(criteriaFiles)} onPick={(list) => void attach('criteria', list)} onRemove={(id) => setCriteriaFiles((prev) => prev.filter((file) => file.id !== id))} />
 
         {overLimit ? <p className="mt-4 text-sm text-rose-300">File and description text must stay within {WORD_LIMIT.toLocaleString()} words.</p> : null}
-        {error ? <p className="mt-4 text-sm text-rose-300">{error}</p> : null}
+        <ToolErrorRetry message={error} busy={busy} onRetry={retryFailed(false)} />
 
         <button
           type="submit"

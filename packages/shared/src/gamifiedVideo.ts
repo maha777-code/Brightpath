@@ -167,6 +167,30 @@ export function fallbackGamifiedVideoSpec(ctx: {
   };
 }
 
+const CHECKPOINT_MODES: GamifiedVideoMode[] = ['quiz', 'skill', 'escape', 'branch'];
+
+/**
+ * Says what core checkpoint content is missing from model output, or null when all four are complete.
+ * parseGamifiedVideoSpec fills missing fields from its template, so run this on AI output first.
+ */
+export function gamifiedVideoSpecProblem(raw: unknown): string | null {
+  const rec = asRecord(raw) ?? {};
+  const nodes = Array.isArray(rec.nodes) ? rec.nodes.map(asRecord) : [];
+  if (nodes.length < CHECKPOINT_MODES.length) return `only ${nodes.length} checkpoints`;
+  for (const [index, node] of nodes.slice(0, CHECKPOINT_MODES.length).entries()) {
+    const label = `checkpoint ${index + 1}`;
+    if (!node || !asString(node.prompt)) return `${label} has no prompt`;
+    const mode = asString(node.mode, CHECKPOINT_MODES[index]);
+    if (mode === 'escape') {
+      if (!asString(node.code)) return `${label} has no lock code`;
+      continue;
+    }
+    const options = asChoices(node.options, []);
+    if (options.length < 2 || !options.some((option) => option.correct)) return `${label} has no answer options`;
+  }
+  return null;
+}
+
 export function parseGamifiedVideoSpec(
   raw: unknown,
   fallback: GamifiedVideoSpec,

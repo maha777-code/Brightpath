@@ -15,6 +15,7 @@ import {
 } from '@brightpath/shared';
 import { api } from '@/lib/api';
 import { AddFileMenu } from '@/components/tools/AddFileMenu';
+import { ToolErrorRetry } from '@/components/tools/ToolErrorRetry';
 import { GameArcade } from '@/components/games/arcade/GameArcade';
 import { ArcadeShareBar } from '@/components/games/arcade/ArcadeShareBar';
 import {
@@ -23,7 +24,6 @@ import {
   TOOL_BREADCRUMB_LINK,
   TOOL_CARD,
   TOOL_CHOICE,
-  TOOL_ERROR,
   TOOL_FIELD,
   TOOL_GENERATE,
   TOOL_HINT,
@@ -153,6 +153,7 @@ export function GamifiedActivityGenerator() {
       const next = await api.generateGamifiedActivity(payload);
       setResult(next);
     } catch (err) {
+      setResult(null);
       setError(err instanceof Error ? err.message : 'Failed to generate gamified activity.');
     } finally {
       setBusy(false);
@@ -301,7 +302,7 @@ export function GamifiedActivityGenerator() {
           </ul>
         ) : null}
 
-        {error ? <p className={TOOL_ERROR}>{error}</p> : null}
+        <ToolErrorRetry message={error} busy={busy} onRetry={canGenerate ? () => void generate() : null} />
 
         <button
           type="button"

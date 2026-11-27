@@ -17,7 +17,7 @@ import {
   type ClassroomWorkspace,
 } from '@brightpath/shared';
 import { prisma } from '../lib/prisma.js';
-import { getActiveProvider } from '../lib/llm/provider.js';
+import { aiUnusable, requireAiProvider, runAi } from '../lib/llm/errors.js';
 
 let tableReady = false;
 
@@ -299,32 +299,46 @@ function fallbackRubric(topic: string): ClassroomRubricCriterion[] {
   ];
 }
 
-async function generateRubric(topic: string): Promise<{ instructions: string; rubric: ClassroomRubricCriterion[] }> {
-  const provider = getActiveProvider();
-  if (!provider) {
-    return {
-      instructions: `Students will explain ${topic} using the class notes, then support the claim with one activity or example.`,
-      rubric: fallbackRubric(topic),
-    };
-  }
-  try {
-    const raw = await provider.completeJson<{ instructions?: string; rubric?: ClassroomRubricCriterion[] }>({
-      temperature: 0.3,
-      system: 'Write a classroom assignment brief and analytic rubric. JSON only. No publisher or copyright text.',
-      user: `Topic: ${topic}
-Return {"instructions":"...", "rubric":[{"name":"","points":4,"levels":[{"label":"Exceeds","points":4,"descriptor":""}]}]}`,
+/** Must stay below the web client's 90s classroom-action timeout. */
+const RUBRIC_LLM_TIMEOUT_MS = 60_000;
+
+/** Keeps criteria that have a name and at least one level with a descriptor. */
+function usableRubric(value: unknown): ClassroomRubricCriterion[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item): ClassroomRubricCriterion[] => {
+    const rec = (item ?? {}) as { name?: unknown; points?: unknown; levels?: unknown };
+    const name = String(rec.name ?? '').trim();
+    const levels = (Array.isArray(rec.levels) ? rec.levels : []).flatMap((level) => {
+      const lv = (level ?? {}) as { label?: unknown; points?: unknown; descriptor?: unknown };
+      const label = String(lv.label ?? '').trim();
+      const descriptor = String(lv.descriptor ?? '').trim();
+      if (!label || !descriptor) return [];
+      return [{ label, points: typeof lv.points === 'number' ? lv.points : 0, descriptor }];
     });
-    const rubric = Array.isArray(raw.rubric) && raw.rubric.length ? raw.rubric : fallbackRubric(topic);
-    return {
-      instructions: String(raw.instructions || '').trim() || `Explain ${topic} with one class example.`,
-      rubric,
-    };
-  } catch {
-    return {
-      instructions: `Students will explain ${topic} using the class notes, then support the claim with one activity or example.`,
-      rubric: fallbackRubric(topic),
-    };
-  }
+    if (!name || !levels.length) return [];
+    const points = typeof rec.points === 'number' ? rec.points : Math.max(...levels.map((level) => level.points));
+    return [{ name, points, levels }];
+  });
+}
+
+async function generateRubric(topic: string): Promise<{ instructions: string; rubric: ClassroomRubricCriterion[] }> {
+  const provider = requireAiProvider('rubric');
+  const raw = await runAi(
+    'rubric',
+    () =>
+      provider.completeJson<{ instructions?: string; rubric?: unknown }>({
+        temperature: 0.3,
+        system: 'Write a classroom assignment brief and analytic rubric. JSON only. No publisher or copyright text.',
+        user: `Topic: ${topic}
+Return {"instructions":"...", "rubric":[{"name":"","points":4,"levels":[{"label":"Exceeds","points":4,"descriptor":""}]}]}`,
+        timeoutMs: RUBRIC_LLM_TIMEOUT_MS,
+      }),
+    { timeoutHint: 'Please try again.' },
+  );
+  const rubric = usableRubric(raw.rubric);
+  const instructions = String(raw.instructions || '').trim();
+  if (!rubric.length || !instructions) throw aiUnusable('rubric', 'Please try again.');
+  return { instructions, rubric };
 }
 
 async function loadWorkspace(ownerKey: string, actor: ClassroomActor): Promise<ClassroomWorkspace> {
