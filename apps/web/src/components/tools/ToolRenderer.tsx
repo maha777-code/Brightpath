@@ -22,24 +22,29 @@ interface ToolRendererProps {
 
 export function ToolRenderer({ tool, mode = 'production', embed = false, hideHeader = false, onClose }: ToolRendererProps) {
   const embedded = mode === 'admin-preview' || embed;
-  const toolSuppliesHeader = !embedded && tool.componentKey !== 'CurriculumStudio';
+  /** Classroom is a full app, not a generator wizard. */
+  const isClassroom = tool.componentKey === 'Classroom';
+  /** Dedicated pages get AIToolHeader here; wizard modals pass hideHeader and supply their own surface. */
+  const wrapWithWizard = !hideHeader && !isClassroom;
+  /** Skip per-tool breadcrumbs / nested AIToolHeader — chrome comes from the wizard shell or modal. */
+  const childEmbedded = true;
 
   const renderActualTool = () => {
     switch (tool.componentKey) {
       case 'WorksheetGenerator':
-        return <WorksheetGenerator />;
+        return <WorksheetGenerator embedded={childEmbedded} />;
       case 'QuizGenerator':
-        return <QuizGenerator />;
+        return <QuizGenerator embedded={childEmbedded} />;
       case 'LessonPlanGenerator':
-        return <LessonPlanGenerator embedded={embedded} />;
+        return <LessonPlanGenerator embedded={childEmbedded} />;
       case 'SongGenerator':
-        return <SongGeneratorDashboard embedded={embedded} />;
+        return <SongGeneratorDashboard embedded={childEmbedded} />;
       case 'GamifiedActivity':
-        return <GamifiedActivityGenerator />;
+        return <GamifiedActivityGenerator embedded={childEmbedded} />;
       case 'Classroom':
         return <ClassroomApp />;
       case 'PresentationGenerator':
-        return <PresentationGenerator />;
+        return <PresentationGenerator embedded={childEmbedded} />;
       case 'CurriculumStudio':
         return (
           <div className={TOOL_PAGE}>
@@ -56,13 +61,13 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
           </div>
         );
       default:
-        if (tool.id === 'family-email') return <EmailResponder embedded={embedded} />;
-        return <CustomDynamicTool tool={tool} />;
+        if (tool.id === 'family-email') return <EmailResponder embedded={childEmbedded} />;
+        return <CustomDynamicTool tool={tool} embedded={childEmbedded} />;
     }
   };
 
   return (
-    <div className="mv-tool-surface mv-text-plus-2 relative w-full min-w-0">
+    <div className="mv-tool-surface mv-text-plus-2 relative flex h-full min-h-0 w-full min-w-0 flex-col">
       {mode === 'admin-preview' ? (
         <div className="flex shrink-0 items-center justify-between border-b border-slate-800 bg-[#080d1a] px-6 py-2.5 text-xs font-bold text-cyan-400">
           <span className="flex items-center gap-2">
@@ -80,25 +85,20 @@ export function ToolRenderer({ tool, mode = 'production', embed = false, hideHea
           ) : null}
         </div>
       ) : null}
-      {hideHeader || toolSuppliesHeader ? (
-        <div className={embedded ? 'min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-6' : 'min-h-0 flex-1'}>
-          {renderActualTool()}
-        </div>
-      ) : (
+      {wrapWithWizard ? (
         <AIToolHeader
           toolName={tool.title}
           description={tool.description}
           onClose={onClose}
-          defaultExpanded={tool.id === 'quiz-generator'}
-          className={
-            tool.id === 'quiz-generator'
-              ? 'flex h-full min-h-0 w-full flex-col'
-              : 'flex min-h-0 flex-1 flex-col px-4 pt-4 sm:px-6'
-          }
+          className="flex h-full min-h-0 w-full flex-1 flex-col px-4 pt-4 sm:px-6"
           contentClassName="min-h-0 flex-1"
         >
           {renderActualTool()}
         </AIToolHeader>
+      ) : (
+        <div className={embedded ? 'min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-6' : 'min-h-0 flex-1'}>
+          {renderActualTool()}
+        </div>
       )}
     </div>
   );

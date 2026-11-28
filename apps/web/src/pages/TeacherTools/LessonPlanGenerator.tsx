@@ -42,8 +42,6 @@ import { AddFileMenu } from '@/components/tools/AddFileMenu';
 import { AIToolHeader } from '@/components/tools/AIToolHeader';
 import {
   TOOL_ACCENT_BUTTON,
-  TOOL_BREADCRUMB,
-  TOOL_BREADCRUMB_LINK,
   TOOL_CARD,
   TOOL_FIELD,
   TOOL_GENERATE,
@@ -1466,11 +1464,6 @@ export default function LessonPlanGenerator({ embedded = false }: { embedded?: b
         ref={scrollRef}
         className={`${TOOL_PAGE} lesson-plan-studio custom-scrollbar flex-1 overflow-y-auto`}
       >
-        <nav className={TOOL_BREADCRUMB}>
-          <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
-          <span className={TOOL_MUTED}>›</span>
-          <span>Lesson Plan Generator</span>
-        </nav>
         {plan && lessonId && activePrompt ? errorNotice : null}
         {plan && lessonId && activePrompt ? (
           <LessonPlanResult

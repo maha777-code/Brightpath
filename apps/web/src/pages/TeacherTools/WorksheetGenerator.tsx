@@ -473,6 +473,7 @@ function WorksheetStudio({
   actionError,
   onRetryAction,
   pane = false,
+  embedded = false,
 }: {
   worksheet: WorksheetGeneratorResponse;
   payload: WorksheetGeneratorPayload;
@@ -492,6 +493,7 @@ function WorksheetStudio({
   actionError?: string | null;
   onRetryAction?: (() => void) | null;
   pane?: boolean;
+  embedded?: boolean;
 }) {
   const [title, setTitle] = useState(worksheet.title);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -937,13 +939,17 @@ function WorksheetStudio({
       }
     >
       <header className="mb-6 flex w-full shrink-0 flex-wrap items-center justify-between gap-3">
-        <nav className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
-          <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
-          <span className={TOOL_MUTED}>›</span>
-          <span>Worksheet Generator</span>
-          <span className={TOOL_MUTED}>›</span>
-          <span className="truncate font-semibold">{title || crumb}</span>
-        </nav>
+        {embedded ? (
+          <p className="min-w-0 truncate text-sm font-semibold">{title || crumb}</p>
+        ) : (
+          <nav className="flex min-w-0 flex-wrap items-center gap-2 text-sm" aria-label="Breadcrumb">
+            <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
+            <span className={TOOL_MUTED}>›</span>
+            <span>Worksheet Generator</span>
+            <span className={TOOL_MUTED}>›</span>
+            <span className="truncate font-semibold">{title || crumb}</span>
+          </nav>
+        )}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -1391,9 +1397,12 @@ function WorksheetStudio({
 export function WorksheetGenerator({
   favorited: favoritedProp,
   onToggleFavorite,
+  embedded = false,
 }: {
   favorited?: boolean;
   onToggleFavorite?: () => void;
+  /** When true, parent already shows the shared wizard breadcrumb / expand / close chrome. */
+  embedded?: boolean;
 }) {
   const [gradeLevel, setGradeLevel] = useState('9th grade');
   const [topicOrText, setTopicOrText] = useState('');
@@ -1699,6 +1708,7 @@ export function WorksheetGenerator({
           <div>
             <WorksheetStudio
               pane
+              embedded={embedded}
               worksheet={worksheet!}
               payload={submitted!}
               busy={busy}
@@ -1719,11 +1729,13 @@ export function WorksheetGenerator({
           </div>
         ) : (
         <>
-        <nav className={TOOL_BREADCRUMB}>
-          <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
-          <span className={TOOL_MUTED}>›</span>
-          <span>Worksheet Generator</span>
-        </nav>
+        {embedded ? null : (
+          <nav className={TOOL_BREADCRUMB} aria-label="Breadcrumb">
+            <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
+            <span className={TOOL_MUTED}>›</span>
+            <span>Worksheet Generator</span>
+          </nav>
+        )}
 
         <div className={TOOL_CARD}>
               <header className="flex items-start justify-between gap-4">
@@ -1751,14 +1763,16 @@ export function WorksheetGenerator({
                   >
                     <RotateCcw className="h-4 w-4" />
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className={TOOL_SECONDARY}
-                  >
-                    <X className="h-4 w-4" />
-                    <span>Close</span>
-                  </button>
+                  {embedded ? null : (
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className={TOOL_SECONDARY}
+                    >
+                      <X className="h-4 w-4" />
+                      <span>Close</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={TOOL_ACCENT_BUTTON}

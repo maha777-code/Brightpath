@@ -233,9 +233,12 @@ function QuizOutputCard({
 export function QuizGenerator({
   favorited,
   onToggleFavorite,
+  embedded = false,
 }: {
   favorited?: boolean;
   onToggleFavorite?: () => void;
+  /** When true, parent already shows tool chrome / breadcrumb (wizard modal). */
+  embedded?: boolean;
 }) {
   const payloadRef = useRef<QuizGeneratorPayload | null>(null);
   const handlePayloadChange = useCallback((payload: QuizGeneratorPayload | null) => {
@@ -335,11 +338,13 @@ export function QuizGenerator({
         </div>
       ) : null}
       <div className={TOOL_PAGE} style={editorOpen ? { display: 'none' } : undefined}>
-        <nav className={TOOL_BREADCRUMB}>
-          <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
-          <span className={TOOL_MUTED}>›</span>
-          <span>Multiple Choice Quiz / Assessment Generator</span>
-        </nav>
+        {embedded ? null : (
+          <nav className={TOOL_BREADCRUMB} aria-label="Breadcrumb">
+            <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
+            <span className={TOOL_MUTED}>›</span>
+            <span>Multiple Choice Quiz / Assessment Generator</span>
+          </nav>
+        )}
         <QuizGeneratorForm
           favorited={favorited}
           onToggleFavorite={onToggleFavorite}

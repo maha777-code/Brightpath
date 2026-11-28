@@ -19,7 +19,13 @@ import {
 } from '@/components/tools/toolTheme';
 
 /** Same topic form the teacher hub uses for tools that do not have a dedicated generator yet. */
-export function CustomDynamicTool({ tool }: { tool: Pick<ToolDefinition, 'id' | 'title' | 'description' | 'category'> }) {
+export function CustomDynamicTool({
+  tool,
+  embedded = false,
+}: {
+  tool: Pick<ToolDefinition, 'id' | 'title' | 'description' | 'category'>;
+  embedded?: boolean;
+}) {
   const [topic, setTopic] = useState('');
   const [grade, setGrade] = useState('Class 9');
   const [files, setFiles] = useState<string[]>([]);
@@ -29,11 +35,13 @@ export function CustomDynamicTool({ tool }: { tool: Pick<ToolDefinition, 'id' | 
 
   return (
     <div className={TOOL_PAGE}>
-      <nav className={TOOL_BREADCRUMB}>
-        <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
-        <span className={TOOL_MUTED}>›</span>
-        <span>{tool.title}</span>
-      </nav>
+      {embedded ? null : (
+        <nav className={TOOL_BREADCRUMB} aria-label="Breadcrumb">
+          <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
+          <span className={TOOL_MUTED}>›</span>
+          <span>{tool.title}</span>
+        </nav>
+      )}
       <form
         className={TOOL_CARD}
         onSubmit={(event) => {

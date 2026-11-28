@@ -67,7 +67,7 @@ function openHtmlPreview(html: string) {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-export function GamifiedActivityGenerator() {
+export function GamifiedActivityGenerator({ embedded = false }: { embedded?: boolean }) {
   const [kind, setKind] = useState<GamifiedActivityKind>('game_arcade');
   const [subject, setSubject] = useState('');
   const [topic, setTopic] = useState('');
@@ -170,11 +170,13 @@ export function GamifiedActivityGenerator() {
 
   return (
     <div className={TOOL_PAGE}>
-      <nav className={TOOL_BREADCRUMB}>
-        <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
-        <span className={TOOL_MUTED}>›</span>
-        <span>Gamified Activity</span>
-      </nav>
+      {embedded ? null : (
+        <nav className={TOOL_BREADCRUMB} aria-label="Breadcrumb">
+          <Link to="/teacher/tools" className={TOOL_BREADCRUMB_LINK}>Teacher Tools</Link>
+          <span className={TOOL_MUTED}>›</span>
+          <span>Gamified Activity</span>
+        </nav>
+      )}
       <div className={TOOL_CARD}>
         <div className="flex items-start justify-between gap-4">
           <div>

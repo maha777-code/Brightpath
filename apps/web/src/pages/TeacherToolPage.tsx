@@ -26,6 +26,7 @@ export function TeacherToolLauncher({
   const entry = getRegistryTool(tool.id) ?? toToolDefinition(tool);
   const rendered = <ToolRenderer tool={entry} mode="production" hideHeader={embedded} />;
 
+  // Classroom is a full workspace app — keep its own shell without the generator wizard card.
   if (tool.id === 'classroom') {
     if (embedded) return rendered;
     return (
@@ -37,70 +38,10 @@ export function TeacherToolLauncher({
     );
   }
 
-  if (tool.id === 'gamified-activity') {
-    if (embedded) return rendered;
-    return (
-      <TeacherWorkspaceLayout>
-        <main className="flex w-full justify-center py-6 lg:py-8">
-          <div className="w-4/5 min-w-0">{rendered}</div>
-        </main>
-      </TeacherWorkspaceLayout>
-    );
-  }
+  if (embedded) return rendered;
 
-  if (tool.id === 'quiz-generator') {
-    const quiz = rendered;
-    if (embedded) return quiz;
-    return (
-      <TeacherWorkspaceLayout>
-        <main className="flex w-full justify-center py-6 lg:py-8">
-          <div className="w-4/5 min-w-0">{quiz}</div>
-        </main>
-      </TeacherWorkspaceLayout>
-    );
-  }
-
-  if (tool.id === 'worksheet-generator') {
-    const worksheet = rendered;
-    if (embedded) return worksheet;
-    return <DashboardLayout>{worksheet}</DashboardLayout>;
-  }
-
-  if (tool.id === 'song-generator' || tool.id === 'lesson-plan') {
-    return rendered;
-  }
-
-  if (tool.id === 'presentation-generator') {
-    if (embedded) return rendered;
-    return (
-      <TeacherWorkspaceLayout>
-        <main className="w-full min-w-0">{rendered}</main>
-      </TeacherWorkspaceLayout>
-    );
-  }
-
-  if (tool.id === 'family-email') {
-    if (embedded) return rendered;
-    return (
-      <TeacherWorkspaceLayout>
-        <main className="w-full px-6 py-6 lg:px-10 lg:py-8">{rendered}</main>
-      </TeacherWorkspaceLayout>
-    );
-  }
-
-  const body = (
-    <div className="space-y-5">
-      {rendered}
-    </div>
-  );
-
-  if (embedded) return body;
-
-  return (
-    <TeacherWorkspaceLayout>
-      <main className="w-full max-w-3xl space-y-6 px-6 py-6 lg:px-10 lg:py-8">{body}</main>
-    </TeacherWorkspaceLayout>
-  );
+  // Match Educational Song Generator: full-viewport shell + shared AIToolHeader chrome.
+  return <DashboardLayout>{rendered}</DashboardLayout>;
 }
 
 export default function TeacherToolPage() {

@@ -308,7 +308,7 @@ function VisualSlide({ slide, index, colors }: { slide: PresentationSlide; index
   );
 }
 
-export function PresentationGenerator() {
+export function PresentationGenerator({ embedded = false }: { embedded?: boolean }) {
   const [gradeLevel, setGradeLevel] = useState('9th grade');
   const [slideCount, setSlideCount] = useState<PresentationSlideCount>('standard');
   const [topic, setTopic] = useState('');
@@ -630,11 +630,13 @@ export function PresentationGenerator() {
 
   return (
     <div className="mv-presentation mv-pres-form min-h-[780px] w-full px-4 py-8 md:px-8">
-      <nav className="mb-6 flex w-full items-center gap-2 text-sm">
-        <Link to="/teacher/tools" className="mv-pres-link no-underline">Teacher Tools</Link>
-        <span className="mv-pres-muted">›</span>
-        <span>Presentation Generator</span>
-      </nav>
+      {embedded ? null : (
+        <nav className="mb-6 flex w-full items-center gap-2 text-sm" aria-label="Breadcrumb">
+          <Link to="/teacher/tools" className="mv-pres-link no-underline">Teacher Tools</Link>
+          <span className="mv-pres-muted">›</span>
+          <span>Presentation Generator</span>
+        </nav>
+      )}
       <form
         className="mv-pres-card w-full rounded-2xl p-6 shadow-2xl md:p-8"
         onSubmit={(event) => {
