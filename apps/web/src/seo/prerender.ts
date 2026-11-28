@@ -14,6 +14,7 @@ import {
   SITE_URL,
   SUPPORT_EMAIL,
   TEACHER_TOOL_NAMES,
+  TESTIMONIALS,
   TRUST_FACTS,
   type PublicPage,
 } from '../content/marketing';
@@ -67,9 +68,18 @@ function faqHtml(): string {
 }
 
 function trustHtml(): string {
+  const testimonials =
+    TESTIMONIALS.length === 0
+      ? ''
+      : `<section><h2>What schools, tutors and parents say</h2>${TESTIMONIALS.map(
+          (item) =>
+            `<figure><blockquote>${esc(item.quote)}</blockquote><figcaption>${esc(item.author)} — ${esc(item.role)}${
+              item.organization ? `, ${esc(item.organization)}` : ''
+            }</figcaption></figure>`,
+        ).join('')}</section>`;
   return `<section><h2>Built for school data from day one</h2><ul>${TRUST_FACTS.map(
     (fact) => `<li><strong>${esc(fact.title)}:</strong> ${esc(fact.detail)}</li>`,
-  ).join('')}</ul><p><a href="/security">Security Overview</a> · <a href="/privacy">Privacy Policy</a></p></section>`;
+  ).join('')}</ul><p><a href="/security">Security Overview</a> · <a href="/privacy">Privacy Policy</a></p></section>${testimonials}`;
 }
 
 function comparisonHtml(): string {

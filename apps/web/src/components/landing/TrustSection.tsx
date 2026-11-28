@@ -1,6 +1,49 @@
 import { Link } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
-import { TESTIMONIALS, TRUST_FACTS } from '@/content/marketing';
+import { TESTIMONIALS, TRUST_FACTS, type Testimonial } from '@/content/marketing';
+
+const AVATAR_COLORS = ['#2563eb', '#7c3aed', '#db2777', '#0891b2'];
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ''}${parts[parts.length - 1][0] ?? ''}`.toUpperCase();
+}
+
+function TestimonialCard({ item, index }: { item: Testimonial; index: number }) {
+  return (
+    <figure className="flex h-full flex-col rounded-2xl border border-cyan-500/30 bg-slate-900/60 p-6">
+      <blockquote className="flex-1 text-base leading-relaxed text-slate-200">
+        <span className="mr-1 text-2xl font-serif leading-none text-cyan-400/80" aria-hidden="true">
+          “
+        </span>
+        {item.quote}
+      </blockquote>
+      <figcaption className="mt-5 flex items-center gap-3">
+        <span
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+          style={{ backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }}
+          aria-hidden="true"
+        >
+          {initials(item.author)}
+        </span>
+        <span className="min-w-0 text-sm">
+          <span className="block font-bold text-white">{item.author}</span>
+          <span className="block text-slate-400">
+            {item.role}
+            {item.organization ? ` · ${item.organization}` : ''}
+          </span>
+          {item.audience ? (
+            <span className="mt-1 inline-block text-xs font-semibold uppercase tracking-wide text-cyan-400/90">
+              {item.audience}
+            </span>
+          ) : null}
+        </span>
+      </figcaption>
+    </figure>
+  );
+}
 
 export function TrustSection() {
   return (
@@ -38,19 +81,20 @@ export function TrustSection() {
         </div>
 
         {TESTIMONIALS.length > 0 ? (
-          <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-            {TESTIMONIALS.map((item) => (
-              <figure key={item.author} className="rounded-2xl border border-cyan-500/30 bg-slate-900/60 p-6">
-                <blockquote className="text-base leading-relaxed text-slate-200">“{item.quote}”</blockquote>
-                <figcaption className="mt-4 text-sm">
-                  <span className="font-bold text-white">{item.author}</span>
-                  <span className="block text-slate-400">
-                    {item.role}
-                    {item.organization ? `, ${item.organization}` : ''}
-                  </span>
-                </figcaption>
-              </figure>
-            ))}
+          <div className="mt-16">
+            <div className="mb-8 max-w-3xl space-y-2">
+              <h3 className="text-3xl font-extrabold tracking-tight text-white">
+                What schools, tutors and parents say
+              </h3>
+              <p className="text-lg text-slate-300">
+                Real feedback from people using MindVault with their classes and families.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {TESTIMONIALS.map((item, index) => (
+                <TestimonialCard key={item.author} item={item} index={index} />
+              ))}
+            </div>
           </div>
         ) : null}
       </div>

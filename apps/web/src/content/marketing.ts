@@ -164,10 +164,49 @@ export const TRUST_FACTS: TrustFact[] = [
   },
 ];
 
-export type Testimonial = { quote: string; author: string; role: string; organization?: string };
+export type Testimonial = {
+  quote: string;
+  author: string;
+  role: string;
+  organization?: string;
+  audience?: 'Parent' | 'School' | 'Tutoring centre';
+};
 
 /** Only add quotes from real MindVault users who agreed to be named. The section stays hidden while empty. */
-export const TESTIMONIALS: Testimonial[] = [];
+export const TESTIMONIALS: Testimonial[] = [
+  {
+    quote:
+      "We love MindVault's gamified approach! It breaks down concepts so they're easy and quick to understand. Seeing my child actually enjoy learning and stay interested has taken so much stress off me as a parent.",
+    author: 'Revanth B R',
+    role: 'Parent',
+    organization: 'Harrow International School',
+    audience: 'Parent',
+  },
+  {
+    quote:
+      "Implementing MindVault was a breeze, and managing our student records in one place couldn't be easier. It saves our teachers around 8 hours a week with one-click worksheets and lesson plans. Most importantly, the gamified videos and activities help students understand concepts effortlessly, and we're already seeing great progress in their results.",
+    author: 'Meeti SG',
+    role: 'Principal',
+    organization: 'Vasavi Vidya Peeta',
+    audience: 'School',
+  },
+  {
+    quote:
+      "Getting my child to focus on studying used to be a daily struggle, so MindVault has been a game-changer for us. The gamified lessons make tricky topics click right away, and knowing they're genuinely having fun while learning is a massive relief.",
+    author: 'Rahul',
+    role: 'Parent',
+    organization: 'Oxford International School',
+    audience: 'Parent',
+  },
+  {
+    quote:
+      'Running a tutoring center means juggling schedules, student records, and prep work, and MindVault simplified all of it from day one. Setup was effortless, and having our entire student database in one place keeps our operations running smoothly. Our tutors save around 8 hours a week with one-click lesson plans and worksheets, giving them more energy to focus on teaching. Best of all, the gamified videos and activities help concepts click faster—and the jump in student results keeps parents thrilled.',
+    author: 'Ravi Shankar',
+    role: 'Owner',
+    organization: 'PSK Academy',
+    audience: 'Tutoring centre',
+  },
+];
 
 export type PublicPage = { path: string; title: string; description: string };
 
